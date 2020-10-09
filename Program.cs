@@ -1,16 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System.IO;
 
 namespace MFFDataApp
 {
     public class Program
     {
-        public Dictionary<string,Component> Components { get; set; }
-        public static AssetBundle Assets { get; set; }
+        // prolly remove this
+        public static AssetBundle Assets;
+        const string gameName = @"Marvel Future Fight";
+        const string dataDir = @"/Users/chjones/Development/Marvel Future Fight/MffData/data";
+        const string outputDir = dataDir;
         public static void Main()
         {
-            Assets = new AssetBundle();
-            Assets.Load();
-            Assets.ToJsonFile();
+            if ( ! Directory.Exists(dataDir) ) {
+                throw new DirectoryNotFoundException();
+            }
+            Game game = new Game( gameName, new DirectoryInfo(dataDir) );
+            game.LoadAllData();
+            // some data class thing to json output
         }
     }
 }

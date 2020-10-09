@@ -1,21 +1,103 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace MFFDataApp
 {
     public class Game
     {
-        public string Name { get; set; }
-        public List<Version> Versions { get; set; }
+        string Name { get; set; }
+        DataDirectory dataDir { get; set; }
+        Dictionary<string, Version> Versions { get; set; }
+        public Game(DirectoryInfo dir) {
+            dataDir = new DataDirectory(dir);
+            Versions = new Dictionary<string, Version>();
+        }
+        public Game(string gameName, DirectoryInfo dir) : this( dir ) {
+            Name = gameName;
+        }
+        // public Game(string gameName, string versionName, DirectoryInfo dir) : this ( gameName, dir ) {
+        //     DirectoryInfo versionDir = dataDir.GetVersionDir(versionName);
+        //     Version version = new Version(versionName, versionDir);
+        //     Versions[versionName] = version;
+        // }
+        // public void LoadAssets(string version) {
+        //     // foreach ( Version addedVersion in Versions ) {
+
+        //     // }
+        //     // LoadAssets(  );
+        // }
+        public void LoadAssets(string version) {
+            Version newVersion = new Version();
+            // foreach ( Version currentVersion in Versions ) {
+            //     if ( currentVersion.Name == version ) {
+            //         newVersion = currentVersion;
+            //         break;
+            //     }
+            // }
+            newVersion.LoadAssets();
+            if ( newVersion.Name == null ) {
+                newVersion.Name = version;
+                // Versions.Add(newVersion);
+            }
+        }
+        public void LoadAllAssets() {
+            // foreach ( Version version in Versions ) {
+            //     LoadAssets(version);
+            // }
+        }
+        public void LoadComponents(Version version) {
+            version.LoadComponents();
+        }
+         public void LoadAllComponents() {
+            // foreach ( Version version in Versions ) {
+            //     LoadComponents(version);
+            // }
+        }
+        public void LoadAllVersions() {
+            LoadAllAssets();
+            LoadAllComponents();
+        }
+        public void LoadAllData() {
+            // Versions = dataDir.GetVersions();
+            LoadAllVersions();
+        }
     }
     public class Version
     {
-        public string Number { get; set; }
-        public List<Component> Components { get; set; }
-        public AssetBundle Assets { get; set; }
+        public string Name { get; set; }
+        DirectoryInfo dir { get; set; }
+        List<Component> Components { get; set; }
+        AssetBundle Assets { get; set; }
+        
+        public Version() {
+            Components = new List<Component>();
+            Assets = new AssetBundle();
+        }
+        public Version(string versionName) : this () {
+            Name = versionName;
+        }
+        public Version(string versionName, DirectoryInfo versionDir) : this (versionName) {
+            dir = versionDir;
+        }
+        public void LoadAssets() {
+            Assets.Load();
+        }
+        public void LoadComponents() {
+            foreach (Component component in Components) {
+                LoadComponent(component);
+            }
+        }
+        public void LoadComponent(Component component) {
+            component.Load();
+            Components.Add(component);
+        }
     }
     public class Component
     {
+        public virtual void Load() {
+
+        }
     }
     public class Roster : Component
     {
@@ -23,9 +105,19 @@ namespace MFFDataApp
     }
     public class Character
     {
+        public string heroId;
+        public string leaderSkillId;
         public string Name { get; set; }
         public List<Uniform> Uniforms { get; set; }
         public Skill[] Skills { get; set; }
+        public Ability[] Abilities { get; set; }
+        public string species;
+        public string WorldBossAbility { get; set; }
+        public string Stars { get; set; }
+    }
+    public class Ability
+    {
+        public string abilityId;
     }
     public class Uniform
     {
@@ -55,7 +147,7 @@ namespace MFFDataApp
     class Shadowland : Component
     {
         ShadowlandFloor[] BaseFloors;
-        public void LoadData()
+        public override void Load()
         {
             BaseFloors = new ShadowlandFloor[35];
             List<AssetObject> shadowlandFloors = Program.Assets.AssetFiles["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
@@ -116,9 +208,20 @@ namespace MFFDataApp
     }
     public class ComicCard
     {
-
+        public string cardId;
     }
+    public class ComicCardCollection
+    {
+        public ComicCard[] Cards { get; set; }
+        public string cardGroup;
+        public string abilityId;
+        public string abilityParam;
 
+        private void LoadById(string id)
+        {
+            
+        }
+    }
     public class Reward
     {
         public Item item { get; set; }
@@ -133,7 +236,7 @@ namespace MFFDataApp
         public FuturePassStep[] Steps { get; set; }
         public Dictionary<int, int> StagePoints { get; set; }
 
-        public void Load()
+        public override void Load()
         {
             AssetBundle Assets = Program.Assets;
             string seasonAssetName = "text/data/future_pass.asset";

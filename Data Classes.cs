@@ -8,7 +8,141 @@ using System.Text.RegularExpressions;
 
 namespace MFFDataApp
 {
-    public class AssetBundle : Component
+    // DataDirectory need not be a proper directory tree, but forms a secondary rooted
+    // directory hierarchy. Specifically, construction requires a single directory 
+    // argument dir that will be the root of this abstracted tree and be used to identify
+    // games or versions that are implicit in method calls. However, explicit calls
+    // may include game directories and version directories outside the filesystem 
+    // directories rooted in dir. Similarly, added gameDirs and versionDirs will then be 
+    // available to be used for implicit calls.
+    public class DataDirectory {
+        string Game { get; set; }
+        DirectoryInfo dir { get; set; }
+        List<DirectoryInfo> dirs { get; set; }
+        List<DirectoryInfo> gameDirs { get; set; }
+        Dictionary< string, List<DirectoryInfo> > versionDirs { get; set; }
+        enum dirType {
+            data, version, game
+        }
+        public DataDirectory() {
+            dirs = new List<DirectoryInfo>();
+            gameDirs = new List<DirectoryInfo>();
+            versionDirs = new Dictionary< string, List<DirectoryInfo> >();
+        }
+        // public DataDirectory(DirectoryInfo directory) : this() {
+            // switch ( GetDirectoryType(directory) ) {
+            //     case dirType.data: 
+            //         dirs.Add(directory);
+            //         break;
+            //     case dirType.game:
+            //         gameDirs.Add(directory);
+            //         break;
+            //     case dirType.version:
+            //         versionDirs.Add(directory.FullName, new List<DirectoryInfo>{directory});
+            //         break;
+            // }
+        // }
+        public DataDirectory( DirectoryInfo directory ) : this() {
+            dir = directory;
+        }
+        public DataDirectory( string pathName ) : this() {
+            if ( ! Directory.Exists( pathName ) ) {
+                throw new DirectoryNotFoundException();
+            } else {
+                dir = new DirectoryInfo(pathName);
+            }
+        }
+        public DataDirectory( string gameName, string directory) : this ( directory ) {
+            Game = gameName;
+        }
+        // dirType GetDirType(DirectoryInfo directory) {
+        //     // need to check full paths, not the directory objects
+        //     int[] probabilities = {0,0,0};
+        //     if ( dirs.Contains(directory) ) {
+        //         probabilities[0] += 5;
+        //     }
+        //     if ( gameDirs.Contains(directory) ) {
+        //         probabilities[1] += 5;
+        //     }
+        // }
+        public override string ToString() {
+            String returnString = null;
+            if ( ! String.IsNullOrEmpty(Game) ) returnString += Game + ": ";
+            returnString += dir.FullName;
+            return returnString;
+        }
+        // DataDirectory.LoadSubdirs(DirectoryInfo directory, string gameName, string versionName)
+        // loads subdirectory information into a DataDirectory object. directory may be a version directory
+        // (containing exactly one subdirectory named json), a game directory (containing one or more
+        // version directories including one named versionName or a single version directory of any name), 
+        // or a data directory (containing a game directory named gameName or a single game directory of 
+        // any name). (These restrictions are necessary to deduce the structure of the DataDirectory.)
+        void LoadSubdirs(DirectoryInfo directory, string gameName, string versionName) {
+            if ( ! String.IsNullOrEmpty(gameName) && ! String.IsNullOrEmpty(Game) ) {
+                if ( gameName != Game ) {
+                    throw new Exception($"DataDirectory for {Game} cannot load data for {gameName}.");
+                }
+            } else if ( String.IsNullOrEmpty(Game) ) {
+                Game = gameName;
+            } else if ( String.IsNullOrEmpty(gameName) ) {
+                if ( IsVersionDirectory( directory ) ) {
+
+                }
+            }
+            if ( String.IsNullOrEmpty(versionName) ) {
+                if ( IsGameDirectory(directory) ) {
+                    // load all version directories
+                } else if ( IsDataDirectory(directory) ) {
+                    // find and load game directory
+                }
+            } else {
+                if ( IsVersionDirectory(directory) ) {
+                    // versionDirs.Add( directory );
+                }
+            }
+        }
+        bool IsDataDirectory(DirectoryInfo directory) {
+            foreach ( DirectoryInfo subdir in directory.GetDirectories() ) {
+                if ( IsGameDirectory(subdir) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        bool IsGameDirectory(DirectoryInfo directory) {
+            foreach ( DirectoryInfo subdir in directory.GetDirectories() ) {
+                if ( IsVersionDirectory(subdir) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        bool IsVersionDirectory(DirectoryInfo directory) {
+            DirectoryInfo[] jsonDirs = directory.GetDirectories("json");
+            if ( jsonDirs.Length == 1 ) { 
+                return true;
+            } else {
+                return false;
+            }
+        }
+        void ThrowBadDataDir() {
+            throw new Exception($"Unable to define structure of data directory {this.ToString()}.");
+        }
+        public List<Version> GetVersions() {
+            List<Version> returnList = new List<Version>();
+            if ( versionDirs == null || versionDirs.Count() == 0 ) {
+                
+            }
+            // foreach ( DirectoryInfo version in versionDirs ) {
+            //     returnList.Add( new Version(version.Name) );
+            // }
+            return returnList;
+        }
+        // public DataDirectory GetVersionDir(string versionName) {
+
+        // }
+    }
+    public class AssetBundle
     {
         private static readonly string gameVersion = "6.2.0";
         public static readonly string assetDir = "/Users/chjones/Downloads/APK/Marvel Future Fight/assets/" + gameVersion + "/";
@@ -271,7 +405,7 @@ namespace MFFDataApp
             {
                 try
                 {
-                    assetObject.AssetName = Program.Assets.manifest[pathID];
+                    // assetObject.AssetName = Program.Assets.manifest[pathID];
                 }
                 catch
                 {
