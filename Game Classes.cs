@@ -6,60 +6,39 @@ namespace MFFDataApp
 {
     public class Game
     {
-        string Name { get; set; }
+        public string Name { get; set; }
         DataDirectory dataDir { get; set; }
-        Dictionary<string, Version> Versions { get; set; }
+        List<Version> Versions { get; set; }
         public Game(DirectoryInfo dir) {
             dataDir = new DataDirectory(dir);
-            Versions = new Dictionary<string, Version>();
+            Versions = new List<Version>();
         }
         public Game(string gameName, DirectoryInfo dir) : this( dir ) {
             Name = gameName;
         }
-        // public Game(string gameName, string versionName, DirectoryInfo dir) : this ( gameName, dir ) {
-        //     DirectoryInfo versionDir = dataDir.GetVersionDir(versionName);
-        //     Version version = new Version(versionName, versionDir);
-        //     Versions[versionName] = version;
-        // }
-        // public void LoadAssets(string version) {
-        //     // foreach ( Version addedVersion in Versions ) {
-
-        //     // }
-        //     // LoadAssets(  );
-        // }
-        public void LoadAssets(string version) {
+        public void LoadAssets(Version version) {
             Version newVersion = new Version();
-            // foreach ( Version currentVersion in Versions ) {
-            //     if ( currentVersion.Name == version ) {
-            //         newVersion = currentVersion;
-            //         break;
-            //     }
-            // }
             newVersion.LoadAssets();
-            if ( newVersion.Name == null ) {
-                newVersion.Name = version;
-                // Versions.Add(newVersion);
-            }
         }
         public void LoadAllAssets() {
-            // foreach ( Version version in Versions ) {
-            //     LoadAssets(version);
-            // }
+            foreach ( Version version in Versions ) {
+                LoadAssets(version);
+            }
         }
         public void LoadComponents(Version version) {
             version.LoadComponents();
         }
          public void LoadAllComponents() {
-            // foreach ( Version version in Versions ) {
-            //     LoadComponents(version);
-            // }
+            foreach ( Version version in Versions ) {
+                LoadComponents(version);
+            }
         }
         public void LoadAllVersions() {
             LoadAllAssets();
             LoadAllComponents();
         }
         public void LoadAllData() {
-            // Versions = dataDir.GetVersions();
+            Versions = dataDir.GetVersions();
             LoadAllVersions();
         }
     }

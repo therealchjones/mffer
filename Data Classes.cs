@@ -17,58 +17,90 @@ namespace MFFDataApp
     // available to be used for implicit calls.
     public class DataDirectory {
         string Game { get; set; }
-        DirectoryInfo dir { get; set; }
         List<DirectoryInfo> dirs { get; set; }
         List<DirectoryInfo> gameDirs { get; set; }
         Dictionary< string, List<DirectoryInfo> > versionDirs { get; set; }
         enum dirType {
             data, version, game
         }
-        public DataDirectory() {
+        DataDirectory() {
             dirs = new List<DirectoryInfo>();
             gameDirs = new List<DirectoryInfo>();
             versionDirs = new Dictionary< string, List<DirectoryInfo> >();
         }
-        // public DataDirectory(DirectoryInfo directory) : this() {
-            // switch ( GetDirectoryType(directory) ) {
-            //     case dirType.data: 
-            //         dirs.Add(directory);
-            //         break;
-            //     case dirType.game:
-            //         gameDirs.Add(directory);
-            //         break;
-            //     case dirType.version:
-            //         versionDirs.Add(directory.FullName, new List<DirectoryInfo>{directory});
-            //         break;
-            // }
-        // }
         public DataDirectory( DirectoryInfo directory ) : this() {
-            dir = directory;
+            dirs.Add(directory);
         }
         public DataDirectory( string pathName ) : this() {
             if ( ! Directory.Exists( pathName ) ) {
                 throw new DirectoryNotFoundException();
             } else {
-                dir = new DirectoryInfo(pathName);
+                dirs.Add( new DirectoryInfo(pathName) );
             }
         }
         public DataDirectory( string gameName, string directory) : this ( directory ) {
             Game = gameName;
         }
-        // dirType GetDirType(DirectoryInfo directory) {
-        //     // need to check full paths, not the directory objects
-        //     int[] probabilities = {0,0,0};
-        //     if ( dirs.Contains(directory) ) {
-        //         probabilities[0] += 5;
-        //     }
-        //     if ( gameDirs.Contains(directory) ) {
-        //         probabilities[1] += 5;
-        //     }
-        // }
+        dirType GetDirectoryType(DirectoryInfo directory) {
+            string pathName = directory.FullName;
+            dirType? returnType = null;
+            foreach ( DirectoryInfo dir in dirs ) {
+                if ( pathName == dir.FullName ) {
+                    returnType = dirType.data;
+                    break;
+                }
+            }
+            foreach ( DirectoryInfo gameDir in gameDirs ) {
+                if ( pathName == gameDir.FullName ) {
+                    if ( returnType == dirType.data ) {
+                        ThrowBadDataDir();
+                    }
+                    returnType = dirType.game;
+                    break;
+                }
+            }
+            foreach ( List<DirectoryInfo> versionDirList in versionDirs.Values ) {
+                foreach ( DirectoryInfo versionDir in versionDirList ) {
+                    if ( pathName == versionDir.FullName ) {
+                        if ( returnType == dirType.data || returnType == dirType.game ) {
+                            ThrowBadDataDir();
+                        }
+                        returnType = dirType.version;
+                        return (dirType)returnType;
+                    }
+                }
+            }
+            if ( returnType != null ) {
+                return (dirType)returnType;
+            }
+            if ( IsVersionDirectory(directory) ) {
+                returnType = dirType.version;
+            }
+            if ( IsGameDirectory(directory) ) {
+                if ( returnType == null ) {
+                    returnType = dirType.game;
+                } else {
+                    ThrowBadDataDir();
+                }
+            }
+            if ( IsDataDirectory(directory) ) {
+                if ( returnType == null ) {
+                    returnType = dirType.data;
+                } else {
+                    ThrowBadDataDir();
+                }
+            }
+            if ( returnType == null ) {
+                ThrowBadDataDir();
+            }
+            return (dirType)returnType;
+        }
         public override string ToString() {
             String returnString = null;
-            if ( ! String.IsNullOrEmpty(Game) ) returnString += Game + ": ";
-            returnString += dir.FullName;
+            if ( ! String.IsNullOrEmpty(Game) ) returnString += Game + ":\n";
+            foreach ( DirectoryInfo dir in dirs ) {
+                returnString += dir.FullName + "\n";
+            }
             return returnString;
         }
         // DataDirectory.LoadSubdirs(DirectoryInfo directory, string gameName, string versionName)
@@ -101,6 +133,42 @@ namespace MFFDataApp
                 }
             }
         }
+        void LoadSubdirs() {
+            if ( dirs.Count() == 0 ) {
+                throw new Exception("No data directory defined.");
+            }
+            foreach ( DirectoryInfo dir in dirs ) {
+                DirectoryInfo[] subdirs = dir.GetDirectories();
+                if ( subdirs.Length == 0 ) {
+                    ThrowBadDataDir();
+                }
+                switch ( GetDirectoryType(dir) ) {
+                    case ( dirType.data ):
+                        break;
+                    case ( dirType.game ):
+                        break;
+                    case ( dirType.version ):
+                        break;
+                    default:
+                        break;
+                }
+
+                foreach ( DirectoryInfo subdir in subdirs ) {
+                    if ( IsGameDirectory(subdir) ) {
+                        gameDirs.Add(subdir);
+                    } else if ( IsVersionDirectory(subdir) ) {
+                        string versionName = subdir.Name;
+                        versionDirs[versionName].Add(subdir);
+                    }
+                }
+            }
+            if ( gameDirs.Count() == 0 ) {
+                ThrowBadDataDir();
+            }
+            foreach ( DirectoryInfo dir in gameDirs ) {
+
+            }
+        }
         bool IsDataDirectory(DirectoryInfo directory) {
             foreach ( DirectoryInfo subdir in directory.GetDirectories() ) {
                 if ( IsGameDirectory(subdir) ) {
@@ -130,8 +198,8 @@ namespace MFFDataApp
         }
         public List<Version> GetVersions() {
             List<Version> returnList = new List<Version>();
-            if ( versionDirs == null || versionDirs.Count() == 0 ) {
-                
+            if ( versionDirs.Count() == 0 ) {
+                LoadSubdirs();
             }
             // foreach ( DirectoryInfo version in versionDirs ) {
             //     returnList.Add( new Version(version.Name) );
