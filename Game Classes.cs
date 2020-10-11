@@ -9,20 +9,25 @@ namespace MFFDataApp
         public string Name { get; set; }
         DataDirectory dataDir { get; set; }
         List<Version> Versions { get; set; }
-        public Game(DirectoryInfo dir) {
+        Game(DirectoryInfo dir) {
             dataDir = new DataDirectory(dir);
             Versions = new List<Version>();
         }
         public Game(string gameName, DirectoryInfo dir) : this( dir ) {
             Name = gameName;
+            dataDir = new DataDirectory( Name, dir.FullName );
         }
         public void LoadAssets(Version version) {
-            Version newVersion = new Version();
-            newVersion.LoadAssets();
+            // If assets are already loaded, won't
+            // changed version. If not, will replace
+            // with a new object with assets from 
+            // DataDirectory and the same name, but
+            // with new components if components
+            // were already loaded.
         }
         public void LoadAllAssets() {
             foreach ( Version version in Versions ) {
-                LoadAssets(version);
+                LoadAssets( version );
             }
         }
         public void LoadComponents(Version version) {
@@ -46,8 +51,8 @@ namespace MFFDataApp
     {
         public string Name { get; set; }
         DirectoryInfo dir { get; set; }
-        List<Component> Components { get; set; }
-        AssetBundle Assets { get; set; }
+        public List<Component> Components { get; set; }
+        public AssetBundle Assets { get; set; }
         
         public Version() {
             Components = new List<Component>();
@@ -59,7 +64,7 @@ namespace MFFDataApp
         public Version(string versionName, DirectoryInfo versionDir) : this (versionName) {
             dir = versionDir;
         }
-        public void LoadAssets() {
+        public void LoadAssets(AssetBundle assets) {
             Assets.Load();
         }
         public void LoadComponents() {
