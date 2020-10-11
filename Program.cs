@@ -1,27 +1,26 @@
 ﻿using System.IO;
 
 /*
-    Coding notes:
-    - user-modifiable variables should be in the Program class
-    - the Program class should only contain these and associated functions to manipulate them
-      and interact with the Game class and DataDirectory class
+    Coding best practices:
+    - user-modifiable variables should be in the Program class. When not requiring other
+      non-System classes, validation of these variables' values should be done in the Program
+      class.
+    - the Program class should only contain these variables and associated functions to manipulate them
+      and interact with the Game class.
     - the Game class should interact only with other classes in the Game Classes.cs file and 
       the DataDirectory class
     - only the Program and DataDirectory classes should manipulate the file system
-
-    right, so this is mainly taken care of by separating the classes in the hierarchy, right? e.g., 
-    DataDirectory methods can create objects in Game Classes.cs and return them to Game, it just
-    can't access objects that are part of Game
+    - this is mainly taken care of by separating the classes in the hierarchy, e.g., 
+      DataDirectory methods can create objects described in Game Classes.cs but can't access 
+      members of Game
  */
 
 namespace MFFDataApp
 {
     public class Program
     {
-        public static AssetBundle Assets; // here just until the global is no longer needed
         const string gameName = "Marvel Future Fight";
         const string dataDir = "/Users/chjones/Development/Marvel Future Fight/MffData/data";
-        const string outputDir = dataDir;
         public static void Main()
         {
             if ( ! Directory.Exists(dataDir) ) {

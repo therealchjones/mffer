@@ -4,6 +4,8 @@ using System.IO;
 
 namespace MFFDataApp
 {
+    // still lots of classes here referring to asset names when those should be passed
+    // downward instead
     public class Game
     {
         public string Name { get; set; }
@@ -19,11 +21,18 @@ namespace MFFDataApp
         }
         public void LoadAssets(Version version) {
             // If assets are already loaded, won't
-            // changed version. If not, will replace
+            // change version. If not, will replace
             // with a new object with assets from 
             // DataDirectory and the same name, but
             // with new components if components
             // were already loaded.
+            if ( version.Assets.Count == 0 ) {
+                Version newVersion = dataDir.GetVersion(version.Name);
+                if ( version.Components.Count != 0 ) {
+                    newVersion.LoadComponents();
+                }
+                version = newVersion;
+            }
         }
         public void LoadAllAssets() {
             foreach ( Version version in Versions ) {
@@ -33,7 +42,7 @@ namespace MFFDataApp
         public void LoadComponents(Version version) {
             version.LoadComponents();
         }
-         public void LoadAllComponents() {
+        public void LoadAllComponents() {
             foreach ( Version version in Versions ) {
                 LoadComponents(version);
             }
@@ -50,22 +59,17 @@ namespace MFFDataApp
     public class Version
     {
         public string Name { get; set; }
-        DirectoryInfo dir { get; set; }
         public List<Component> Components { get; set; }
         public AssetBundle Assets { get; set; }
-        
         public Version() {
+            // should have a predefined list/dictionary of components/assetobject names
+            // that a version constructor can use to create the appropriate component
+            // list, which can then be filled with LoadComponents() or similar?
             Components = new List<Component>();
             Assets = new AssetBundle();
         }
         public Version(string versionName) : this () {
             Name = versionName;
-        }
-        public Version(string versionName, DirectoryInfo versionDir) : this (versionName) {
-            dir = versionDir;
-        }
-        public void LoadAssets(AssetBundle assets) {
-            Assets.Load();
         }
         public void LoadComponents() {
             foreach (Component component in Components) {
@@ -73,15 +77,13 @@ namespace MFFDataApp
             }
         }
         public void LoadComponent(Component component) {
-            component.Load();
-            Components.Add(component);
+            // take existing asset bundle and convert to component objects list
+            // if component is not already in asset list, add it?
         }
     }
     public class Component
     {
-        public virtual void Load() {
 
-        }
     }
     public class Roster : Component
     {
@@ -131,11 +133,11 @@ namespace MFFDataApp
     class Shadowland : Component
     {
         ShadowlandFloor[] BaseFloors;
-        public override void Load()
+        public void Load( AssetBundle Assets )
         {
             BaseFloors = new ShadowlandFloor[35];
-            List<AssetObject> shadowlandFloors = Program.Assets.AssetFiles["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
-            List<AssetObject> shadowlandRewards = Program.Assets.AssetFiles["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
+            List<AssetObject> shadowlandFloors = Assets.AssetFiles["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
+            List<AssetObject> shadowlandRewards = Assets.AssetFiles["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
             for (int floorNum = 0; floorNum < BaseFloors.Length; floorNum++)
             {
                 ShadowlandFloor floor = new ShadowlandFloor();
@@ -220,9 +222,8 @@ namespace MFFDataApp
         public FuturePassStep[] Steps { get; set; }
         public Dictionary<int, int> StagePoints { get; set; }
 
-        public override void Load()
+        public void Load( AssetBundle Assets )
         {
-            AssetBundle Assets = Program.Assets;
             string seasonAssetName = "text/data/future_pass.asset";
             List<FuturePassSeason> seasons = new List<FuturePassSeason>();
             foreach (AssetObject seasonAsset in Assets.AssetFiles[seasonAssetName].Properties["list"].Array)

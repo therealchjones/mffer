@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace MFFDataApp
 {
+    // still much off AssetBundle and AssetObject class referring to named directories
     //
     // DataDirectory need not be a proper directory tree, but forms a secondary rooted
     // directory hierarchy. 
@@ -202,15 +203,22 @@ namespace MFFDataApp
         void ThrowBadDataDir() {
             throw new Exception($"Unable to define structure of data directory {this.ToString()}.");
         }
+        public Version GetVersion( string versionName ) {
+            Version version = new Version();
+            version.Name = versionName;
+            if ( ! versionDirs.ContainsKey(versionName) ) {
+                LoadSubdirs();
+            }
+            version.Assets = GetAssets(versionName);
+            return version;
+        }
         public List<Version> GetVersions() {
             List<Version> returnList = new List<Version>();
             if ( versionDirs.Count() == 0 ) {
                 LoadSubdirs();
             }
             foreach ( string versionName in versionDirs.Keys ) {
-                Version version = new Version();
-                version.Name = versionName;
-                version.Assets = GetAssets(versionName);
+                returnList.Add( GetVersion( versionName ) );
             }
             return returnList;
         }
@@ -230,7 +238,6 @@ namespace MFFDataApp
         public Dictionary<string, AssetObject> AssetFiles { get; set; }
         public Dictionary<string, string> manifest { get; set; }
         private Dictionary<string, string> scripts { get; set; }
-        [JsonIgnore]
         public int Count
         {
             get
@@ -238,7 +245,6 @@ namespace MFFDataApp
                 return AssetFiles.Count;
             }
         }
-        [JsonIgnore]
         public int Depth
         {
             get
@@ -260,7 +266,6 @@ namespace MFFDataApp
             AssetFiles = new Dictionary<string, AssetObject>();
             manifest = new Dictionary<string, string>();
         }
-
         public void ToJsonFile()
         {
             using (StreamWriter file = new StreamWriter(completeFile))
@@ -283,6 +288,7 @@ namespace MFFDataApp
             }
             return;
         }
+        // should ensure LoadFromDirectory() can be run for multiple directories in the same bundle?
         public void LoadFromDirectory(string directory)
         {
             string[] manifestFiles = Directory.GetFiles(directory, "*-AssetBundle.json");
