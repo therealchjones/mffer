@@ -9,51 +9,46 @@ namespace MFFDataApp
     public class Game
     {
         public string Name { get; set; }
-        DataDirectory dataDir { get; set; }
         List<Version> Versions { get; set; }
-        Game(DirectoryInfo dir) {
-            dataDir = new DataDirectory(dir);
+        public Game(string gameName )  {
+            Name = gameName;
             Versions = new List<Version>();
         }
-        public Game(string gameName, DirectoryInfo dir) : this( dir ) {
-            Name = gameName;
-            dataDir = new DataDirectory( Name, dir.FullName );
+        public void LoadAllData(string dir) {
+            DataDirectory dataDir = new DataDirectory(dir);
+            List<string> versionNames = dataDir.GetVersionNames();
+            foreach ( string versionName in versionNames ) {
+                Version version = new Version(versionName);
+                version.Assets = dataDir.GetAssets(versionName);
+                version.LoadComponents();
+                Versions.Add(version); // if not already included?
+            }
         }
-        public void LoadAssets(Version version) {
-            // If assets are already loaded, won't
-            // change version. If not, will replace
-            // with a new object with assets from 
-            // DataDirectory and the same name, but
-            // with new components if components
-            // were already loaded.
-            if ( version.Assets.Count == 0 ) {
-                Version newVersion = dataDir.GetVersion(version.Name);
-                if ( version.Components.Count != 0 ) {
-                    newVersion.LoadComponents();
+        public void SaveAllData( string fileName ) {
+            // implemented as streamwriter at all levels because using a string or
+            // similar uses up all memory, same with JsonSerializer
+            using (StreamWriter file = new StreamWriter(fileName))
+            {
+                file.WriteLine("{");
+                file.WriteLine("\t\"Game\" : {");
+                file.WriteLine("\t\t\"Name\" : \"" + Name + "\",");
+                file.WriteLine("\t\t\"Versions\" : [");
+                int versionCounter = 0;
+                foreach ( Version version in Versions ) {
+                    // would like to prepend each line from here with three tabs?
+                    // need to sort everything consistently
+                    version.WriteJson(file);
+                    versionCounter++;
+                    if ( versionCounter < Versions.Count - 1 ) {
+                        file.Write(",");
+                    }
+                    file.WriteLine("");
                 }
-                version = newVersion;
+                file.WriteLine("\t\t\"]\"");
+                file.WriteLine("\t\"}");
+                file.WriteLine("}");
             }
-        }
-        public void LoadAllAssets() {
-            foreach ( Version version in Versions ) {
-                LoadAssets( version );
-            }
-        }
-        public void LoadComponents(Version version) {
-            version.LoadComponents();
-        }
-        public void LoadAllComponents() {
-            foreach ( Version version in Versions ) {
-                LoadComponents(version);
-            }
-        }
-        public void LoadAllVersions() {
-            LoadAllAssets();
-            LoadAllComponents();
-        }
-        public void LoadAllData() {
-            Versions = dataDir.GetVersions();
-            LoadAllVersions();
+            return;
         }
     }
     public class Version
@@ -80,10 +75,34 @@ namespace MFFDataApp
             // take existing asset bundle and convert to component objects list
             // if component is not already in asset list, add it?
         }
+        public void WriteJson( StreamWriter file ) {
+            file.WriteLine("{");
+            file.WriteLine("\t\"Name\" : \"" + Name + "\",");
+            file.Write("\t\"Assets\" : ");
+            // prepend each line after the first with two tabs?
+            Assets.WriteJson(file);
+            file.WriteLine( ",");
+            file.WriteLine("\t\"Components\" : [");
+            int componentCounter = 0;
+            foreach (Component component in Components) {
+                // prepend each line with 2 tabs?
+                file.Write( component.ToJson() );
+                componentCounter++;
+                if (componentCounter < Components.Count - 1) {
+                    file.Write(",");
+                }
+                file.WriteLine("");
+            }
+            file.WriteLine("\t]");
+            file.WriteLine("}");
+        }
     }
     public class Component
     {
-
+        public string ToJson() {
+            string returnString = "";
+            return returnString;
+        }
     }
     public class Roster : Component
     {

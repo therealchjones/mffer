@@ -20,15 +20,20 @@ namespace MFFDataApp
     public class Program
     {
         const string gameName = "Marvel Future Fight";
-        const string dataDir = "/Users/chjones/Development/Marvel Future Fight/MffData/data";
+        const string saveDir = "/Users/chjones/Development/Marvel Future Fight/MffData/data";
+        const string dataDir = "/Users/chjones/Downloads/APK/Marvel Future Fight";
         public static void Main()
         {
             if ( ! Directory.Exists(dataDir) ) {
-                throw new DirectoryNotFoundException();
+              throw new DirectoryNotFoundException();
             }
-            Game game = new Game( gameName, new DirectoryInfo(dataDir) );
-            game.LoadAllData();
-            // some data class thing to json output
+            if ( ! Directory.Exists(saveDir) ) {
+              throw new DirectoryNotFoundException();
+            }
+            Game game = new Game( gameName );
+            game.LoadAllData( dataDir );
+            string saveFile = $"{saveDir}/{gameName}.json";
+            game.SaveAllData(saveFile);
         }
     }
 }
