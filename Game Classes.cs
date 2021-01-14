@@ -4,8 +4,6 @@ using System.IO;
 
 namespace MFFDataApp
 {
-    // still lots of classes here referring to asset names when those should be passed
-    // downward instead
     public class Game
     {
         public string Name { get; set; }
@@ -30,22 +28,22 @@ namespace MFFDataApp
             using (StreamWriter file = new StreamWriter(fileName))
             {
                 file.WriteLine("{");
-                file.WriteLine("\t\"Game\" : {");
-                file.WriteLine("\t\t\"Name\" : \"" + Name + "\",");
-                file.WriteLine("\t\t\"Versions\" : [");
+                file.WriteLine($"\t\"{Name}\" : " +"{");
                 int versionCounter = 0;
                 foreach ( Version version in Versions ) {
-                    // would like to prepend each line from here with three tabs?
-                    // need to sort everything consistently
-                    version.WriteJson(file);
+                    // WriteJson should consistently write the instance as one or more
+                    // JSON members (string: element) without a bare root element, and without 
+                    // a newline on the last line. It is on the caller to provide appropriate 
+                    // wrapping. The (optional) second argument prepends each line of
+                    // the JSON output with that number of tabs
+                    version.WriteJson(file,2);
                     versionCounter++;
                     if ( versionCounter < Versions.Count - 1 ) {
                         file.Write(",");
                     }
                     file.WriteLine("");
                 }
-                file.WriteLine("\t\t\"]\"");
-                file.WriteLine("\t\"}");
+                file.WriteLine("\t}");
                 file.WriteLine("}");
             }
             return;
@@ -75,33 +73,38 @@ namespace MFFDataApp
             // take existing asset bundle and convert to component objects list
             // if component is not already in asset list, add it?
         }
-        public void WriteJson( StreamWriter file ) {
-            file.WriteLine("{");
-            file.WriteLine("\t\"Name\" : \"" + Name + "\",");
-            file.Write("\t\"Assets\" : ");
-            // prepend each line after the first with two tabs?
-            Assets.WriteJson(file);
-            file.WriteLine( ",");
-            file.WriteLine("\t\"Components\" : [");
-            int componentCounter = 0;
-            foreach (Component component in Components) {
-                // prepend each line with 2 tabs?
-                file.Write( component.ToJson() );
-                componentCounter++;
-                if (componentCounter < Components.Count - 1) {
-                    file.Write(",");
-                }
-                file.WriteLine("");
+        public void WriteJson( StreamWriter file, int tabs = 0 ) {
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
             }
-            file.WriteLine("\t]");
-            file.WriteLine("}");
+            file.WriteLine($"\"{Name}\" : " + "{");
+            Assets.WriteJson(file,tabs+1);
+            if ( Components.Count > 0 ) {
+                file.WriteLine(",");
+                for ( int i = 0; i < tabs+1; i++ ) {
+                    file.Write("\t");
+                }                
+                file.WriteLine("\"Components\" : {");
+                int componentCounter = 0;
+                foreach (Component component in Components) {
+                    component.WriteJson(file,tabs+1);
+                    componentCounter++;
+                    if (componentCounter < Components.Count - 1) {
+                        file.Write(",");
+                    }
+                }
+            }
+            file.WriteLine();
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
+            }                
+            file.Write("}");
         }
     }
     public class Component
     {
-        public string ToJson() {
-            string returnString = "";
-            return returnString;
+        public void WriteJson(StreamWriter file, int tabs = 0) {
+
         }
     }
     public class Roster : Component
@@ -164,21 +167,21 @@ namespace MFFDataApp
                 floor.BaseFloor = floor;
                 foreach (AssetObject value in shadowlandRewards)
                 {
-                    if (value.Properties["REWARD_GROUP"].Value == shadowlandFloors[floorNum].Properties["REWARD_GROUP"].Value)
+                    if (value.Properties["REWARD_GROUP"].String == shadowlandFloors[floorNum].Properties["REWARD_GROUP"].String)
                     {
                         List<ShadowlandReward> rewards = new List<ShadowlandReward>();
                         for (int i = 1; i <= 2; i++)
                         {
                             ShadowlandReward reward = new ShadowlandReward();
-                            reward.RewardValue = Int32.Parse(value.Properties[$"REWARD_VALUE_{i}"].Value);
-                            reward.RewardQuantity = Int32.Parse(value.Properties[$"REWARD_QTY_{i}"].Value);
-                            reward.RewardType = Int32.Parse(value.Properties[$"REWARD_TYPE_{i}"].Value);
+                            reward.RewardValue = Int32.Parse(value.Properties[$"REWARD_VALUE_{i}"].String);
+                            reward.RewardQuantity = Int32.Parse(value.Properties[$"REWARD_QTY_{i}"].String);
+                            reward.RewardType = Int32.Parse(value.Properties[$"REWARD_TYPE_{i}"].String);
                             rewards[i] = reward;
                         }
                     }
-                    floor.RewardGroup = Int32.Parse(shadowlandFloors[floorNum].Properties["REWARD_GROUP"].Value);
-                    floor.StageGroup = Int32.Parse(shadowlandFloors[floorNum].Properties["STAGE_GROUP"].Value);
-                    floor.StageSelectCount = Int32.Parse(shadowlandFloors[floorNum].Properties["STAGE_SELECT_COUNT"].Value);
+                    floor.RewardGroup = Int32.Parse(shadowlandFloors[floorNum].Properties["REWARD_GROUP"].String);
+                    floor.StageGroup = Int32.Parse(shadowlandFloors[floorNum].Properties["STAGE_GROUP"].String);
+                    floor.StageSelectCount = Int32.Parse(shadowlandFloors[floorNum].Properties["STAGE_SELECT_COUNT"].String);
                     BaseFloors[floorNum] = floor;
                 }
             }
@@ -256,8 +259,8 @@ namespace MFFDataApp
             foreach (AssetObject stepAsset in Assets.AssetFiles[stepAssetName].Properties["list"].Array)
             {
                 FuturePassStep step = new FuturePassStep();
-                step.passPoint = Int32.Parse(stepAsset.Properties["data"].Properties["passPoint"].Value);
-                step.step = Int32.Parse(stepAsset.Properties["data"].Properties["step"].Value);
+                step.passPoint = Int32.Parse(stepAsset.Properties["data"].Properties["passPoint"].String);
+                step.step = Int32.Parse(stepAsset.Properties["data"].Properties["step"].String);
                 step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
                 Steps[step.step - 1] = step;
             }
@@ -266,16 +269,16 @@ namespace MFFDataApp
             {
                 FuturePassReward reward = new FuturePassReward();
                 reward.Load(rewardAsset);
-                FuturePassType level = (FuturePassType)Int32.Parse(rewardAsset.Properties["data"].Properties["grade"].Value);
-                int step = Int32.Parse(rewardAsset.Properties["data"].Properties["step"].Value);
+                FuturePassType level = (FuturePassType)Int32.Parse(rewardAsset.Properties["data"].Properties["grade"].String);
+                int step = Int32.Parse(rewardAsset.Properties["data"].Properties["step"].String);
                 Steps[step - 1].Rewards[level] = reward;
             }
             string stageAssetName = "text/data/future_pass_contents.asset";
             StagePoints = new Dictionary<int, int>();
             foreach (AssetObject stageAsset in Assets.AssetFiles[stageAssetName].Properties["list"].Array)
             {
-                int sceneId = Int32.Parse(stageAsset.Properties["data"].Properties["sceneId"].Value);
-                int stagePoints = Int32.Parse(stageAsset.Properties["data"].Properties["passPoint"].Value);
+                int sceneId = Int32.Parse(stageAsset.Properties["data"].Properties["sceneId"].String);
+                int stagePoints = Int32.Parse(stageAsset.Properties["data"].Properties["passPoint"].String);
                 StagePoints.Add(sceneId, stagePoints);
             }
         }
@@ -288,10 +291,10 @@ namespace MFFDataApp
             private int rewardValue;
             public void Load(AssetObject asset)
             {
-                this.rewardId = Int32.Parse(asset.Properties["data"].Properties["rewardId"].Value);
-                this.rewardGroupId = Int32.Parse(asset.Properties["data"].Properties["rewardGroupId"].Value);
-                this.rewardType = Int32.Parse(asset.Properties["data"].Properties["rewardType"].Value);
-                this.rewardValue = Int32.Parse(asset.Properties["data"].Properties["rewardValue"].Value);
+                this.rewardId = Int32.Parse(asset.Properties["data"].Properties["rewardId"].String);
+                this.rewardGroupId = Int32.Parse(asset.Properties["data"].Properties["rewardGroupId"].String);
+                this.rewardType = Int32.Parse(asset.Properties["data"].Properties["rewardType"].String);
+                this.rewardValue = Int32.Parse(asset.Properties["data"].Properties["rewardValue"].String);
             }
         }
         public class FuturePassSeason
@@ -302,9 +305,9 @@ namespace MFFDataApp
             int rewardGroupId { get; set; }
             public void Load(AssetObject asset)
             {
-                this.endTime = asset.Properties["data"].Properties["endTime_unused"].Value;
-                this.startTime = asset.Properties["data"].Properties["startTime_unused"].Value;
-                this.rewardGroupId = Int32.Parse(asset.Properties["data"].Properties["rewardGroupId"].Value);
+                this.endTime = asset.Properties["data"].Properties["endTime_unused"].String;
+                this.startTime = asset.Properties["data"].Properties["startTime_unused"].String;
+                this.rewardGroupId = Int32.Parse(asset.Properties["data"].Properties["rewardGroupId"].String);
             }
         }
         public class FuturePassStep
@@ -332,12 +335,12 @@ namespace MFFDataApp
         public void Load( AssetObject assetObject ) {
             // List<AssetObject> assetObjects = Program.Assets.AssetFiles[assetFile].Properties["values"].Array;
             AssetObject abilityGroup = assetObject.Properties["data"];
-            this.groupId = Int32.Parse(abilityGroup.Properties["groupId"].Value);
-            this.abilityId = Int32.Parse(abilityGroup.Properties["abilityId"].Value);
-            this.time = Int64.Parse(abilityGroup.Properties["time"].Value);
-            this.tick = Int64.Parse(abilityGroup.Properties["tick"].Value);
-            this.keepWhenTagging = Boolean.Parse(abilityGroup.Properties["keepWhenTagging"].Value);
-            this.isEffectDisable = Boolean.Parse(abilityGroup.Properties["isEffectDisable"].Value);
+            this.groupId = Int32.Parse(abilityGroup.Properties["groupId"].String);
+            this.abilityId = Int32.Parse(abilityGroup.Properties["abilityId"].String);
+            this.time = Int64.Parse(abilityGroup.Properties["time"].String);
+            this.tick = Int64.Parse(abilityGroup.Properties["tick"].String);
+            this.keepWhenTagging = Boolean.Parse(abilityGroup.Properties["keepWhenTagging"].String);
+            this.isEffectDisable = Boolean.Parse(abilityGroup.Properties["isEffectDisable"].String);
         }
     }
     public class AbilityAttribute {

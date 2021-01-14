@@ -22,11 +22,9 @@ namespace MFFDataApp
     public class DataDirectory {
         List<DirectoryInfo> dirs { get; set; }
         Dictionary< string, List<DirectoryInfo> > versionDirs { get; set; }
-        DataDirectory() {
+        public DataDirectory( string pathName ) {
             dirs = new List<DirectoryInfo>();
             versionDirs = new Dictionary< string, List<DirectoryInfo> >();
-        }
-        public DataDirectory( string pathName ) : this() {
             Add( pathName );
         }
         public void Add( string pathName ) {
@@ -72,8 +70,7 @@ namespace MFFDataApp
             char[] digits = { '0', '1', '2','3','4','5','6','7','8','9'};
             int firstDigit = dirname.IndexOfAny(digits);
             if ( firstDigit == -1 ) return null;
-            string versionName = dirname.Substring(firstDigit);
-            return versionName;
+            return dirname.Substring(firstDigit);
         }
         bool IsIncluded( DirectoryInfo directory, List<DirectoryInfo> dirList ) {
             foreach ( DirectoryInfo dir in dirList ) {
@@ -113,235 +110,244 @@ namespace MFFDataApp
     }
     public class AssetBundle
     {
-        public Dictionary<string, AssetObject> AssetFiles { get; set; }
-        public Dictionary<string, string> manifest { get; set; }
+        public Dictionary<string, AssetFile> AssetFiles { get; set; }
         public AssetBundle()
         {
-            AssetFiles = new Dictionary<string, AssetObject>();
-            manifest = new Dictionary<string, string>();
+            AssetFiles = new Dictionary<string, AssetFile>();
         }
-        public void WriteJson(StreamWriter file)
+        public void WriteJson(StreamWriter file, int tabs = 0)
         {
-            file.WriteLine("{");
-            file.WriteLine("\t\"manifest\" : [");
-            List<string> keys = manifest.Keys.ToList();
-            keys.Sort();
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
+            }
+            file.WriteLine("\"Assets\" : {");
+            List<string> Keys = AssetFiles.Keys.ToList<string>();
+            Keys.Sort();
             int counter = 0;
-            foreach ( string key in keys ) {
-                file.Write("\t\t\"" + key + "\" : ");
-                file.Write("\"" + manifest[key] + "\"");
-                counter++;
-                if ( counter < keys.Count - 1 ) {
+            foreach ( string key in Keys ) {          
+                AssetFiles[key].WriteJson(file,tabs+1);
+                if ( counter < Keys.Count() - 1 ) {
                     file.Write(",");
                 }
                 file.WriteLine();
-            }
-            file.WriteLine("\t],");
-            file.WriteLine("\t\"AssetFiles\" : [");
-            keys = AssetFiles.Keys.ToList();
-            keys.Sort();
-            counter = 0;
-            foreach (string key in keys) {
-                file.Write("\t\t\"" + key + "\" : ");
-                AssetFiles[key].WriteJson(file);
                 counter++;
-                if ( counter < keys.Count - 1 ) {
-                        file.Write(", ");
-                }
-                file.WriteLine();
             }
-            file.WriteLine("\t]");
-            file.WriteLine("}");
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
+            }
+            file.Write("}");          
         }
         public void LoadFromVersionDirectory( List<DirectoryInfo> dirs ) {
+            Dictionary<string, string> manifest = new Dictionary<string, string>();
             HashSet<string> manifestFiles = new HashSet<string>();
+            HashSet<string> scriptFiles = new HashSet<string>();
+            HashSet<string> behaviorFiles = new HashSet<string>();
+            HashSet<string> textFiles = new HashSet<string>();
             HashSet<string> jsonFiles = new HashSet<string>();
+            HashSet<string> checkFiles = new HashSet<string>();
             foreach ( DirectoryInfo directory in dirs ) {
-                // should ensure that these AddRanges don't add duplicates
-                // AddRange won't work if null, so need to check that rather than passing directly
-                manifestFiles.UnionWith( Directory.GetFiles( directory.FullName + "/assets", "*-AssetBundle.json") );
-                jsonFiles.UnionWith( Directory.GetFiles( directory.FullName + "/assets" ) );
+                string assetDir = directory.FullName + "/assets";
+                manifestFiles.UnionWith( Directory.GetFiles( assetDir, "*-AssetBundle.json") );
+                scriptFiles.UnionWith( Directory.GetFiles( assetDir, "*-MonoScript.json" ) );
+                behaviorFiles.UnionWith( Directory.GetFiles( assetDir, "*-MonoBehaviour.json") );
+                textFiles.UnionWith( Directory.GetFiles( assetDir, "*-TextAsset.json") );
+                jsonFiles.UnionWith( Directory.GetFiles( assetDir ) );
+            }
+            checkFiles.UnionWith( manifestFiles );
+            checkFiles.UnionWith( scriptFiles );
+            checkFiles.UnionWith( behaviorFiles );
+            checkFiles.UnionWith( textFiles );
+            foreach ( string file in jsonFiles ) {
+                if ( ! checkFiles.Contains(file) ) {
+                    throw new Exception($"Unable to determine type of file {file}");
+                }
             }
             if (manifestFiles.Count == 0)
             {
                 throw new Exception("Found no manifest files.");
             }
+            // should extend the manifest to include the asset bundle ID rather than just
+            // the pathID, in case there are overlaps
             foreach ( string manifestFile in manifestFiles ) {
-                AssetObject manifestAsset = new AssetObject();
+                AssetFile manifestAsset = new AssetFile();
                 manifestAsset.LoadFromFile(manifestFile);
                 foreach (AssetObject entry in manifestAsset.Properties["m_Container"].Properties["Array"].Array)
                 {
-                    string pathID = entry.Properties["data"].Properties["second"].Properties["asset"].Properties["m_PathID"].Value;
+                    string pathID = entry.Properties["data"].Properties["second"].Properties["asset"].Properties["m_PathID"].String;
                     if (pathID.StartsWith('-'))
                     {
                         UInt64 newID = System.Convert.ToUInt64(pathID.Substring(1));
                         newID = UInt64.MaxValue - newID + 1;
                         pathID = newID.ToString();
                     }
-                    manifest.Add(pathID, entry.Properties["data"].Properties["first"].Value);
+                    manifest.Add(pathID, entry.Properties["data"].Properties["first"].String);
                 }
             }
-            foreach (string jsonFile in jsonFiles)
-            {
-                AssetObject asset = new AssetObject();
+            foreach ( string scriptFile in scriptFiles ) {
+                AssetFile scriptAsset = new AssetFile();
+                scriptAsset.LoadFromFile( scriptFile );
+                string pathID = Regex.Replace(scriptFile, "^.*-([0-9]*)-[^-]*$", "$1");
+                string scriptClass = scriptAsset.Name;
+                manifest.Add(pathID, scriptClass);
+            }
+            foreach ( string behaviorFile in behaviorFiles ) {
+                AssetFile behaviorAsset = new AssetFile();
+                behaviorAsset.LoadFromFile( behaviorFile );
+                string scriptID = behaviorAsset.Properties["m_Script"].Properties["m_PathID"].String;
+                if (scriptID.StartsWith('-')) {
+                    UInt64 newID = System.Convert.ToUInt64(scriptID.Substring(1));
+                    newID = UInt64.MaxValue - newID + 1;
+                    scriptID = newID.ToString();
+                }
+                if ( ! manifest.ContainsKey(scriptID) ) {
+                    throw new Exception($"Script pathID {scriptID} (from file {behaviorFile}) not found in manifest");
+                }
+                behaviorAsset.AssetName=manifest[scriptID];
+                behaviorAsset.Name=behaviorAsset.AssetName;
+                if (behaviorAsset.AssetName == null) {
+                        throw new Exception($"Asset file {behaviorFile} has no asset name.");
+                }               
+                if ( AssetFiles.ContainsKey("asset.AssetName") ) {
+                    throw new Exception($"Attempted to add asset {behaviorAsset.AssetName} (from file {behaviorFile}) which already exists.");
+                }
+                AssetFiles.Add(behaviorAsset.AssetName, behaviorAsset);
+            }
+            foreach (string jsonFile in textFiles ) {
+                AssetFile asset = new AssetFile();
                 string pathID = Regex.Replace(jsonFile, "^.*-([0-9]*)-[^-]*$", "$1");
                 if ( manifest.ContainsKey(pathID) ) {
                     asset.AssetName = manifest[pathID];
+                } else {
+                    throw new Exception($"pathID {pathID} (file {jsonFile}) not in manifest");
+                }
+                if (asset.AssetName == null) {
+                        throw new Exception($"Asset file {jsonFile} has no asset name.");
                 }
                 asset.LoadFromFile(jsonFile);
-                if (asset != null) AssetFiles.Add(asset.AssetName, asset);
+                if ( AssetFiles.ContainsKey("asset.AssetName") ) {
+                    throw new Exception($"Attempted to add asset {asset.AssetName} (from file {jsonFile}) which already exists.");
+                }
+                AssetFiles.Add(asset.AssetName, asset);
             }
         }
     }
-    public class AssetObject
-    {
-        public string FileName { get; set; }
+    public class AssetFile : AssetObject {
         public string AssetName { get; set; }
-        public Dictionary<string, AssetObject> Properties { get; set; }
-        public string Name { get; set; }
-        public string Value { get; set; }
-        [JsonIgnore]
-        public AssetObject Parent { get; set; }
         public string AssetType { get; set; }
-        public JsonValueKind Type { get; set; }
-        public List<AssetObject> Array { get; set; }
-        [JsonIgnore]
-        public string ScriptClass { get; set; }
-        [JsonIgnore]
-        public int Depth
-        {
-            get
-            {
-                int depth = 1;
-                foreach (AssetObject asset in Properties.Values)
-                {
-                    int newDepth = asset.Depth + 1;
-                    if (newDepth > depth) depth = newDepth;
-                }
-                foreach (AssetObject asset in Array)
-                {
-                    int newDepth = asset.Depth + 1;
-                    if (newDepth > depth) depth = newDepth;
-                }
-                return depth;
-            }
-        }
-        public AssetObject()
-        {
-            this.Properties = new Dictionary<string, AssetObject>();
-            this.Array = new List<AssetObject>();
-        }
-        public void WriteJson(StreamWriter file) {
-            file.WriteLine("{");
-            file.WriteLine("\t\"Name\" : \"" + Name + "\",");
-            file.WriteLine("\t\"AssetName\" : \"" + AssetName + "\",");
-            file.WriteLine("\t\"AssetType\" : \"" + AssetType + "\",");
-            if ( ! String.IsNullOrEmpty(ScriptClass) ) {
-                file.WriteLine("\t\"ScriptClass\" : \"" + ScriptClass + "\",");
-            }
-            switch (Type)
-            {
-                case JsonValueKind.Object:
-                    file.WriteLine("\t\"Properties\" : [");
-                    int counter = 0;
-                    List<string> keys = Properties.Keys.ToList();
-                    keys.Sort();
-                    foreach (string key in keys)
-                    {
-                        file.Write("\t\t\"" + key + "\" : ");
-                        Properties[key].WriteJson(file);
-                        counter++;
-                        if (counter < keys.Count - 1) {
-                            file.Write(",");
-                        }
-                        file.WriteLine();
-                    }
-                    file.WriteLine("\t]");
-                    break;
-                case JsonValueKind.Array:
-                    file.WriteLine("\t\"Array\" : [");
-                    for (counter = 0; counter < Array.Count; counter++)
-                    {
-                        Array[counter].WriteJson(file);
-                        if (counter < Array.Count - 1)
-                        {
-                            file.Write(",");
-                        }
-                        file.WriteLine();
-                    }
-                    file.WriteLine("\t]");
-                    break;
-                case JsonValueKind.Undefined:
-                    throw new Exception($"Unable to identify appropriate JSON conversion for item {Name} in asset {AssetName}.");
-                default:
-                    file.WriteLine("\t\"Value\" : \"" + Value + "\"");
-                    break;
-            }
-            file.Write("}");
-        }
-        public void LoadFromFile(string filename)
-        {
+        public void LoadFromFile(string filename) {
             string jsonText = File.ReadAllText(filename);
-            JsonDocument json = ParseJson(jsonText);
+            JsonDocument json = GetJson(jsonText);
             JsonElement jsonRoot = json.RootElement;
             JsonValueKind jsonType = jsonRoot.ValueKind;
-            if (jsonType != JsonValueKind.Object)
-            {
+            JsonElement Value = new JsonElement();
+            if (jsonType != JsonValueKind.Object) {
                 throw new JsonException($"{filename} is not a valid asset file");
             }
-            FileName = filename;
             int propertyCount = 0;
-            foreach (JsonProperty jsonProperty in jsonRoot.EnumerateObject())
-            {
-                propertyCount++;
-                Name = jsonProperty.Name.Split(' ', 3)[2];
+            foreach (JsonProperty jsonProperty in jsonRoot.EnumerateObject()) {
+                string[] nameArray = jsonProperty.Name.Split(' ', 3);
+                if ( nameArray.Length != 3 ) {
+                    throw new JsonException($"{filename} is not a valid asset file");
+                }
+                Name = jsonProperty.Name.Split(' ', 3)[2]; // Should be "Base"?
                 AssetType = jsonProperty.Name.Split(' ', 3)[1];
-                Value = jsonProperty.Value.ToString();
+                Value = jsonProperty.Value.Clone();
                 Type = jsonProperty.Value.ValueKind;
+                propertyCount++;
             }
-            if (propertyCount == 0)
-            {
+            json.Dispose();
+            if (propertyCount == 0) {
                 throw new JsonException($"{filename} does not contain any JSON members beyond root.");
-            }
-            else if (propertyCount != 1)
-            {
+            } else if (propertyCount != 1) {
                 throw new JsonException($"{filename} contains more than one top level member.");
-            }
-            else if (Type != JsonValueKind.Object)
-            {
+            } else if (Type != JsonValueKind.Object) {
                 throw new JsonException($"{filename} top level member is type {Type.ToString()} rather than JSON object.");
+            } else if (Name != "Base") {
+                throw new JsonException($"{filename} top level member is not Base");
             }
-            JsonDocument fileAsset = ParseJson(Value);
             switch (AssetType) {
                 case "AssetBundle":
-                    foreach (JsonProperty property in fileAsset.RootElement.EnumerateObject())
-                    {
-                        if (property.Name.Split(' ',3)[2] == "m_AssetBundleName")
-                        {
-                            Name = property.Value.ToString();
+                    foreach (JsonProperty property in Value.EnumerateObject()) {
+                        string[] nameArray = property.Name.Split(' ', 3);
+                        if ( nameArray.Length != 3 ) {
+                            throw new JsonException($"{filename} is not a valid asset file");
                         }
+                        if (nameArray[2] == "m_AssetBundleName") {
+                            Name = property.Value.GetString();
+                            AssetName = Name;
+                        }
+                        AssetObject newAsset = new AssetObject();
+                        newAsset.Name = nameArray[2];
+                        newAsset.ParseJson(property.Value);
+                        if ( Properties.ContainsKey(newAsset.Name) ) {
+                            throw new JsonException($"Asset {Name} already contains a property named {newAsset.Name}");
+                        }
+                        Properties.Add(newAsset.Name, newAsset);
                     }
-                    AssetName = Name;
                     break;
                 case "MonoScript":
-                    foreach (JsonProperty property in fileAsset.RootElement.EnumerateObject()) {
-                        if (property.Name.Split(' ',3)[2] == "m_ClassName") {
-                            Name = property.Value.ToString();
+                    foreach (JsonProperty property in Value.EnumerateObject()) {
+                        string[] nameArray = property.Name.Split(' ', 3);
+                        if ( nameArray.Length != 3 ) {
+                            throw new JsonException($"{filename} is not a valid asset file");
+                        }
+                        if ( nameArray[2] == "m_ClassName" ) {
+                            Name = property.Value.GetString();
                         }
                     }
                     AssetName = Name;
-                    break;
+                    return;
                 case "MonoBehaviour":
-                    break;
+                    foreach (JsonProperty property in Value.EnumerateObject()) {
+                        string[] nameArray = property.Name.Split(' ', 3);
+                        if ( nameArray.Length != 3 ) {
+                            throw new JsonException($"{filename} is not a valid asset file");
+                        }
+                        AssetObject newAsset = new AssetObject();
+                        newAsset.Name = nameArray[2];
+                        newAsset.ParseJson(property.Value);
+                        if ( Properties.ContainsKey(newAsset.Name) ) {
+                            throw new JsonException($"Asset already contains a property named {newAsset.Name}");
+                        }
+                        Properties.Add(newAsset.Name, newAsset);
+                    }
+                    break;                    
                 case "TextAsset":
-                default:
+                    foreach (JsonProperty property in Value.EnumerateObject() ) {
+                        AssetObject newAsset = new AssetObject();
+                        // this repeated way of checking the name should be a method
+                        string[] nameArray = property.Name.Split(' ',3);
+                        if ( nameArray.Length != 3 ) {
+                            throw new JsonException($"{filename} is not a valid asset file");
+                        }
+                        newAsset.Name = nameArray[2];
+                        JsonElement value = property.Value;
+                        if ( newAsset.Name == "m_Script" ) {
+                            string valueString = property.Value.GetString();
+                            if ( ! valueString.Contains('\t') ) { // this is the way it's checked in the program
+                                valueString = System.Text.Encoding.Unicode.GetString(Convert.FromBase64String(valueString));
+                            }
+                            if (AssetName.EndsWith(".csv", true, null) ) {
+                                string csvArray = CSVtoJson(valueString);
+                                JsonDocument jsonArray = GetJson(csvArray);
+                                value = jsonArray.RootElement.Clone();
+                                jsonArray.Dispose();
+                            } else if (AssetName.EndsWith(".txt", true, null)) {
+                                JsonDocument jsonDocument = GetJson(valueString);
+                                value = jsonDocument.RootElement.Clone();
+                                jsonDocument.Dispose();
+                            }
+                        }
+                        newAsset.ParseJson(Value);
+                        if ( Properties.ContainsKey(newAsset.Name) ) {
+                            throw new JsonException($"Asset already contains a property named {newAsset.Name}");
+                        }
+                        Properties.Add(newAsset.Name, newAsset);
+                    }
                     break;
             }
-            fileAsset.Dispose();
-            ParseValue();
-            json.Dispose();
         }
-        public string CSVtoJson(string csv)
+        string CSVtoJson(string csv)
         {
             if (String.IsNullOrWhiteSpace(csv)) return null;
             string[] lines = csv.Split(new char[] { '\r', '\n' });
@@ -393,41 +399,40 @@ namespace MFFDataApp
             jsonArray += " ]";
             return jsonArray;
         }
-        public void PrintTree()
-        {
-            switch (this.Type)
-            {
-                case JsonValueKind.Object:
-                    if (!String.IsNullOrEmpty(this.Name))
-                    {
-                        Console.WriteLine(this.Name + ":");
-                    }
-                    foreach (AssetObject subAsset in this.Properties.Values)
-                    {
-                        subAsset.PrintTree();
-                    }
-                    return;
-                case JsonValueKind.Array:
-                    if (!String.IsNullOrEmpty(this.Name))
-                    {
-                        Console.WriteLine(this.Name + ":");
-                    }
-                    foreach (AssetObject subAsset in this.Array)
-                    {
-                        subAsset.PrintTree();
-                    }
-                    return;
-                default:
-                    if (!String.IsNullOrEmpty(this.Name))
-                    {
-                        Console.Write(this.Name + " ");
-                    }
-                    Console.Write($"(Type {this.Type.ToString()}):");
-                    Console.WriteLine(this.Value);
-                    return;
+        public override void WriteJson(StreamWriter file, int tabs = 0) {
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
             }
+            file.WriteLine($"\"{AssetName}\" : " + "{");
+            for ( int i = 0; i < tabs+1; i++ ) {
+                file.Write("\t");
+            }
+            file.Write($"\"AssetType\" : \"{AssetType}\"");
+            if ( Properties.Count > 0 ) {
+                file.WriteLine(",");
+                base.WriteJson( file, tabs+1 );
+            }
+            file.WriteLine();
+            for ( int i = 0; i < tabs; i++ ) {
+                file.Write("\t");
+            }
+            file.Write("}");
         }
-        private static JsonDocument ParseJson(string json)
+    }
+    public class AssetObject {
+        public string Name { get; set; }
+        public JsonValueKind Type { get; set; }
+        public Dictionary<string, AssetObject> Properties { get; set; }
+        public string String { get; set; }
+        public List<AssetObject> Array { get; set; }
+        public AssetObject() {
+            Type = new JsonValueKind();
+            Properties = new Dictionary<string, AssetObject>();
+            Array = new List<AssetObject>();
+            Name="";
+            String="";
+        }
+        protected JsonDocument GetJson(string json)
         {
             var options = new JsonDocumentOptions
             {
@@ -445,125 +450,130 @@ namespace MFFDataApp
                 throw new JsonException(e.Message);
             }
         }
-        public void ParseValue()
-        {
-            if (String.IsNullOrEmpty(Value))
-            {
-                if (Type != JsonValueKind.String)
-                {
-                    throw new JsonException($"Asset object {Name} (type {Type}) in file {FileName} has no associated value.");
-                }
-            }
+        public void ParseJson( JsonElement Value ) {
             if (Properties.Count != 0)
             {
-                throw new Exception($"Asset object {Name} in file {FileName} already has properties loaded.");
+                throw new Exception($"Asset object {Name} already has properties loaded.");
             }
             if (Array.Count != 0)
             {
-                throw new Exception($"Asset object {Name} in file {FileName} already has an array loaded.");
+                throw new Exception($"Asset object {Name} already has an array loaded.");
             }
-            switch (Type)
-            {
-                case JsonValueKind.String:
-                    if (AssetType == "TextAsset" && Name == "m_Script")
-                    {
-                        if ( ! Value.Contains('\t'))
-                        {
-                            Value = System.Text.Encoding.Unicode.GetString(Convert.FromBase64String(Value));
-                        }
-                        if (AssetName.EndsWith(".csv", true, null) )
-                        {
-                            string csvArray = CSVtoJson(Value);
-                            Value = csvArray;
-                            Type = JsonValueKind.Array;
-                            ParseValue();
-                        }
-                        else if (AssetName.EndsWith(".txt", true, null))
-                        {
-                            JsonDocument jsonDocument = ParseJson(Value);
-                            Type = jsonDocument.RootElement.ValueKind;
-                            jsonDocument.Dispose();
-                        }
-                        else {
-                            return;
-                        }
-                    }
-                    return;
+            if ( String.Length != 0 ) {
+                throw new Exception($"Asset object {Name} already has a string loaded.");
+            }
+            Type = Value.ValueKind;
+            switch (Type) {
                 case JsonValueKind.Object:
-                    JsonDocument json;
-                    json = ParseJson(Value);
-                    JsonElement jsonValue = json.RootElement;
-                    if (jsonValue.ValueKind != JsonValueKind.Object)
-                    {
-                        try
-                        {
-                            throw new JsonException($"Value of object {this.Name} in file {this.FileName} parsed as type {jsonValue.ValueKind.ToString()} rather than JSON object.");
-                        }
-                        catch (JsonException)
-                        {
-                            json.Dispose();
-                        }
-                    }
-                    foreach (JsonProperty jsonProperty in jsonValue.EnumerateObject())
+                    foreach (JsonProperty jsonProperty in Value.EnumerateObject())
                     {
                         AssetObject newObject = new AssetObject();
-                        newObject.Parent = this;
-                        newObject.FileName = this.FileName;
-                        newObject.AssetName = this.AssetName;
-                        newObject.AssetType = this.AssetType;
-                        if (jsonProperty.Name.Split(' ', 3).Length == 3)
-                        {
-                            newObject.Name = jsonProperty.Name.Split(' ', 3)[2];
-                        }
-                        else
-                        {
+                        string[] nameArray = jsonProperty.Name.Split(' ', 3);
+                        if (nameArray.Length == 3) {
+                            newObject.Name = nameArray[2];
+                        } else {
                             newObject.Name = jsonProperty.Name;
                         }
                         newObject.Type = jsonProperty.Value.ValueKind;
-                        newObject.Value = jsonProperty.Value.ToString();
-                        newObject.ParseValue();
+                        newObject.ParseJson( jsonProperty.Value );
                         // Use item[] instead of Add() to allow duplicate keys,
                         // with later ones overwriting previous, something that
                         // occurs sometimes in the level.txt TextAssets
-                        this.Properties[newObject.Name] = newObject;
+                        Properties[newObject.Name] = newObject;
                     }
-                    json.Dispose();
-                    this.Value = null;
                     return;
                 case JsonValueKind.Array:
-                    JsonDocument jsonArrayDocument;
-                    jsonArrayDocument = ParseJson(this.Value);
-                    JsonElement jsonArrayValue = jsonArrayDocument.RootElement;
-                    if (jsonArrayValue.ValueKind != JsonValueKind.Array)
-                    {
-                        try
-                        {
-                            throw new Exception();
-                        }
-                        catch (Exception)
-                        {
-                            jsonArrayDocument.Dispose();
-                            throw new JsonException($"Value of object {this.Name} in file {this.FileName} parsed as type {jsonArrayValue.ValueKind.ToString()} rather than JSON array.");
-                        }
-                    }
                     int arrayCounter = 0;
-                    foreach (JsonElement jsonElement in jsonArrayValue.EnumerateArray())
+                    foreach (JsonElement jsonElement in Value.EnumerateArray())
                     {
                         AssetObject newObject = new AssetObject();
-                        newObject.Parent = this;
-                        newObject.FileName = this.FileName;
-                        newObject.AssetName = this.AssetName;
                         newObject.Type = jsonElement.ValueKind;
-                        newObject.Value = jsonElement.ToString();
-                        newObject.ParseValue();
-                        this.Array.Insert(arrayCounter, newObject);
+                        newObject.ParseJson(jsonElement);
+                        Array.Insert(arrayCounter, newObject);
                         arrayCounter++;
                     }
-                    jsonArrayDocument.Dispose();
-                    this.Value = null;
                     return;
+                case JsonValueKind.Undefined:
+                    throw new Exception($"Unable to parse asset object {Name}");
                 default:
+                    String = Value.ToString();
+                    Type = JsonValueKind.String;
                     return;
+            }
+        }
+        public virtual void WriteJson(StreamWriter file, int tabs = 0) {
+            int counter=0;
+            switch (Type) {
+                case JsonValueKind.Object:
+                    List<string> keys = Properties.Keys.ToList();
+                    keys.Sort();
+                    foreach (string key in keys) {
+                        AssetObject value = Properties[key];
+                        for ( int i = 0; i < tabs; i++ ) {
+                            file.Write("\t");
+                        }         
+                        file.Write("\"" + key + "\" : ");
+                        if ( value.Type == JsonValueKind.Object ) {
+                            file.WriteLine("{");
+                            value.WriteJson(file, tabs+1);
+                            file.WriteLine();
+                            for ( int i = 0; i < tabs; i++ ) {
+                                file.Write("\t");
+                            }
+                            file.Write("}");                             
+                        } else if ( value.Type == JsonValueKind.Array ) {
+                            file.WriteLine("[");
+                            value.WriteJson(file, tabs+1);
+                            file.WriteLine();
+                            for ( int i = 0; i < tabs; i++ ) {
+                                file.Write("\t");
+                            }
+                            file.Write("]");   
+                        } else {
+                            value.WriteJson(file);
+                        }
+                        if (counter < keys.Count - 1) {
+                            file.WriteLine(",");
+                        }
+                        counter++;
+                    }
+                    break;
+                case JsonValueKind.Array:
+                    // Should all be of the same type; do I need to check the Type of each item?
+                    foreach (AssetObject item in Array) {
+                        for ( int i = 0; i < tabs; i++ ) {
+                            file.Write("\t");
+                        }         
+                        if ( item.Type == JsonValueKind.Object ) {
+                            file.WriteLine("{");
+                            item.WriteJson(file, tabs+1);
+                            file.WriteLine();
+                            for ( int i = 0; i < tabs; i++ ) {
+                                file.Write("\t");
+                            }
+                            file.Write("}");                             
+                        } else if ( item.Type == JsonValueKind.Array ) {
+                            file.WriteLine("[");
+                            item.WriteJson(file, tabs+1);
+                            file.WriteLine();
+                            for ( int i = 0; i < tabs; i++ ) {
+                                file.Write("\t");
+                            }
+                            file.Write("]");   
+                        } else {
+                            item.WriteJson(file);
+                        }
+                        if (counter < Array.Count - 1) {
+                            file.WriteLine(",");
+                        }
+                        counter++;
+                    }
+                    break;
+                case JsonValueKind.Undefined:
+                    throw new Exception($"Unable to identify appropriate JSON conversion for asset object {Name}.");
+                default:
+                    file.Write($"\"{String}\"");
+                    break;
             }
         }
     }
