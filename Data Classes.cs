@@ -328,17 +328,13 @@ namespace MFFDataApp
                                 valueString = System.Text.Encoding.Unicode.GetString(Convert.FromBase64String(valueString));
                             }
                             if (AssetName.EndsWith(".csv", true, null) ) {
-                                string csvArray = CSVtoJson(valueString);
-                                JsonDocument jsonArray = GetJson(csvArray);
-                                value = jsonArray.RootElement.Clone();
-                                jsonArray.Dispose();
-                            } else if (AssetName.EndsWith(".txt", true, null)) {
-                                JsonDocument jsonDocument = GetJson(valueString);
-                                value = jsonDocument.RootElement.Clone();
-                                jsonDocument.Dispose();
+                                valueString = CSVtoJson(valueString);
                             }
+                            JsonDocument jsonDocument = GetJson(valueString);
+                            value = jsonDocument.RootElement.Clone();
+                            jsonDocument.Dispose();
                         }
-                        newAsset.ParseJson(Value);
+                        newAsset.ParseJson(value);
                         if ( Properties.ContainsKey(newAsset.Name) ) {
                             throw new JsonException($"Asset already contains a property named {newAsset.Name}");
                         }
