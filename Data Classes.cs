@@ -568,7 +568,7 @@ namespace MFFDataApp
                 case JsonValueKind.Undefined:
                     throw new Exception($"Unable to identify appropriate JSON conversion for asset object {Name}.");
                 default:
-                    file.Write($"\"{String}\"");
+                    file.Write($"\"{JsonEncodedText.Encode(String).ToString()}\"");
                     break;
             }
         }
