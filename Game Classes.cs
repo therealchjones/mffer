@@ -110,6 +110,10 @@ namespace MFFDataApp
     }
     public class Component
     {
+        protected List<string> BackingAssets { get; set; }
+        protected Component() {
+            BackingAssets = new List<string>();
+        }
         public void WriteJson(StreamWriter file, int tabs = 0) {
 
         }
