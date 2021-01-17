@@ -64,6 +64,9 @@ namespace MFFDataApp
         public Version(string versionName) : this () {
             Name = versionName;
         }
+        AssetObject GetAsset( string assetName )  {
+            return null;
+        }
         public void LoadComponents() {
             foreach (Component component in Components) {
                 LoadComponent(component);
@@ -194,21 +197,16 @@ namespace MFFDataApp
             public int RewardGroup;
             public int StageGroup;
             public int StageSelectCount;
-            public List<OpponentChoice> OpponentChoices;
         }
         public class Opponent
         {
-            public Character character;
         }
         public class OpponentChoice
         {
-            public List<Opponent> OpponentTeam;
-            public List<Opponent> OpponentTeamDisplay;
-            public List<ShadowlandReward> Rewards;
+
         }
         public class ShadowlandReward
         {
-            public Item RewardItem;
             public int RewardQuantity;
             public int RewardValue;
             public int RewardType;
@@ -234,9 +232,6 @@ namespace MFFDataApp
     {
         public Item item { get; set; }
         public int Quantity { get; set; }
-        private int rewardGroupId;
-        private int rewardType;
-        private int rewardValue;
     }
     public class FuturePass : Component
     {

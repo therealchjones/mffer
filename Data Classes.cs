@@ -8,8 +8,6 @@ using System.Text.RegularExpressions;
 
 namespace MFFDataApp
 {
-    // still much in AssetBundle and AssetObject class referring to named directories
-    //
     // DataDirectory need not be a proper filesystem directory tree, but rather contains
     // a list of filesystem directories (dirs)
     //
@@ -249,7 +247,7 @@ namespace MFFDataApp
                 if ( nameArray.Length != 3 ) {
                     throw new JsonException($"{filename} is not a valid asset file");
                 }
-                Name = jsonProperty.Name.Split(' ', 3)[2]; // Should be "Base"?
+                Name = jsonProperty.Name.Split(' ', 3)[2];
                 AssetType = jsonProperty.Name.Split(' ', 3)[1];
                 Value = jsonProperty.Value.Clone();
                 Type = jsonProperty.Value.ValueKind;
