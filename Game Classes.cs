@@ -7,7 +7,7 @@ namespace MFFDataApp
     public class Game
     {
         public string Name { get; set; }
-        List<Version> Versions { get; set; }
+        public List<Version> Versions { get; set; }
         public Game(string gameName )  {
             Name = gameName;
             Versions = new List<Version>();
@@ -148,18 +148,26 @@ namespace MFFDataApp
                         Characters.Add(groupId, character);
                     }
                     string heroId = entry.Properties["data"].Properties["heroId"].String;
-
-                    Int64 heroIdNumber = Int64.Parse(heroId);
-                    Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
-                    Int64 heroIdNumber2 = heroIdNumber1 >> 31;
-                    heroIdNumber1 = heroIdNumber1 >> 5;
-                    heroIdNumber = heroIdNumber1 + heroIdNumber2;
-                    heroIdNumber = heroIdNumber*100+1;
-                    string baseHeroId = heroIdNumber.ToString();
-
-                    string startGrade = entry.Properties["data"].Properties["startGrade"].String;
-                    string name = strings[$"HERO_{baseHeroId}"];
-                    character.Names.Add( heroId, name );
+                    character.HeroIds[heroId] = new CharacterLevel();
+                    character.HeroIds[heroId].HeroId = heroId;
+                    string baseId = character.HeroIds[heroId].baseHeroId;
+                    if ( ! character.BaseIds.Contains(baseId) ) {
+                        character.BaseIds.Add(baseId);
+                    }
+                    character.BaseName = strings[$"HERO_{baseId}"];
+                    character.startGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
+                    string uniformId = entry.Properties["data"].Properties["uniformGroupId"].String;
+                    character.HeroIds[heroId].uniformGroupId = uniformId;
+                    if ( ! character.Uniforms.ContainsKey(uniformId) ) {
+                        character.Uniforms[uniformId] = new Uniform();
+                    }
+                    character.Uniforms[uniformId].CharacterName = strings[$"HERO_{baseId}"];
+                    character.HeroIds[heroId].classType = Int32.Parse( entry.Properties["data"].Properties["classType"].String );
+                    character.HeroIds[heroId].Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
+                    character.HeroIds[heroId].Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
+                    character.HeroIds[heroId].Species =  entry.Properties["data"].Properties["species"].String;
+                    character.HeroIds[heroId].Camps = entry.Properties["data"].Properties["stCamps"].String;
+                    character.HeroIds[heroId].Gender = entry.Properties["data"].Properties["stGender"].String;
                 }
             }
         }
@@ -167,16 +175,42 @@ namespace MFFDataApp
     public class Character
     {
         public string groupId { get; set; }
-        public Dictionary<string,string> Names { get; set; }
-        public string leaderSkillId;
-        public List<Uniform> Uniforms { get; set; }
-        public Skill[] Skills { get; set; }
-        public Ability[] Abilities { get; set; }
-        public string species;
-        public string WorldBossAbility { get; set; }
-        public string Stars { get; set; }
+        public Dictionary<string,CharacterLevel> HeroIds { get; set; }
+        public List<string> BaseIds { get; set; }
+        public string BaseName { get; set; }
+        public int startGrade { get; set; }
+        public Dictionary<string,Uniform> Uniforms { get; set; }
         public Character() {
-            Names = new Dictionary<string, string>();
+            HeroIds = new Dictionary<string, CharacterLevel>();
+            Uniforms = new Dictionary<string, Uniform>();
+            BaseIds = new List<string>();
+        }
+    }
+    public class CharacterLevel {
+        public string HeroId { get; set; }
+        public int classType { get; set; }
+        public int Rank { get; set; }
+        public int Tier { get; set; }
+        public string Species { get; set; }
+        public string Camps { get; set; }
+        public string Gender { get; set; }
+        public string uniformGroupId { get; set; }
+        public string baseHeroId { 
+            get {
+                    Int64 heroIdNumber = Int64.Parse(HeroId);
+                    Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
+                    Int64 heroIdNumber2 = heroIdNumber1 >> 31;
+                    heroIdNumber1 = heroIdNumber1 >> 5;
+                    heroIdNumber = heroIdNumber1 + heroIdNumber2;
+                    heroIdNumber = heroIdNumber*100+1;
+                    return heroIdNumber.ToString();
+            }
+        } // should write get function to calculate
+        public CharacterLevel() {
+            
+        }
+        public string GetBaseHeroID() {
+            return baseHeroId;
         }
     }
     public class Ability
@@ -185,12 +219,8 @@ namespace MFFDataApp
     }
     public class Uniform
     {
-        public Character character { get; set; }
-        public string ChangedName { get; set; }
-        public Skill[] ChangedSkills { get; set; }
-        public string Name { get; set; }
-        public Uniform[] BonusUniforms { get; set; }
-        public List<Uniform> SynergyUniforms { get; set; }
+        public string UniformName { get; set; }
+        public string CharacterName { get; set; }
     }
     public class Skill
     {
