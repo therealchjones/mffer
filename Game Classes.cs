@@ -122,7 +122,7 @@ namespace MFFDataApp
         }
         public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {
 
-    }
+        }
     }
     // List of all available playable characters in the game
     public class Roster : Component
