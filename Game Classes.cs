@@ -153,15 +153,17 @@ namespace MFFDataApp
                     string baseId = character.HeroIds[heroId].baseHeroId;
                     if ( ! character.BaseIds.Contains(baseId) ) {
                         character.BaseIds.Add(baseId);
+                        if ( String.IsNullOrEmpty( character.BaseName ) ) {
+                            character.BaseName = strings[$"HERO_{baseId}"];
+                        }
                     }
-                    character.BaseName = strings[$"HERO_{baseId}"];
                     character.startGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
                     string uniformId = entry.Properties["data"].Properties["uniformGroupId"].String;
                     character.HeroIds[heroId].uniformGroupId = uniformId;
                     if ( ! character.Uniforms.ContainsKey(uniformId) ) {
                         character.Uniforms[uniformId] = new Uniform();
+                        character.Uniforms[uniformId].CharacterName = strings[$"HERO_{baseId}"];
                     }
-                    character.Uniforms[uniformId].CharacterName = strings[$"HERO_{baseId}"];
                     character.HeroIds[heroId].classType = Int32.Parse( entry.Properties["data"].Properties["classType"].String );
                     character.HeroIds[heroId].Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
                     character.HeroIds[heroId].Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
