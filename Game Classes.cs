@@ -58,8 +58,11 @@ namespace MFFDataApp
             // should have a predefined list/dictionary of components/assetobject names
             // that a version constructor can use to create the appropriate component
             // list, which can then be filled with LoadComponents() or similar?
+            Name = "";
             Components = new List<Component>();
             Assets = new AssetBundle();
+
+            Roster roster = new Roster(); Components.Add(roster);
         }
         public Version(string versionName) : this () {
             Name = versionName;
@@ -68,13 +71,17 @@ namespace MFFDataApp
             return null;
         }
         public void LoadComponents() {
+            Dictionary<string,string> strings = new Dictionary<string, string>();
+            AssetObject localization = Assets.AssetFiles["localization/localization_en.csv"].Properties["m_Script"];
+            foreach ( AssetObject entry in localization.Array ) {
+                strings[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
+            }
             foreach (Component component in Components) {
-                LoadComponent(component);
+                LoadComponent(component,strings);
             }
         }
-        public void LoadComponent(Component component) {
-            // take existing asset bundle and convert to component objects list
-            // if component is not already in asset list, add it?
+        public void LoadComponent(Component component, Dictionary<string,string> strings) {
+            component.Load( Assets.AssetFiles["IntHeroDataDictionary"].Properties["values"].Properties["Array"], strings );
         }
         public void WriteJson( StreamWriter file, int tabs = 0 ) {
             for ( int i = 0; i < tabs; i++ ) {
@@ -109,22 +116,64 @@ namespace MFFDataApp
         public void WriteJson(StreamWriter file, int tabs = 0) {
 
         }
+        public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {
+
     }
+    }
+    // List of all available playable characters in the game
     public class Roster : Component
     {
-        public List<Character> Characters { get; set; }
+        public Dictionary<string,Character> Characters { get; set; } // indexed by groupId
+        public Roster() : base() {
+            Characters = new Dictionary<string, Character>();
+            BackingAssets.Add("IntHeroDataDictionary");
+        }
+        public Roster( AssetObject asset, Dictionary<string,string> strings ) : this() {
+            Load( asset, strings );
+        }
+        public override void Load(AssetObject asset, Dictionary<string,string> strings) {
+            foreach ( AssetObject entry in asset.Array ) {
+                if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
+                    Character character;
+                    string groupId = entry.Properties["data"].Properties["groupId"].String;
+                    if ( Characters.ContainsKey(groupId) ) {
+                        character = Characters[groupId];
+                    } else {
+                        character = new Character();
+                        character.groupId=groupId;
+                        Characters.Add(groupId, character);
+                    }
+                    string heroId = entry.Properties["data"].Properties["heroId"].String;
+
+                    Int64 heroIdNumber = Int64.Parse(heroId);
+                    Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
+                    Int64 heroIdNumber2 = heroIdNumber1 >> 31;
+                    heroIdNumber1 = heroIdNumber1 >> 5;
+                    heroIdNumber = heroIdNumber1 + heroIdNumber2;
+                    heroIdNumber = heroIdNumber*100+1;
+                    string baseHeroId = heroIdNumber.ToString();
+
+                    string startGrade = entry.Properties["data"].Properties["startGrade"].String;
+                    string name = strings[$"HERO_{baseHeroId}"];
+                    character.Names.Add( heroId, name );
+                }
+            }
+        }
     }
     public class Character
     {
-        public string heroId;
+        public string groupId { get; set; }
+        public Dictionary<string,string> Names { get; set; }
         public string leaderSkillId;
-        public string Name { get; set; }
         public List<Uniform> Uniforms { get; set; }
         public Skill[] Skills { get; set; }
         public Ability[] Abilities { get; set; }
         public string species;
         public string WorldBossAbility { get; set; }
         public string Stars { get; set; }
+        public Character() {
+            Names = new Dictionary<string, string>();
+        }
     }
     public class Ability
     {
