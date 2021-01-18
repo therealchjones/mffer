@@ -172,6 +172,51 @@ namespace MFFDataApp
                     character.HeroIds[heroId].Gender = entry.Properties["data"].Properties["stGender"].String;
                 }
             }
+            Test();
+        }
+        // Testing: the same hero wearing the same uniform should have the same name and baseid regardless
+        // of other info, but baseIds should be different for the same character in different uniforms.
+        // Also, baseIds and HeroIds should all be unique; should probably test to ensure this is true as well.
+        void Test() {
+            foreach ( Character character in Characters.Values ) {
+              Dictionary<string,string> UniformNames = new Dictionary<string, string>();
+              Dictionary<string,string> UniformBases = new Dictionary<string, string>();
+              string groupId = character.groupId;
+              foreach ( CharacterLevel hero in character.HeroIds.Values ) {
+                string uniform = hero.uniformGroupId;
+                string name = character.Uniforms[uniform].CharacterName;
+                string baseId = hero.baseHeroId;
+                if ( UniformNames.ContainsKey(uniform) ) {
+                  if ( UniformNames[uniform] != name ) {
+                    throw new System.Exception( $"Inconsistency: Character {groupId}, heroId {hero.HeroId}, Uniform {uniform}, name {UniformNames[uniform]} different from {name}" );
+                  }
+                } else {
+                  UniformNames.Add(uniform,name);
+                }
+                if ( UniformBases.ContainsKey(uniform) ) {
+                  if ( UniformBases[uniform] != baseId ) {
+                    throw new System.Exception( $"Inconsistency: Character {groupId}, heroId {hero.HeroId}, Uniform {uniform}, baseId {UniformBases[uniform]} different from {baseId}" );
+                  }
+                } else {
+                  UniformBases.Add(uniform,baseId);
+                }                
+              }
+              List<string> bases = new List<string>();
+              foreach ( string uniformId in character.Uniforms.Keys ) {
+                if ( ! UniformNames.ContainsKey(uniformId) ) {
+                  throw new System.Exception( $"Uniform {uniformId} not found for testing names");
+                }
+                if ( ! UniformBases.ContainsKey(uniformId) ) {
+                  throw new System.Exception( $"Uniform {uniformId} not found for testing baseIds");
+                }
+                // Not testing names for uniqueness, as different uniforms can have the same character name
+                if ( bases.Contains(UniformBases[uniformId])) {
+                  throw new System.Exception( $"BaseId {UniformBases[uniformId]} is already the baseId for a different uniform");
+                } else {
+                  bases.Add(UniformBases[uniformId]);
+                }
+              }
+            }  
         }
     }
     public class Character
