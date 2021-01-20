@@ -120,6 +120,9 @@ namespace MFFDataApp
         public void WriteJson(StreamWriter file, int tabs = 0) {
 
         }
+        public virtual void WriteCSV( StreamWriter file ) {
+
+        }
         public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {
 
         }
@@ -127,137 +130,127 @@ namespace MFFDataApp
     // List of all available playable characters in the game
     public class Roster : Component
     {
-        public Dictionary<string,Character> Characters { get; set; } // indexed by groupId
+        public Dictionary<string,Character> Characters { get; set; } // by groupId
         public Roster() : base() {
             Characters = new Dictionary<string, Character>();
             BackingAssets.Add("IntHeroDataDictionary");
         }
-        public Roster( AssetObject asset, Dictionary<string,string> strings ) : this() {
-            Load( asset, strings );
-        }
+        // See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
+        // Character class. This is all based on certain assumptions, which should probably all
+        // be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
         public override void Load(AssetObject asset, Dictionary<string,string> strings) {
+            List<string> AllHeroIds = new List<string>();
             foreach ( AssetObject entry in asset.Array ) {
                 if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
+                    // Consider a note or warning if there's one that's not visible?
                     Character character;
                     string groupId = entry.Properties["data"].Properties["groupId"].String;
                     if ( Characters.ContainsKey(groupId) ) {
                         character = Characters[groupId];
                     } else {
                         character = new Character();
-                        character.groupId=groupId;
+                        character.GroupId=groupId;
                         Characters.Add(groupId, character);
                     }
                     string heroId = entry.Properties["data"].Properties["heroId"].String;
-                    character.HeroIds[heroId] = new CharacterLevel();
-                    character.HeroIds[heroId].HeroId = heroId;
-                    string baseId = character.HeroIds[heroId].baseHeroId;
-                    if ( ! character.BaseIds.Contains(baseId) ) {
-                        character.BaseIds.Add(baseId);
+                    if ( AllHeroIds.Contains(heroId) ) {
+                        throw new Exception($"HeroID {heroId} has already been used.");
+                    } else {
+                        AllHeroIds.Add(heroId);
+                    }
+                    character.Levels[heroId] = new CharacterLevel();
+                    character.Levels[heroId].HeroId = heroId;
+                    character.Levels[heroId].Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
+                    character.Levels[heroId].Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
+                    string baseId = character.Levels[heroId].BaseId;
+                    if ( ! character.Uniforms.ContainsKey(baseId) ) {
+                        Uniform uniform = new Uniform();
+                        uniform.BaseId = baseId;
+                        uniform.Camps = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String ];
+                        uniform.CharacterName = strings[$"HERO_{baseId}"];
+                        uniform.ClassType = strings[ "HEROCLASS_" + entry.Properties["data"].Properties["classType"].String ];
+                        uniform.Gender = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String ];
+                        uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
+                        uniform.UniformName = strings[$"HERO_COSTUME_{baseId}"];
+                        if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
+                            uniform.RaidAbility = strings["HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String ];
+                        }
+                        foreach ( AssetObject ability in entry.Properties["data"].Properties["abilitys"].Properties["Array"].Array ) {
+                            if ( ability.Properties["data"].String != "0" ) {
+                                uniform.Abilities.Add( strings["HERO_SUBTYPE_" + ability.Properties["data"].String]);
+                            }
+                        }
+                        character.Uniforms.Add(baseId,uniform);
                         if ( String.IsNullOrEmpty( character.BaseName ) ) {
-                            character.BaseName = strings[$"HERO_{baseId}"];
+                            if ( uniform.UniformGroupId == "0" ) {
+                                character.BaseName = strings[$"HERO_{baseId}"];
+                            }
                         }
                     }
-                    character.startGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
-                    string uniformId = entry.Properties["data"].Properties["uniformGroupId"].String;
-                    character.HeroIds[heroId].uniformGroupId = uniformId;
-                    if ( ! character.Uniforms.ContainsKey(uniformId) ) {
-                        character.Uniforms[uniformId] = new Uniform();
-                        character.Uniforms[uniformId].CharacterName = strings[$"HERO_{baseId}"];
-                    }
-                    character.HeroIds[heroId].classType = Int32.Parse( entry.Properties["data"].Properties["classType"].String );
-                    character.HeroIds[heroId].Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
-                    character.HeroIds[heroId].Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
-                    character.HeroIds[heroId].Species =  entry.Properties["data"].Properties["species"].String;
-                    character.HeroIds[heroId].Camps = entry.Properties["data"].Properties["stCamps"].String;
-                    character.HeroIds[heroId].Gender = entry.Properties["data"].Properties["stGender"].String;
+                    character.Species = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String ];
+                    character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
+                    // other things to consider including: max level, tier, grade/rank (all of which are likely calculable from above),
+                    // skills/abilities/stats (some of which are already included)
                 }
             }
-            Test();
         }
-        // Testing: the same hero wearing the same uniform should have the same name and baseid regardless
-        // of other info, but baseIds should be different for the same character in different uniforms.
-        // Also, baseIds and HeroIds should all be unique; should probably test to ensure this is true as well.
-        void Test() {
+        public override void WriteCSV(StreamWriter file) {
+            file.WriteLine("Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|Type|Gender|Side|Allies|Abilities|World Boss Ability");
             foreach ( Character character in Characters.Values ) {
-              Dictionary<string,string> UniformNames = new Dictionary<string, string>();
-              Dictionary<string,string> UniformBases = new Dictionary<string, string>();
-              string groupId = character.groupId;
-              foreach ( CharacterLevel hero in character.HeroIds.Values ) {
-                string uniform = hero.uniformGroupId;
-                string name = character.Uniforms[uniform].CharacterName;
-                string baseId = hero.baseHeroId;
-                if ( UniformNames.ContainsKey(uniform) ) {
-                  if ( UniformNames[uniform] != name ) {
-                    throw new System.Exception( $"Inconsistency: Character {groupId}, heroId {hero.HeroId}, Uniform {uniform}, name {UniformNames[uniform]} different from {name}" );
-                  }
-                } else {
-                  UniformNames.Add(uniform,name);
+                foreach ( Uniform uniform in character.Uniforms.Values ) {
+                    file.Write($"{character.GroupId}|{uniform.BaseId}|{character.BaseName}|{uniform.CharacterName}|");
+                    file.Write($"{uniform.UniformName}|{uniform.UniformGroupId}|{uniform.ClassType}|");
+                    file.Write($"{uniform.Gender}|{uniform.Camps}|{character.Species}|");
+                    int size = uniform.Abilities.Count;
+                    for ( int i=0; i<size; i++ ) {
+                        file.Write( uniform.Abilities[i] );
+                        if ( i<size-1 ) file.Write(",");
+                    }
+                    file.Write($"|{uniform.RaidAbility}");
+                    file.WriteLine();
                 }
-                if ( UniformBases.ContainsKey(uniform) ) {
-                  if ( UniformBases[uniform] != baseId ) {
-                    throw new System.Exception( $"Inconsistency: Character {groupId}, heroId {hero.HeroId}, Uniform {uniform}, baseId {UniformBases[uniform]} different from {baseId}" );
-                  }
-                } else {
-                  UniformBases.Add(uniform,baseId);
-                }                
-              }
-              List<string> bases = new List<string>();
-              foreach ( string uniformId in character.Uniforms.Keys ) {
-                if ( ! UniformNames.ContainsKey(uniformId) ) {
-                  throw new System.Exception( $"Uniform {uniformId} not found for testing names");
-                }
-                if ( ! UniformBases.ContainsKey(uniformId) ) {
-                  throw new System.Exception( $"Uniform {uniformId} not found for testing baseIds");
-                }
-                // Not testing names for uniqueness, as different uniforms can have the same character name
-                if ( bases.Contains(UniformBases[uniformId])) {
-                  throw new System.Exception( $"BaseId {UniformBases[uniformId]} is already the baseId for a different uniform");
-                } else {
-                  bases.Add(UniformBases[uniformId]);
-                }
-              }
-            }  
+            }
         }
     }
+    // Some findings/assumptions about the multiple identifiers associated with a character and their
+    // settings/equipment follow. These should likely be tested at the time of import to ensure 
+    // they continue to hold.
+    // groupId and Character map to each other one-to-one
+    // baseId (calculated from heroId) and Uniform map one-to-one, but many-to-one Character
+    // heroId many-to-one baseId
+    // uniformGroupId is not unique between characters; the "default" (non-uniformed state) for each
+    // Character has uniformGroupId 0.
+    // Characteristics/properties are arranged at the level at which they may vary. For instance,
+    // Species is a property of Character, while Gender is a property of Uniform
     public class Character
     {
-        public string groupId { get; set; }
-        public Dictionary<string,CharacterLevel> HeroIds { get; set; }
-        public List<string> BaseIds { get; set; }
+        public string GroupId { get; set; }
+        public Dictionary<string,CharacterLevel> Levels { get; set; } // by heroId
+        public Dictionary<string,Uniform> Uniforms { get; set; } // by baseId
         public string BaseName { get; set; }
-        public int startGrade { get; set; }
-        public Dictionary<string,Uniform> Uniforms { get; set; }
+        public int StartGrade { get; set; }
+        public string Species { get; set; }
         public Character() {
-            HeroIds = new Dictionary<string, CharacterLevel>();
+            Levels = new Dictionary<string, CharacterLevel>();
             Uniforms = new Dictionary<string, Uniform>();
-            BaseIds = new List<string>();
         }
     }
     public class CharacterLevel {
         public string HeroId { get; set; }
-        public int classType { get; set; }
         public int Rank { get; set; }
         public int Tier { get; set; }
-        public string Species { get; set; }
-        public string Camps { get; set; }
-        public string Gender { get; set; }
-        public string uniformGroupId { get; set; }
-        public string baseHeroId { 
+        public string BaseId { 
             get {
-                    Int64 heroIdNumber = Int64.Parse(HeroId);
-                    Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
-                    Int64 heroIdNumber2 = heroIdNumber1 >> 31;
-                    heroIdNumber1 = heroIdNumber1 >> 5;
-                    heroIdNumber = heroIdNumber1 + heroIdNumber2;
-                    heroIdNumber = heroIdNumber*100+1;
-                    return heroIdNumber.ToString();
+                Int64 heroIdNumber = Int64.Parse(HeroId);
+                Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
+                Int64 heroIdNumber2 = heroIdNumber1 >> 31;
+                heroIdNumber1 = heroIdNumber1 >> 5;
+                heroIdNumber = heroIdNumber1 + heroIdNumber2;
+                heroIdNumber = heroIdNumber*100+1;
+                return heroIdNumber.ToString();
             }
-        } // should write get function to calculate
+        } 
         public CharacterLevel() {
-            
-        }
-        public string GetBaseHeroID() {
-            return baseHeroId;
         }
     }
     public class Ability
@@ -268,6 +261,16 @@ namespace MFFDataApp
     {
         public string UniformName { get; set; }
         public string CharacterName { get; set; }
+        public string UniformGroupId { get; set; }
+        public string Camps { get; set; }
+        public string Gender { get; set; }
+        public string BaseId { get; set; }
+        public string ClassType { get; set; }
+        public string RaidAbility { get; set; }
+        public List<string> Abilities { get; set; }
+        public Uniform() {
+            Abilities = new List<string>();
+        }
     }
     public class Skill
     {
