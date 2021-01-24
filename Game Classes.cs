@@ -142,7 +142,7 @@ namespace MFFDataApp
             List<string> AllHeroIds = new List<string>();
             foreach ( AssetObject entry in asset.Array ) {
                 if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
-                    // Consider a note or warning if there's one that's not visible?
+                    // Consider a note or warning if there's one that's not visible? Not sure which these indicate.
                     Character character;
                     string groupId = entry.Properties["data"].Properties["groupId"].String;
                     if ( Characters.ContainsKey(groupId) ) {
@@ -158,13 +158,17 @@ namespace MFFDataApp
                     } else {
                         AllHeroIds.Add(heroId);
                     }
-                    character.Levels[heroId] = new CharacterLevel();
-                    character.Levels[heroId].HeroId = heroId;
-                    character.Levels[heroId].Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
-                    character.Levels[heroId].Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
-                    string baseId = character.Levels[heroId].BaseId;
-                    if ( ! character.Uniforms.ContainsKey(baseId) ) {
-                        Uniform uniform = new Uniform();
+                    CharacterLevel newLevel = new CharacterLevel();
+                    newLevel.HeroId = heroId;
+                    newLevel.Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
+                    newLevel.Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
+                    string baseId = newLevel.BaseId;
+                    Uniform uniform;
+                    if ( character.Uniforms.ContainsKey(baseId) ) {
+                        uniform = character.Uniforms[baseId];
+                    } else {
+                        uniform = new Uniform();
+                        character.Uniforms.Add(baseId,uniform);
                         uniform.BaseId = baseId;
                         uniform.Camps = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String ];
                         uniform.CharacterName = strings[$"HERO_{baseId}"];
@@ -172,6 +176,7 @@ namespace MFFDataApp
                         uniform.Gender = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String ];
                         uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
                         uniform.UniformName = strings[$"HERO_COSTUME_{baseId}"];
+                        uniform.MainAtk = entry.Properties["data"].Properties["mainAtk"].String; // does not appear to include HP, just physical/energy
                         if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
                             uniform.RaidAbility = strings["HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String ];
                         }
@@ -180,33 +185,58 @@ namespace MFFDataApp
                                 uniform.Abilities.Add( strings["HERO_SUBTYPE_" + ability.Properties["data"].String]);
                             }
                         }
-                        character.Uniforms.Add(baseId,uniform);
-                        if ( String.IsNullOrEmpty( character.BaseName ) ) {
-                            if ( uniform.UniformGroupId == "0" ) {
-                                character.BaseName = strings[$"HERO_{baseId}"];
-                            }
+                        if ( entry.Properties["data"].Properties["ability_hidden"].String != "0" ) {
+                            uniform.Abilities.Add( strings["HERO_SUBTYPE_" +  entry.Properties["data"].Properties["ability_hidden"].String ] );
+                        }
+                    }
+                    uniform.CharacterLevels.Add(heroId,newLevel);
+                    newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["leaderSkillId"].String ) );
+                    foreach ( AssetObject skill in entry.Properties["data"].Properties["skillIds"].Properties["Array"].Array ) {
+                        Skill newSkill = new Skill( skill.Properties["data"].String );
+                        newLevel.Skills.Add( newSkill );
+                    }
+                    newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["uniformSkillId"].String ) );
+                    if ( String.IsNullOrEmpty( character.BaseName ) ) {
+                        if ( uniform.UniformGroupId == "0" ) {
+                            character.BaseName = strings[$"HERO_{baseId}"];
                         }
                     }
                     character.Species = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String ];
                     character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
-                    // other things to consider including: max level, tier, grade/rank (all of which are likely calculable from above),
-                    // skills/abilities/stats (some of which are already included)
+                    // other things to consider including: max level, grade/level,
+                    // skills/stats (some of which are already included) (need uniform bonus stats)
+                    // HeroPotentialDataList for potential/rank up after 60
                 }
             }
         }
         public override void WriteCSV(StreamWriter file) {
-            file.WriteLine("Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|Type|Gender|Side|Allies|Abilities|World Boss Ability");
+            // we should make the delimiter more unlikely, or dynamic based upon what's in the text
+            // this may be doable by making the first character of the line the delimiter and changing it 
+            // as needed for each line, use a StringBuilder rather than just writing to file? Change all
+            // the delimiters in the file afterward? Or will CSV import allow different delimiters on each
+            // line? Should we be outputing in some other way for import to spreadsheet?
+            file.Write("|Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|");
+            file.Write("Primary Attack|Type|Gender|Side|Allies|Max Tier|Abilities|World Boss Ability|Leader Skill|");
+            file.Write("Skill 1|Skill 2|Skill 3|Passive Skill|Skill 4|Skill 5|T2 Passive Skill|T3 Skill|Awakened Skill|");
+            file.Write("Uniform Skill");
+            file.WriteLine();
             foreach ( Character character in Characters.Values ) {
                 foreach ( Uniform uniform in character.Uniforms.Values ) {
-                    file.Write($"{character.GroupId}|{uniform.BaseId}|{character.BaseName}|{uniform.CharacterName}|");
-                    file.Write($"{uniform.UniformName}|{uniform.UniformGroupId}|{uniform.ClassType}|");
-                    file.Write($"{uniform.Gender}|{uniform.Camps}|{character.Species}|");
+                    file.Write($"|{character.GroupId}|{uniform.BaseId}|{character.BaseName}|{uniform.CharacterName}|");
+                    file.Write($"{uniform.UniformName}|{uniform.UniformGroupId}|{uniform.MainAtk}|{uniform.ClassType}|");
+                    file.Write($"{uniform.Gender}|{uniform.Camps}|{character.Species}|{character.MaxTier}|");
                     int size = uniform.Abilities.Count;
                     for ( int i=0; i<size; i++ ) {
                         file.Write( uniform.Abilities[i] );
                         if ( i<size-1 ) file.Write(",");
                     }
                     file.Write($"|{uniform.RaidAbility}");
+                    for ( int i=0; i<11; i++) {
+                        file.Write( "|" );
+                        if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
+                            file.Write( uniform.Skills[i].SkillId );
+                        }
+                    }
                     file.WriteLine();
                 }
             }
@@ -225,20 +255,66 @@ namespace MFFDataApp
     public class Character
     {
         public string GroupId { get; set; }
-        public Dictionary<string,CharacterLevel> Levels { get; set; } // by heroId
         public Dictionary<string,Uniform> Uniforms { get; set; } // by baseId
         public string BaseName { get; set; }
         public int StartGrade { get; set; }
         public string Species { get; set; }
+        public int MaxTier { 
+            get {
+                foreach ( Uniform uniform in Uniforms.Values ) {
+                    foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
+                        if ( level.Tier == 3 ) return 3;
+                    }
+                    return 2;
+                }
+                throw new Exception($"No uniforms found for character {BaseName} (groupId {GroupId})");
+            }
+        }
         public Character() {
-            Levels = new Dictionary<string, CharacterLevel>();
             Uniforms = new Dictionary<string, Uniform>();
+        }
+    }
+    public class Uniform
+    {
+        public string UniformName { get; set; }
+        public string CharacterName { get; set; }
+        public string UniformGroupId { get; set; }
+        public Dictionary<string,CharacterLevel> CharacterLevels { get; set; } // by heroId
+        public string Camps { get; set; }
+        public string Gender { get; set; }
+        public string BaseId { get; set; }
+        public string ClassType { get; set; }
+        public string RaidAbility { get; set; }
+        public string MainAtk { get; set; }
+        public List<string> Abilities { get; set; }
+        public List<Skill> Skills {
+            get {
+                List<Skill> maxSkillSet = new List<Skill>();
+                int maxCount = 0;
+                foreach ( CharacterLevel level in CharacterLevels.Values ) {
+                    int count = 0;
+                    foreach ( Skill skill in level.Skills ) {
+                        if ( skill.SkillId != "0" ) {
+                            count++;
+                        }
+                    }
+                    if ( count > maxCount ) {
+                        maxSkillSet = level.Skills;
+                    }
+                }
+                return maxSkillSet;
+            }
+        }
+        public Uniform() {
+            Abilities = new List<string>();
+            CharacterLevels = new Dictionary<string, CharacterLevel>();
         }
     }
     public class CharacterLevel {
         public string HeroId { get; set; }
         public int Rank { get; set; }
         public int Tier { get; set; }
+        public List<Skill> Skills { get; set; }
         public string BaseId { 
             get {
                 Int64 heroIdNumber = Int64.Parse(HeroId);
@@ -251,30 +327,16 @@ namespace MFFDataApp
             }
         } 
         public CharacterLevel() {
-        }
-    }
-    public class Ability
-    {
-        public string abilityId;
-    }
-    public class Uniform
-    {
-        public string UniformName { get; set; }
-        public string CharacterName { get; set; }
-        public string UniformGroupId { get; set; }
-        public string Camps { get; set; }
-        public string Gender { get; set; }
-        public string BaseId { get; set; }
-        public string ClassType { get; set; }
-        public string RaidAbility { get; set; }
-        public List<string> Abilities { get; set; }
-        public Uniform() {
-            Abilities = new List<string>();
+            Skills = new List<Skill>();
         }
     }
     public class Skill
     {
+        public string SkillId { get; set; }
         public string Name { get; set; }
+        public Skill ( String skillId ) {
+            SkillId = skillId;
+        }
     }
     public class Alliance
     {
