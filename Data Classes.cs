@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace MFFDataApp
@@ -115,10 +114,6 @@ namespace MFFDataApp
         }
         public void WriteJson(StreamWriter file, int tabs = 0)
         {
-            for ( int i = 0; i < tabs; i++ ) {
-                file.Write("\t");
-            }
-            file.WriteLine("\"Assets\" : {");
             List<string> Keys = AssetFiles.Keys.ToList<string>();
             Keys.Sort();
             int counter = 0;
@@ -129,11 +124,7 @@ namespace MFFDataApp
                 }
                 file.WriteLine();
                 counter++;
-            }
-            for ( int i = 0; i < tabs; i++ ) {
-                file.Write("\t");
-            }
-            file.Write("}");          
+            }     
         }
         public void LoadFromVersionDirectory( List<DirectoryInfo> dirs ) {
             Dictionary<string, string> manifest = new Dictionary<string, string>();
@@ -569,6 +560,49 @@ namespace MFFDataApp
                     file.Write($"\"{JsonEncodedText.Encode(String).ToString()}\"");
                     break;
             }
+        }
+        //Would like to change:
+        // asset.Properties["data"].Properties["grade"].String
+        // to
+        // asset.GetValue("grade");
+        // This isn't there yet.
+        public string GetValue( string key ) {
+            switch (Type) {
+                case JsonValueKind.Array :
+                    int keyNum=0;
+                    try { 
+                        keyNum = Int32.Parse(key);
+                  } catch ( Exception ) {
+                        throw new Exception( $"'{Name}' is an array object and '{key}' is not a number.");
+                    }
+                    return Array[keyNum].GetSingleValue();
+                case JsonValueKind.Object :
+                    return Properties[key].GetSingleValue();
+                default:
+                    break;
+            }
+            throw new Exception( $"Unable to obtain value from key {key} for object {Name}" );
+        }
+        public string GetSingleValue() {
+            switch ( Type ) {
+                case JsonValueKind.Array :
+                    if ( Array.Count == 1 ) {
+                        return Array[0].GetSingleValue();
+                    }
+                    break;
+                case JsonValueKind.Object :
+                    if ( Properties.Count == 1 ) {
+                        foreach ( AssetObject value in Properties.Values ) {
+                            return value.GetSingleValue();
+                        }
+                    }
+                    break;
+                case JsonValueKind.Undefined :
+                    break;
+                default:
+                    return String;
+            }
+            throw new Exception($"Unable to get single value from object {Name}.");
         }
     }
 }

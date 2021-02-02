@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.IO;
 
 namespace MFFDataApp
@@ -52,17 +53,17 @@ namespace MFFDataApp
     public class Version
     {
         public string Name { get; set; }
-        public List<Component> Components { get; set; }
+        public Dictionary<string, Component> Components { get; set; }
         public AssetBundle Assets { get; set; }
         public Version() {
             // should have a predefined list/dictionary of components/assetobject names
             // that a version constructor can use to create the appropriate component
             // list, which can then be filled with LoadComponents() or similar?
             Name = "";
-            Components = new List<Component>();
+            Components = new Dictionary<string, Component>();
             Assets = new AssetBundle();
 
-            Roster roster = new Roster(); Components.Add(roster);
+            Roster roster = new Roster(); Components.Add("Roster",roster);
         }
         public Version(string versionName) : this () {
             Name = versionName;
@@ -76,7 +77,7 @@ namespace MFFDataApp
             foreach ( AssetObject entry in localization.Array ) {
                 strings[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
             }
-            foreach (Component component in Components) {
+            foreach (Component component in Components.Values) {
                 LoadComponent(component,strings);
             }
         }
@@ -88,7 +89,16 @@ namespace MFFDataApp
                 file.Write("\t");
             }
             file.WriteLine($"\"{Name}\" : " + "{");
-            Assets.WriteJson(file,tabs+1);
+            for ( int i = 0; i < tabs+1; i++ ) {
+                file.Write("\t");
+            }            
+            file.WriteLine("\"Assets\" : {");
+            Assets.WriteJson(file,tabs+2);
+            file.WriteLine();
+            for ( int i = 0; i < tabs+1; i++ ) {
+                file.Write("\t");
+            }
+            file.Write("}");      
             if ( Components.Count > 0 ) {
                 file.WriteLine(",");
                 for ( int i = 0; i < tabs+1; i++ ) {
@@ -96,13 +106,21 @@ namespace MFFDataApp
                 }                
                 file.WriteLine("\"Components\" : {");
                 int componentCounter = 0;
-                foreach (Component component in Components) {
-                    component.WriteJson(file,tabs+1);
+                List<string> components = Components.Keys.ToList<string>();
+                components.Sort();
+                foreach (string key in components) {
+                    Component component = Components[key];
+                    component.WriteJson(file,tabs+2);
                     componentCounter++;
                     if (componentCounter < Components.Count - 1) {
-                        file.Write(",");
+                        file.WriteLine(",");
                     }
                 }
+                file.WriteLine();
+                for ( int i = 0; i < tabs+1; i++ ) {
+                    file.Write("\t");
+                }                
+                file.Write("}");
             }
             file.WriteLine();
             for ( int i = 0; i < tabs; i++ ) {
@@ -176,7 +194,10 @@ namespace MFFDataApp
                         uniform.Gender = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String ];
                         uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
                         uniform.UniformName = strings[$"HERO_COSTUME_{baseId}"];
-                        uniform.MainAtk = entry.Properties["data"].Properties["mainAtk"].String; // does not appear to include HP, just physical/energy
+                        switch ( entry.Properties["data"].Properties["mainAtk"].String ) {
+                            case "0": uniform.MainAtk = "Physical"; break;
+                            case "1": uniform.MainAtk = "Energy"; break;
+                        }
                         if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
                             uniform.RaidAbility = strings["HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String ];
                         }
@@ -203,6 +224,7 @@ namespace MFFDataApp
                     }
                     character.Species = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String ];
                     character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
+                    character.GrowType = Int32.Parse( entry.Properties["data"].Properties["growType"].String );
                     // other things to consider including: max level, grade/level,
                     // skills/stats (some of which are already included) (need uniform bonus stats)
                     // HeroPotentialDataList for potential/rank up after 60
@@ -216,7 +238,7 @@ namespace MFFDataApp
             // the delimiters in the file afterward? Or will CSV import allow different delimiters on each
             // line? Should we be outputing in some other way for import to spreadsheet?
             file.Write("|Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|");
-            file.Write("Primary Attack|Type|Gender|Side|Allies|Max Tier|Abilities|World Boss Ability|Leader Skill|");
+            file.Write("Primary Attack|Type|Gender|Side|Allies|Max Tier|Growth Type|Abilities|World Boss Ability|Leader Skill|");
             file.Write("Skill 1|Skill 2|Skill 3|Passive Skill|Skill 4|Skill 5|T2 Passive Skill|T3 Skill|Awakened Skill|");
             file.Write("Uniform Skill");
             file.WriteLine();
@@ -224,7 +246,7 @@ namespace MFFDataApp
                 foreach ( Uniform uniform in character.Uniforms.Values ) {
                     file.Write($"|{character.GroupId}|{uniform.BaseId}|{character.BaseName}|{uniform.CharacterName}|");
                     file.Write($"{uniform.UniformName}|{uniform.UniformGroupId}|{uniform.MainAtk}|{uniform.ClassType}|");
-                    file.Write($"{uniform.Gender}|{uniform.Camps}|{character.Species}|{character.MaxTier}|");
+                    file.Write($"{uniform.Gender}|{uniform.Camps}|{character.Species}|{character.MaxTier}|{character.GrowType}|");
                     int size = uniform.Abilities.Count;
                     for ( int i=0; i<size; i++ ) {
                         file.Write( uniform.Abilities[i] );
@@ -257,6 +279,7 @@ namespace MFFDataApp
         public string GroupId { get; set; }
         public Dictionary<string,Uniform> Uniforms { get; set; } // by baseId
         public string BaseName { get; set; }
+        public int GrowType { get; set; }
         public int StartGrade { get; set; }
         public string Species { get; set; }
         public int MaxTier { 
