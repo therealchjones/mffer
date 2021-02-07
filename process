@@ -1,0 +1,33 @@
+- install Android SDK command line tools from https://developer.android.com/studio#command-tools, uncompress to ~/Library/Android/sdk/cmdline-tools/latest/
+- from ~/Library/Android/sdk/cmdline-tools/latest/bin, do
+./sdkmanager --install platform-tools emulator 'cmdline-tools;latest'
+rm -rf ~/Library/Android/sdk/cmdline-tools/latest 
+mv ~/Library/Android/sdk/cmdline-tools/latest{-2,}
+~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --update
+~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'system-images;android-30;google_apis_playstore;x86' 'system-images;android-30;google_apis;x86' 'platforms;android-30'
+~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'Google_Play' --device 43
+~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis;x86' --name 'No_Google_Play' --device 43
+./emulator -avd 'Google_Play'
+Install Future Fight from the Google Play store (sign into google play store when requested)
+Enable adb debugging on your device (may be done by default on emulator?): The Developer options screen is hidden by default. To make it visible, go to Settings > About phone and tap Build number seven times. Return to the previous screen, go to System->Developer Options. Enable "USB debugging"
+~/Library/Android/sdk/platform-tools/adb shell pm path com.netmarble.mherosgb 
+> package:/data/app/~~_gGCpUyCbEXxfbRCWDnLlg==/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/
+~/Library/Android/sdk/platform-tools/adb pull /data/app/~~_gGCpUyCbEXxfbRCWDnLlg==/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/ ~/Downloads/
+close emulator, open rootable emulator:
+~/Library/Android/sdk/emulator/emulator -avd 'No_Google_Play'
+enable usb debugging as above (already enabled?)
+~/Library/Android/sdk/platform-tools/adb install-multiple ~/Downloads/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/*.apk
+Run Marvel Future Fight, "install" google play games app, "download" additional data, press settings gear->settings to interrupt tutorial to sign in, go to options->download all data, go to account->sign in to facebook; restart app if hanging or crashing. After signed in and app auto-restarts, close app (swipe up)
+~/Library/Android/sdk/platform-tools/adb push ~/Downloads/getfiles /sdcard/Download/
+~/Library/Android/sdk/platform-tools/adb shell su root '/bin/sh /sdcard/Download/getfiles'
+~/Library/Android/sdk/platform-tools/adb pull /sdcard/Download/alldirs.tar.gz ~/Downloads
+close emulator
+(erase the No_Google_Play avd at the beginning of next time)
+mkdir ~/Downloads/APK/Marvel Future Fight/MFF-device-6.7.0 
+cd ~/Downloads/APK/Marvel Future Fight/MFF-device-6.7.0
+tar xzf ~/Downloads/alldirs.tar.gz
+rm ~/Downloads/alldirs.tar.gz
+
+Important files:
+/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text
+/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en
