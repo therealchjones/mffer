@@ -27,7 +27,10 @@ mkdir ~/Downloads/APK/Marvel Future Fight/MFF-device-6.7.0
 cd ~/Downloads/APK/Marvel Future Fight/MFF-device-6.7.0
 tar xzf ~/Downloads/alldirs.tar.gz
 rm ~/Downloads/alldirs.tar.gz
+mkdir -p ~/Development/Marvel\ Future\ Fight/data/MFF-data-6.7.0/assets/
 
-Important files:
-/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text
-/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en
+Windows: UABE:
+Open MFF-device-<version>\data\media\0\Android\data\com.netmarble.mherosgb\files\bundle\text, decompress text as prompted to MFF-data-<version>
+Info->Select all (shift)->Export Dump->UABE JSON dump to MFF-data-<version>\assets\
+Open MFF-device-<version>\data\media\0\Android\data\com.netmarble.mherosgb\files\bundle\localization_en, decompress localization_en as prompted to MFF-data-<version>
+Info->Select all (shift)->Export Dump->UABE JSON dump to MFF-data-<version>\assets\
