@@ -19,8 +19,8 @@ namespace MFFDataApp
             foreach ( string versionName in versionNames ) {
                 Version version = new Version(versionName);
                 version.Assets = dataDir.GetAssets(versionName);
-                version.LoadComponents();
-                Versions.Add(version); // if not already included?
+                version.LoadAllComponents();
+                Versions.Add(version);
             }
         }
         public void SaveAllData( string fileName ) {
@@ -54,6 +54,9 @@ namespace MFFDataApp
     {
         public string Name { get; set; }
         public Dictionary<string, Component> Components { get; set; }
+        // can likely replace the AssetBundle with its only property,
+        // the dictionary of Assets, moving methods to Version, DataDirectory,
+        // or others
         public AssetBundle Assets { get; set; }
         public Dictionary<string, string> Localization { get; set; }
         public Version() {
@@ -73,7 +76,7 @@ namespace MFFDataApp
         AssetObject GetAsset( string assetName )  {
             return null;
         }
-        public void LoadComponents() {
+        public void LoadAllComponents() {
             LoadLocalization();
             foreach (Component component in Components.Values) {
                 LoadComponent(component,Localization);
@@ -160,15 +163,9 @@ namespace MFFDataApp
         protected Component() {
             BackingAssets = new List<string>();
         }
-        public void WriteJson(StreamWriter file, int tabs = 0) {
-
-        }
-        public virtual void WriteCSV( StreamWriter file ) {
-
-        }
-        public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {
-
-        }
+        public void WriteJson(StreamWriter file, int tabs = 0) {}
+        public virtual void WriteCSV( StreamWriter file ) {}
+        public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {}
     }
     // List of all available playable characters in the game
     public class Roster : Component
