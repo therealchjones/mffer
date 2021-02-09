@@ -55,6 +55,7 @@ namespace MFFDataApp
         public string Name { get; set; }
         public Dictionary<string, Component> Components { get; set; }
         public AssetBundle Assets { get; set; }
+        public Dictionary<string, string> Localization { get; set; }
         public Version() {
             // should have a predefined list/dictionary of components/assetobject names
             // that a version constructor can use to create the appropriate component
@@ -62,6 +63,7 @@ namespace MFFDataApp
             Name = "";
             Components = new Dictionary<string, Component>();
             Assets = new AssetBundle();
+            Localization = new Dictionary<string, string>();
 
             Roster roster = new Roster(); Components.Add("Roster",roster);
         }
@@ -72,17 +74,40 @@ namespace MFFDataApp
             return null;
         }
         public void LoadComponents() {
-            Dictionary<string,string> strings = new Dictionary<string, string>();
-            AssetObject localization = Assets.AssetFiles["localization/localization_en.csv"].Properties["m_Script"];
-            foreach ( AssetObject entry in localization.Array ) {
-                strings[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
-            }
+            LoadLocalization();
             foreach (Component component in Components.Values) {
-                LoadComponent(component,strings);
+                LoadComponent(component,Localization);
             }
         }
         public void LoadComponent(Component component, Dictionary<string,string> strings) {
             component.Load( Assets.AssetFiles["IntHeroDataDictionary"].Properties["values"].Properties["Array"], strings );
+        }
+        void LoadLocalization() {
+            if ( Localization.Count() == 0 ) {
+                // the localization dictionary was a CSV in 6.2.0, but is in an asset in
+                // 6.7.0; will have to manage differently
+                if ( Assets.AssetFiles.ContainsKey("localization/localization_en.csv") ) {
+                    foreach ( AssetObject entry in Assets.AssetFiles["localization/localization_en.csv"].Properties["m_Script"].Array ) {
+                        Localization[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
+                    }
+                } else if ( Assets.AssetFiles.ContainsKey("LocalizationTable_en") ) {
+                    List<string> keys = new List<string>();
+                    List<string> values = new List<string>();
+                    foreach ( AssetObject key in Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Array ) {
+                        keys.Add( key.Properties["data"].String );
+                    }
+                    foreach ( AssetObject value in Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["values"].Array ) {
+                        values.Add( value.Properties["data"].String );
+                    }
+                    if ( keys.Count() == values.Count() ) {
+
+                    } else {
+                        throw new Exception("Unable to build localization dictionary; invalid entries");
+                    }
+                } else {
+                    throw new Exception("Unable to build string localization dictionary; unable to determine dictionary type");
+                }
+            }
         }
         public void WriteJson( StreamWriter file, int tabs = 0 ) {
             for ( int i = 0; i < tabs; i++ ) {
