@@ -39,7 +39,7 @@ namespace MFFDataApp
                     // the JSON output with that number of tabs
                     version.WriteJson(file,2);
                     versionCounter++;
-                    if ( versionCounter < Versions.Count - 1 ) {
+                    if ( versionCounter < Versions.Count ) {
                         file.Write(",");
                     }
                     file.WriteLine("");

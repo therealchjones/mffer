@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -118,7 +118,7 @@ namespace MFFDataApp
             Keys.Sort();
             int counter = 0;
             foreach ( string key in Keys ) {          
-                AssetFiles[key].WriteJson(file,tabs+1);
+                AssetFiles[key].WriteJson(file,tabs);
                 if ( counter < Keys.Count() - 1 ) {
                     file.Write(",");
                 }
@@ -414,8 +414,8 @@ namespace MFFDataApp
             Type = new JsonValueKind();
             Properties = new Dictionary<string, AssetObject>();
             Array = new List<AssetObject>();
-            Name="";
-            String="";
+            Name=null;
+            String=null;
         }
         protected JsonDocument GetJson(string json)
         {
@@ -431,8 +431,16 @@ namespace MFFDataApp
             }
             catch (JsonException e)
             {
-                // System.IO.File.WriteAllText("/Users/chjones/Downloads/APK/not-json.json", json);
-                throw new JsonException(e.Message);
+                // when there is an error in the json formatting, don't use
+                // the file, but don't fail silently either; luckily, a (properly escaped)
+                // single string can be an entire json document
+                // FWIW, currently only seems to occur in a single asset file that uses some leading 0s in numbers
+                string errorString = "ERROR: The original document has JSON formatting errors.\n";
+                errorString += "Attempting to parse the document resulted in the exception:\n";
+                errorString += e.Message;
+                errorString = JsonEncodedText.Encode(errorString).ToString();
+                JsonDocument errorDocument = JsonDocument.Parse("\"" + errorString + "\"");
+                return errorDocument;
             }
         }
         public void ParseJson( JsonElement Value ) {
@@ -444,7 +452,7 @@ namespace MFFDataApp
             {
                 throw new Exception($"Asset object {Name} already has an array loaded.");
             }
-            if ( String.Length != 0 ) {
+            if ( ! String.IsNullOrEmpty( String ) ) {
                 throw new Exception($"Asset object {Name} already has a string loaded.");
             }
             Type = Value.ValueKind;
