@@ -68,7 +68,7 @@ namespace MFFDataApp
             Assets = new AssetBundle();
             Localization = new Dictionary<string, string>();
 
-            Roster roster = new Roster(); Components.Add("Roster",roster);
+            AddComponent( new Roster() );
         }
         public Version(string versionName) : this () {
             Name = versionName;
@@ -76,14 +76,35 @@ namespace MFFDataApp
         AssetObject GetAsset( string assetName )  {
             return null;
         }
+        void AddComponent( Component component ) {
+            Components.Add( component.Name, component );
+        }
         public void LoadAllComponents() {
             LoadLocalization();
             foreach (Component component in Components.Values) {
-                LoadComponent(component,Localization);
+                LoadComponent(component);
             }
         }
-        public void LoadComponent(Component component, Dictionary<string,string> strings) {
-            component.Load( Assets.AssetFiles["IntHeroDataDictionary"].Properties["values"].Properties["Array"], strings );
+        public void LoadComponent( string componentName ) {
+            if ( Components.ContainsKey(componentName) ) {
+                LoadComponent( Components[componentName] );
+            } else {
+                throw new Exception($"Unable to load; no component named '{componentName}'");
+            }
+        }
+        public void LoadComponent(Component component) {
+            foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
+                if ( component.BackingAssets[ assetName ] == null ) {
+                    if ( Assets.AssetFiles.ContainsKey(assetName) ) {
+                        // we may be able to make this a bit smaller, like ....Properties["values"].Properties["Array"]
+                        component.BackingAssets[assetName] = Assets.AssetFiles[assetName];
+                    } else {
+                        throw new Exception($"Unable to load asset '{assetName}' for component '{component.Name}'");
+                    }
+                }
+            }
+            // should figure out how to include Localization as a pseudo-BackingAsset
+            component.Load( Localization );
         }
         void LoadLocalization() {
             if ( Localization.Count() == 0 ) {
@@ -159,26 +180,29 @@ namespace MFFDataApp
     }
     public class Component
     {
-        protected List<string> BackingAssets { get; set; }
+        public string Name;
+        public Dictionary<string,AssetObject> BackingAssets { get; set; }
         protected Component() {
-            BackingAssets = new List<string>();
+            BackingAssets = new Dictionary<string,AssetObject>();
         }
         public void WriteJson(StreamWriter file, int tabs = 0) {}
         public virtual void WriteCSV( StreamWriter file ) {}
-        public virtual void Load( AssetObject asset, Dictionary<string,string> strings ) {}
+        public virtual void Load( Dictionary<string,string> strings ) {}
     }
     // List of all available playable characters in the game
     public class Roster : Component
     {
         public Dictionary<string,Character> Characters { get; set; } // by groupId
         public Roster() : base() {
+            Name = "Roster";
             Characters = new Dictionary<string, Character>();
-            BackingAssets.Add("IntHeroDataDictionary");
+            BackingAssets.Add("IntHeroDataDictionary",null);
         }
         // See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
         // Character class. This is all based on certain assumptions, which should probably all
         // be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
-        public override void Load(AssetObject asset, Dictionary<string,string> strings) {
+        public override void Load(Dictionary<string,string> strings) {
+            AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
             List<string> AllHeroIds = new List<string>();
             foreach ( AssetObject entry in asset.Array ) {
                 if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
