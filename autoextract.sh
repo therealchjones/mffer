@@ -93,14 +93,14 @@ echo 'Starting new Android virtual device'
 "$ANDROID_EMULATOR" -avd 'No_Google_Play' -no-boot-anim -no-audio -delay-adb -datadir "$MFFTEMPDIR/avd/No_Google_Play.avd" 2>&1 &
 emulator_pid="$!"
 echo 'Connecting to emulator'
-while ! adb -e shell echo 2>&1 >/dev/null; do
+while ! "$ANDROID_ADB" -e shell echo 2>&1 >/dev/null; do
 	sleep 1
 done
 echo 'Installing Marvel Future Fight'
 "$ANDROID_ADB" install-multiple "$MFFTEMPDIR/new-apks/"*
 echo ''
 echo '1. Open Marvel Future Fight.'
-echo '2. Press "Install" if prompted to install the Google Play Games app)'
+echo '2. Press "Install" if prompted to install the Google Play Games app'
 echo '3. Download updates when prompted.'
 echo '4. Interrupt the tutorial by pressing the "Gear" icon and "Settings".'
 echo '5. Go to the options tab and "Download All Data".'
