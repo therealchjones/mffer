@@ -21,7 +21,7 @@ namespace MFFDataApp
     {
         const string gameName = "Marvel Future Fight";
         const string saveDir = "/Users/chjones/Development/Marvel Future Fight/MffData/data";
-        const string dataDir = "/Users/chjones/Downloads/APK/Marvel Future Fight";
+        const string dataDir = "/Users/chjones/Development/Marvel Future Fight/data";
         public static void Main()
         {
             if ( ! Directory.Exists(dataDir) ) {
