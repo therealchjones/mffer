@@ -115,16 +115,20 @@ namespace MFFDataApp
                         Localization[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
                     }
                 } else if ( Assets.AssetFiles.ContainsKey("LocalizationTable_en") ) {
-                    List<string> keys = new List<string>();
-                    List<string> values = new List<string>();
-                    foreach ( AssetObject key in Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Array ) {
-                        keys.Add( key.Properties["data"].String );
+                    Dictionary<string,string> keys = new Dictionary<string,string>();
+                    Dictionary<string,string> values = new Dictionary<string,string>();
+                    foreach ( int keyNum in Enumerable.Range(0,Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
+                        keys.Add( Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
+                            Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
                     }
-                    foreach ( AssetObject value in Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["values"].Array ) {
-                        values.Add( value.Properties["data"].String );
+                    foreach ( int keyNum in Enumerable.Range(0, Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
+                        values.Add( Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
+                            Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
                     }
-                    if ( keys.Count() == values.Count() ) {
-
+                    if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
+                        Localization = Enumerable.Range(0,keys.Count()).ToDictionary( 
+                            i=>keys.Keys.ToList()[i], 
+                            i=>values[ keys.Values.ToList()[i] ] );
                     } else {
                         throw new Exception("Unable to build localization dictionary; invalid entries");
                     }
