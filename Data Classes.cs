@@ -118,7 +118,7 @@ namespace MFFDataApp
             Keys.Sort();
             int counter = 0;
             foreach ( string key in Keys ) {          
-                AssetFiles[key].WriteJson(file,tabs+1);
+                AssetFiles[key].WriteJson(file,tabs);
                 if ( counter < Keys.Count() - 1 ) {
                     file.Write(",");
                 }
@@ -414,8 +414,8 @@ namespace MFFDataApp
             Type = new JsonValueKind();
             Properties = new Dictionary<string, AssetObject>();
             Array = new List<AssetObject>();
-            Name="";
-            String="";
+            Name=null;
+            String=null;
         }
         protected JsonDocument GetJson(string json)
         {
@@ -431,8 +431,16 @@ namespace MFFDataApp
             }
             catch (JsonException e)
             {
-                // System.IO.File.WriteAllText("/Users/chjones/Downloads/APK/not-json.json", json);
-                throw new JsonException(e.Message);
+                // when there is an error in the json formatting, don't use
+                // the file, but don't fail silently either; luckily, a (properly escaped)
+                // single string can be an entire json document
+                // FWIW, currently only seems to occur in a single asset file that uses some leading 0s in numbers
+                string errorString = "ERROR: The original document has JSON formatting errors.\n";
+                errorString += "Attempting to parse the document resulted in the exception:\n";
+                errorString += e.Message;
+                errorString = JsonEncodedText.Encode(errorString).ToString();
+                JsonDocument errorDocument = JsonDocument.Parse("\"" + errorString + "\"");
+                return errorDocument;
             }
         }
         public void ParseJson( JsonElement Value ) {
@@ -444,7 +452,7 @@ namespace MFFDataApp
             {
                 throw new Exception($"Asset object {Name} already has an array loaded.");
             }
-            if ( String.Length != 0 ) {
+            if ( ! String.IsNullOrEmpty( String ) ) {
                 throw new Exception($"Asset object {Name} already has a string loaded.");
             }
             Type = Value.ValueKind;
@@ -565,44 +573,41 @@ namespace MFFDataApp
         // asset.Properties["data"].Properties["grade"].String
         // to
         // asset.GetValue("grade");
-        // This isn't there yet.
-        public string GetValue( string key ) {
+        // 
+        // maybe consider anything with key "data" equivalent to singleton; should just look at
+        // what I'm currently calling and see what would work
+        // consider GetObject(key) which follows chain of singletons down to first 
+        // multiple object/array (if key == null) or property named key
+        public string GetValue( string key=null ) {
             switch (Type) {
                 case JsonValueKind.Array :
-                    int keyNum=0;
-                    try { 
-                        keyNum = Int32.Parse(key);
-                  } catch ( Exception ) {
-                        throw new Exception( $"'{Name}' is an array object and '{key}' is not a number.");
-                    }
-                    return Array[keyNum].GetSingleValue();
-                case JsonValueKind.Object :
-                    return Properties[key].GetSingleValue();
-                default:
-                    break;
-            }
-            throw new Exception( $"Unable to obtain value from key {key} for object {Name}" );
-        }
-        public string GetSingleValue() {
-            switch ( Type ) {
-                case JsonValueKind.Array :
                     if ( Array.Count == 1 ) {
-                        return Array[0].GetSingleValue();
+                        return Array[0].GetValue( key );
+                    } else {
+                        throw new Exception("Unable to get unique value: Array has multiple items.");
                     }
-                    break;
                 case JsonValueKind.Object :
-                    if ( Properties.Count == 1 ) {
-                        foreach ( AssetObject value in Properties.Values ) {
-                            return value.GetSingleValue();
-                        }
+                    if ( key != null ) {
+                        if ( Properties.ContainsKey( key ) ) {
+                            return Properties[key].GetValue();
+                        } else if ( Properties.Count() > 1 ) {
+                            throw new Exception($"Unable to get unique value: Object has no property '{key}'.");
+                        } 
                     }
-                    break;
+                    if ( Properties.Count() == 1 ) {
+                        return Properties.First().Value.GetValue( key );
+                    } else {
+                        throw new Exception("Unable to get unique value: Object has multiple properties.");
+                    }
                 case JsonValueKind.Undefined :
-                    break;
+                    throw new Exception("Unable to get unique value: asset type is undefined.");
                 default:
-                    return String;
+                    if ( key != null ) {
+                        throw new Exception($"Unable to get a unique value: identfied string before any key '{key}'.");
+                    } else {
+                        return String;
+                    }
             }
-            throw new Exception($"Unable to get single value from object {Name}.");
         }
     }
 }
