@@ -2,17 +2,14 @@
 
 /*
     Coding best practices:
-    - user-modifiable variables should be in the Program class. When not requiring other
-      non-System classes, validation of these variables' values should be done in the Program
-      class.
-    - the Program class should only contain these variables and associated functions to manipulate them
-      and interact with the Game class.
-    - the Game class should interact only with other classes in the Game Classes.cs file and 
-      the DataDirectory class
-    - only the Program and DataDirectory classes should manipulate the file system
-    - this is mainly taken care of by separating the classes in the hierarchy, e.g., 
-      DataDirectory methods can create objects described in Game Classes.cs but can't access 
-      members of Game
+    - user-modifiable variables should be in the Program class
+    - validation of Program class settings should be done by called methods rather than by the user
+    - the Program class should only interact with the Game class
+    - interaction with the Game classes should be done via the Game class/object
+    - interaction with the Data classes should be done via the DataDirectory class/object
+    - this can be done by placing all classes within their associated "top level" class?
+      (probably not, and more importantly this would likely give member classes access to top-
+      level "global" fields)
  */
 
 namespace MFFDataApp
