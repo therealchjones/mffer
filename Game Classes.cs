@@ -58,7 +58,6 @@ namespace MFFDataApp
         // the dictionary of Assets, moving methods to Version, DataDirectory,
         // or others
         public AssetBundle Assets { get; set; }
-        public Dictionary<string, string> Localization { get; set; }
         public Version() {
             // should have a predefined list/dictionary of components/assetobject names
             // that a version constructor can use to create the appropriate component
@@ -66,8 +65,8 @@ namespace MFFDataApp
             Name = "";
             Components = new Dictionary<string, Component>();
             Assets = new AssetBundle();
-            Localization = new Dictionary<string, string>();
 
+            AddComponent( new Localization() );
             AddComponent( new Roster() );
         }
         public Version(string versionName) : this () {
@@ -80,7 +79,6 @@ namespace MFFDataApp
             Components.Add( component.Name, component );
         }
         public void LoadAllComponents() {
-            LoadLocalization();
             foreach (Component component in Components.Values) {
                 LoadComponent(component);
             }
@@ -93,48 +91,42 @@ namespace MFFDataApp
             }
         }
         public void LoadComponent(Component component) {
-            foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
-                if ( component.BackingAssets[ assetName ] == null ) {
-                    if ( Assets.AssetFiles.ContainsKey(assetName) ) {
-                        // we may be able to make this a bit smaller, like ....Properties["values"].Properties["Array"]
-                        component.BackingAssets[assetName] = Assets.AssetFiles[assetName];
-                    } else {
-                        throw new Exception($"Unable to load asset '{assetName}' for component '{component.Name}'");
+            if ( ! component.IsLoaded() ) {
+                foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
+                    if ( component.BackingAssets[ assetName ] == null ) {
+                        if ( Assets.AssetFiles.ContainsKey(assetName) ) {
+                            component.BackingAssets[assetName] = Assets.AssetFiles[assetName];
+                        } else if ( assetName.Contains("||") ) {
+                            foreach ( string possibleAssetName in assetName.Split("||") ) {
+                                string possibleName = possibleAssetName.Trim();
+                                if ( String.IsNullOrEmpty(possibleName) ) continue;
+                                if ( component.BackingAssets.ContainsKey(possibleName) ) {
+                                    component.BackingAssets.Remove(assetName);
+                                    break;
+                                }
+                                if ( Assets.AssetFiles.ContainsKey(possibleName) ) {
+                                    component.BackingAssets.Add(possibleName,Assets.AssetFiles[possibleName]);
+                                    component.BackingAssets.Remove(assetName);
+                                    break;
+                                }
+                            }
+                            if ( component.BackingAssets.ContainsKey(assetName) ) {
+                                throw new Exception($"Unable to find any of the assets '{assetName}' for component '{component.Name}'");
+                            }
+                        } else {
+                            throw new Exception($"Unable to load asset '{assetName}' for component '{component.Name}'");
+                        }
                     }
                 }
-            }
-            // should figure out how to include Localization as a pseudo-BackingAsset
-            component.Load( Localization );
-        }
-        void LoadLocalization() {
-            if ( Localization.Count() == 0 ) {
-                // the localization dictionary was a CSV in 6.2.0, but is in an asset in
-                // 6.7.0; will have to manage differently
-                if ( Assets.AssetFiles.ContainsKey("localization/localization_en.csv") ) {
-                    foreach ( AssetObject entry in Assets.AssetFiles["localization/localization_en.csv"].Properties["m_Script"].Array ) {
-                        Localization[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
-                    }
-                } else if ( Assets.AssetFiles.ContainsKey("LocalizationTable_en") ) {
-                    Dictionary<string,string> keys = new Dictionary<string,string>();
-                    Dictionary<string,string> values = new Dictionary<string,string>();
-                    foreach ( int keyNum in Enumerable.Range(0,Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
-                        keys.Add( Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-                            Assets.AssetFiles["LocalizationTable_en"].Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
-                    }
-                    foreach ( int keyNum in Enumerable.Range(0, Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
-                        values.Add( Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-                            Assets.AssetFiles["LocalizationTable_en"].Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
-                    }
-                    if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
-                        Localization = Enumerable.Range(0,keys.Count()).ToDictionary( 
-                            i=>keys.Keys.ToList()[i], 
-                            i=>values[ keys.Values.ToList()[i] ] );
+                foreach ( string componentName in component.Dependencies.Keys.ToList<string>() ) {
+                    if ( Components.ContainsKey( componentName ) ) {
+                        LoadComponent( componentName );
+                        component.Dependencies[ componentName ] = Components[ componentName ];
                     } else {
-                        throw new Exception("Unable to build localization dictionary; invalid entries");
+                        throw new Exception($"Unable to load dependencies for component {component.Name}: could not find component named {componentName}.");
                     }
-                } else {
-                    throw new Exception("Unable to build string localization dictionary; unable to determine dictionary type");
                 }
+                component.Load();
             }
         }
         public void WriteJson( StreamWriter file, int tabs = 0 ) {
@@ -186,12 +178,137 @@ namespace MFFDataApp
     {
         public string Name;
         public Dictionary<string,AssetObject> BackingAssets { get; set; }
+        public Dictionary<string,Component> Dependencies { get; set; }
         protected Component() {
             BackingAssets = new Dictionary<string,AssetObject>();
+            Dependencies = new Dictionary<string,Component>();
         }
-        public void WriteJson(StreamWriter file, int tabs = 0) {}
-        public virtual void WriteCSV( StreamWriter file ) {}
-        public virtual void Load( Dictionary<string,string> strings ) {}
+        // Consider changing BackingAssets & Dependencies to private fields?
+        public virtual void AddBackingAsset( string assetName ) {
+            // should also check option list here, or create "AddBackingAssetOptions"
+            if ( ! BackingAssets.ContainsKey( assetName ) ) {
+                BackingAssets.Add( assetName, null );
+            }
+        }
+        // Do I need to check for circular dependencies?
+        public virtual void AddDependency( string componentName ) {
+            if ( ! Dependencies.ContainsKey( componentName ) ) {
+                Dependencies.Add( componentName, null );
+            }
+        }
+        public virtual void WriteJson(StreamWriter file, int tabs = 0) {
+        }
+        public virtual void WriteCSV( StreamWriter file ) {
+        }
+        public virtual void Load() {
+            if ( IsLoaded() ) return;
+            if ( BackingAssets.Count != 0 ) {
+                foreach ( KeyValuePair<string,AssetObject> item in BackingAssets ) {
+                    if ( String.IsNullOrWhiteSpace( item.Key ) ) {
+                        BackingAssets.Remove(item.Key); 
+                    } else {
+                        if ( item.Value == null ) {
+                            throw new Exception($"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed.");
+                        }
+                    }
+                }
+            }
+            if ( Dependencies.Count != 0 ) {
+                foreach ( KeyValuePair<string,Component> item in Dependencies ) {
+                    if ( String.IsNullOrWhiteSpace( item.Key ) ) {
+                        Dependencies.Remove(item.Key);
+                    } else {
+                        if ( item.Value == null || ! item.Value.IsLoaded() ) {
+                            throw new Exception($"Unable to load {Name}: dependency {item.Key} not loaded. Preload needed.");
+                        }
+                    }
+                }
+            }
+        }
+        public virtual bool IsLoaded() {
+            return true;
+        }
+    }
+    // String localization dictionary
+    public class Localization : Component {
+        Dictionary<string,string> LocalDictionary { get; set; }
+        public string Language { get; set; }
+        public Localization() : base () {
+            Name = "Localization";
+            LocalDictionary = new Dictionary<string,string>();
+            Language = "en";
+            AddBackingAsset($"localization/localization_{Language}.csv||LocalizationTable_{Language}");
+        }
+        public override bool IsLoaded() {
+            return LocalDictionary.Count != 0;
+        }
+        public override void Load() {
+            base.Load();
+                AssetObject DictionaryAsset = BackingAssets.First().Value;
+                // the localization dictionary was a CSV in 6.2.0, but is in an asset in
+                // 6.7.0; will have to manage differently
+                if ( BackingAssets.First().Key.EndsWith(".csv",StringComparison.InvariantCultureIgnoreCase) ) { 
+                    foreach ( AssetObject entry in DictionaryAsset.Properties["m_Script"].Array ) {
+                        LocalDictionary[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
+                    }
+                } else {
+                    Dictionary<string,string> keys = new Dictionary<string,string>();
+                    Dictionary<string,string> values = new Dictionary<string,string>();
+                    foreach ( int keyNum in Enumerable.Range(0,DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
+                        keys.Add( DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
+                            DictionaryAsset.Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+                    }
+                    foreach ( int keyNum in Enumerable.Range(0, DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count()) ) {
+                        values.Add( DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
+                            DictionaryAsset.Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+                    }
+                    if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
+                        LocalDictionary = Enumerable.Range(0,keys.Count()).ToDictionary( 
+                            i=>keys.Keys.ToList()[i], 
+                            i=>values[ keys.Values.ToList()[i] ] );
+                    } else {
+                        throw new Exception("Unable to build localization dictionary; invalid entries");
+                    }
+                }
+        }
+        public string GetString( string input ) {
+            if ( BackingAssets.First().Key.EndsWith(".csv",StringComparison.InvariantCultureIgnoreCase) ) {
+                return LocalDictionary[input];
+            } else {
+                return LocalDictionary[ MakeHash( input ) ];
+            }
+        }
+        string MakeHash( string input ) {
+            		int result = 0;
+		char[] textBytes = input.ToCharArray();
+		int i = 0;
+		int length = textBytes.Length;
+		int thisCharIndex = 0;
+		if (i < length - 1)
+		{
+			int nextCharIndex = 1;
+			do
+			{
+				byte thisChar = Convert.ToByte(textBytes[thisCharIndex]);
+				byte nextChar = Convert.ToByte(textBytes[nextCharIndex]);
+				int subresult = (((result << 5) - result) + Convert.ToInt32(thisChar));
+				result = (subresult << 5) - subresult + Convert.ToInt32(nextChar);
+				i = i + 2;
+				thisCharIndex = i;
+				nextCharIndex = i + 1;
+			}
+			while (i < length - 1);
+		}
+		if (i < length)
+		{
+			result = ((result << 5) - result) + Convert.ToInt32(textBytes[thisCharIndex]);
+		}
+		return result.ToString();
+        }
+		public override void WriteJson(StreamWriter file, int tabs = 0)
+		{
+			
+		}
     }
     // List of all available playable characters in the game
     public class Roster : Component
@@ -200,13 +317,24 @@ namespace MFFDataApp
         public Roster() : base() {
             Name = "Roster";
             Characters = new Dictionary<string, Character>();
-            BackingAssets.Add("IntHeroDataDictionary",null);
+            AddBackingAsset("IntHeroDataDictionary");
+            AddDependency("Localization");
         }
+		public override bool IsLoaded()
+		{
+			return Characters.Count != 0;
+		}
+		// See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
+		// Character class. This is all based on certain assumptions, which should probably all
+		// be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
+		
         // See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
         // Character class. This is all based on certain assumptions, which should probably all
         // be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
-        public override void Load(Dictionary<string,string> strings) {
+        public override void Load() {
+            base.Load();
             AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
+            Localization LocalDictionary = (Localization)Dependencies["Localization"];
             List<string> AllHeroIds = new List<string>();
             foreach ( AssetObject entry in asset.Array ) {
                 if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
@@ -238,26 +366,26 @@ namespace MFFDataApp
                         uniform = new Uniform();
                         character.Uniforms.Add(baseId,uniform);
                         uniform.BaseId = baseId;
-                        uniform.Camps = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String ];
-                        uniform.CharacterName = strings[$"HERO_{baseId}"];
-                        uniform.ClassType = strings[ "HEROCLASS_" + entry.Properties["data"].Properties["classType"].String ];
-                        uniform.Gender = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String ];
+                        uniform.Camps = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String );
+                        uniform.CharacterName = LocalDictionary.GetString( $"HERO_{baseId}" );
+                        uniform.ClassType = LocalDictionary.GetString( "HEROCLASS_" + entry.Properties["data"].Properties["classType"].String );
+                        uniform.Gender = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String );
                         uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
-                        uniform.UniformName = strings[$"HERO_COSTUME_{baseId}"];
+                        uniform.UniformName = LocalDictionary.GetString( $"HERO_COSTUME_{baseId}" );
                         switch ( entry.Properties["data"].Properties["mainAtk"].String ) {
                             case "0": uniform.MainAtk = "Physical"; break;
                             case "1": uniform.MainAtk = "Energy"; break;
                         }
                         if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
-                            uniform.RaidAbility = strings["HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String ];
+                            uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String );
                         }
                         foreach ( AssetObject ability in entry.Properties["data"].Properties["abilitys"].Properties["Array"].Array ) {
                             if ( ability.Properties["data"].String != "0" ) {
-                                uniform.Abilities.Add( strings["HERO_SUBTYPE_" + ability.Properties["data"].String]);
+                                uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.Properties["data"].String ) );
                             }
                         }
                         if ( entry.Properties["data"].Properties["ability_hidden"].String != "0" ) {
-                            uniform.Abilities.Add( strings["HERO_SUBTYPE_" +  entry.Properties["data"].Properties["ability_hidden"].String ] );
+                            uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" +  entry.Properties["data"].Properties["ability_hidden"].String ) );
                         }
                     }
                     uniform.CharacterLevels.Add(heroId,newLevel);
@@ -269,10 +397,10 @@ namespace MFFDataApp
                     newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["uniformSkillId"].String ) );
                     if ( String.IsNullOrEmpty( character.BaseName ) ) {
                         if ( uniform.UniformGroupId == "0" ) {
-                            character.BaseName = strings[$"HERO_{baseId}"];
+                            character.BaseName = LocalDictionary.GetString( $"HERO_{baseId}" );
                         }
                     }
-                    character.Species = strings[ "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String ];
+                    character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String );
                     character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
                     character.GrowType = Int32.Parse( entry.Properties["data"].Properties["growType"].String );
                     // other things to consider including: max level, grade/level,
@@ -313,6 +441,10 @@ namespace MFFDataApp
                 }
             }
         }
+		public override void WriteJson(StreamWriter file, int tabs = 0)
+		{
+
+		}
     }
     // Some findings/assumptions about the multiple identifiers associated with a character and their
     // settings/equipment follow. These should likely be tested at the time of import to ensure 
