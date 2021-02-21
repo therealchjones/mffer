@@ -32,7 +32,7 @@ VERBOSE=Y
 
 VERBOSEOUT=/dev/null
 
-OUTPUTDIR=~/Downloads
+OUTPUTDIR=~/"Development/Marvel Future Fight"
 
 if [ "$DEBUG" = "Y" ]; then set -x; VERBOSEOUT=/dev/stdout; fi
 if [ "$VERBOSE" = "Y" ]; then VERBOSEOUT=/dev/stdout; fi
@@ -271,7 +271,7 @@ echo 'Downloading virtual device files'
 		echo 'Unable to obtain device files. Exiting.' >&1 
 		exit 1 
 	}
-kill emulator_pid
+kill $emulator_pid
 echo 'Extracting virtual device files'
 mkdir -p "$MFFTEMPDIR"/release/device-files
 # consider changing path in subshell, using pax instead of tar
@@ -288,20 +288,42 @@ i=1
 if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 	DEVICEFILEDIR="$DEVICEFILEDIR-$i"
 fi
-while [ -d "$OUTPUTDIR"/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
+while [ -d "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
 	i=$(( $i + 1 ))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 
-mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/"$DEVICEFILEDIR" || {
-	echo "Unable to move files to output directory '$OUTPUTDIR'." >&2
+mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" || {
+	echo "Unable to move device files to output directory " >&2 
+	echo "'$OUTPUTDIR/device-files'." >&2
 	echo 'Stopping here so as to avoid deleting them all.' >&2
 	echo 'Press <enter> or <return> to end the script after moving them maually.' >&2
 	read -r
 }
 
+DATADIR="MFF-data-$VERSIONSTRING"
+exec 1>/dev/stdout
+echo ''
+echo '************* USER INTERACTION REQUIRED *************'
+echo 'Use UABE (in Windows) to extract assets from the '
+echo ' device:'
+echo "Open '$OUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
+echo " decompress text as prompted to '$OUTPUTDIR/data/$DATADIR/text'"
+echo 'Choose Info->Select all (using shift-click)->Export Dump'
+echo " ->UABE JSON dump to '$OUTPUTDIR/data/$DATADIR/assets'"
+echo "Open $OUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
+echo " decompress localization_en as prompted to '$OUTPUTDIR/data/$DATADIR/localization_en'"
+echo 'Choose Info->Select all (using shift-click)->Export Dump'
+echo " ->UABE JSON dump to '$OUTPUTDIR/data/$DATADIR/assets'"
+echo '******************************************************'
+echo ''
+echo 'Press <enter> or <return> when that is complete.'
+exec 1>"$VERBOSEOUT"
+read -r 
+
 # get version name
+# il2cpp, ghidra scripts
 # find an appropriate behavior for when installation doesn't work, e.g., x86_64
 #  for 6.8.0-6.8.1
 # increase memory on emulators, make configurable? (Max is 4000, may not be
@@ -309,7 +331,9 @@ mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/"$DEVICEFILEDIR" || {
 # do as much in the background as possible when using emulators
 # move "release" to an appropriate destination directory and
 # rename all subdirectories
-# export assets via UABE
+# test for appropriate directories 
+# export assets via UABE automatically rather than manually
+# add extraction via the c# app
 # customize downloads directory
 # get rid of emulator version warning
 # run without DEBUG, also without VERBOSE, to review output
