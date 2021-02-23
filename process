@@ -4,18 +4,17 @@
 rm -rf ~/Library/Android/sdk/cmdline-tools/latest 
 mv ~/Library/Android/sdk/cmdline-tools/latest{-2,}
 ~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --update
-~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'system-images;android-30;google_apis_playstore;x86' 'system-images;android-30;google_apis;x86' 'platforms;android-30'
-~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'Google_Play' --device 43
-~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis;x86' --name 'No_Google_Play' --device 43
+~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --install 'system-images;android-30;google_apis_playstore;x86_64' 'system-images;android-30;google_apis;x86_64' 'platforms;android-30'
+~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis_playstore;x86_64' --name 'Google_Play' --device "7in WSVGA (Tablet)"
+~/Library/Android/sdk/cmdline-tools/latest/bin/avdmanager create avd --package 'system-images;android-30;google_apis;x86_64' --name 'No_Google_Play' --device 43
+enable hw.keyboard = yes in ~/.android/avd/Google_Play.avd/config.ini (and the other one)
 ./emulator -avd 'Google_Play'
 Install Future Fight from the Google Play store (sign into google play store when requested)
-Enable adb debugging on your device (may be done by default on emulator?): The Developer options screen is hidden by default. To make it visible, go to Settings > About phone and tap Build number seven times. Return to the previous screen, go to System->Developer Options. Enable "USB debugging"
 ~/Library/Android/sdk/platform-tools/adb shell pm path com.netmarble.mherosgb 
 > package:/data/app/~~_gGCpUyCbEXxfbRCWDnLlg==/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/
 ~/Library/Android/sdk/platform-tools/adb pull /data/app/~~_gGCpUyCbEXxfbRCWDnLlg==/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/ ~/Downloads/
 close emulator, open rootable emulator:
 ~/Library/Android/sdk/emulator/emulator -avd 'No_Google_Play'
-enable usb debugging as above (already enabled?)
 ~/Library/Android/sdk/platform-tools/adb install-multiple ~/Downloads/com.netmarble.mherosgb-KHDNSY3NTJ7iQm3xn5xmkg==/*.apk
 Run Marvel Future Fight, "install" google play games app, "download" additional data, press settings gear->settings to interrupt tutorial to sign in, go to options->download all data, go to account->sign in to facebook; restart app if hanging or crashing. After signed in and app auto-restarts, close app (swipe up)
 ~/Library/Android/sdk/platform-tools/adb push ~/Downloads/getfiles /sdcard/Download/
@@ -34,3 +33,31 @@ Open MFF-device-<version>\data\media\0\Android\data\com.netmarble.mherosgb\files
 Info->Select all (shift)->Export Dump->UABE JSON dump to MFF-data-<version>\assets\
 Open MFF-device-<version>\data\media\0\Android\data\com.netmarble.mherosgb\files\bundle\localization_en, decompress localization_en as prompted to MFF-data-<version>
 Info->Select all (shift)->Export Dump->UABE JSON dump to MFF-data-<version>\assets\
+
+Run mffdata script to eval data only
+
+To explore code:
+chjones@jeremy netcoreapp3.1 % dotnet ./Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/app/\~~bEMNFRBZWig1c0nTBK2-Pg==/com.netmarble.mherosgb-XbORIH4ZtkJYZrkO7UlUOg==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/MFF-il2cppdumper-6.7.0 
+ghidra
+new project->~/Development/Marvel Future Fight/ghidra/mff-ghidra-6.7.0
+file->import file->~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/app/\~~bEMNFRBZWig1c0nTBK2-Pg==/com.netmarble.mherosgb-XbORIH4ZtkJYZrkO7UlUOg==/lib/arm/libil2cpp.so
+	options->check all except external symbols, set offset to 0
+	OK for results, then double click on libil2cpp.so; when asked to auto-analyze, say no
+	analysis-Auto Analyze, deselect everything, hit analyze (but won't do anything)
+close all sub-windows of ghidra to avoid screen update pauses (listing, data type manager, Functions)
+file->parse c source-> "eraser" (clear profile) (doesn't matter what it is, won't save that way) -> "+" -> ~/Development/Marvel Future Fight/il2cppdumper/mff-il2cppdumper-6.7.0/il2cpp.h
+	-> parse to program -> continue, continue, dismiss, and wait a while (like, hours) (any way to speed this up, maybe no animation display?)
+ghidra_9.2.2_PUBLIC/Ghidra/fFeatures/Decompiler/os/osx64/decompile->right-click, open, Open
+window->script manager. Manage script directories->add il2cppdumper/bin/release/netcoreapp3.1
+In script manager, refresh, then run ghidra_with_structs.py script; Select
+	il2cppdumper/MFF-il2cppdumper-6.7.0/script.json when prompted
+This will likely automatically start decompilation
+Auto-Analyze: select all that's not red, Analyze.
+had to open a couple of binaries in ghidra to get them to work with osx security (demangler, decompiler)
+
+Ghidra->file->save
+
+Options for ghidra:
+MAXMEM=16G (or whatever, 2 default) ghidra_<version>/ghidraRun [args]
+ghidra_<version>/support/launch.sh bg Ghidra "$MAXMEM" "" ghidra.GhidraRun "$@"
+ghidra_<version>/support/analyzeHeadless (!!!): see https://ghidra.re/ghidra_docs/analyzeHeadlessREADME.html
