@@ -25,15 +25,20 @@
 # - A reasonable machine upon which to run these; the emulators require
 #   a few GB of RAM just by themselves, for instance
 
-DEBUG=Y
+DEBUG=N
 VERBOSE=Y
 OUTPUTDIR=~/"Development/Marvel Future Fight"
 
+DEBUGOUT=/dev/null
 VERBOSEOUT=/dev/null
-if [ "$DEBUG" = "Y" ]; then set -x; VERBOSEOUT=/dev/stdout; fi
-if [ "$VERBOSE" = "Y" ]; then VERBOSEOUT=/dev/stdout; fi
-
-exec 1>"$VERBOSEOUT"
+if [ "$DEBUG" = "Y" ]; then
+	set -x
+	DEBUGOUT=/dev/stdout
+	VERBOSE=Y
+fi
+if [ "$VERBOSE" = "Y" ]; then
+	VERBOSEOUT=/dev/stdout
+fi
 
 MFFTEMPDIR="$(mktemp -d)"
 if [ "$?" = "0" ] && [ -d "$MFFTEMPDIR" ]; then
@@ -62,14 +67,14 @@ if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 	echo "and unpack into $ANDROID_SDK_ROOT/cmdline-tools/latest/" >&2
 	exit 1
 fi
-echo 'Getting Android command line tools'
 mkdir -p "$MFFTEMPDIR/sdk"
-echo 'Accepting licenses'
+echo 'Accepting Android command line tool licenses' >"$VERBOSEOUT"
 i=0; while [ $i -lt 100 ]; do echo y; i=$(( $i + 1 )); done |
 	"$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --licenses |
-	sed '/^y$/d'
+	sed '/^y$/d' >"$DEBUGOUT"
+echo 'Getting updated Android command line tools' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --install \
-	'cmdline-tools;latest'
+	'cmdline-tools;latest' >"$VERBOSEOUT"
 ANDROID_SDK_ROOT="$MFFTEMPDIR/sdk"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 ANDROID_EMULATOR_HOME="$MFFTEMPDIR"
@@ -83,14 +88,15 @@ if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 	echo 'Unable to get sdkmanager. Exiting.' >&2
 	exit 1
 fi
+echo 'Getting Android emulator and platform tools' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --install \
 	'platform-tools' \
 	emulator \
-	'platforms;android-30'
+	'platforms;android-30' >"$DEBUGOUT"
 # We do the system images separately because otherwise they don't
 # recognize that emulator (a dependency of theirs) is already
 # installed and install a second copy which messes things up.
-echo 'Getting Android system images'
+echo 'Getting Android system images' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --install \
 	'system-images;android-30;google_apis_playstore;x86' \
 	'system-images;android-30;google_apis;x86'
@@ -106,20 +112,19 @@ if [ ! -x "$ANDROID_EMULATOR" ]; then
 fi
 ANDROID_ADB="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name adb)"
 if [ ! -x "$ANDROID_ADB" ]; then
-	echo 'Unable to get abd. Exiting.' >&2
+	echo 'Unable to get adb. Exiting.' >&2
 	exit 1
 fi
-echo 'Creating Android virtual devices'
+echo 'Creating Android virtual devices' >"$VERBOSEOUT"
 mkdir -p "$MFFTEMPDIR/avd"
-"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'mff_google_play' --device "7in WSVGA (Tablet)"
-"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis;x86' --name 'mff_no_google_play' --device "7in WSVGA (Tablet)"
+"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'mff_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
+"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis;x86' --name 'mff_no_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
 for name in mff_google_play mff_no_google_play; do
 	sed -E -e 's/^hw.keyboard[ =]+.*$/hw.keyboard = yes/' \
 		"$MFFTEMPDIR"/avd/"$name".avd/config.ini > "$MFFTEMPDIR/newconfig" &&
 		mv "$MFFTEMPDIR/newconfig" "$MFFTEMPDIR/avd/$name.avd/config.ini"
 done
-echo 'Starting Android virtual device.'
-exec 1>/dev/stdout
+echo 'Starting Google Play Android virtual device.' >"$VERBOSEOUT"
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'On the emulator, open the Google Play Store app, sign'
@@ -128,16 +133,15 @@ echo 'Fight. Leave the emulator running.'
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
-exec 1>"$VERBOSEOUT"
 if [ "$DEBUG" = "Y" ]; then EMULATOR_VERBOSETAG="-verbose"; fi
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio &
+"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
 read -r
 if ! ps -p "$emulator_pid" >/dev/null; then
 	echo "Emulator is no longer running. Exiting." >&2
 	exit 1
 fi
-echo 'Getting installation files'
+echo 'Getting installation files' >"$VERBOSEOUT"
 mkdir "$MFFTEMPDIR/new-apks"
 
 get_avd_serial() {
@@ -189,25 +193,25 @@ serial="$(get_avd_serial mff_google_play)" || exit 1
 		while read pathline; do
 			path="$( echo "$pathline" | sed 's/^package:[[:space:]]*//' )"
 			file="$( basename "$path" )"
-			"$ANDROID_ADB" pull "$path" "$MFFTEMPDIR/new-apks/$file"
+			"$ANDROID_ADB" pull "$path" "$MFFTEMPDIR/new-apks/$file" >"$DEBUGOUT"
 		done
 } || {
 	echo "Unable to obtain installation files. Exiting." >&2
 	exit 1
 }
-echo 'Stopping emulator'
+echo 'Stopping Google Play emulator' >"$VERBOSEOUT"
 kill "$emulator_pid"
-echo 'Starting new Android virtual device'
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_no_google_play -no-boot-anim -no-audio 2>&1 &
+echo 'Starting rootable Android virtual device' >"$VERBOSEOUT"
+"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_no_google_play -no-boot-anim -no-audio >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
-echo 'Connecting to emulator'
+echo 'Connecting to emulator' >"$VERBOSEOUT"
 serial="$(get_avd_serial mff_no_google_play)" || exit 1
 "$ANDROID_ADB" -s "$serial" wait-for-device
 until "$ANDROID_ADB" -s "$serial" shell pm list users >/dev/null 2>&1; do
 	sleep 30
 done
-echo 'Installing Marvel Future Fight'
-"$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* ||
+echo 'Installing Marvel Future Fight' >"$VERBOSEOUT"
+"$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* >"$DEBUGOUT" ||
 	{
 		echo "Unable to install. Exiting." >&2
 		exit 1
@@ -218,7 +222,6 @@ echo 'Installing Marvel Future Fight'
 				grep versionName | cut -f2 -d'='
 		)"
 }
-exec 1>/dev/stdout
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo '1. Open Marvel Future Fight.'
@@ -227,25 +230,24 @@ echo '   Play Games app'
 echo '3. Download updates when prompted.'
 echo '4. Interrupt the tutorial by pressing the "Gear" icon '
 echo '   and "Settings".'
-echo '5. Go to the options tab and "Download All Data"; this'
-echo '   may already be in progress with the button disabled.'
-echo '   Wait for the downloads to finish.'
-echo '6. Go to the account tab and sign in to Facebook; if'
+echo '5. Wait for any automatic downloads shown in progress to'
+echo '   complete. Go to the "Option" tab and "Download All'
+echo '   Data". Wait for the downloads to finish.'
+echo '6. Go to the "Account" tab and sign in to Facebook; if'
 echo '   prompted for Chrome sign in and sync, "No Thanks".'
-echo '7. When the app restarts, and returns to the main'
+echo '7. When the app restarts and returns to the main'
 echo '   lobby screen, press the square button and swipe up'
 echo '   to close the app.'
 echo '8. Leave the emulator running and...'
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
-exec 1>"$VERBOSEOUT"
 read -r
 if ! ps -p "$emulator_pid" >/dev/null; then
 	echo "Emulator is no longer running. Exiting." >&2
 	exit 1
 fi
-echo 'Cataloging virtual device files'
+echo 'Cataloging virtual device files' >"$VERBOSEOUT"
 cat <<'EndOfScript' > "$MFFTEMPDIR/getfiles"
 cd /sdcard/Download
 INODE=0
@@ -265,16 +267,16 @@ find / -name '*com.netmarble*' -type d -print0 2>/dev/null |
 	cut -f2 -d' ' > alldirs
 tar -czf device-files.tar.gz -T alldirs
 EndOfScript
-"$ANDROID_ADB" -s "$serial" push "$MFFTEMPDIR/getfiles" /sdcard/Download
-"$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles'
-echo 'Downloading virtual device files'
-"$ANDROID_ADB" -s "$serial" pull /sdcard/Download/device-files.tar.gz "$MFFTEMPDIR" ||
+"$ANDROID_ADB" -s "$serial" push "$MFFTEMPDIR/getfiles" /sdcard/Download >"$DEBUGOUT"
+"$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles' >"$DEBUGOUT"
+echo 'Downloading virtual device files' >"$VERBOSEOUT"
+"$ANDROID_ADB" -s "$serial" pull /sdcard/Download/device-files.tar.gz "$MFFTEMPDIR" >"$DEBUGOUT"||
 	{
-		echo 'Unable to obtain device files. Exiting.' >&1
+		echo 'Unable to obtain device files. Exiting.' >&2
 		exit 1
 	}
 kill $emulator_pid
-echo 'Extracting virtual device files'
+echo 'Extracting virtual device files' >"$VERBOSEOUT"
 mkdir -p "$MFFTEMPDIR"/release/device-files
 # consider changing path in subshell, using pax instead of tar
 cd "$MFFTEMPDIR"/release/device-files && tar xzf "$MFFTEMPDIR/device-files.tar.gz"
@@ -302,10 +304,10 @@ mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR"
 	echo 'Stopping here so as to avoid deleting them all.' >&2
 	echo 'Press <enter> or <return> to end the script after moving them maually.' >&2
 	read -r
+	exit 1
 }
 
 DATADIR="MFF-data-$VERSIONSTRING"
-exec 1>/dev/stdout
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'Use UABE (in Windows) to extract assets from the '
@@ -321,7 +323,6 @@ echo " ->UABE JSON dump to '$OUTPUTDIR/data/$DATADIR/assets'"
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
-exec 1>"$VERBOSEOUT"
 read -r
 
 # get version name
@@ -342,5 +343,8 @@ read -r
 # make architecture configurable? at the moment (6.8.0-6.8.1), x86_64 doesn't
 #  seem to work, changing to x86
 # figure out how to do "manual" parts in a more automated way
+# better response to ^C/cancellation; trapping isn't clean right now
+# consider running emulators in low-memory mode?
+# consider appropriate removal of tar "errors", maybe just use pax
 # when complete and working, go through DEBUG output to see if
 #  I'm missing anything
