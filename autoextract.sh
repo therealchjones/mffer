@@ -5,14 +5,14 @@
 #
 # Create a package of files for the latest release of Marvel Future Fight
 #
-# By default, does not modify system beyond temporary directories; this 
+# By default, does not modify system beyond temporary directories; this
 # therefore requires new downloads of all components upon each run.
 #
 # Requirements:
 # - POSIX-compliant Unix-like environment for which all the used
-#   programs are available (likely MacOS/OS X, Windows with Cygwin or 
+#   programs are available (likely MacOS/OS X, Windows with Cygwin or
 #   another POSIX layer, or Linux). Of specific note, the Android Virtual
-#   Devices used may not run correctly on an emulated system such as
+#   Devices used may not run correctly on emulated systems such as
 #   Parallels or VirtualBox.
 # - Internet connection with access to Google developer tools, Google
 #   Play Store, Netmarble servers, and Facebook
@@ -25,22 +25,18 @@
 # - A reasonable machine upon which to run these; the emulators require
 #   a few GB of RAM just by themselves, for instance
 
-VERSIONSTRING='6.8.1'
-
 DEBUG=Y
 VERBOSE=Y
-
-VERBOSEOUT=/dev/null
-
 OUTPUTDIR=~/"Development/Marvel Future Fight"
 
+VERBOSEOUT=/dev/null
 if [ "$DEBUG" = "Y" ]; then set -x; VERBOSEOUT=/dev/stdout; fi
 if [ "$VERBOSE" = "Y" ]; then VERBOSEOUT=/dev/stdout; fi
 
 exec 1>"$VERBOSEOUT"
 
 MFFTEMPDIR="$(mktemp -d)"
-if [ "$?" == "0" ] && [ -d "$MFFTEMPDIR" ]; then
+if [ "$?" = "0" ] && [ -d "$MFFTEMPDIR" ]; then
 	if [ -n "$( find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR" )" ]; then
 		echo "Temporary directory '$MFFTEMPDIR' is not empty. Exiting." >&2
 		exit 1
@@ -50,7 +46,7 @@ else
 	echo "Unable to create temporary directory. Exiting" >&2
 	exit 1
 fi
-if [ -z "$HOME" ]; then 
+if [ -z "$HOME" ]; then
 	echo 'Warning: HOME environment variable is not set.' >&2
 fi
 ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
@@ -80,7 +76,7 @@ ANDROID_EMULATOR_HOME="$MFFTEMPDIR"
 ANDROID_SDK_HOME="$MFFTEMPDIR"
 ANDROID_PREFS_ROOT="$MFFTEMPDIR"
 ANDROID_AVD_HOME="$MFFTEMPDIR/avd"
-export ANDROID_SDK_ROOT ANDROID_HOME ANDROID_EMULATOR_HOME 
+export ANDROID_SDK_ROOT ANDROID_HOME ANDROID_EMULATOR_HOME
 export ANDROID_SDK_HOME ANDROID_PREFS_ROOT ANDROID_AVD_HOME
 ANDROID_SDKMANAGER="$( find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager )"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
@@ -92,19 +88,19 @@ fi
 	emulator \
 	'platforms;android-30'
 # We do the system images separately because otherwise they don't
-# recognize that emulator (a dependency of theirs) is already 
+# recognize that emulator (a dependency of theirs) is already
 # installed and install a second copy which messes things up.
 echo 'Getting Android system images'
 "$ANDROID_SDKMANAGER" --install \
 	'system-images;android-30;google_apis_playstore;x86' \
 	'system-images;android-30;google_apis;x86'
 ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name avdmanager )"
-if [ ! -x "$ANDROID_AVDMANAGER" ]; then 
+if [ ! -x "$ANDROID_AVDMANAGER" ]; then
 	echo 'Unable to get avdmanager. Exiting.' >&2
 	exit 1
 fi
 ANDROID_EMULATOR="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name emulator )"
-if [ ! -x "$ANDROID_EMULATOR" ]; then 
+if [ ! -x "$ANDROID_EMULATOR" ]; then
 	echo 'Unable to get Android emulator. Exiting.' >&2
 	exit 1
 fi
@@ -136,7 +132,7 @@ exec 1>"$VERBOSEOUT"
 if [ "$DEBUG" = "Y" ]; then EMULATOR_VERBOSETAG="-verbose"; fi
 "$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio &
 emulator_pid="$!"
-read -r 
+read -r
 if ! ps -p "$emulator_pid" >/dev/null; then
 	echo "Emulator is no longer running. Exiting." >&2
 	exit 1
@@ -188,16 +184,16 @@ get_avd_serial() {
 	echo "$avd_serial"
 }
 serial="$(get_avd_serial mff_google_play)" || exit 1
-{ 
-	"$ANDROID_ADB" -s "$serial" shell pm path com.netmarble.mherosgb | 
+{
+	"$ANDROID_ADB" -s "$serial" shell pm path com.netmarble.mherosgb |
 		while read pathline; do
 			path="$( echo "$pathline" | sed 's/^package:[[:space:]]*//' )"
 			file="$( basename "$path" )"
 			"$ANDROID_ADB" pull "$path" "$MFFTEMPDIR/new-apks/$file"
-		done 
+		done
 } || {
-	echo "Unable to obtain installation files. Exiting." >&2 
-	exit 1 
+	echo "Unable to obtain installation files. Exiting." >&2
+	exit 1
 }
 echo 'Stopping emulator'
 kill "$emulator_pid"
@@ -212,10 +208,16 @@ until "$ANDROID_ADB" -s "$serial" shell pm list users >/dev/null 2>&1; do
 done
 echo 'Installing Marvel Future Fight'
 "$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* ||
-	{ 
+	{
 		echo "Unable to install. Exiting." >&2
 		exit 1
 	}
+{
+	VERSIONSTRING="$(
+			"$ANDROID_ADB" -s "$serial" shell dumpsys package com.netmarble.mherosgb |
+				grep versionName | cut -f2 -d'='
+		)"
+}
 exec 1>/dev/stdout
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
@@ -245,21 +247,21 @@ if ! ps -p "$emulator_pid" >/dev/null; then
 fi
 echo 'Cataloging virtual device files'
 cat <<'EndOfScript' > "$MFFTEMPDIR/getfiles"
-cd /sdcard/Download 
+cd /sdcard/Download
 INODE=0
-find / -name '*com.netmarble*' -type d -print0 2>/dev/null | 
-	xargs -0 ls -id | 
-	sort -n | 
-	while read LINE; do 
+find / -name '*com.netmarble*' -type d -print0 2>/dev/null |
+	xargs -0 ls -id |
+	sort -n |
+	while read LINE; do
 		OLDINODE=$INODE
-		INODE="$( echo $LINE | 
-			sed -E 's/^[[:space:]]*([0-9]+)[[:space:]].*$/\1/' )" 
-		if [ $INODE = $OLDINODE ]; then 
+		INODE="$( echo $LINE |
+			sed -E 's/^[[:space:]]*([0-9]+)[[:space:]].*$/\1/' )"
+		if [ $INODE = $OLDINODE ]; then
 			true
-		else 
+		else
 			echo $LINE
 		fi
-	done | 
+	done |
 	cut -f2 -d' ' > alldirs
 tar -czf device-files.tar.gz -T alldirs
 EndOfScript
@@ -267,16 +269,16 @@ EndOfScript
 "$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles'
 echo 'Downloading virtual device files'
 "$ANDROID_ADB" -s "$serial" pull /sdcard/Download/device-files.tar.gz "$MFFTEMPDIR" ||
-	{ 
-		echo 'Unable to obtain device files. Exiting.' >&1 
-		exit 1 
+	{
+		echo 'Unable to obtain device files. Exiting.' >&1
+		exit 1
 	}
 kill $emulator_pid
 echo 'Extracting virtual device files'
 mkdir -p "$MFFTEMPDIR"/release/device-files
 # consider changing path in subshell, using pax instead of tar
 cd "$MFFTEMPDIR"/release/device-files && tar xzf "$MFFTEMPDIR/device-files.tar.gz"
-if [ ! -d "$OUTPUTDIR" ]; then 
+if [ ! -d "$OUTPUTDIR" ]; then
 	mkdir -p "$OUTPUTDIR" || {
 		echo "Unable to access output directory '$OUTPUTDIR'. Exiting." >&2
 		exit 1
@@ -295,7 +297,7 @@ while [ -d "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 done
 
 mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" || {
-	echo "Unable to move device files to output directory " >&2 
+	echo "Unable to move device files to output directory " >&2
 	echo "'$OUTPUTDIR/device-files'." >&2
 	echo 'Stopping here so as to avoid deleting them all.' >&2
 	echo 'Press <enter> or <return> to end the script after moving them maually.' >&2
@@ -320,27 +322,25 @@ echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
 exec 1>"$VERBOSEOUT"
-read -r 
+read -r
 
 # get version name
 # il2cpp, ghidra scripts
 # find an appropriate behavior for when installation doesn't work, e.g., x86_64
 #  for 6.8.0-6.8.1
-# increase memory on emulators, make configurable? (Max is 4000, may not be
-#  ussable on a machine that can't handle that anyway)
 # do as much in the background as possible when using emulators
 # move "release" to an appropriate destination directory and
-# rename all subdirectories
-# test for appropriate directories 
-# export assets via UABE automatically rather than manually
-# add extraction via the c# app
-# customize downloads directory
+#  rename all subdirectories
+# test for appropriate directories at the beginning
+# export assets via UABE (or python-unitypack?) automatically rather than manually
+# add extraction of data via the c# app
+# customize downloads directory/directories
 # get rid of emulator version warning
-# run without DEBUG, also without VERBOSE, to review output
-# consider optional HAXM installation when doing "permanent" install
+# run without DEBUG, also without VERBOSE, to review output; should make framework
+#  to do this with each "release"
 # more testing (and resulting exiting) for when things don't work
 # make architecture configurable? at the moment (6.8.0-6.8.1), x86_64 doesn't
 #  seem to work, changing to x86
 # figure out how to do "manual" parts in a more automated way
 # when complete and working, go through DEBUG output to see if
-#  I'm missing any thing
+#  I'm missing anything
