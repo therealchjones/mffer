@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -87,7 +87,7 @@ namespace MFFDataApp
                 return false;
             }
             DirectoryInfo[] assetDirs = directory.GetDirectories("assets");
-            if ( assetDirs.Length == 1 ) { 
+            if ( assetDirs.Length == 1 ) {
                 return true;
             } else {
                 return false;
@@ -117,14 +117,14 @@ namespace MFFDataApp
             List<string> Keys = AssetFiles.Keys.ToList<string>();
             Keys.Sort();
             int counter = 0;
-            foreach ( string key in Keys ) {          
+            foreach ( string key in Keys ) {
                 AssetFiles[key].WriteJson(file,tabs);
                 if ( counter < Keys.Count() - 1 ) {
                     file.Write(",");
                 }
                 file.WriteLine();
                 counter++;
-            }     
+            }
         }
         public void LoadFromVersionDirectory( List<DirectoryInfo> dirs ) {
             Dictionary<string, string> manifest = new Dictionary<string, string>();
@@ -195,7 +195,7 @@ namespace MFFDataApp
                 behaviorAsset.Name=behaviorAsset.AssetName;
                 if (behaviorAsset.AssetName == null) {
                         throw new Exception($"Asset file {behaviorFile} has no asset name.");
-                }               
+                }
                 if ( AssetFiles.ContainsKey("asset.AssetName") ) {
                     throw new Exception($"Attempted to add asset {behaviorAsset.AssetName} (from file {behaviorFile}) which already exists.");
                 }
@@ -300,7 +300,7 @@ namespace MFFDataApp
                         }
                         Properties.Add(newAsset.Name, newAsset);
                     }
-                    break;                    
+                    break;
                 case "TextAsset":
                     foreach (JsonProperty property in Value.EnumerateObject() ) {
                         AssetObject newAsset = new AssetObject();
@@ -504,7 +504,7 @@ namespace MFFDataApp
                         AssetObject value = Properties[key];
                         for ( int i = 0; i < tabs; i++ ) {
                             file.Write("\t");
-                        }         
+                        }
                         file.Write("\"" + key + "\" : ");
                         if ( value.Type == JsonValueKind.Object ) {
                             file.WriteLine("{");
@@ -513,7 +513,7 @@ namespace MFFDataApp
                             for ( int i = 0; i < tabs; i++ ) {
                                 file.Write("\t");
                             }
-                            file.Write("}");                             
+                            file.Write("}");
                         } else if ( value.Type == JsonValueKind.Array ) {
                             file.WriteLine("[");
                             value.WriteJson(file, tabs+1);
@@ -521,7 +521,7 @@ namespace MFFDataApp
                             for ( int i = 0; i < tabs; i++ ) {
                                 file.Write("\t");
                             }
-                            file.Write("]");   
+                            file.Write("]");
                         } else {
                             value.WriteJson(file);
                         }
@@ -536,7 +536,7 @@ namespace MFFDataApp
                     foreach (AssetObject item in Array) {
                         for ( int i = 0; i < tabs; i++ ) {
                             file.Write("\t");
-                        }         
+                        }
                         if ( item.Type == JsonValueKind.Object ) {
                             file.WriteLine("{");
                             item.WriteJson(file, tabs+1);
@@ -544,7 +544,7 @@ namespace MFFDataApp
                             for ( int i = 0; i < tabs; i++ ) {
                                 file.Write("\t");
                             }
-                            file.Write("}");                             
+                            file.Write("}");
                         } else if ( item.Type == JsonValueKind.Array ) {
                             file.WriteLine("[");
                             item.WriteJson(file, tabs+1);
@@ -552,7 +552,7 @@ namespace MFFDataApp
                             for ( int i = 0; i < tabs; i++ ) {
                                 file.Write("\t");
                             }
-                            file.Write("]");   
+                            file.Write("]");
                         } else {
                             item.WriteJson(file);
                         }
@@ -573,10 +573,10 @@ namespace MFFDataApp
         // asset.Properties["data"].Properties["grade"].String
         // to
         // asset.GetValue("grade");
-        // 
+        //
         // maybe consider anything with key "data" equivalent to singleton; should just look at
         // what I'm currently calling and see what would work
-        // consider GetObject(key) which follows chain of singletons down to first 
+        // consider GetObject(key) which follows chain of singletons down to first
         // multiple object/array (if key == null) or property named key
         public string GetValue( string key=null ) {
             switch (Type) {
@@ -592,7 +592,7 @@ namespace MFFDataApp
                             return Properties[key].GetValue();
                         } else if ( Properties.Count() > 1 ) {
                             throw new Exception($"Unable to get unique value: Object has no property '{key}'.");
-                        } 
+                        }
                     }
                     if ( Properties.Count() == 1 ) {
                         return Properties.First().Value.GetValue( key );
