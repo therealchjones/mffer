@@ -33,8 +33,8 @@ namespace MFFDataApp
                 int versionCounter = 0;
                 foreach ( Version version in Versions ) {
                     // WriteJson should consistently write the instance as one or more
-                    // JSON members (string: element) without a bare root element, and without 
-                    // a newline on the last line. It is on the caller to provide appropriate 
+                    // JSON members (string: element) without a bare root element, and without
+                    // a newline on the last line. It is on the caller to provide appropriate
                     // wrapping. The (optional) second argument prepends each line of
                     // the JSON output with that number of tabs
                     version.WriteJson(file,2);
@@ -136,19 +136,19 @@ namespace MFFDataApp
             file.WriteLine($"\"{Name}\" : " + "{");
             for ( int i = 0; i < tabs+1; i++ ) {
                 file.Write("\t");
-            }            
+            }
             file.WriteLine("\"Assets\" : {");
             Assets.WriteJson(file,tabs+2);
             file.WriteLine();
             for ( int i = 0; i < tabs+1; i++ ) {
                 file.Write("\t");
             }
-            file.Write("}");      
+            file.Write("}");
             if ( Components.Count > 0 ) {
                 file.WriteLine(",");
                 for ( int i = 0; i < tabs+1; i++ ) {
                     file.Write("\t");
-                }                
+                }
                 file.WriteLine("\"Components\" : {");
                 int componentCounter = 0;
                 List<string> components = Components.Keys.ToList<string>();
@@ -164,13 +164,13 @@ namespace MFFDataApp
                 file.WriteLine();
                 for ( int i = 0; i < tabs+1; i++ ) {
                     file.Write("\t");
-                }                
+                }
                 file.Write("}");
             }
             file.WriteLine();
             for ( int i = 0; i < tabs; i++ ) {
                 file.Write("\t");
-            }                
+            }
             file.Write("}");
         }
     }
@@ -205,7 +205,7 @@ namespace MFFDataApp
             if ( BackingAssets.Count != 0 ) {
                 foreach ( KeyValuePair<string,AssetObject> item in BackingAssets ) {
                     if ( String.IsNullOrWhiteSpace( item.Key ) ) {
-                        BackingAssets.Remove(item.Key); 
+                        BackingAssets.Remove(item.Key);
                     } else {
                         if ( item.Value == null ) {
                             throw new Exception($"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed.");
@@ -247,7 +247,7 @@ namespace MFFDataApp
                 AssetObject DictionaryAsset = BackingAssets.First().Value;
                 // the localization dictionary was a CSV in 6.2.0, but is in an asset in
                 // 6.7.0; will have to manage differently
-                if ( BackingAssets.First().Key.EndsWith(".csv",StringComparison.InvariantCultureIgnoreCase) ) { 
+                if ( BackingAssets.First().Key.EndsWith(".csv",StringComparison.InvariantCultureIgnoreCase) ) {
                     foreach ( AssetObject entry in DictionaryAsset.Properties["m_Script"].Array ) {
                         LocalDictionary[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
                     }
@@ -263,8 +263,8 @@ namespace MFFDataApp
                             DictionaryAsset.Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
                     }
                     if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
-                        LocalDictionary = Enumerable.Range(0,keys.Count()).ToDictionary( 
-                            i=>keys.Keys.ToList()[i], 
+                        LocalDictionary = Enumerable.Range(0,keys.Count()).ToDictionary(
+                            i=>keys.Keys.ToList()[i],
                             i=>values[ keys.Values.ToList()[i] ] );
                     } else {
                         throw new Exception("Unable to build localization dictionary; invalid entries");
@@ -307,7 +307,7 @@ namespace MFFDataApp
         }
 		public override void WriteJson(StreamWriter file, int tabs = 0)
 		{
-			
+
 		}
     }
     // List of all available playable characters in the game
@@ -327,7 +327,7 @@ namespace MFFDataApp
 		// See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
 		// Character class. This is all based on certain assumptions, which should probably all
 		// be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
-		
+
         // See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
         // Character class. This is all based on certain assumptions, which should probably all
         // be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
@@ -411,7 +411,7 @@ namespace MFFDataApp
         }
         public override void WriteCSV(StreamWriter file) {
             // we should make the delimiter more unlikely, or dynamic based upon what's in the text
-            // this may be doable by making the first character of the line the delimiter and changing it 
+            // this may be doable by making the first character of the line the delimiter and changing it
             // as needed for each line, use a StringBuilder rather than just writing to file? Change all
             // the delimiters in the file afterward? Or will CSV import allow different delimiters on each
             // line? Should we be outputing in some other way for import to spreadsheet?
@@ -447,7 +447,7 @@ namespace MFFDataApp
 		}
     }
     // Some findings/assumptions about the multiple identifiers associated with a character and their
-    // settings/equipment follow. These should likely be tested at the time of import to ensure 
+    // settings/equipment follow. These should likely be tested at the time of import to ensure
     // they continue to hold.
     // groupId and Character map to each other one-to-one
     // baseId (calculated from heroId) and Uniform map one-to-one, but many-to-one Character
@@ -464,7 +464,7 @@ namespace MFFDataApp
         public int GrowType { get; set; }
         public int StartGrade { get; set; }
         public string Species { get; set; }
-        public int MaxTier { 
+        public int MaxTier {
             get {
                 foreach ( Uniform uniform in Uniforms.Values ) {
                     foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
@@ -520,7 +520,7 @@ namespace MFFDataApp
         public int Rank { get; set; }
         public int Tier { get; set; }
         public List<Skill> Skills { get; set; }
-        public string BaseId { 
+        public string BaseId {
             get {
                 Int64 heroIdNumber = Int64.Parse(HeroId);
                 Int64 heroIdNumber1 = (heroIdNumber*0x51eb851f) >> 32;
@@ -530,7 +530,7 @@ namespace MFFDataApp
                 heroIdNumber = heroIdNumber*100+1;
                 return heroIdNumber.ToString();
             }
-        } 
+        }
         public CharacterLevel() {
             Skills = new List<Skill>();
         }
@@ -625,7 +625,7 @@ namespace MFFDataApp
 
         private void LoadById(string id)
         {
-            
+
         }
     }
     public class Reward
@@ -742,6 +742,6 @@ namespace MFFDataApp
         public int key;
         public int paramType;
         public string commonEffect;
-        
+
     }
 }
