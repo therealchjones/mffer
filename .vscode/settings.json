@@ -1,5 +1,6 @@
 {
 	"files.trimFinalNewlines": true,
 	"files.trimTrailingWhitespace": true,
-	"diffEditor.ignoreTrimWhitespace": false
+	"diffEditor.ignoreTrimWhitespace": false,
+	"shellformat.flag": "-bn -ci -i 0"
 }
