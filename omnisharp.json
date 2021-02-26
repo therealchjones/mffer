@@ -4,6 +4,7 @@
 		"SpaceWithinMethodCallParentheses": true,
 		"SpaceWithinExpressionParentheses": true,
 		"SpaceWithinOtherParentheses": true,
+		"SpacingAroundBinaryOperator": "single",
 		"NewLinesForBracesInTypes": false,
 		"NewLinesForBracesInMethods": false,
 		"NewLinesForBracesInProperties": false,
