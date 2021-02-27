@@ -285,7 +285,6 @@ echo 'Downloading virtual device files' >"$VERBOSEOUT"
 kill $emulator_pid
 echo 'Extracting virtual device files' >"$VERBOSEOUT"
 mkdir -p "$MFFTEMPDIR"/release/device-files
-# consider changing path in subshell, using pax instead of tar
 cd "$MFFTEMPDIR"/release/device-files && tar xzf "$MFFTEMPDIR/device-files.tar.gz"
 if [ ! -d "$OUTPUTDIR" ]; then
 	mkdir -p "$OUTPUTDIR" || {
@@ -331,27 +330,3 @@ echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
 read -r
-
-# get version name
-# il2cpp, ghidra scripts
-# find an appropriate behavior for when installation doesn't work, e.g., x86_64
-#  for 6.8.0-6.8.1
-# do as much in the background as possible when using emulators
-# move "release" to an appropriate destination directory and
-#  rename all subdirectories
-# test for appropriate directories at the beginning
-# export assets via UABE (or python-unitypack?) automatically rather than manually
-# add extraction of data via the c# app
-# customize downloads directory/directories
-# get rid of emulator version warning
-# run without DEBUG, also without VERBOSE, to review output; should make framework
-#  to do this with each "release"
-# more testing (and resulting exiting) for when things don't work
-# make architecture configurable? at the moment (6.8.0-6.8.1), x86_64 doesn't
-#  seem to work, changing to x86
-# figure out how to do "manual" parts in a more automated way
-# better response to ^C/cancellation; trapping isn't clean right now
-# consider running emulators in low-memory mode?
-# consider appropriate removal of tar "errors", maybe just use pax
-# when complete and working, go through DEBUG output to see if
-#  I'm missing anything
