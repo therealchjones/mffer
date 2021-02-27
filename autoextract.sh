@@ -26,7 +26,7 @@
 #   a few GB of RAM just by themselves, for instance
 
 DEBUG=N
-VERBOSE=Y
+VERBOSE=N
 OUTPUTDIR=~/"Development/Marvel Future Fight"
 
 DEBUGOUT=/dev/null
@@ -42,7 +42,7 @@ fi
 
 MFFTEMPDIR="$(mktemp -d)"
 if [ "$?" = "0" ] && [ -d "$MFFTEMPDIR" ]; then
-	if [ -n "$( find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR" )" ]; then
+	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
 		echo "Temporary directory '$MFFTEMPDIR' is not empty. Exiting." >&2
 		exit 1
 	fi
@@ -58,7 +58,7 @@ ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 export ANDROID_SDK_ROOT
 
-ANDROID_SDKMANAGER="${ANDROID_SDKMANAGER:-$( find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager )}"
+ANDROID_SDKMANAGER="${ANDROID_SDKMANAGER:-$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)}"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 	echo 'Unable to find sdkmanager.' >&2
 	echo 'If sdkmanager is installed, set ANDROID_SDK_ROOT properly.' >&2
@@ -69,9 +69,13 @@ if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 fi
 mkdir -p "$MFFTEMPDIR/sdk"
 echo 'Accepting Android command line tool licenses' >"$VERBOSEOUT"
-i=0; while [ $i -lt 100 ]; do echo y; i=$(( $i + 1 )); done |
-	"$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --licenses |
-	sed '/^y$/d' >"$DEBUGOUT"
+i=0
+while [ $i -lt 100 ]; do
+	echo y
+	i=$(($i + 1))
+done \
+	| "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --licenses \
+	| sed '/^y$/d' >"$DEBUGOUT"
 echo 'Getting updated Android command line tools' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --install \
 	'cmdline-tools;latest' >"$VERBOSEOUT"
@@ -83,7 +87,7 @@ ANDROID_PREFS_ROOT="$MFFTEMPDIR"
 ANDROID_AVD_HOME="$MFFTEMPDIR/avd"
 export ANDROID_SDK_ROOT ANDROID_HOME ANDROID_EMULATOR_HOME
 export ANDROID_SDK_HOME ANDROID_PREFS_ROOT ANDROID_AVD_HOME
-ANDROID_SDKMANAGER="$( find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager )"
+ANDROID_SDKMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 	echo 'Unable to get sdkmanager. Exiting.' >&2
 	exit 1
@@ -100,12 +104,12 @@ echo 'Getting Android system images' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --install \
 	'system-images;android-30;google_apis_playstore;x86' \
 	'system-images;android-30;google_apis;x86'
-ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name avdmanager )"
+ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name avdmanager)"
 if [ ! -x "$ANDROID_AVDMANAGER" ]; then
 	echo 'Unable to get avdmanager. Exiting.' >&2
 	exit 1
 fi
-ANDROID_EMULATOR="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name emulator )"
+ANDROID_EMULATOR="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name emulator)"
 if [ ! -x "$ANDROID_EMULATOR" ]; then
 	echo 'Unable to get Android emulator. Exiting.' >&2
 	exit 1
@@ -121,8 +125,8 @@ mkdir -p "$MFFTEMPDIR/avd"
 "$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis;x86' --name 'mff_no_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
 for name in mff_google_play mff_no_google_play; do
 	sed -E -e 's/^hw.keyboard[ =]+.*$/hw.keyboard = yes/' \
-		"$MFFTEMPDIR"/avd/"$name".avd/config.ini > "$MFFTEMPDIR/newconfig" &&
-		mv "$MFFTEMPDIR/newconfig" "$MFFTEMPDIR/avd/$name.avd/config.ini"
+		"$MFFTEMPDIR"/avd/"$name".avd/config.ini >"$MFFTEMPDIR/newconfig" \
+		&& mv "$MFFTEMPDIR/newconfig" "$MFFTEMPDIR/avd/$name.avd/config.ini"
 done
 echo 'Starting Google Play Android virtual device.' >"$VERBOSEOUT"
 echo ''
@@ -157,28 +161,31 @@ get_avd_serial() {
 		# pipelines can execute components within subshells, so may not
 		# be able to set variable values that persist after the command.
 		# We work around this with command substitution and echo instead.
-		avd_serial="$( "$ANDROID_ADB" devices | \
-			sed -e '/^List of devices/d' \
-				-e '/^[[:space:]]*$/d' \
-				-e 's/^[[:space:]]*\([^[:space:]]*\)[[:space:]].*$/\1/' |
-				( # inner subshell for pipeline workaround
-				while read serial; do
-					checkname="$( "$ANDROID_ADB" -s "$serial" emu avd name | \
-						sed -e 's/[[:space:]]*$//' -e '$d' )"
-					if [ "$checkname" = "$avd_name" ]; then
-						if  [ -n "$avd_serial" ]; then
-							echo "Multiple devices named '$avd_name' found." >&2
-							return 1
+		avd_serial="$(
+			"$ANDROID_ADB" devices \
+				| sed -e '/^List of devices/d' \
+					-e '/^[[:space:]]*$/d' \
+					-e 's/^[[:space:]]*\([^[:space:]]*\)[[:space:]].*$/\1/' \
+				| (# inner subshell for pipeline workaround
+					while read serial; do
+						checkname="$("$ANDROID_ADB" -s "$serial" emu avd name \
+							| sed -e 's/[[:space:]]*$//' -e '$d')"
+						if [ "$checkname" = "$avd_name" ]; then
+							if [ -n "$avd_serial" ]; then
+								echo "Multiple devices named '$avd_name' found." >&2
+								return 1
+							fi
+							avd_serial="$serial"
 						fi
-						avd_serial="$serial"
+					done
+					if [ -n "$avd_serial" ]; then
+						echo "$avd_serial"
 					fi
-				done
-				if [ -n "$avd_serial" ]; then
-					echo "$avd_serial"
-				fi ) )"
+				)
+		)"
 		if [ -z "$avd_serial" ]; then
 			sleep 1
-			adb_times="$(( $adb_times + 1 ))"
+			adb_times="$(($adb_times + 1))"
 		fi
 	done
 	if [ -z "$avd_serial" ]; then
@@ -189,10 +196,10 @@ get_avd_serial() {
 }
 serial="$(get_avd_serial mff_google_play)" || exit 1
 {
-	"$ANDROID_ADB" -s "$serial" shell pm path com.netmarble.mherosgb |
-		while read pathline; do
-			path="$( echo "$pathline" | sed 's/^package:[[:space:]]*//' )"
-			file="$( basename "$path" )"
+	"$ANDROID_ADB" -s "$serial" shell pm path com.netmarble.mherosgb \
+		| while read pathline; do
+			path="$(echo "$pathline" | sed 's/^package:[[:space:]]*//')"
+			file="$(basename "$path")"
 			"$ANDROID_ADB" pull "$path" "$MFFTEMPDIR/new-apks/$file" >"$DEBUGOUT"
 		done
 } || {
@@ -211,16 +218,16 @@ until "$ANDROID_ADB" -s "$serial" shell pm list users >/dev/null 2>&1; do
 	sleep 30
 done
 echo 'Installing Marvel Future Fight' >"$VERBOSEOUT"
-"$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* >"$DEBUGOUT" ||
-	{
+"$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* >"$DEBUGOUT" \
+	|| {
 		echo "Unable to install. Exiting." >&2
 		exit 1
 	}
 {
 	VERSIONSTRING="$(
-			"$ANDROID_ADB" -s "$serial" shell dumpsys package com.netmarble.mherosgb |
-				grep versionName | cut -f2 -d'='
-		)"
+		"$ANDROID_ADB" -s "$serial" shell dumpsys package com.netmarble.mherosgb \
+			| grep versionName | cut -f2 -d'='
+	)"
 }
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
@@ -248,7 +255,7 @@ if ! ps -p "$emulator_pid" >/dev/null; then
 	exit 1
 fi
 echo 'Cataloging virtual device files' >"$VERBOSEOUT"
-cat <<'EndOfScript' > "$MFFTEMPDIR/getfiles"
+cat <<'EndOfScript' >"$MFFTEMPDIR/getfiles"
 cd /sdcard/Download
 INODE=0
 find / -name '*com.netmarble*' -type d -print0 2>/dev/null |
@@ -270,8 +277,8 @@ EndOfScript
 "$ANDROID_ADB" -s "$serial" push "$MFFTEMPDIR/getfiles" /sdcard/Download >"$DEBUGOUT"
 "$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles' >"$DEBUGOUT"
 echo 'Downloading virtual device files' >"$VERBOSEOUT"
-"$ANDROID_ADB" -s "$serial" pull /sdcard/Download/device-files.tar.gz "$MFFTEMPDIR" >"$DEBUGOUT"||
-	{
+"$ANDROID_ADB" -s "$serial" pull /sdcard/Download/device-files.tar.gz "$MFFTEMPDIR" >"$DEBUGOUT" \
+	|| {
 		echo 'Unable to obtain device files. Exiting.' >&2
 		exit 1
 	}
@@ -294,7 +301,7 @@ if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 fi
 while [ -d "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
-	i=$(( $i + 1 ))
+	i=$(($i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 
