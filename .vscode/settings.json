@@ -2,5 +2,12 @@
 	"files.trimFinalNewlines": true,
 	"files.trimTrailingWhitespace": true,
 	"diffEditor.ignoreTrimWhitespace": false,
-	"shellformat.flag": "-bn -ci -i 0"
+	"shellformat.flag": "-bn -ci -i 0",
+	"json.format.enable": true,
+	"[json]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	}
 }
