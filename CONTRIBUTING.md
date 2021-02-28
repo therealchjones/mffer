@@ -1,16 +1,18 @@
 # Contributing
 
+Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/MffData/issues) or emailed to the owner, <chjones@aleph0.com>.
+
 ## Introduction
 
-Thank you for your interest in improving this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on GitHub; tell others about the project; or just use the project yourself.
+Thank you for your interest in improving this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
 
 ## Expectations
 
-The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work together kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to GitHub. Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, chjones@aleph0.com.
+The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work together kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
 
 ## Pull Requests
 
-The ideal method for contibuting to this project is by making a pull request via GitHub. This isn't always the easiest way, and has a bit of a learning curve if you haven't done it before. But it allows appropriate history tracking and attribution, as well as an easy way to ensure the community is able to review code and make other changes before adding something to the project.
+The ideal method for contibuting to this project is by making a pull request via [GitHub](https://github.com). This isn't always the easiest way, and has a bit of a learning curve if you haven't done it before. But it allows appropriate history tracking and attribution, as well as an easy way to ensure the community is able to review code and make other changes before adding something to the project.
 
 ## Coding Style
 
@@ -18,7 +20,7 @@ If this is the longest section of this document, that is in inverse relationship
 
 ### Whitespace Style
 
-The overarching message is that whitespace is good. It adds to readability in many ways. The initial indenting whitespace (where needed) in each file is a tab character, not multiple spaces. Additionally, spaces should be used liberally to separate surrounding parentheses, braces, brackets, and operators from nearby content. The major exception to this rule is that an opening bracket of any kind should almost always be on the same line as the function or method call, class or struct definition, or other label associated with it. A space need not be between the function or method call label and its associated parentheses, but can be if it increases readability. The below pseudo-settings, derived from OmniSharp format configuration, specify many of the preferences associated with these dicta:
+The overarching message is that whitespace is good. It adds to readability in many ways. The initial indenting whitespace (where needed) in each file is a tab character, not multiple spaces. Additionally, spaces should be used liberally to separate surrounding parentheses, braces, brackets, and operators from nearby content. The major exception to this rule is that an opening bracket of any kind should almost always be on the same line as the function or method call, class or struct definition, or other label associated with it. A space need not be between the function or method call label and its associated parentheses, but can be if it increases readability. The below pseudo-settings, derived from [OmniSharp](https://github.com/OmniSharp/omnisharp-roslyn) format configuration, specify many of the preferences associated with these dicta:
 
     "SpaceWithinMethodDeclarationParenthesis": true,
     "SpaceWithinMethodCallParentheses": true,
@@ -42,9 +44,9 @@ The overarching message is that whitespace is good. It adds to readability in ma
 
 Apart from whitespace, different code structures and algorithms are widely acceptable, as long as the function of the code is clear and doesn't introduce additional risk for error. In general (whitespace and choice of programming languages notwithstanding), excellent guides for coding practices to use and to avoid can be found in:
 
--   Google Coding Style Guidelines
--   GitLab Coding Style Guidelines
--   Microsoft .NET Coding Style Guidelines
+-   [GitLab Style Guides](https://docs.gitlab.com/ee/development/contributing/style_guides.html)
+-   [Google Style Guides](https://google.github.io/styleguide/)
+-   [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions)
 
 Where necessary, coding style for individual pull requests can be discussed along with the content of the code submitted. If needed, more specific guidelines may be added to this document in the future.
 
@@ -54,22 +56,26 @@ The easiest way to ensure coding style is consistent throughout the project is t
 
 #### Visual Studio Code
 
-Much of the initial work on the project has been done in Visual Studio Code. While this is in no way required for contributing to the project, it is relatively easy to use VS Code to set up an environment that automatically mimics much of the style used throughout the project. If you clone or fork the current project repository, your new one will include a .vscode directory that stores settings and extension recommendations to use for this project in particular. If you use a different editor, you should use one that allows you to set formats that are applied automatically, and they should match those set in this project.
+Much of the initial work on the project has been done in ]Visual Studio Code](https://code.visualstudio.com). While this is in no way required for contributing to the project, it is relatively easy to use VS Code to set up an environment that automatically mimics much of the style used throughout the project. If you clone or fork the current project repository, your new one will include a `.vscode` directory that stores settings and extension recommendations to use for this project in particular. If you use a different editor, you should use one that allows you to set formats that are applied automatically, and they should match those set in this project.
 
 #### Formatters
 
 Formatters for individual code types are often available as both standalone tools and as extensions for Visual Studio Code. Where appropriate, specific settings that are different than the defaults are kept in settings files included in the repository.
 
--   EditorConfig
--   OmniSharp
--   Prettier
--   shell-format
--   json (with or without comments) (built-in)
--   markdown (built-in?)
+| Formatter    | VS Code Extension | Configuration |
+| ------------ | ----------------- | ------------- |
+| EditorConfig |
+| OmniSharp    |
+| Prettier     |
+| shfmt        |
+| json         |
+| markdown     |
 
 #### Linters
 
 In addition, a linter is strongly recommended to quickly identify errors and deviations from best practices. All code is expected to avoid both "errors" and "informational" warnings from linters with rare exception for clear reasons. Linters recommended for this project include:
 
--   OmniSharp
--   shellcheck
+| Linter     | VS Code Extension | Configuration |
+| ---------- | ----------------- | ------------- |
+| OmniSharp  |                   |               |
+| shellcheck |                   |               |
