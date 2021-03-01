@@ -50,14 +50,8 @@ namespace MFFDataApp {
 	public class Version {
 		public string Name { get; set; }
 		public Dictionary<string, Component> Components { get; set; }
-		// can likely replace the AssetBundle with its only property,
-		// the dictionary of Assets, moving methods to Version, DataDirectory,
-		// or others
 		public AssetBundle Assets { get; set; }
 		public Version() {
-			// should have a predefined list/dictionary of components/assetobject names
-			// that a version constructor can use to create the appropriate component
-			// list, which can then be filled with LoadComponents() or similar?
 			Name = "";
 			Components = new Dictionary<string, Component>();
 			Assets = new AssetBundle();
@@ -178,14 +172,11 @@ namespace MFFDataApp {
 			BackingAssets = new Dictionary<string, AssetObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
-		// Consider changing BackingAssets & Dependencies to private fields?
 		public virtual void AddBackingAsset( string assetName ) {
-			// should also check option list here, or create "AddBackingAssetOptions"
 			if ( !BackingAssets.ContainsKey( assetName ) ) {
 				BackingAssets.Add( assetName, null );
 			}
 		}
-		// Do I need to check for circular dependencies?
 		public virtual void AddDependency( string componentName ) {
 			if ( !Dependencies.ContainsKey( componentName ) ) {
 				Dependencies.Add( componentName, null );
@@ -316,10 +307,6 @@ namespace MFFDataApp {
 		// See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
 		// Character class. This is all based on certain assumptions, which should probably all
 		// be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
-
-		// See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
-		// Character class. This is all based on certain assumptions, which should probably all
-		// be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
 		public override void Load() {
 			base.Load();
 			AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
@@ -327,7 +314,6 @@ namespace MFFDataApp {
 			List<string> AllHeroIds = new List<string>();
 			foreach ( AssetObject entry in asset.Array ) {
 				if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
-					// Consider a note or warning if there's one that's not visible? Not sure which these indicate.
 					Character character;
 					string groupId = entry.Properties["data"].Properties["groupId"].String;
 					if ( Characters.ContainsKey( groupId ) ) {
@@ -392,18 +378,10 @@ namespace MFFDataApp {
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String );
 					character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
 					character.GrowType = Int32.Parse( entry.Properties["data"].Properties["growType"].String );
-					// other things to consider including: max level, grade/level,
-					// skills/stats (some of which are already included) (need uniform bonus stats)
-					// HeroPotentialDataList for potential/rank up after 60
 				}
 			}
 		}
 		public override void WriteCSV( StreamWriter file ) {
-			// we should make the delimiter more unlikely, or dynamic based upon what's in the text
-			// this may be doable by making the first character of the line the delimiter and changing it
-			// as needed for each line, use a StringBuilder rather than just writing to file? Change all
-			// the delimiters in the file afterward? Or will CSV import allow different delimiters on each
-			// line? Should we be outputing in some other way for import to spreadsheet?
 			file.Write( "|Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|" );
 			file.Write( "Primary Attack|Type|Gender|Side|Allies|Max Tier|Growth Type|Abilities|World Boss Ability|Leader Skill|" );
 			file.Write( "Skill 1|Skill 2|Skill 3|Passive Skill|Skill 4|Skill 5|T2 Passive Skill|T3 Skill|Awakened Skill|" );
@@ -434,16 +412,6 @@ namespace MFFDataApp {
 
 		}
 	}
-	// Some findings/assumptions about the multiple identifiers associated with a character and their
-	// settings/equipment follow. These should likely be tested at the time of import to ensure
-	// they continue to hold.
-	// groupId and Character map to each other one-to-one
-	// baseId (calculated from heroId) and Uniform map one-to-one, but many-to-one Character
-	// heroId many-to-one baseId
-	// uniformGroupId is not unique between characters; the "default" (non-uniformed state) for each
-	// Character has uniformGroupId 0.
-	// Characteristics/properties are arranged at the level at which they may vary. For instance,
-	// Species is a property of Character, while Gender is a property of Uniform
 	public class Character {
 		public string GroupId { get; set; }
 		public Dictionary<string, Uniform> Uniforms { get; set; } // by baseId

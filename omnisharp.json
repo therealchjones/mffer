@@ -16,6 +16,8 @@
 		"NewLinesForBracesInLambdaExpressionBody": false,
 		"NewLineForElse": false,
 		"NewLineForCatch": false,
-		"NewLineForFinally": false
+		"NewLineForFinally": false,
+		"EnableEditorConfigSupport": true,
+		"OrganizeImports": true
 	}
 }

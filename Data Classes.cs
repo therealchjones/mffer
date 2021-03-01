@@ -150,8 +150,6 @@ namespace MFFDataApp {
 			if ( manifestFiles.Count == 0 ) {
 				throw new Exception( "Found no manifest files." );
 			}
-			// should extend the manifest to include the asset bundle ID rather than just
-			// the pathID, in case there are overlaps
 			foreach ( string manifestFile in manifestFiles ) {
 				AssetFile manifestAsset = new AssetFile();
 				manifestAsset.LoadFromFile( manifestFile );
@@ -508,7 +506,6 @@ namespace MFFDataApp {
 					}
 					break;
 				case JsonValueKind.Array:
-					// Should all be of the same type; do I need to check the Type of each item?
 					foreach ( AssetObject item in Array ) {
 						for ( int i = 0; i < tabs; i++ ) {
 							file.Write( "\t" );
@@ -545,15 +542,6 @@ namespace MFFDataApp {
 					break;
 			}
 		}
-		//Would like to change:
-		// asset.Properties["data"].Properties["grade"].String
-		// to
-		// asset.GetValue("grade");
-		//
-		// maybe consider anything with key "data" equivalent to singleton; should just look at
-		// what I'm currently calling and see what would work
-		// consider GetObject(key) which follows chain of singletons down to first
-		// multiple object/array (if key == null) or property named key
 		public string GetValue( string key = null ) {
 			switch ( Type ) {
 				case JsonValueKind.Array:

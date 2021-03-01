@@ -1,17 +1,5 @@
 using System.IO;
 
-/*
-    Coding best practices:
-    - user-modifiable variables should be in the Program class
-    - validation of Program class settings should be done by called methods rather than by the user
-    - the Program class should only interact with the Game class
-    - interaction with the Game classes should be done via the Game class/object
-    - interaction with the Data classes should be done via the DataDirectory class/object
-    - this can be done by placing all classes within their associated "top level" class?
-      (probably not, and more importantly this would likely give member classes access to top-
-      level "global" fields)
- */
-
 namespace MFFDataApp {
 	public class Program {
 		const string gameName = "Marvel Future Fight";

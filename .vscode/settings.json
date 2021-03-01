@@ -8,5 +8,15 @@
 			"## Table of Contents"
 		]
 	},
-	"markdown.extension.toc.levels": "2..6"
+	"markdown.extension.toc.levels": "2..6",
+	"json.format.enable": true,
+	"[json]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "vscode.json-language-features"
+	},
+	"[markdown]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	}
 }
