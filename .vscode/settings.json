@@ -1,14 +1,16 @@
 {
+	/****************************************/
+	// File formatting
+	/****************************************/
+	// Mild (potential) conflict with EditorConfig:
+	// trimFinalNewlines removes all at the end (not
+	// just after the last one as Settings suggests),
+	// then EditorConfig adds the last one back in on
+	// save.
 	"files.trimFinalNewlines": true,
+	// if trimTrailingWhitespace is false, then EditorConfig
+	// setting doesn't work
 	"files.trimTrailingWhitespace": true,
-	"diffEditor.ignoreTrimWhitespace": false,
-	"shellformat.flag": "-bn -ci -i 0",
-	"markdown.extension.toc.omittedFromToc": {
-		"CONTRIBUTING.md": [
-			"## Table of Contents"
-		]
-	},
-	"markdown.extension.toc.levels": "2..6",
 	"json.format.enable": true,
 	"[json]": {
 		"editor.defaultFormatter": "vscode.json-language-features"
@@ -18,5 +20,16 @@
 	},
 	"[markdown]": {
 		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	}
+	},
+	/****************************************/
+	// Extension settings
+	/****************************************/
+	"markdown.extension.toc.omittedFromToc": {
+		"CONTRIBUTING.md": [
+			"## Table of Contents"
+		]
+	},
+	"markdown.extension.toc.levels": "2..6",
+	"omnisharp.enableEditorConfigSupport": true,
+	"shellformat.flag": "-bn -ci -i 0"
 }
