@@ -4,17 +4,17 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
 
 ## Table of Contents
 
--   [Introduction](#introduction)
--   [Expectations](#expectations)
--   [Pull Requests](#pull-requests)
--   [Coding Style](#coding-style)
-    -   [Whitespace Style](#whitespace-style)
-    -   [Code Style](#code-style)
-    -   [Tools](#tools)
-        -   [Visual Studio Code](#visual-studio-code)
-        -   [Formatters](#formatters)
-        -   [Linters](#linters)
--   [Contact](#contact)
+- [Introduction](#introduction)
+- [Expectations](#expectations)
+- [Pull Requests](#pull-requests)
+- [Coding Style](#coding-style)
+	- [Whitespace Style](#whitespace-style)
+	- [Code Style](#code-style)
+	- [Tools](#tools)
+		- [Visual Studio Code](#visual-studio-code)
+		- [Formatters](#formatters)
+		- [Linters](#linters)
+- [Contact](#contact)
 
 ## Introduction
 
@@ -34,7 +34,7 @@ If this is the longest section of this document, that is in inverse relationship
 
 ### Whitespace Style
 
-The overarching message is that whitespace is good. It adds to readability in many ways. The initial indenting whitespace (where needed) in each file is a tab character, not multiple spaces. Additionally, spaces should be used liberally to separate surrounding parentheses, braces, brackets, and operators from nearby content. The major exception to this rule is that an opening bracket of any kind should almost always be on the same line as the function or method call, class or struct definition, or other label associated with it. A space need not be between the function or method call label and its associated parentheses, but can be if it increases readability. More detailed descriptions of spacing associated with specific circumstances can be considered as deviations from the [default settings for OmniSharp](https://github.com/OmniSharp/omnisharp-roslyn/wiki/Configuration-Options#formatting-options), as listed in the project's [OmniSharp configuration file](omnisharp.json).
+The overarching message is that whitespace is good. It adds to readability in many ways. The initial indenting whitespace (where needed) in each file is a tab character, not multiple spaces. Additionally, spaces should be used liberally to separate surrounding parentheses, braces, brackets, and operators from nearby content. The major exception to this rule is that an opening bracket of any kind should almost always be on the same line as the function or method call, class or struct definition, or other label associated with it. A space need not be between the function or method call label and its associated parentheses, but can be if it increases readability. More detailed descriptions of spacing associated with specific circumstances can be gathered from the [EditorConfig file](.editorconfig); the nonstandard extensions EditorConfig settings are documented in Microsoft's [.NET & C# Formatting Rules Reference](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules).
 
 ### Code Style
 
@@ -60,19 +60,19 @@ Formatters for individual code types are often available as both standalone tool
 
 | Formatter    | VS Code Extension                                                                                          | Configuration                                                                      |
 | ------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.EditorConfig](.editorconfig)                                                     |
-| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [omnisharp.json](omnisharp.json)                                                   |
+| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.editorconfig](.editorconfig)                                                     |
+| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [.editorconfig](.editorconfig)                                                     |
 | Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                                               |
 | shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in [VS Code Settings](.vscode/settings.json): `"shellformat.flag": "-bn -ci -i 0"` |
 
 #### Linters
 
-In addition, a linter is strongly recommended to quickly identify errors and deviations from best practices. All code is expected to avoid both "errors" and "informational" warnings from linters with rare exception for clear reasons. Linters recommended for this project include:
+In addition, a linter is strongly recommended to quickly identify errors and deviations from best practices. All code is expected to avoid both "errors" and "informational" warnings from linters with rare exceptions for clear reasons. Linters recommended for this project include:
 
-| Linter     | VS Code Extension                                                                                  | Configuration                    |
-| ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------- |
-| OmniSharp  | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) | [omnisharp.json](omnisharp.json) |
-| shellcheck | [timonwong.shellcheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)   | None                             |
+| Linter     | VS Code Extension                                                                                  | Configuration |
+| ---------- | -------------------------------------------------------------------------------------------------- | ------------- |
+| OmniSharp  | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) |
+| shellcheck | [timonwong.shellcheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)   | None          |
 
 ## Contact
 
