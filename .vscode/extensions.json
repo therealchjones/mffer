@@ -6,6 +6,7 @@
 	"recommendations": [
 		"editorconfig.editorconfig",
 		"ms-dotnettools.csharp",
+		"timonwong.shellcheck",
 		"foxundermoon.shell-format",
 		"esbenp.prettier-vscode"
 	],
