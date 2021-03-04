@@ -78,7 +78,7 @@ done \
 	| sed '/^y$/d' >"$DEBUGOUT"
 echo 'Getting updated Android command line tools' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --install \
-	'cmdline-tools;latest' >"$VERBOSEOUT"
+	'cmdline-tools;latest' >"$DEBUGOUT"
 ANDROID_SDK_ROOT="$MFFTEMPDIR/sdk"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 ANDROID_EMULATOR_HOME="$MFFTEMPDIR"
@@ -103,7 +103,7 @@ echo 'Getting Android emulator and platform tools' >"$VERBOSEOUT"
 echo 'Getting Android system images' >"$VERBOSEOUT"
 "$ANDROID_SDKMANAGER" --install \
 	'system-images;android-30;google_apis_playstore;x86' \
-	'system-images;android-30;google_apis;x86'
+	'system-images;android-30;google_apis;x86' >"$DEBUGOUT"
 ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name avdmanager)"
 if [ ! -x "$ANDROID_AVDMANAGER" ]; then
 	echo 'Unable to get avdmanager. Exiting.' >&2
@@ -256,23 +256,23 @@ if ! ps -p "$emulator_pid" >/dev/null; then
 fi
 echo 'Cataloging virtual device files' >"$VERBOSEOUT"
 cat <<'EndOfScript' >"$MFFTEMPDIR/getfiles"
-cd /sdcard/Download
 INODE=0
-find / -name '*com.netmarble*' -type d -print0 2>/dev/null |
-	xargs -0 ls -id |
-	sort -n |
-	while read LINE; do
+find / -path '*[Nn][Ee][Tt][Mm][Aa][Rr][Bb][Ll][Ee]*' -type f -print0 2>/dev/null \
+	| xargs -0 ls -id \
+	| sort -n \
+	| while read LINE; do
 		OLDINODE=$INODE
-		INODE="$( echo $LINE |
-			sed -E 's/^[[:space:]]*([0-9]+)[[:space:]].*$/\1/' )"
+		INODE="$(echo $LINE \
+			| sed -E 's/^[[:space:]]*([0-9]+)[[:space:]].*$/\1/')"
 		if [ $INODE = $OLDINODE ]; then
 			true
 		else
 			echo $LINE
 		fi
-	done |
-	cut -f2 -d' ' > alldirs
-tar -czf device-files.tar.gz -T alldirs
+	done \
+	| cut -f2 -d' ' \
+	| sed 's#^\/##' >/sdcard/Download/allfiles
+tar -C / -czf /sdcard/Download/device-files.tar.gz -T /sdcard/Download/allfiles
 EndOfScript
 "$ANDROID_ADB" -s "$serial" push "$MFFTEMPDIR/getfiles" /sdcard/Download >"$DEBUGOUT"
 "$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles' >"$DEBUGOUT"
