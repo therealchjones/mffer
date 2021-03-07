@@ -4,13 +4,31 @@ using System.IO;
 using System.Linq;
 
 namespace MFFDataApp {
+	/// <summary>
+	/// Represents a game, including one or more versions
+	/// </summary>
 	public class Game {
+		/// <summary>
+		/// The name of the game
+		/// </summary>
 		public string Name { get; set; }
+		/// <summary>
+		/// List of different versions of the game
+		/// </summary>
 		public List<Version> Versions { get; set; }
+		/// <summary>
+		/// Constructs a Game instance
+		/// </summary>
+		/// <param name="gameName">game name</param>
 		public Game( string gameName ) {
 			Name = gameName;
 			Versions = new List<Version>();
 		}
+		/// <summary>
+		/// Load all available data into the Game instance
+		/// </summary>
+		/// <param name="dir">path of a directory containing game data</param>
+		/// TODO: #60 Should have a "more correct" version of Game.LoadAllData( dir ) where dir is a DataDirectory
 		public void LoadAllData( string dir ) {
 			DataDirectory dataDir = new DataDirectory( dir );
 			List<string> versionNames = dataDir.GetVersionNames();
@@ -21,6 +39,11 @@ namespace MFFDataApp {
 				Versions.Add( version );
 			}
 		}
+		/// <summary>
+		/// Write all loaded data to a file
+		/// </summary>
+		/// <param name="fileName">file path in which to save all game data</param>
+		/// TODO: #61 Should have another one that loads a StreamWriter or other argument to streamwriter
 		public void SaveAllData( string fileName ) {
 			// implemented as streamwriter at all levels because using a string or
 			// similar uses up all memory, same with JsonSerializer
@@ -46,6 +69,7 @@ namespace MFFDataApp {
 			}
 			return;
 		}
+		// TODO: #62 need Game versions of appropriate methods to pass along, as these should be the only ones publicly exposed
 	}
 	public class Version {
 		public string Name { get; set; }
