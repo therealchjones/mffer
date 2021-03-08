@@ -7,17 +7,27 @@ namespace MFFDataApp {
 	/// <summary>
 	/// Represents a game, including one or more versions
 	/// </summary>
+	/// <remarks>
+	/// This is the primary class of the MffData namespace, and public
+	/// interaction should be via this class. Abstractly, each game instance
+	/// includes one or more versions of the game, each of which includes
+	/// zero or more game components (such as a character roster, list of
+	/// story stages, or individual player data. Methods allow loading game
+	/// data from the filesystem, saving consolidated data to a file, and
+	/// saving individual CSV files of data from game components.
+	/// </remarks>
 	public class Game {
 		/// <summary>
-		/// The name of the game
+		/// Gets or sets the name of the game
 		/// </summary>
 		public string Name { get; set; }
 		/// <summary>
-		/// List of different versions of the game
+		/// Gets or sets the included versions of the game
 		/// </summary>
 		public List<Version> Versions { get; set; }
 		/// <summary>
-		/// Constructs a Game instance
+		/// Initializes a new instance of the <see cref="Game"/> class and
+		/// sets its name
 		/// </summary>
 		/// <param name="gameName">game name</param>
 		public Game( string gameName ) {
@@ -25,10 +35,10 @@ namespace MFFDataApp {
 			Versions = new List<Version>();
 		}
 		/// <summary>
-		/// Load all available data into the Game instance
+		/// Loads all game data from a directory into the <see cref="Game"/>
+		/// instance
 		/// </summary>
 		/// <param name="dir">path of a directory containing game data</param>
-		/// TODO: #60 Should have a "more correct" version of Game.LoadAllData( dir ) where dir is a DataDirectory
 		public void LoadAllData( string dir ) {
 			DataDirectory dataDir = new DataDirectory( dir );
 			List<string> versionNames = dataDir.GetVersionNames();
@@ -42,8 +52,20 @@ namespace MFFDataApp {
 		/// <summary>
 		/// Write all loaded data to a file
 		/// </summary>
-		/// <param name="fileName">file path in which to save all game data</param>
-		/// TODO: #61 Should have another one that loads a StreamWriter or other argument to streamwriter
+		/// <remarks>
+		/// <para>This method saves all loaded data from the <see cref="Game"/>
+		/// to a single file in JSON format, hierarchically arranged by game,
+		/// version, and components and assets. <paramref name="fileName"/>
+		/// is created if it does not exist (but its parent directory does);
+		/// <paramref name="fileName"/> is overwritten if it already
+		/// exists.</para>
+		/// <para>File access is obtained via the
+		/// <see cref="System.IO.StreamWriter.StreamWriter(string)"/> method;
+		/// see that method's description for exceptions that may be
+		/// thrown.</para>
+		/// </remarks>
+		/// <param name="fileName">The file path in which to save game
+		/// data</param>
 		public void SaveAllData( string fileName ) {
 			// implemented as streamwriter at all levels because using a string or
 			// similar uses up all memory, same with JsonSerializer
@@ -69,12 +91,27 @@ namespace MFFDataApp {
 			}
 			return;
 		}
-		// TODO: #62 need Game versions of appropriate methods to pass along, as these should be the only ones publicly exposed
 	}
+	/// <summary>
+	/// Represents a single version of a <see cref="Game"/>
+	/// </summary>
+	/// <remarks>
+	/// This is a private class. Different versions of a game may vary in
+	/// nearly all data; almost all game data are contained within a
+	/// <see cref="Version"/>, including the various <see cref="Component"/>s
+	/// and <see cref="Asset"/>s. Methods allow loading data from a
+	/// <see cref="DataDirectory"/>, writing the version's
+	/// <see cref="Asset"/> and <see cref="Component"/> data to an existing
+	/// stream, and writing individual <see cref="Component"/> data in CSV
+	/// format to an existing stream.
+	/// </remarks>
 	public class Version {
 		public string Name { get; set; }
 		public Dictionary<string, Component> Components { get; set; }
 		public AssetBundle Assets { get; set; }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Version"/> class
+		/// </summary>
 		public Version() {
 			Name = "";
 			Components = new Dictionary<string, Component>();
@@ -83,6 +120,12 @@ namespace MFFDataApp {
 			AddComponent( new Localization() );
 			AddComponent( new Roster() );
 		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Version"/>
+		/// class and sets its name
+		/// </summary>
+		/// <param name="versionName">The name of the version</param>
+		/// <seealso cref="Version.Version()"/>
 		public Version( string versionName ) : this() {
 			Name = versionName;
 		}
@@ -691,6 +734,12 @@ namespace MFFDataApp {
 		public int key;
 		public int paramType;
 		public string commonEffect;
-
+	}
+	public class Player : Component {
+		public Alliance alliance { get; set; }
+		public List<MyCharacter> MyRoster { get; set; }
+	}
+	public class MyCharacter {
+		public Character BaseCharacter { get; set; }
 	}
 }
