@@ -106,8 +106,19 @@ namespace MFFDataApp {
 	/// format to an existing stream.
 	/// </remarks>
 	public class Version {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Version"/>
+		/// </summary>
 		public string Name { get; set; }
+		/// <summary>
+		/// Gets or sets the list of included <see cref="Component"/>, indexed
+		/// by Component name
+		/// </summary>
 		public Dictionary<string, Component> Components { get; set; }
+		/// <summary>
+		/// Gets or sets the group of <see cref="Asset"/>s associated with
+		/// this <see cref="Version"/>
+		/// </summary>
 		public AssetBundle Assets { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Version"/> class
@@ -129,17 +140,37 @@ namespace MFFDataApp {
 		public Version( string versionName ) : this() {
 			Name = versionName;
 		}
-		AssetObject GetAsset( string assetName ) {
-			return null;
-		}
+		/// <summary>
+		/// Adds a <see cref="Component"/> to this <see cref="Version"/>
+		/// </summary>
+		/// <param name="component"><see cref="Component"/> to associate with
+		/// this <see cref="Version"/></param>
 		void AddComponent( Component component ) {
 			Components.Add( component.Name, component );
 		}
+		/// <summary>
+		/// Loads data into all of the included <see cref="Component"/>s
+		/// </summary>
 		public void LoadAllComponents() {
 			foreach ( Component component in Components.Values ) {
 				LoadComponent( component );
 			}
 		}
+		/// <summary>
+		/// Loads data into the <see cref="Component"/> named
+		/// <paramref name="componentName"/>
+		/// </summary>
+		/// <remarks>
+		/// Will load available data into the <see cref="Component"/> named
+		/// <paramref name="componentName"/> if it has already been added to
+		/// the <see cref="Version.Components"> list.
+		/// </remarks>
+		/// <param name="componentName">The name of the
+		/// <see cref="Component"/></param>
+		/// <exception cref="System.ArgumentException">Thrown when no component
+		/// named <paramref name="componentName"/> is loaded</exception>
+		/// <seealso cref="Version.AddComponent(Component)"/>
+		/// <seealso cref="Version.LoadComponent(Component)"/>
 		public void LoadComponent( string componentName ) {
 			if ( Components.ContainsKey( componentName ) ) {
 				LoadComponent( Components[componentName] );
@@ -147,6 +178,21 @@ namespace MFFDataApp {
 				throw new Exception( $"Unable to load; no component named '{componentName}'" );
 			}
 		}
+		/// <summary>
+		/// Loads data into the given <see cref="Component">
+		/// </summary>
+		/// <remarks>
+		/// Will load available data into <paramref name="component"/> from
+		/// <see cref="Asset"/>s named in
+		/// <see cref="Component.BackingAssets"/>. (The assets will be loaded)
+		/// if they aren't already.) If data has already been loaded into
+		/// <paramref name="component"/>, it will not be changed.
+		/// <param name="component">The <see cref="Component"/> to load with data</param>
+		/// <exception cref="System.ApplicationException"/>Thrown if a required
+		/// <see cref="Asset"/> from <paramref name="component">'s
+		/// <see cref="BackingAssets"/> or a required <see cref="Component"/>
+		/// from <see cref="Dependencies"/> is not found or cannot be
+		/// loaded.</exception>
 		public void LoadComponent( Component component ) {
 			if ( !component.IsLoaded() ) {
 				foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
@@ -168,10 +214,11 @@ namespace MFFDataApp {
 								}
 							}
 							if ( component.BackingAssets.ContainsKey( assetName ) ) {
-								throw new Exception( $"Unable to find any of the assets '{assetName}' for component '{component.Name}'" );
+								string assetsString = String.Join( ", ", assetName.Split( "||" ) );
+								throw new ApplicationException( $"Unable to find any of the possible assets ({assetsString}) for component '{component.Name}'" );
 							}
 						} else {
-							throw new Exception( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
+							throw new ApplicationException( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
 						}
 					}
 				}
@@ -180,12 +227,37 @@ namespace MFFDataApp {
 						LoadComponent( componentName );
 						component.Dependencies[componentName] = Components[componentName];
 					} else {
-						throw new Exception( $"Unable to load dependencies for component {component.Name}: could not find component named {componentName}." );
+						throw new ApplicationException( $"Unable to load dependencies for component {component.Name}: could not find component named {componentName}." );
 					}
 				}
 				component.Load();
 			}
 		}
+		/// <summary>
+		/// Writes <see cref="Version"/> data to an existing stream in JSON format
+		/// </summary>
+		/// <remarks>
+		/// <para><see cref="Version.WriteJson(StreamWriter, int)"/> outputs all
+		/// data from this <see cref="Version"/> to the
+		/// <see cref="System.IO.StreamWriter"/> stream
+		/// <paramref name="file"/> in JSON format. In order to accomodate
+		/// writing this data as part of a larger JSON document while
+		/// maintaining readability, the optional <paramref name="tabs"/>
+		/// parameter indicates a number of tab characters to insert at the
+		/// beginning of each line.</para>
+		/// <para><see cref="Version.WriteJson(StreamWriter, int)"/> works by
+		/// building the text for a <c>Version</c> JSON object and then
+		/// calling the <c>WriteJson()</c> method for each
+		/// <see cref="Component"/> and <see cref="AssetObject"/> associated
+		/// with this version. The generic <c>WriteJson()</c> is called in
+		/// turn for each property of each descendant of the <c>Version</c>.
+		/// <c>WriteJson()</c> outputs a single JSON value (string, array, or
+		/// object) without a trailing newline.</para>
+		/// </remarks>
+		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to which to write</param>
+		/// <param name="tabs">Baseline number of tab characters to insert
+		/// before each line of output</param>
+		/// <seealso href="https://json.org">JSON.org</seealso>
 		public void WriteJson( StreamWriter file, int tabs = 0 ) {
 			for ( int i = 0; i < tabs; i++ ) {
 				file.Write( "\t" );
@@ -231,28 +303,139 @@ namespace MFFDataApp {
 			file.Write( "}" );
 		}
 	}
+	/// <summary>
+	/// Represents a generic part of a game's content
+	/// </summary>
+	/// <remarks>
+	/// Major game content is represented by derivatives of the
+	/// <see cref="Component"/> class. This class includes the base
+	/// properties and methods applicable to all derivatives, including
+	/// lists of the <see cref="AssetObject"/>s and other <c>Component<c>s
+	/// required for loading data into the instance or evaluating or printing
+	/// the data.
+	/// </remarks>
 	public class Component {
-		public string Name;
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Component"/>
+		/// </summary>
+		public string Name { get; set; }
+		/// <summary>
+		/// Gets or sets a collection of <see cref="AssetObject"/>s storing
+		/// data to be loaded into the <see cref="Component"/>, indexed by
+		/// name.
+		/// </summary>
+		/// <remarks>
+		/// Required <see cref="AssetObject"/>s should be named in the keys of
+		/// <see cref="Component.BackingAssets"/> when the derived instance
+		/// is initialized. When the parent <see cref="Version"/> loads data
+		/// into the <see cref="Component"/>, it must first load the named
+		/// <c>AssetObject</c>s and place them into the associated values of
+		/// <c>BackingAssets</c>.
+		/// </remarks>
 		public Dictionary<string, AssetObject> BackingAssets { get; set; }
+		/// <summary>
+		/// Gets or sets a collection of <see cref="Component"/>s referred to
+		/// by this <see cref="Component"/>, indexed by name.
+		/// </summary>
+		/// <remarks>
+		/// Required <see cref="Component"/>s should be named in the keys of
+		/// <see cref="Component.Dependencies"/> when the derived instance
+		/// is initialized. When the parent <see cref="Version"/> loads data
+		/// into this <see cref="Component"/>, it must first load the named
+		/// <c>Component</c>s and place them into the associated values of
+		/// <c>Dependencies</c>.
+		/// </remarks>
 		public Dictionary<string, Component> Dependencies { get; set; }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Component"/> class
+		/// </summary>
 		protected Component() {
 			BackingAssets = new Dictionary<string, AssetObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
+		/// <summary>
+		/// Adds the name of an asset to the list of
+		/// <see cref="BackingAssets"/> for this <see cref="Component"/>
+		/// </summary>
+		/// <remarks>
+		/// No validation or checking of the <paramref name="assetName"/>
+		/// parameter is performed at the time of adding the
+		/// <see cref="Asset"/> name to the <see cref="BackingAssets"/> list.
+		/// This is deferred until attempting to load data into the
+		/// <see cref="Component"/> as the <c>BackingAssets</c> list may
+		/// be created before all <c>Asset</c>s are loaded.
+		/// </remarks>
+		/// <param name="assetName">The name of the <see cref="Asset"/> to
+		/// add</param>
 		public virtual void AddBackingAsset( string assetName ) {
 			if ( !BackingAssets.ContainsKey( assetName ) ) {
 				BackingAssets.Add( assetName, null );
 			}
 		}
+		/// <summary>
+		/// Adds the name of an asset to the list of
+		/// <see cref="Dependencies"/> for this <see cref="Component"/>
+		/// </summary>
+		/// <remarks>
+		/// No validation or checking of the <paramref name="componentName"/>
+		/// parameter is performed at the time of adding the
+		/// <see cref="Component"/> name to the <see cref="Dependencies"/> list.
+		/// This is deferred until attempting to load data into the
+		/// <see cref="Component"/> as the <c>Dependencies</c> list may
+		/// be created before all <c>Component</c>s are loaded.
+		/// </remarks>
+		/// <param name="componentName">The name of the <see cref="Component"/>
+		/// to add</param>
 		public virtual void AddDependency( string componentName ) {
 			if ( !Dependencies.ContainsKey( componentName ) ) {
 				Dependencies.Add( componentName, null );
 			}
 		}
+		/// <summary>
+		/// Outputs data from this <see cref="Component"/> in JSON format
+		/// </summary>
+		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to which to write</param>
+		/// <param name="tabs">Baseline number of tab characters to insert
+		/// before each line of output</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
 		}
+		/// <summary>
+		/// Outputs select data from this <see cref="Component"/> in CSV format
+		/// </summary>
+		/// <remarks>
+		/// <see cref="WriteCSV( StreamWriter )"/> writes data from the
+		/// <see cref="Component"/> to <paramref name="file"/> in a format
+		/// useful for importing into a spreadsheet. <c>WriteCSV()</c> is not
+		/// intended to losslessly output all of the <see cref="Component"/>'s
+		/// data, but rather to present select data in usable format for
+		/// further processing. For the former purpose, use
+		/// <see cref="WriteJson(StreamWriter,int)"/>.
+		/// </remarks>
+		/// <param name="file"><see cref="StreamWriter"/> stream to which to
+		/// write</param>
 		public virtual void WriteCSV( StreamWriter file ) {
 		}
+		/// <summary>
+		/// Loads data into this <see cref="Component"/>
+		/// </summary>
+		/// <remarks>
+		/// <see cref="Component.Load()"/> uses objects loaded into
+		/// <see cref="Component.BackingAssets"/> and
+		/// <see cref="Component.Dependencies"/> to load data into
+		/// <see cref="Component"/>'s other properties. As the
+		/// <c>Component</c> does not have access to the overall
+		/// sets of <see cref="Version.Assets"/> and
+		/// <see cref="Version.Components"/>, both
+		/// <c>BackingAssets</c> and <c>Dependencies</c> must be loaded by an
+		/// ancestor instance (e.g., via
+		/// <see cref="Version.LoadComponent(Component)"/>) before
+		/// <c>Component.Load()</c> can successfully run.
+		/// </remarks>
+		/// <exception cref="System.ApplicationException">Thrown if objects
+		/// have not been loaded into <see cref="BackingAssets"/> or
+		/// <see cref="Dependencies"/> before running
+		/// <see cref="Load()"/></exception>
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
 			if ( BackingAssets.Count != 0 ) {
@@ -278,6 +461,23 @@ namespace MFFDataApp {
 				}
 			}
 		}
+		/// <summary>
+		/// Reports whether the <see cref="Component"/> has already been
+		/// loaded
+		/// </summary>
+		/// <remarks>
+		/// <see cref="Component.IsLoaded()"/> analyzes the data in
+		/// <c>Component</c>'s properties to determine whether the
+		/// <c>Component</c> has already been loaded (e.g., via
+		/// <see cref="Component.Load()"/>). Note that this not imply that
+		/// if <c>Component.Load()</c> were run again the properties
+		/// would be unchanged. In practice, <c>Component.Load()</c> should
+		/// only be run after all <see cref="Component.BackingAssets"/> and
+		/// <see cref="Component.Dependencies"/> have been loaded, so the
+		/// property loading should be reproducible at any point afterward.
+		/// </remarks>
+		/// <returns><c>true</c> if the <see cref="Component"/> contains
+		/// data that has already been loaded</returns>
 		public virtual bool IsLoaded() {
 			return true;
 		}
