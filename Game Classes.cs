@@ -477,24 +477,54 @@ namespace MFFDataApp {
 		/// property loading should be reproducible at any point afterward.
 		/// </remarks>
 		/// <returns><c>true</c> if the <see cref="Component"/> contains
-		/// data that has already been loaded</returns>
+		/// data loaded data, <c>false</c> otherwise</returns>
 		public virtual bool IsLoaded() {
 			return true;
 		}
 	}
-	// String localization dictionary
+	/// <summary>
+	/// Provides access to the string localiization dictionary
+	/// </summary>
+	/// <remarks>
+	/// The <see cref="Localization"/> class is a derivative of
+	/// <see cref="Component"/> to provide access to the
+	/// <see cref="Version"/>'s string localization dictionary. This includes
+	/// methods to build the dictionary from the appropriate
+	/// <see cref="Asset"/>, translate encoded strings into localized
+	/// strings, and output the full dictionary as a JSON object.
 	public class Localization : Component {
+		/// <summary>
+		/// Gets or sets the dictionary object
+		/// </summary>
 		Dictionary<string, string> LocalDictionary { get; set; }
+		/// <summary>
+		/// Gets or sets the name of the localization language
+		/// </summary>
 		public string Language { get; set; }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Localization"/>
+		/// <see cref="Component"/>-derived class.
+		/// </summary>
 		public Localization() : base() {
 			Name = "Localization";
 			LocalDictionary = new Dictionary<string, string>();
 			Language = "en";
 			AddBackingAsset( $"localization/localization_{Language}.csv||LocalizationTable_{Language}" );
 		}
+		/// <summary>
+		/// Determines whether the <see cref="Localization"/> has been
+		/// loaded.
+		/// </summary>
+		/// <returns><c>true</c> if the <see cref="Localization"/> already
+		/// contains loaded data, <c>false</c> otherwise.</returns>
+		/// <seealso cref="Component.IsLoaded()"/>
 		public override bool IsLoaded() {
 			return LocalDictionary.Count != 0;
 		}
+		/// <summary>
+		/// Loads data into this <see cref="Localization"/>
+		/// </summary>
+		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
 			AssetObject DictionaryAsset = BackingAssets.First().Value;
@@ -524,6 +554,11 @@ namespace MFFDataApp {
 				}
 			}
 		}
+		/// <summary>
+		/// Decodes a string using the <see cref="Localization"/> dictionary
+		/// </summary>
+		/// <param name="input">An encoded string to be decoded</param>
+		/// <returns>The decoded and localized string</returns>
 		public string GetString( string input ) {
 			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
 				return LocalDictionary[input];
@@ -531,6 +566,17 @@ namespace MFFDataApp {
 				return LocalDictionary[MakeHash( input )];
 			}
 		}
+		/// <summary>
+		/// Creates a reproducible numeric hash from a string
+		/// </summary>
+		/// <remarks>
+		/// Recent versions of Marvel Future Fight use a dictionary with hashed
+		/// strings as keys rather than a flat CSV file for the localization
+		/// asset. <see cref="Localization.MakeHash(string)"/> calculates that
+		/// hash given the non-localized <paramref name="input"> string.
+		/// </remarks>
+		/// <param name="input">The string to be hashed</param>
+		/// <returns>The hashed string</returns>
 		string MakeHash( string input ) {
 			int result = 0;
 			char[] textBytes = input.ToCharArray();
@@ -555,6 +601,14 @@ namespace MFFDataApp {
 			}
 			return result.ToString();
 		}
+		/// <summary>
+		/// Outputs data from this <see cref="Localization"/> in JSON format
+		/// </summary>
+		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
+		/// which to write</param>
+		/// <param name="tabs">Baseline number of tab characters to insert
+		/// before each line of output</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 
 		}
