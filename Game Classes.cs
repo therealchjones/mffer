@@ -954,10 +954,28 @@ namespace MFFDataApp {
 			CharacterLevels = new Dictionary<string, CharacterLevel>();
 		}
 	}
+	/// <summary>
+	/// Represents a <see cref="Character"/> equipped with a particular
+	/// <see cref="Uniform"/> at a particular rank
+	/// </summary>
 	public class CharacterLevel {
+		/// <summary>
+		/// Gets or sets the hero ID for this <see cref="CharacterLevel"/>
+		/// </summary>
+		/// <seealso cref="Character.GroupId"/>
 		public string HeroId { get; set; }
+		/// <summary>
+		/// Gets or sets the rank (stars) for this <see cref="CharacterLevel"/>
+		/// </summary>
 		public int Rank { get; set; }
+		/// <summary>
+		/// Gets or sets the tier for this <see cref="CharacterLevel"/>
+		/// </summary>
 		public int Tier { get; set; }
+		/// <summary>
+		/// Gets or sets the list of skills available at this
+		/// <see cref="CharcterLevel"/>
+		/// </summary>
 		public List<Skill> Skills { get; set; }
 		/// <summary>
 		/// Gets the <see cref="BaseId"/> for the <see cref="Character"/> /
@@ -983,33 +1001,99 @@ namespace MFFDataApp {
 				return heroIdNumber.ToString();
 			}
 		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="CharacterLevel"/>
+		/// class
+		/// </summary>
 		public CharacterLevel() {
 			Skills = new List<Skill>();
 		}
 	}
+	/// <summary>
+	/// Represents a <see cref="Character"/> skill
+	/// </summary>
 	public class Skill {
+		/// <summary>
+		/// Gets or sets the skill ID for this <see cref="Skill"/>
+		/// </summary>
 		public string SkillId { get; set; }
+		/// <summary>
+		/// Gets or sets the name of this <see cref="Skill"/>
+		/// </summary>
 		public string Name { get; set; }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Skill"/> class
+		/// </summary>
+		/// <param name="skillId">The skill ID</param>
 		public Skill( String skillId ) {
 			SkillId = skillId;
 		}
 	}
+	/// <summary>
+	/// Represents a <see cref="Player"/> alliance
+	/// </summary>
 	public class Alliance {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Alliance"/>
+		/// </summary>
 		public string Name { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="Player"/>s in the
+		/// <see cref="Alliance"/>
+		/// </summary>
 		public List<Player> Players { get; set; }
+		/// <summary>
+		/// Gets or sets the <see cref="Player"/> who is the leader of the
+		/// <see cref="Alliance"/>
+		/// </summary>
 		public Player Leader { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="Player"/>s who have Class 1
+		/// status in the <see cref="Alliance"/>
+		/// </summary>
 		public List<Player> Class1Players { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="Player"/>s who have Class 2
+		/// status in the <see cref="Alliance"/>
+		/// </summary>
 		public List<Player> Class2Players { get; set; }
 	}
+	/// <summary>
+	/// Represents a single item
+	/// </summary>
 	public class Item {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Item"/>
+		/// </summary>
 		public string Name { get; set; }
 	}
+	/// <summary>
+	/// Represents the Shadowland <see cref="Component"/> of this
+	/// <see cref="Version"/> of the <see cref="Game"/>
+	/// </summary>
 	class Shadowland : Component {
+		/// <summary>
+		/// Gets or sets the list of <see cref="ShadowlandFloor"/>s upon which
+		/// <see cref="Shadowland"/> is based
+		/// </summary>
 		ShadowlandFloor[] BaseFloors;
-		public void Load( AssetBundle Assets ) {
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Shadowland"/> class
+		/// </summary>
+		public Shadowland() : base() {
+			Name = "Shadowland";
 			BaseFloors = new ShadowlandFloor[35];
-			List<AssetObject> shadowlandFloors = Assets.AssetFiles["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
-			List<AssetObject> shadowlandRewards = Assets.AssetFiles["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
+			AddBackingAsset( "text/data/shadowland_floor.csv" );
+			AddBackingAsset( "text/data/shadowland_reward.csv" );
+		}
+		/// <summary>
+		/// Loads this <see cref="Shadowland"/> instance
+		/// </summary>
+		/// <seealso cref="Component.Load()"/>
+		public override void Load() {
+			base.Load();
+			List<AssetObject> shadowlandFloors = BackingAssets["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
+			List<AssetObject> shadowlandRewards = BackingAssets["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
 			for ( int floorNum = 0; floorNum < BaseFloors.Length; floorNum++ ) {
 				ShadowlandFloor floor = new ShadowlandFloor();
 				floor.FloorNumber = floorNum + 1;
@@ -1019,9 +1103,9 @@ namespace MFFDataApp {
 						List<ShadowlandReward> rewards = new List<ShadowlandReward>();
 						for ( int i = 1; i <= 2; i++ ) {
 							ShadowlandReward reward = new ShadowlandReward();
-							reward.RewardValue = Int32.Parse( value.Properties[$"REWARD_VALUE_{i}"].String );
-							reward.RewardQuantity = Int32.Parse( value.Properties[$"REWARD_QTY_{i}"].String );
-							reward.RewardType = Int32.Parse( value.Properties[$"REWARD_TYPE_{i}"].String );
+							reward.Value = Int32.Parse( value.Properties[$"REWARD_VALUE_{i}"].String );
+							reward.Quantity = Int32.Parse( value.Properties[$"REWARD_QTY_{i}"].String );
+							reward.Type = Int32.Parse( value.Properties[$"REWARD_TYPE_{i}"].String );
 							rewards[i] = reward;
 						}
 					}
@@ -1032,126 +1116,262 @@ namespace MFFDataApp {
 				}
 			}
 		}
-
+		/// <summary>
+		/// Represents a single floor of the <see cref="Shadowland"/> component
+		/// </summary>
 		public class ShadowlandFloor {
-			public int FloorNumber;
-			public ShadowlandFloor BaseFloor;
-			public int RewardGroup;
-			public int StageGroup;
-			public int StageSelectCount;
+			/// <summary>
+			/// Gets or sets the number of this <see cref="ShadowlandFloor"/>
+			/// </summary>
+			public int FloorNumber { get; set; }
+			/// <summary>
+			/// Gets or sets the floor upo which this
+			/// <see cref="ShadowlandFloor"/> is based
+			/// </summary>
+			public ShadowlandFloor BaseFloor { get; set; }
+			/// <summary>
+			/// Gets or sets the reward group for this
+			/// <see cref="ShadowlandFloor"/>
+			/// </summary>
+			public int RewardGroup { get; set; }
+			/// <summary>
+			/// Gets or sets the stage group of this
+			/// <see cref="ShadowlandFloor"/>
+			/// </summary>
+			public int StageGroup { get; set; }
+			/// <summary>
+			/// Gets or sets the stage select count of this
+			/// <see cref="ShadowlandFloor"/>
+			/// </summary>
+			public int StageSelectCount { get; set; }
 		}
-		public class Opponent {
-		}
-		public class OpponentChoice {
-
-		}
-		public class ShadowlandReward {
-			public int RewardQuantity;
-			public int RewardValue;
-			public int RewardType;
+		/// <summary>
+		/// Represents a reward given for completion of a
+		/// <see cref="ShadowlandFloor"/>
+		/// </summary>
+		public class ShadowlandReward : Reward {
 		}
 	}
-	public class ComicCard {
-		public string cardId;
-	}
-	public class ComicCardCollection {
-		public ComicCard[] Cards { get; set; }
-		public string cardGroup;
-		public string abilityId;
-		public string abilityParam;
-
-		private void LoadById( string id ) {
-
-		}
-	}
+	/// <summary>
+	/// Represents a reward given by this <see cref="Version"/> of the
+	/// <see cref="Game"/>
+	/// </summary>
 	public class Reward {
+		/// <summary>
+		/// Gets or sets the <see cref="Item"/> in this <see cref="Reward"/>
+		/// </summary>
 		public Item item { get; set; }
+		/// <summary>
+		/// Gets or sets the quantity of the <see cref="Item"/> in this
+		/// <see cref="Reward"/>
+		/// </summary>
 		public int Quantity { get; set; }
+		/// <summary>
+		/// Gets or sets the Value of the <see cref="Item"/> in this
+		/// <see cref="Reward"/>
+		/// </summary>
+		public int Value { get; set; }
+		/// <summary>
+		/// Gets or sets the type of the type of this <see cref="Reward"/>
+		/// </summary>
+		public int Type { get; set; }
 	}
+	/// <summary>
+	/// Represents the Future Pass <see cref="Component"/> of this
+	/// <see cref="Version"/> of the <see cref="Game"/>
+	/// </summary>
+	/// <remarks>
+	/// <see cref="FuturePass"/> is a recurring event in the <see cref="Game"/>
+	/// made up of multiple tiers, with a <see cref="Reward"/> at each
+	/// <see cref="FuturePassStep"/> from each tier. <see cref="StagePoints"/>
+	/// are obtained through regular <see cref="Game"/> activities, and a
+	/// given number of points (listed in <see cref="StagePoints"/>) is
+	/// needed to reach each <see cref="FuturePassStep"/>.
 	public class FuturePass : Component {
+		/// <summary>
+		/// Gets or sets the different <see cref="FuturePassSeason"/>s
+		/// </summary>
+		/// <remarks>
+		/// Each <see cref="FuturePassSeason"/> is a separate event with
+		/// different start and end dates and rewards.
+		/// </remarks>
 		public List<FuturePassSeason> Seasons { get; set; }
-		public FuturePassStep[] Steps { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="FuturePassStep"/>s indexed by
+		/// step number
+		/// </summary>
+		public Dictionary<int, FuturePassStep> Steps { get; set; }
+		/// <summary>
+		/// Gets or sets the number of points needed to reach each
+		/// <see cref="FuturePassStep">, indexed by step number
+		/// </summary>
 		public Dictionary<int, int> StagePoints { get; set; }
-
-		public void Load( AssetBundle Assets ) {
-			string seasonAssetName = "text/data/future_pass.asset";
-			List<FuturePassSeason> seasons = new List<FuturePassSeason>();
-			foreach ( AssetObject seasonAsset in Assets.AssetFiles[seasonAssetName].Properties["list"].Array ) {
+		/// <summary>
+		/// Initializes a new instance of the <see cref="FuturePass"/> class
+		/// </summary>
+		public FuturePass() : base() {
+			Seasons = new List<FuturePassSeason>();
+			Steps = new Dictionary<int, FuturePassStep>();
+			StagePoints = new Dictionary<int, int>();
+			AddBackingAsset( "text/data/future_pass.asset" );
+			AddBackingAsset( "text/data/future_pass_step.asset" );
+			AddBackingAsset( "text/data/future_pass_reward.asset" );
+			AddBackingAsset( "text/data/future_pass_contents.asset" );
+		}
+		/// <summary>
+		/// Load data into this <see cref="FuturePass"/> instance
+		/// </summary>
+		/// <seealso cref="Component.Load()"/>
+		public override void Load() {
+			base.Load();
+			foreach ( AssetObject seasonAsset in BackingAssets["text/data/future_pass.asset"].Properties["list"].Array ) {
 				FuturePassSeason season = new FuturePassSeason();
 				season.Load( seasonAsset );
-				seasons.Add( season );
+				Seasons.Add( season );
 			}
-			string stepAssetName = "text/data/future_pass_step.asset";
-			Steps = new FuturePassStep[50];
-			foreach ( AssetObject stepAsset in Assets.AssetFiles[stepAssetName].Properties["list"].Array ) {
+			foreach ( AssetObject stepAsset in BackingAssets["text/data/future_pass_step.asset"].Properties["list"].Array ) {
 				FuturePassStep step = new FuturePassStep();
 				step.passPoint = Int32.Parse( stepAsset.Properties["data"].Properties["passPoint"].String );
 				step.step = Int32.Parse( stepAsset.Properties["data"].Properties["step"].String );
 				step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
 				Steps[step.step - 1] = step;
 			}
-			string rewardAssetName = "text/data/future_pass_reward.asset";
-			foreach ( AssetObject rewardAsset in Assets.AssetFiles[rewardAssetName].Properties["list"].Array ) {
+			foreach ( AssetObject rewardAsset in BackingAssets["text/data/future_pass_reward.asset"].Properties["list"].Array ) {
 				FuturePassReward reward = new FuturePassReward();
 				reward.Load( rewardAsset );
 				FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.Properties["data"].Properties["grade"].String );
 				int step = Int32.Parse( rewardAsset.Properties["data"].Properties["step"].String );
 				Steps[step - 1].Rewards[level] = reward;
 			}
-			string stageAssetName = "text/data/future_pass_contents.asset";
-			StagePoints = new Dictionary<int, int>();
-			foreach ( AssetObject stageAsset in Assets.AssetFiles[stageAssetName].Properties["list"].Array ) {
+			foreach ( AssetObject stageAsset in BackingAssets["text/data/future_pass_contents.asset"].Properties["list"].Array ) {
 				int sceneId = Int32.Parse( stageAsset.Properties["data"].Properties["sceneId"].String );
 				int stagePoints = Int32.Parse( stageAsset.Properties["data"].Properties["passPoint"].String );
 				StagePoints.Add( sceneId, stagePoints );
 			}
 		}
+		/// <summary>
+		/// Represents the <see cref="Reward"/> obtained from completing a
+		/// <see cref="FuturePassStep"/>
+		/// </summary>
 		public class FuturePassReward : Reward {
 			// text/data/future_pass_reward.asset->list->Array[x]->data
+			/// <summary>
+			/// The reward ID for this <see cref="FuturePassReward"/>
+			/// </summary>
 			private int rewardId;
+			/// <summary>
+			/// The reward group ID for this <see cref="FuturePassReward"/>
+			/// </summary>
 			private int rewardGroupId;
-			private int rewardType;
-			private int rewardValue;
+			/// <summary>
+			/// Load data into this <see cref="FuturePassReward"/> instance
+			/// </summary>
+			/// <param name="asset">Asset containing
+			/// <see cref="FuturePassReward"/> data</param>
 			public void Load( AssetObject asset ) {
 				this.rewardId = Int32.Parse( asset.Properties["data"].Properties["rewardId"].String );
 				this.rewardGroupId = Int32.Parse( asset.Properties["data"].Properties["rewardGroupId"].String );
-				this.rewardType = Int32.Parse( asset.Properties["data"].Properties["rewardType"].String );
-				this.rewardValue = Int32.Parse( asset.Properties["data"].Properties["rewardValue"].String );
+				this.Type = Int32.Parse( asset.Properties["data"].Properties["rewardType"].String );
+				this.Value = Int32.Parse( asset.Properties["data"].Properties["rewardValue"].String );
 			}
 		}
+		/// <summary>
+		/// Represents a single <see cref="FuturePass"/> event
+		/// </summary>
 		public class FuturePassSeason {
 			// text/data/future_pass.asset->list->Array[x]->data
+			/// <summary>
+			/// Gets or sets the end time of this
+			/// <see cref="FuturePassSeason"/>
+			/// </summary>
 			string endTime { get; set; }
+			/// <summary>
+			/// Gets or sets the start time of this
+			/// <see cref="FuturePassSeason"/>
+			/// </summary>
 			string startTime { get; set; }
+			/// <summary>
+			/// Gets or sets the reward group ID for this
+			/// <see cref="FuturePassSeason"/>
+			/// </summary>
 			int rewardGroupId { get; set; }
+			/// <summary>
+			/// Loads data into this instance of <see cref="FuturePassSeason"/>
+			/// </summary>
+			/// <param name="asset">Asset containing
+			/// <see cref="FuturePassSeason"/> data</param>
 			public void Load( AssetObject asset ) {
 				this.endTime = asset.Properties["data"].Properties["endTime_unused"].String;
 				this.startTime = asset.Properties["data"].Properties["startTime_unused"].String;
 				this.rewardGroupId = Int32.Parse( asset.Properties["data"].Properties["rewardGroupId"].String );
 			}
 		}
+		/// <summary>
+		/// Represents a single set of rewards in this
+		/// <see cref="FuturePassSeason"/>
+		/// </summary>
 		public class FuturePassStep {
 			// text/data/future_pass_step.asset->list->Array[x]->data
+			/// <summary>
+			/// Gets or sets the step number for this
+			/// <see cref="FuturePassStep"/>
+			/// </summary>
 			public int step { get; set; } // 1-50
-			public int passPoint { get; set; } // total points to get to this step
+			/// <summary>
+			/// Gets or sets the number of points needed to reach this
+			/// <see cref="FuturePassStep"/>
+			/// </summary>
+			public int passPoint { get; set; }
+			/// <summary>
+			/// Gets or sets the <see cref="FuturePassReward"/> for reaching
+			/// this <see cref="FuturePassStep"/>, indexed by
+			/// <see cref="FuturePassType"/>
+			/// </summary>
 			public Dictionary<FuturePassType, FuturePassReward> Rewards { get; set; }
 		}
+		/// <summary>
+		/// Specifies a tier (type) of rewards within a
+		/// <see cref="FuturePassSeason"/>
+		/// </summary>
 		public enum FuturePassType {
 			Normal,
 			Legendary,
 			Mythic
 		}
 	}
+	/// <summary>
+	/// Represents a skill (ability) available for a <see cref="Character"/>
+	/// </summary>
 	public class AbilityGroup {
-		public int groupId;
-		public int abilityId;
-		public long time;
-		public long tick;
-		public bool keepWhenTagging;
-		public bool isEffectDisable;
-		public static string assetFile = "text/data/action_ability.asset";
+		/// <summary>
+		/// Gets or sets the ability group ID for this
+		/// <see cref="AbilityGroup"/>
+		/// </summary>
+		public int groupId { get; set; }
+		/// <summary>
+		/// Gets or sets the ability ID for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public int abilityId { get; set; }
+		/// <summary>
+		/// Gets or sets the time of action for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public long time { get; set; }
+		/// <summary>
+		/// Gets or sets the "tick" for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public long tick { get; set; }
+		/// <summary>
+		/// Gets or sets whether this <see cref="AbilityGroup"/>'s action
+		/// continues when tagging a new <see cref="Character"/>
+		/// </summary>
+		public bool keepWhenTagging { get; set; }
+		/// <summary>
+		/// Geets or sets whether this <see cref="AbilityGroup"/>'s effect is
+		/// disabled
+		/// </summary>
+		public bool isEffectDisable { get; set; }
 		public void Load( AssetObject assetObject ) {
-			// List<AssetObject> assetObjects = Program.Assets.AssetFiles[assetFile].Properties["values"].Array;
+			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
 			AssetObject abilityGroup = assetObject.Properties["data"];
 			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
 			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );
@@ -1161,16 +1381,30 @@ namespace MFFDataApp {
 			this.isEffectDisable = Boolean.Parse( abilityGroup.Properties["isEffectDisable"].String );
 		}
 	}
-	public class AbilityAttribute {
-		public int key;
-		public int paramType;
-		public string commonEffect;
-	}
+	/// <summary>
+	/// Represents the settings and data for an individual user
+	/// </summary>
 	public class Player : Component {
+		/// <summary>
+		/// Gets or sets the <see cref="Alliance"/> of which the
+		/// <see cref="Player"/> is a member
+		/// </summary>
 		public Alliance alliance { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="Character"/>s currently owned
+		/// by the <see cref="Player"/>
+		/// </summary>
 		public List<MyCharacter> MyRoster { get; set; }
 	}
+	/// <summary>
+	/// Represents the settings and data for the current state of a
+	/// <see cref="Character"/> owned by a <see cref="Player"/>
+	/// </summary>
 	public class MyCharacter {
+		/// <summary>
+		/// Gets or sets the <see cref="Character"/> to whiche the settings in
+		/// this <see cref="MyCharacter"/> instance apply
+		/// </summary>
 		public Character BaseCharacter { get; set; }
 	}
 }
