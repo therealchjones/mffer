@@ -613,21 +613,52 @@ namespace MFFDataApp {
 
 		}
 	}
-	// List of all available playable characters in the game
+	/// <summary>
+	/// Represents a collection of all playable characters in the
+	/// <see cref="Game"/>
+	/// </summary>
+	/// <remarks>
+	/// <para><see cref="Roster"/> is derived from the <see cref="Component"/>
+	/// class and includes methods to load and present data about the
+	/// <see cref="Game"/>'s characters.</para>
+	/// <para>The data model for the <c>Roster</c> is hierarchical; each
+	/// <see cref="Character"/> has multiple <see cref="Uniform"/>s, each of
+	/// which has different properties associated with different
+	/// <see cref="CharacterLevel"/>s. Each type has several properties that
+	/// do not vary between descendants of that type. For instance, the
+	/// <see cref="Gender"/> of a given <c>Character</c> and <c>Uniform</c> is
+	/// the same regardless of <c>CharacterLevel</c>.</para>
 	public class Roster : Component {
+		/// <summary>
+		/// Gets or sets a list of the <see cref="Game"/>'s
+		/// <see cref="Character"/>s indexed by the <c>Character</c>s'
+		/// <see cref="groupId"/>s.
+		/// </summary>
 		public Dictionary<string, Character> Characters { get; set; } // by groupId
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Roster"/> class
+		/// </summary>
+		/// <seealso cref="Component.Component()"/>
 		public Roster() : base() {
 			Name = "Roster";
 			Characters = new Dictionary<string, Character>();
 			AddBackingAsset( "IntHeroDataDictionary" );
 			AddDependency( "Localization" );
 		}
+		/// <summary>
+		/// Determines whether the <see cref="Roster"/> has been
+		/// loaded.
+		/// </summary>
+		/// <returns><c>true</c> if the <see cref="Roster"/> already
+		/// contains loaded data, <c>false</c> otherwise.</returns>
+		/// <seealso cref="Component.IsLoaded()"/>
 		public override bool IsLoaded() {
 			return Characters.Count != 0;
 		}
-		// See also explanation of HeroId, BaseId, GroupId, and UniformGroupId in comments for
-		// Character class. This is all based on certain assumptions, which should probably all
-		// be tested here. For instance, when adding info, ensure it's not redundant or inconsistent.
+		/// <summary>
+		/// Loads data into this <see cref="Roster"/>
+		/// </summary>
+		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
 			AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
@@ -702,6 +733,20 @@ namespace MFFDataApp {
 				}
 			}
 		}
+		/// <summary>
+		/// Outputs select data from this <see cref="Roster"/> in CSV format
+		/// </summary>
+		/// <remarks>
+		/// <see cref="Roster.WriteCSV(StreamWriter)"/> writes a CSV
+		/// containing a flat representation of all playable characters and
+		/// different uniforms, and the properties associated with each. It
+		/// necessarily contains multiple redundant entries and is intended
+		/// for use in spreadsheet applications rather than as a manipulatable
+		/// data store.
+		/// </remarks>
+		/// <param name="file"><see cref="StreamWriter"/> stream to which to
+		/// write</param>
+		/// <seealso cref="Component.WriteCSV(StreamWriter)"/>
 		public override void WriteCSV( StreamWriter file ) {
 			file.Write( "|Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|" );
 			file.Write( "Primary Attack|Type|Gender|Side|Allies|Max Tier|Growth Type|Abilities|World Boss Ability|Leader Skill|" );
@@ -729,17 +774,72 @@ namespace MFFDataApp {
 				}
 			}
 		}
+		/// <summary>
+		/// Outputs data from this <see cref="Roster"/> in JSON format
+		/// </summary>
+		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
+		/// which to write</param>
+		/// <param name="tabs">Baseline number of tab characters to insert
+		/// before each line of output</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 
 		}
 	}
+	/// <summary>
+	/// Represents a playable character in the <see cref="Version"/>
+	/// </summary>
+	/// <seealso cref="Roster"/>
 	public class Character {
+		/// <summary>
+		/// Gets or sets the unique Group ID of the <see cref="Character"/>
+		/// </summary>
+		/// <remarks>
+		/// Associated with the hierarchical model of the <see cref="Roster"/>
+		/// are multiple identifiers for the different object levels. A
+		/// <see cref="Character"> equipped with a given <see cref="Uniform"/>
+		/// at a specific rank (i.e., number of stars) is uniquely identified
+		/// by a <see cref="CharacterLevel.HeroId"/>. Regardless of rank, the
+		/// <see cref="Character"> in that <see cref="Uniform"/> is identified
+		/// by the <see cref="Uniform.BaseId"/>, and regardless of
+		/// <see cref="Uniform"/> the <see cref="Character"/> is identified by
+		/// a <see cref="Character.GroupId"/>. An additional identifier,
+		/// <see cref="Uniform.UniformGroupId"/> is only unique among the
+		/// <see cref="Uniform"/>s available for a given
+		/// <see cref="Character"/>.
+		/// </remarks>
 		public string GroupId { get; set; }
-		public Dictionary<string, Uniform> Uniforms { get; set; } // by baseId
+		/// <summary>
+		/// Gets or sets the list of <see cref="Uniform"/>s available for the
+		/// <see cref="Character"/>, indexed by <see cref="BaseId"/>
+		/// </summary>
+		public Dictionary<string, Uniform> Uniforms { get; set; } // by BaseId
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Character"/> in the default
+		/// <see cref="Uniform"/>
+		/// </summary>
 		public string BaseName { get; set; }
+		/// <summary>
+		/// Gets or sets the growth type of the <see cref="Character"/>
+		/// </summary>
 		public int GrowType { get; set; }
+		/// <summary>
+		/// Gets or sets the starting level (grade) of the
+		/// <see cref="Character"/>
+		/// </summary>
 		public int StartGrade { get; set; }
+		/// <summary>
+		/// Gets or sets the allies (species) of the <see cref="Character"/>
+		/// </summary>
 		public string Species { get; set; }
+		/// <summary>
+		/// Gets the maximum tier of the <see cref="Character"/>
+		/// </summary>
+		/// <remarks>
+		/// This is determined automatically by the
+		/// <see cref="CharacterLevel"/>s available for each
+		/// <see cref="Uniform"/>.
+		/// </remarks>
 		public int MaxTier {
 			get {
 				foreach ( Uniform uniform in Uniforms.Values ) {
@@ -751,22 +851,83 @@ namespace MFFDataApp {
 				throw new Exception( $"No uniforms found for character {BaseName} (groupId {GroupId})" );
 			}
 		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Character"/> class
+		/// </summary>
 		public Character() {
 			Uniforms = new Dictionary<string, Uniform>();
 		}
 	}
+	/// <summary>
+	/// Represents a uniform available to a playable <see cref="Character"/>
+	/// </summary>
 	public class Uniform {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Uniform"/>
+		/// </summary>
 		public string UniformName { get; set; }
+		/// <summary>
+		/// Gets or sets the name of the <see cref="Character"/> when wearing
+		/// this <see cref="Uniform"/>
+		/// </summary>
 		public string CharacterName { get; set; }
+		/// <summary>
+		/// Gets or sets this <see cref="Uniform"/>'s Uniform Group ID
+		/// </summary>
+		/// <remarks>
+		/// Note that this is not the <see cref="Character.GroupId"/>.
+		/// </remarks>
 		public string UniformGroupId { get; set; }
+		/// <summary>
+		/// Gets or sets the list of <see cref="CharacterLevel">s, indexed
+		/// by Hero ID
+		/// </summary>
+		/// <seealso cref="Character.GroupId"/>
 		public Dictionary<string, CharacterLevel> CharacterLevels { get; set; } // by heroId
+		/// <summary>
+		/// Gets or sets the allies (camps) of the <see cref="Character"/> when
+		/// wearing this <see cref="Uniform"/>
+		/// </summary>
 		public string Camps { get; set; }
+		/// <summary>
+		/// Gets or sets the gender of the <see cref="Character"/> when wearing
+		/// this <see cref="Uniform"/>
+		/// </summary>
 		public string Gender { get; set; }
+		/// <summary>
+		/// Gets or sets the BaseId of the <see cref="Character"/> when wearing
+		/// this <see cref="Uniform"/>
+		/// </summary>
 		public string BaseId { get; set; }
+		/// <summary>
+		/// Gets or sets the Class of the <see cref="Character"/> when
+		/// wearing this <see cref="Uniform"/>
+		/// </summary>
 		public string ClassType { get; set; }
+		/// <summary>
+		/// Gets or sets the Ally ability of the <see cref="Character"/> when
+		/// wearing this <see cref="Uniform"/>
+		/// </summary>
 		public string RaidAbility { get; set; }
+		/// <summary>
+		/// Gets or sets the main attack type of the <see cref="Character"/>
+		/// when wearing this <see cref="Uniform"/>
+		/// </summary>
 		public string MainAtk { get; set; }
+		/// <summary>
+		/// Gets or sets the list of abilities of the <see cref="Character"/>
+		/// when wearing this <see cref="Uniform"/>
+		/// </summary>
 		public List<string> Abilities { get; set; }
+		/// <summary>
+		/// Gets the full list of skills of the <see cref="Character"/> when
+		/// wearing this <see cref="Uniform"/>
+		/// </summary>
+		/// <remarks>
+		/// The list of <see cref="Skill">s available to the
+		/// <see cref="Character"/> increases as the <see cref="Character"/>'s
+		/// rank increases; <see cref="Skills"/> is the full list available
+		/// at maximum rank.
 		public List<Skill> Skills {
 			get {
 				List<Skill> maxSkillSet = new List<Skill>();
@@ -785,6 +946,9 @@ namespace MFFDataApp {
 				return maxSkillSet;
 			}
 		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Uniform"/> class
+		/// </summary>
 		public Uniform() {
 			Abilities = new List<string>();
 			CharacterLevels = new Dictionary<string, CharacterLevel>();
@@ -795,6 +959,19 @@ namespace MFFDataApp {
 		public int Rank { get; set; }
 		public int Tier { get; set; }
 		public List<Skill> Skills { get; set; }
+		/// <summary>
+		/// Gets the <see cref="BaseId"/> for the <see cref="Character"/> /
+		/// <see cref="Uniform"/> combination associated with this
+		/// <see cref="CharacterLevel"/>
+		///	<remarks>
+		///	There is a many-to-one mapping of
+		///	<see cref="CharacterLevel.HeroId"/> to
+		///	<see cref="Uniform.BaseId"/> that is calculatable. For a given
+		///	<see cref="CharacterLevel"/>, then, properties of the
+		///	<see cref="Character"/> and <see cref="Uniform"/> that do not vary
+		///	with <see cref="CharacterLevel"/> can be
+		///	quickly found.
+		///</remarks>
 		public string BaseId {
 			get {
 				Int64 heroIdNumber = Int64.Parse( HeroId );
