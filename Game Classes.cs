@@ -99,9 +99,9 @@ namespace MFFDataApp {
 	/// This is a private class. Different versions of a game may vary in
 	/// nearly all data; almost all game data are contained within a
 	/// <see cref="Version"/>, including the various <see cref="Component"/>s
-	/// and <see cref="Asset"/>s. Methods allow loading data from a
+	/// and <see cref="AssetFile"/>s. Methods allow loading data from a
 	/// <see cref="DataDirectory"/>, writing the version's
-	/// <see cref="Asset"/> and <see cref="Component"/> data to an existing
+	/// <see cref="AssetObject"/> and <see cref="Component"/> data to an existing
 	/// stream, and writing individual <see cref="Component"/> data in CSV
 	/// format to an existing stream.
 	/// </remarks>
@@ -116,7 +116,7 @@ namespace MFFDataApp {
 		/// </summary>
 		public Dictionary<string, Component> Components { get; set; }
 		/// <summary>
-		/// Gets or sets the group of <see cref="Asset"/>s associated with
+		/// Gets or sets the group of <see cref="AssetFile"/>s associated with
 		/// this <see cref="Version"/>
 		/// </summary>
 		public AssetBundle Assets { get; set; }
@@ -163,7 +163,7 @@ namespace MFFDataApp {
 		/// <remarks>
 		/// Will load available data into the <see cref="Component"/> named
 		/// <paramref name="componentName"/> if it has already been added to
-		/// the <see cref="Version.Components"> list.
+		/// the <see cref="Version.Components"/> list.
 		/// </remarks>
 		/// <param name="componentName">The name of the
 		/// <see cref="Component"/></param>
@@ -179,19 +179,20 @@ namespace MFFDataApp {
 			}
 		}
 		/// <summary>
-		/// Loads data into the given <see cref="Component">
+		/// Loads data into the given <see cref="Component"/>
 		/// </summary>
 		/// <remarks>
 		/// Will load available data into <paramref name="component"/> from
-		/// <see cref="Asset"/>s named in
-		/// <see cref="Component.BackingAssets"/>. (The assets will be loaded)
+		/// <see cref="AssetFile"/>s named in
+		/// <see cref="Component.BackingAssets"/>. (The assets will be loaded
 		/// if they aren't already.) If data has already been loaded into
 		/// <paramref name="component"/>, it will not be changed.
+		/// </remarks>
 		/// <param name="component">The <see cref="Component"/> to load with data</param>
-		/// <exception cref="System.ApplicationException"/>Thrown if a required
-		/// <see cref="Asset"/> from <paramref name="component">'s
-		/// <see cref="BackingAssets"/> or a required <see cref="Component"/>
-		/// from <see cref="Dependencies"/> is not found or cannot be
+		/// <exception cref="System.ApplicationException">Thrown if a required
+		/// <see cref="AssetFile"/> from <paramref name="component"/>'s
+		/// <see cref="Component.BackingAssets"/> or a required <see cref="Component"/>
+		/// from <see cref="Component.Dependencies"/> is not found or cannot be
 		/// loaded.</exception>
 		public void LoadComponent( Component component ) {
 			if ( !component.IsLoaded() ) {
@@ -310,7 +311,8 @@ namespace MFFDataApp {
 	/// Major game content is represented by derivatives of the
 	/// <see cref="Component"/> class. This class includes the base
 	/// properties and methods applicable to all derivatives, including
-	/// lists of the <see cref="AssetObject"/>s and other <c>Component<c>s
+	/// lists of the <see cref="AssetObject"/>s and other
+	/// <see cref="Component"/>s
 	/// required for loading data into the instance or evaluating or printing
 	/// the data.
 	/// </remarks>
@@ -360,12 +362,12 @@ namespace MFFDataApp {
 		/// <remarks>
 		/// No validation or checking of the <paramref name="assetName"/>
 		/// parameter is performed at the time of adding the
-		/// <see cref="Asset"/> name to the <see cref="BackingAssets"/> list.
+		/// <see cref="AssetFile"/> name to the <see cref="BackingAssets"/> list.
 		/// This is deferred until attempting to load data into the
 		/// <see cref="Component"/> as the <c>BackingAssets</c> list may
 		/// be created before all <c>Asset</c>s are loaded.
 		/// </remarks>
-		/// <param name="assetName">The name of the <see cref="Asset"/> to
+		/// <param name="assetName">The name of the <see cref="AssetFile"/> to
 		/// add</param>
 		public virtual void AddBackingAsset( string assetName ) {
 			if ( !BackingAssets.ContainsKey( assetName ) ) {
@@ -490,8 +492,9 @@ namespace MFFDataApp {
 	/// <see cref="Component"/> to provide access to the
 	/// <see cref="Version"/>'s string localization dictionary. This includes
 	/// methods to build the dictionary from the appropriate
-	/// <see cref="Asset"/>, translate encoded strings into localized
+	/// <see cref="AssetFile"/>, translate encoded strings into localized
 	/// strings, and output the full dictionary as a JSON object.
+	/// </remarks>
 	public class Localization : Component {
 		/// <summary>
 		/// Gets or sets the dictionary object
@@ -573,7 +576,7 @@ namespace MFFDataApp {
 		/// Recent versions of Marvel Future Fight use a dictionary with hashed
 		/// strings as keys rather than a flat CSV file for the localization
 		/// asset. <see cref="Localization.MakeHash(string)"/> calculates that
-		/// hash given the non-localized <paramref name="input"> string.
+		/// hash given the non-localized <paramref name="input"/> string.
 		/// </remarks>
 		/// <param name="input">The string to be hashed</param>
 		/// <returns>The hashed string</returns>
@@ -626,13 +629,14 @@ namespace MFFDataApp {
 	/// which has different properties associated with different
 	/// <see cref="CharacterLevel"/>s. Each type has several properties that
 	/// do not vary between descendants of that type. For instance, the
-	/// <see cref="Gender"/> of a given <c>Character</c> and <c>Uniform</c> is
+	/// <see cref="Uniform.Gender"/> of a given <c>Character</c> and <c>Uniform</c> is
 	/// the same regardless of <c>CharacterLevel</c>.</para>
+	/// </remarks>
 	public class Roster : Component {
 		/// <summary>
 		/// Gets or sets a list of the <see cref="Game"/>'s
 		/// <see cref="Character"/>s indexed by the <c>Character</c>s'
-		/// <see cref="groupId"/>s.
+		/// <see cref="Character.GroupId"/>s.
 		/// </summary>
 		public Dictionary<string, Character> Characters { get; set; } // by groupId
 		/// <summary>
@@ -797,10 +801,10 @@ namespace MFFDataApp {
 		/// <remarks>
 		/// Associated with the hierarchical model of the <see cref="Roster"/>
 		/// are multiple identifiers for the different object levels. A
-		/// <see cref="Character"> equipped with a given <see cref="Uniform"/>
+		/// <see cref="Character"/> equipped with a given <see cref="Uniform"/>
 		/// at a specific rank (i.e., number of stars) is uniquely identified
 		/// by a <see cref="CharacterLevel.HeroId"/>. Regardless of rank, the
-		/// <see cref="Character"> in that <see cref="Uniform"/> is identified
+		/// <see cref="Character"/> in that <see cref="Uniform"/> is identified
 		/// by the <see cref="Uniform.BaseId"/>, and regardless of
 		/// <see cref="Uniform"/> the <see cref="Character"/> is identified by
 		/// a <see cref="Character.GroupId"/>. An additional identifier,
@@ -811,7 +815,7 @@ namespace MFFDataApp {
 		public string GroupId { get; set; }
 		/// <summary>
 		/// Gets or sets the list of <see cref="Uniform"/>s available for the
-		/// <see cref="Character"/>, indexed by <see cref="BaseId"/>
+		/// <see cref="Character"/>, indexed by <see cref="Uniform.BaseId"/>
 		/// </summary>
 		public Dictionary<string, Uniform> Uniforms { get; set; } // by BaseId
 		/// <summary>
@@ -879,7 +883,7 @@ namespace MFFDataApp {
 		/// </remarks>
 		public string UniformGroupId { get; set; }
 		/// <summary>
-		/// Gets or sets the list of <see cref="CharacterLevel">s, indexed
+		/// Gets or sets the list of <see cref="CharacterLevel"/>s, indexed
 		/// by Hero ID
 		/// </summary>
 		/// <seealso cref="Character.GroupId"/>
@@ -924,10 +928,11 @@ namespace MFFDataApp {
 		/// wearing this <see cref="Uniform"/>
 		/// </summary>
 		/// <remarks>
-		/// The list of <see cref="Skill">s available to the
+		/// The list of <see cref="Skill"/>s available to the
 		/// <see cref="Character"/> increases as the <see cref="Character"/>'s
 		/// rank increases; <see cref="Skills"/> is the full list available
 		/// at maximum rank.
+		/// </remarks>
 		public List<Skill> Skills {
 			get {
 				List<Skill> maxSkillSet = new List<Skill>();
@@ -974,13 +979,14 @@ namespace MFFDataApp {
 		public int Tier { get; set; }
 		/// <summary>
 		/// Gets or sets the list of skills available at this
-		/// <see cref="CharcterLevel"/>
+		/// <see cref="CharacterLevel"/>
 		/// </summary>
 		public List<Skill> Skills { get; set; }
 		/// <summary>
 		/// Gets the <see cref="BaseId"/> for the <see cref="Character"/> /
 		/// <see cref="Uniform"/> combination associated with this
 		/// <see cref="CharacterLevel"/>
+		/// </summary>
 		///	<remarks>
 		///	There is a many-to-one mapping of
 		///	<see cref="CharacterLevel.HeroId"/> to
@@ -1187,6 +1193,7 @@ namespace MFFDataApp {
 	/// are obtained through regular <see cref="Game"/> activities, and a
 	/// given number of points (listed in <see cref="StagePoints"/>) is
 	/// needed to reach each <see cref="FuturePassStep"/>.
+	/// </remarks>
 	public class FuturePass : Component {
 		/// <summary>
 		/// Gets or sets the different <see cref="FuturePassSeason"/>s
@@ -1203,7 +1210,7 @@ namespace MFFDataApp {
 		public Dictionary<int, FuturePassStep> Steps { get; set; }
 		/// <summary>
 		/// Gets or sets the number of points needed to reach each
-		/// <see cref="FuturePassStep">, indexed by step number
+		/// <see cref="FuturePassStep"/>, indexed by step number
 		/// </summary>
 		public Dictionary<int, int> StagePoints { get; set; }
 		/// <summary>
@@ -1334,8 +1341,17 @@ namespace MFFDataApp {
 		/// <see cref="FuturePassSeason"/>
 		/// </summary>
 		public enum FuturePassType {
+			/// <summary>
+			/// The free tier of <see cref="FuturePass"/>
+			/// </summary>
 			Normal,
+			/// <summary>
+			/// The middle tier of <see cref="FuturePass"/>
+			/// </summary>
 			Legendary,
+			/// <summary>
+			/// The top tier of <see cref="FuturePass"/>
+			/// </summary>
 			Mythic
 		}
 	}
@@ -1370,6 +1386,11 @@ namespace MFFDataApp {
 		/// disabled
 		/// </summary>
 		public bool isEffectDisable { get; set; }
+		/// <summary>
+		/// Loads data into this <see cref="AbilityGroup"/> instance
+		/// </summary>
+		/// <param name="assetObject"><see cref="AssetObject"/> containing the
+		/// data to be loaded</param>
 		public void Load( AssetObject assetObject ) {
 			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
 			AssetObject abilityGroup = assetObject.Properties["data"];
