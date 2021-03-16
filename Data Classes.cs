@@ -6,23 +6,60 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace MFFDataApp {
-	// DataDirectory need not be a proper filesystem directory tree, but rather contains
-	// a list of filesystem directories (dirs)
-	//
-	// dirs are directories added from constructors or other external calls
-	// dirs may be version directories or parents of version directories.
-	// version directories have names that include a substring starting with a digit and
-	// have a subdirectory named "assets"
-	// When adding a directory to the versionDirs list, the version name is taken to be the longest
-	// substring of the directory name that starts with a digit.
+	/// <summary>
+	/// Provides a store of extracted <see cref="Game"/> data
+	/// </summary>
+	/// <remarks>
+	/// <para>A <see cref="DataDirectory"/> is made up of a list of
+	/// filesystem <see cref="DirectoryInfo"/> (directory) objects
+	/// <see cref="dirs"/>, each of which is either a "version directory" or
+	/// a parent of one or more version directories. Version directories are
+	/// filesystem directories (presented as a list of
+	/// <see cref="DirectoryInfo"/> objects, <see cref="versionDirs"/>) that
+	/// store <see cref="Game"/> <see cref="AssetFile"/>s and (possibly)
+	/// other <see cref="Game"/> data.</para>
+	/// <para>Multiple directories may be associated with the same
+	/// <see cref="Version"/>; the <see cref="AssetFile"/>s from all the
+	/// directories combined form the data examined for that
+	/// <see cref="Version"/>.</para>
+	/// <para>The <see cref="DataDirectory"/> class includes these definitions,
+	/// methods to add directories to the lists and verify their structures,
+	/// and methods to access the <see cref="AssetFile"/>s within the
+	/// <see cref="versionDirs"/>.</para>
+	/// </remarks>
 	public class DataDirectory {
+		/// <summary>
+		/// Gets or sets the list of directories included in this
+		/// <see cref="DataDirectory"/>
+		/// </summary>
+		/// <seealso cref="DataDirectory.Add(string)"/>
 		List<DirectoryInfo> dirs { get; set; }
+		/// <summary>
+		/// Gets or sets the list of version directories represented by this
+		/// <see cref="DataDirectory"/>
+		/// </summary>
+		/// <seealso cref="DataDirectory.AddVersionDirectory(DirectoryInfo)"/>
 		Dictionary<string, List<DirectoryInfo>> versionDirs { get; set; }
+		/// <summary>
+		/// Initializes a new <see cref="DataDirectory"/> instance containing a
+		/// directory
+		/// </summary>
+		/// <remarks>The <paramref name="pathName"/> is validated and added to
+		/// the list of directories</remarks>
+		/// <param name="pathName">The full path name of a version directory or
+		/// parent of one or more version directories</param>
 		public DataDirectory( string pathName ) {
 			dirs = new List<DirectoryInfo>();
 			versionDirs = new Dictionary<string, List<DirectoryInfo>>();
 			Add( pathName );
 		}
+		/// <summary>
+		/// Adds a directory to the <see cref="DataDirectory"/>
+		/// </summary>
+		/// <remarks>The <paramref name="pathName"/> is validated before
+		/// adding.</remarks>
+		/// <param name="pathName">The full path name of a version directory or
+		/// parent of one or more version directories</param>
 		public void Add( string pathName ) {
 			if ( !Directory.Exists( pathName ) ) {
 				throw new DirectoryNotFoundException( $"Unable to access directory {pathName}" );
@@ -50,6 +87,19 @@ namespace MFFDataApp {
 				}
 			}
 		}
+		/// <summary>
+		/// Adds a directory to the <see cref="versionDirs"/> list
+		/// </summary>
+		/// <remarks>
+		/// <para><see cref="DataDirectory.AddVersionDirectory(DirectoryInfo)"/>
+		/// determines the name of the <see cref="Version"/> whose
+		/// <see cref="AssetFile"/>s are stored in the <c>assets</c>
+		/// subdirectory of <paramref name="dir"/> and adds
+		/// <paramref name="dir"/> to the list of version directories.</para>
+		/// <para>No validation of <paramref name="dir"/> is performed except
+		/// to ensure its name contains a version string.</para>
+		/// </remarks>
+		/// <param name="dir">The version directory to add</param>
 		void AddVersionDirectory( DirectoryInfo dir ) {
 			if ( IsIncluded( dir, versionDirs ) ) return;
 			string versionString = GetVersionName( dir.Name );
@@ -62,27 +112,88 @@ namespace MFFDataApp {
 				versionDirs[versionString].Add( dir );
 			}
 		}
+		/// <summary>
+		/// Gets a <see cref="Version"/> name from a directory name
+		/// </summary>
+		/// <remarks>
+		/// Version directories should have a name that ends in the name of the
+		/// <see cref="Version"/>. A <see cref="Version"/> name should be a
+		/// string that starts with a digit. Given the name of a version
+		/// directory, this returns the <see cref="Version"/> name, or null or
+		/// the empty string if the name doesn't contain one.
+		/// </remarks>
+		/// <param name="dirname">The name of the version directory</param>
+		/// <returns>The name of the <see cref="Version"/></returns>
 		string GetVersionName( string dirname ) {
 			char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 			int firstDigit = dirname.IndexOfAny( digits );
 			if ( firstDigit == -1 ) return null;
 			return dirname.Substring( firstDigit );
 		}
+		/// <summary>
+		/// Determines whether a given directory is in a directory list
+		/// </summary>
+		/// <remarks>The
+		/// <see cref="DataDirectory.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
+		/// utility method searches the full path names of the directories in
+		/// <paramref name="dirList"/> for a match to the full path name of the
+		/// directory <paramref name="directory"/>. In order to match, two
+		/// directories do not need to be the same object, but must have the
+		/// same full path name.</remarks>
+		/// <param name="directory">the directory to match</param>
+		/// <param name="dirList">the list of directories to search</param>
+		/// <returns><c>true</c> if <paramref name="directory"/>'s full path
+		/// name matches one from <paramref name="dirList"/>, <c>false</c>
+		/// otherwise</returns>
+		/// <seealso cref="DataDirectory.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
 		bool IsIncluded( DirectoryInfo directory, List<DirectoryInfo> dirList ) {
 			foreach ( DirectoryInfo dir in dirList ) {
 				if ( dir.FullName == directory.FullName ) return true;
 			}
 			return false;
 		}
+		/// <summary>
+		/// Determines whether a given directory is in a directory list
+		/// dictionary
+		/// </summary>
+		/// <remarks>The
+		/// <see cref="DataDirectory.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
+		/// utility method searches the full path names of the directories in
+		/// all values of the <paramref name="versionList"/> dictionary for a
+		/// match to the full path name of the directory
+		/// <paramref name="directory"/>. In order to match, two directories do
+		/// not need to be the same object, but must have the same full path
+		/// name.</remarks>
+		/// <param name="directory">the directory to match</param>
+		/// <param name="versionList">the dictionary of directory lists to
+		/// search</param>
+		/// <returns><c>true</c> if <paramref name="directory"/>'s full path
+		/// name matches one from <paramref name="versionList"/>, <c>false</c>
+		/// otherwise</returns>
+		/// <seealso cref="DataDirectory.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
 		bool IsIncluded( DirectoryInfo directory, Dictionary<string, List<DirectoryInfo>> versionList ) {
 			foreach ( List<DirectoryInfo> dirlist in versionList.Values ) {
 				if ( IsIncluded( directory, dirlist ) ) return true;
 			}
 			return false;
 		}
+		/// <summary>
+		/// Determines whether a directory is a valid version directory
+		/// </summary>
+		/// <remarks>
+		/// A version directory must have a name that ends in a version string
+		/// (any string starting with a digit) and have a subdirectory named
+		/// <c>assets</c>. The
+		/// <see cref="DataDirectory.IsVersionDirectory(DirectoryInfo)"/>
+		/// utility method determines whether <paramref name="directory"/>
+		/// meets these criteria.
+		/// </remarks>
+		/// <param name="directory">The directory to validate</param>
+		/// <returns><c>true</c> if <paramref name="directory"/> is a valid
+		/// version directory, <c>false</c> otherwise</returns>
 		bool IsVersionDirectory( DirectoryInfo directory ) {
 			string versionName = GetVersionName( directory.Name );
-			if ( versionName == null ) {
+			if ( String.IsNullOrEmpty( versionName ) ) {
 				return false;
 			}
 			DirectoryInfo[] assetDirs = directory.GetDirectories( "assets" );
@@ -92,23 +203,57 @@ namespace MFFDataApp {
 				return false;
 			}
 		}
+		/// <summary>
+		/// Throws an exception identifying an invalid <see cref="DataDirectory"/>
+		/// </summary>
 		void ThrowBadDataDir() {
 			throw new Exception( $"Unable to define structure of data directory." );
 		}
+		/// <summary>
+		/// Creates a list of the identified version names
+		/// </summary>
+		/// <returns>The list of identified version names</returns>
 		public List<string> GetVersionNames() {
 			return versionDirs.Keys.ToList();
 		}
+		/// <summary>
+		/// Creates a collection of the identified assets for a particular
+		/// <see cref="Version"/>
+		/// </summary>
+		/// <param name="versionName">The name of the <see cref="Version"/> for
+		/// which to create the collection</param>
+		/// <returns>The collection of assets associated with the given
+		/// <see cref="Version"/></returns>
 		public AssetBundle GetAssets( string versionName ) {
 			AssetBundle assets = new AssetBundle();
 			assets.LoadFromVersionDirectory( versionDirs[versionName] );
 			return assets;
 		}
 	}
+	/// <summary>
+	/// Represents a collection of <see cref="AssetFile"/>s
+	/// </summary>
 	public class AssetBundle {
+		/// <summary>
+		/// Sets or gets a dictionary of <see cref="AssetFile"/>s indexed by
+		/// <see cref="AssetFile"/> name
+		/// </summary>
 		public Dictionary<string, AssetFile> AssetFiles { get; set; }
+		/// <summary>
+		/// Initializes a new <see cref="AssetBundle"/> instance
+		/// </summary>
 		public AssetBundle() {
 			AssetFiles = new Dictionary<string, AssetFile>();
 		}
+		/// <summary>
+		/// Writes a JSON-formatted representaton of the
+		/// <see cref="AssetBundle"/> to a <see cref="StreamWriter"/> stream
+		/// </summary>
+		/// <param name="file">The <see cref="StreamWriter"/> stream to which
+		/// to write</param>
+		/// <param name="tabs">The number of tabs with which to prepend each
+		/// line</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public void WriteJson( StreamWriter file, int tabs = 0 ) {
 			List<string> Keys = AssetFiles.Keys.ToList<string>();
 			Keys.Sort();
@@ -122,6 +267,11 @@ namespace MFFDataApp {
 				counter++;
 			}
 		}
+		/// <summary>
+		/// Loads data into this <see cref="AssetBundle"/> from a version
+		/// directory
+		/// </summary>
+		/// <param name="dirs"></param>
 		public void LoadFromVersionDirectory( List<DirectoryInfo> dirs ) {
 			Dictionary<string, string> manifest = new Dictionary<string, string>();
 			HashSet<string> manifestFiles = new HashSet<string>();
@@ -211,9 +361,32 @@ namespace MFFDataApp {
 			}
 		}
 	}
+	/// <summary>
+	/// Represents a stored asset file extracted from the game
+	/// </summary>
+	/// <remarks>
+	/// Asset files (when extracted) are JSON-formatted
+	/// files containing nested <see cref="AssetObject"/>s. Each
+	/// <see cref="AssetFile"/> is referred to by name for use in loading
+	/// data within the <see cref="Game"/> object. The <see cref="AssetFile"/>
+	/// class includes methods for loading the data from the filesystem
+	/// and outputting the data in JSON format.
+	/// </remarks>
 	public class AssetFile : AssetObject {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="AssetFile"/>
+		/// </summary>
 		public string AssetName { get; set; }
+		/// <summary>
+		/// Gets or sets the type of the <see cref="AssetFile"/>
+		/// </summary>
 		public string AssetType { get; set; }
+		/// <summary>
+		/// Loads data into the <see cref="AssetFile"/> object from the file
+		/// on disk
+		/// </summary>
+		/// <param name="filename">The name of the file from which to load
+		/// data</param>
 		public void LoadFromFile( string filename ) {
 			string jsonText = File.ReadAllText( filename );
 			JsonDocument json = GetJson( jsonText );
@@ -323,50 +496,15 @@ namespace MFFDataApp {
 					break;
 			}
 		}
-		string CSVtoJson( string csv ) {
-			if ( String.IsNullOrWhiteSpace( csv ) ) return null;
-			string[] lines = csv.Split( new char[] { '\r', '\n' } );
-			int firstLine;
-			string[] headers = null;
-			for ( firstLine = 0; firstLine < lines.Length; firstLine++ ) {
-				if ( !String.IsNullOrWhiteSpace( lines[firstLine] ) ) {
-					headers = lines[firstLine].Split( '\t' );
-					for ( int cellNum = 0; cellNum < headers.Length; cellNum++ ) {
-						string cellText = headers[cellNum];
-						string escapechars = "([\\\"\\\\])";
-						Regex regex = new Regex( escapechars );
-						cellText = regex.Replace( cellText, "\\$1" );
-						headers[cellNum] = cellText;
-					}
-					break;
-				}
-			}
-			if ( headers == null ) { return null; }
-			string jsonArray = "[ ";
-			for ( int i = firstLine + 1; i < lines.Length; i++ ) {
-				if ( String.IsNullOrWhiteSpace( lines[i] ) ) continue;
-				string[] line = lines[i].Split( '\t' );
-				if ( line.Length != headers.Length ) {
-					throw new Exception( $"CSV poorly formed." );
-				}
-				string lineString = "{";
-				for ( int j = 0; j < headers.Length; j++ ) {
-					string cellText = line[j];
-					string escapechars = "([\\\"\\\\])";
-					Regex regex = new Regex( escapechars );
-					cellText = regex.Replace( cellText, "\\$1" );
-					lineString += $"\"0 string {headers[j]}\": \"{cellText}\"";
-					if ( j != headers.Length - 1 ) {
-						lineString += ", ";
-					}
-				}
-				lineString += "},";
-				jsonArray += lineString;
-			}
-			jsonArray = jsonArray.TrimEnd( new char[] { ',', ' ', '\t' } );
-			jsonArray += " ]";
-			return jsonArray;
-		}
+		/// <summary>
+		/// Writes the data from the <see cref="AssetFile"/> to a
+		/// <see cref="StreamWriter"/> stream
+		/// </summary>
+		/// <param name="file">The name of the <see cref="StreamWriter"/>
+		/// stream to which to write</param>
+		/// <param name="tabs">The number of tab characters to prepend to each
+		/// line</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 			for ( int i = 0; i < tabs; i++ ) {
 				file.Write( "\t" );
@@ -387,12 +525,41 @@ namespace MFFDataApp {
 			file.Write( "}" );
 		}
 	}
+	/// <summary>
+	/// Represents a single object from a <see cref="AssetFile"/>
+	/// </summary>
+	/// <remarks>
+	/// Each <see cref="AssetFile"/> represents data loaded from a
+	/// JSON-formatted file. The nested JSON members are represented in
+	/// <see cref="AssetObject"/>s, standardizing each into a JSON-like
+	/// <see cref="String"/>, object (<see cref="Properties"/>), or
+	/// <see cref="Array"/>. The class includes methods for parsing the
+	/// JSON members and writing the objects to a JSON stream.
+	/// </remarks>
 	public class AssetObject {
+		/// <summary>
+		/// Gets or sets the name of the <see cref="AssetObject"/>
+		/// </summary>
 		public string Name { get; set; }
+		/// <summary>
+		/// Gets or sets the type of the JSON member value
+		/// </summary>
 		public JsonValueKind Type { get; set; }
+		/// <summary>
+		/// Gets or sets the list of properties (members) of a JSON object
+		/// </summary>
 		public Dictionary<string, AssetObject> Properties { get; set; }
+		/// <summary>
+		/// Gets or sets the value of a JSON string
+		/// </summary>
 		public string String { get; set; }
+		/// <summary>
+		/// Gets or sets the array data from a JSON array
+		/// </summary>
 		public List<AssetObject> Array { get; set; }
+		/// <summary>
+		/// Initializes a new instance of the <see cref="AssetObject"/> class
+		/// </summary>
 		public AssetObject() {
 			Type = new JsonValueKind();
 			Properties = new Dictionary<string, AssetObject>();
@@ -400,6 +567,13 @@ namespace MFFDataApp {
 			Name = null;
 			String = null;
 		}
+		/// <summary>
+		/// Loads a JSON-formatted string into a <see cref="JsonDocument"/>
+		/// </summary>
+		/// <param name="json">JSON-formatted string to prepare for
+		/// parsing</param>
+		/// <returns><see cref="JsonDocument"/> loaded with data from the
+		/// <paramref name="json"/> string</returns>
 		protected JsonDocument GetJson( string json ) {
 			var options = new JsonDocumentOptions {
 				AllowTrailingCommas = true,
@@ -421,6 +595,11 @@ namespace MFFDataApp {
 				return errorDocument;
 			}
 		}
+		/// <summary>
+		/// Loads a JSON element into the <see cref="AssetObject"/>
+		/// </summary>
+		/// <param name="Value">A <see cref="JsonElement"/> from a
+		/// <see cref="JsonDocument"/></param>
 		public void ParseJson( JsonElement Value ) {
 			if ( Properties.Count != 0 ) {
 				throw new Exception( $"Asset object {Name} already has properties loaded." );
@@ -468,6 +647,64 @@ namespace MFFDataApp {
 					return;
 			}
 		}
+		/// <summary>
+		/// Converts a CSV-formatted <see cref="AssetObject"/> to JSON format
+		/// </summary>
+		/// <param name="csv">The data in CSV format</param>
+		/// <returns>A string containing the data in JSON format</returns>
+		public string CSVtoJson( string csv ) {
+			if ( String.IsNullOrWhiteSpace( csv ) ) return null;
+			string[] lines = csv.Split( new char[] { '\r', '\n' } );
+			int firstLine;
+			string[] headers = null;
+			for ( firstLine = 0; firstLine < lines.Length; firstLine++ ) {
+				if ( !String.IsNullOrWhiteSpace( lines[firstLine] ) ) {
+					headers = lines[firstLine].Split( '\t' );
+					for ( int cellNum = 0; cellNum < headers.Length; cellNum++ ) {
+						string cellText = headers[cellNum];
+						string escapechars = "([\\\"\\\\])";
+						Regex regex = new Regex( escapechars );
+						cellText = regex.Replace( cellText, "\\$1" );
+						headers[cellNum] = cellText;
+					}
+					break;
+				}
+			}
+			if ( headers == null ) { return null; }
+			string jsonArray = "[ ";
+			for ( int i = firstLine + 1; i < lines.Length; i++ ) {
+				if ( String.IsNullOrWhiteSpace( lines[i] ) ) continue;
+				string[] line = lines[i].Split( '\t' );
+				if ( line.Length != headers.Length ) {
+					throw new Exception( $"CSV poorly formed." );
+				}
+				string lineString = "{";
+				for ( int j = 0; j < headers.Length; j++ ) {
+					string cellText = line[j];
+					string escapechars = "([\\\"\\\\])";
+					Regex regex = new Regex( escapechars );
+					cellText = regex.Replace( cellText, "\\$1" );
+					lineString += $"\"0 string {headers[j]}\": \"{cellText}\"";
+					if ( j != headers.Length - 1 ) {
+						lineString += ", ";
+					}
+				}
+				lineString += "},";
+				jsonArray += lineString;
+			}
+			jsonArray = jsonArray.TrimEnd( new char[] { ',', ' ', '\t' } );
+			jsonArray += " ]";
+			return jsonArray;
+		}
+		/// <summary>
+		/// Writes the <see cref="AssetObject"/> data in JSON format to a
+		/// <see cref="StreamWriter"/> stream
+		/// </summary>
+		/// <param name="file">The <see cref="StreamWriter"/> stream to which
+		/// to write</param>
+		/// <param name="tabs">The number of tabs with which to prepend each
+		/// output line</param>
+		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
 		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
 			int counter = 0;
 			switch ( Type ) {
@@ -542,6 +779,13 @@ namespace MFFDataApp {
 					break;
 			}
 		}
+		/// <summary>
+		///	Obtains a value from a nested <see cref="AssetObject"/>
+		/// </summary>
+		/// <param name="key">The optional name of an <see cref="AssetObject"/>
+		/// for which to search</param>
+		/// <returns>The value associated with this <see cref="AssetObject"/>
+		/// and (optionally) <paramref name="key"/></returns>
 		public string GetValue( string key = null ) {
 			switch ( Type ) {
 				case JsonValueKind.Array:
