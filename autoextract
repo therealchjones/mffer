@@ -25,9 +25,22 @@
 # - A reasonable machine upon which to run these; the emulators require
 #   a few GB of RAM just by themselves, for instance
 
+summary() {
+	echo "$(basename "$0"): download and extract game data"
+}
+
 usage() {
 	echo "usage: $(basename "$0") [-v] -o output_directory"
 	echo "       $(basename "$0") -h"
+}
+
+description() {
+	echo "mandatory arguments:"
+	echo "	-o output_directory"
+	echo "		place device-files/ and data/ directories into output_directory "
+	echo "options:"
+	echo "	-h	print this summarized help message"
+	echo "	-v	print progress information; specify twice for debug output"
 }
 
 DEBUG=N
@@ -37,7 +50,9 @@ while getopts 'hvo:' option; do
 	case "$option" in
 		h)
 			if [ "$#" = "1" ]; then
+				summary
 				usage
+				description
 				exit 0
 			else
 				usage >&2
