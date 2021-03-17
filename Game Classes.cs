@@ -752,29 +752,72 @@ namespace MFFDataApp {
 		/// write</param>
 		/// <seealso cref="Component.WriteCSV(StreamWriter)"/>
 		public override void WriteCSV( StreamWriter file ) {
-			file.Write( "|Group ID|Base ID|BaseName|Character Name|Uniform Name|Uniform Group Id|" );
-			file.Write( "Primary Attack|Type|Gender|Side|Allies|Max Tier|Growth Type|Abilities|World Boss Ability|Leader Skill|" );
-			file.Write( "Skill 1|Skill 2|Skill 3|Passive Skill|Skill 4|Skill 5|T2 Passive Skill|T3 Skill|Awakened Skill|" );
-			file.Write( "Uniform Skill" );
-			file.WriteLine();
+			char delimiter = '|';
+			List<string> header = new List<string> {
+				"Group ID",
+				"Base ID",
+				"BaseName",
+				"Character Name",
+				"Uniform Name",
+				"Uniform Group Id",
+				"Primary Attack",
+				"Type",
+				"Gender",
+				"Side",
+				"Allies",
+				"Max Tier",
+				"Growth Type",
+				"Abilities",
+				"World Boss Ability",
+				"Leader Skill",
+				"Skill 1",
+				"Skill 2",
+				"Skill 3",
+				"Passive Skill",
+				"Skill 4",
+				"Skill 5",
+				"T2 Passive Skill",
+				"T3 Skill",
+				"Awakened Skill",
+				"Uniform Skill"
+			};
+			file.WriteLine( String.Join( delimiter, header ) );
 			foreach ( Character character in Characters.Values ) {
 				foreach ( Uniform uniform in character.Uniforms.Values ) {
-					file.Write( $"|{character.GroupId}|{uniform.BaseId}|{character.BaseName}|{uniform.CharacterName}|" );
-					file.Write( $"{uniform.UniformName}|{uniform.UniformGroupId}|{uniform.MainAtk}|{uniform.ClassType}|" );
-					file.Write( $"{uniform.Gender}|{uniform.Camps}|{character.Species}|{character.MaxTier}|{character.GrowType}|" );
+					List<string> entries = new List<string> {
+						character.GroupId,
+						uniform.BaseId,
+						character.BaseName,
+						uniform.CharacterName,
+						uniform.UniformName,
+						uniform.UniformGroupId,
+						uniform.MainAtk,
+						uniform.ClassType,
+						uniform.Gender,
+						uniform.Camps,
+						character.Species,
+						character.MaxTier.ToString(),
+						character.GrowType.ToString()
+					};
 					int size = uniform.Abilities.Count;
+					string abilities = "";
 					for ( int i = 0; i < size; i++ ) {
-						file.Write( uniform.Abilities[i] );
-						if ( i < size - 1 ) file.Write( "," );
+						abilities += uniform.Abilities[i];
+						if ( i < size - 1 ) abilities += ",";
 					}
-					file.Write( $"|{uniform.RaidAbility}" );
+					entries.Add( abilities );
+					entries.Add( uniform.RaidAbility );
 					for ( int i = 0; i < 11; i++ ) {
-						file.Write( "|" );
 						if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
-							file.Write( uniform.Skills[i].SkillId );
+							entries.Add( uniform.Skills[i].SkillId );
 						}
 					}
-					file.WriteLine();
+					foreach ( string entry in entries ) {
+						if ( entry.Contains( delimiter ) ) {
+							throw new FormatException( "Error: CSV delimiter is included in CSV data" );
+						}
+					}
+					file.WriteLine( String.Join( delimiter, entries ) );
 				}
 			}
 		}
