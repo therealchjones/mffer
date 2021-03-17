@@ -26,15 +26,24 @@
 #   a few GB of RAM just by themselves, for instance
 
 usage() {
-	echo "$(basename "$0") [-v] -o outputdir"
+	echo "usage: $(basename "$0") [-v] -o output_directory"
+	echo "       $(basename "$0") -h"
 }
 
 DEBUG=N
 VERBOSE=N
-OUTPUTDIR=""
 
-while getopts 'vo:' option; do
+while getopts 'hvo:' option; do
 	case "$option" in
+		h)
+			if [ "$#" = "1" ]; then
+				usage
+				exit 0
+			else
+				usage >&2
+				exit 1
+			fi
+			;;
 		v)
 			if [ "Y" = "$VERBOSE" ]; then
 				DEBUG=Y
@@ -42,7 +51,7 @@ while getopts 'vo:' option; do
 			VERBOSE=Y
 			;;
 		o)
-			OUTPUTDIR="$OPTARG"
+			MFFOUTPUTDIR="$OPTARG"
 			;;
 		?)
 			usage >&2
@@ -50,6 +59,11 @@ while getopts 'vo:' option; do
 			;;
 	esac
 done
+shift $((OPTIND - 1))
+if [ "$#" != "0" ]; then
+	usage >&2
+	exit 1
+fi
 
 DEBUGOUT=/dev/null
 VERBOSEOUT=/dev/null
@@ -84,8 +98,18 @@ ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 export ANDROID_SDK_ROOT
 
-if ! mkdir -p -- "$OUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
-	echo "Error: Unable to create output directory '$OUTPUTDIR'" >&2
+if [ -z "${MFFOUTPUTDIR+1}" ]; then
+	echo "Error: Output directory not set" >&2
+	usage >&2
+	exit 1
+fi
+if [ -z "$MFFOUTPUTDIR" ]; then
+	echo "Error: Output directory name must not be null" >&2
+	usage >&2
+	exit 1
+fi
+if ! mkdir -p -- "$MFFOUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
+	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
 	usage >&2
 	exit 1
 fi
@@ -318,11 +342,9 @@ kill $emulator_pid
 echo 'Extracting virtual device files' >"$VERBOSEOUT"
 mkdir -p "$MFFTEMPDIR"/release/device-files
 cd "$MFFTEMPDIR"/release/device-files && tar xzf "$MFFTEMPDIR/device-files.tar.gz"
-if [ ! -d "$OUTPUTDIR" ]; then
-	mkdir -p "$OUTPUTDIR" || {
-		echo "Unable to access output directory '$OUTPUTDIR'. Exiting." >&2
-		exit 1
-	}
+if [ ! -d "$MFFOUTPUTDIR" ]; then
+	echo "Unable to access output directory '$MFFOUTPUTDIR'. Exiting." >&2
+	exit 1
 fi
 
 DEVICEFILEDIR="MFF-device-$VERSIONSTRING"
@@ -330,15 +352,15 @@ i=1
 if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 	DEVICEFILEDIR="$DEVICEFILEDIR-$i"
 fi
-while [ -d "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
+while [ -d "$MFFOUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
 	i=$((i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 
-mv "$MFFTEMPDIR"/release/device-files "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" || {
+mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/device-files/"$DEVICEFILEDIR" || {
 	echo "Unable to move device files to output directory " >&2
-	echo "'$OUTPUTDIR/device-files'." >&2
+	echo "'$MFFOUTPUTDIR/device-files'." >&2
 	echo 'Stopping here so as to avoid deleting them all.' >&2
 	echo 'Press <enter> or <return> to end the script after moving them maually.' >&2
 	read -r
@@ -350,14 +372,14 @@ echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'Use UABE (in Windows) to extract assets from the '
 echo ' device:'
-echo "Open '$OUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
-echo " decompress text as prompted to '$OUTPUTDIR/data/$DATADIR/text'"
+echo "Open '$MFFOUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
+echo " decompress text as prompted to '$MFFOUTPUTDIR/data/$DATADIR/text'"
 echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$OUTPUTDIR/data/$DATADIR/assets'"
-echo "Open $OUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
-echo " decompress localization_en as prompted to '$OUTPUTDIR/data/$DATADIR/localization_en'"
+echo " ->UABE JSON dump to '$MFFOUTPUTDIR/data/$DATADIR/assets'"
+echo "Open $MFFOUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
+echo " decompress localization_en as prompted to '$MFFOUTPUTDIR/data/$DATADIR/localization_en'"
 echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$OUTPUTDIR/data/$DATADIR/assets'"
+echo " ->UABE JSON dump to '$MFFOUTPUTDIR/data/$DATADIR/assets'"
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
