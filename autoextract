@@ -25,9 +25,31 @@
 # - A reasonable machine upon which to run these; the emulators require
 #   a few GB of RAM just by themselves, for instance
 
+usage() {
+	echo "$(basename "$0") [-v] -o outputdir"
+}
+
 DEBUG=N
 VERBOSE=N
-OUTPUTDIR=~/"Development/Marvel Future Fight"
+OUTPUTDIR=""
+
+while getopts 'vo:' option; do
+	case "$option" in
+		v)
+			if [ "Y" = "$VERBOSE" ]; then
+				DEBUG=Y
+			fi
+			VERBOSE=Y
+			;;
+		o)
+			OUTPUTDIR="$OPTARG"
+			;;
+		?)
+			usage >&2
+			exit 1
+			;;
+	esac
+done
 
 DEBUGOUT=/dev/null
 VERBOSEOUT=/dev/null
@@ -40,8 +62,12 @@ if [ "$VERBOSE" = "Y" ]; then
 	VERBOSEOUT=/dev/stdout
 fi
 
-MFFTEMPDIR="$(mktemp -d)"
-if [ "$?" = "0" ] && [ -d "$MFFTEMPDIR" ]; then
+MFFTEMPDIR="$(mktemp -d)" || {
+	echo 'Unable to create temporary directory. Exiting.' >&2
+	exit 1
+}
+
+if [ -d "$MFFTEMPDIR" ]; then
 	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
 		echo "Temporary directory '$MFFTEMPDIR' is not empty. Exiting." >&2
 		exit 1
@@ -58,6 +84,12 @@ ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 export ANDROID_SDK_ROOT
 
+if ! mkdir -p -- "$OUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
+	echo "Error: Unable to create output directory '$OUTPUTDIR'" >&2
+	usage >&2
+	exit 1
+fi
+
 ANDROID_SDKMANAGER="${ANDROID_SDKMANAGER:-$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)}"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
 	echo 'Unable to find sdkmanager.' >&2
@@ -72,7 +104,7 @@ echo 'Accepting Android command line tool licenses' >"$VERBOSEOUT"
 i=0
 while [ $i -lt 100 ]; do
 	echo y
-	i=$(($i + 1))
+	i=$((i + 1))
 done \
 	| "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --licenses \
 	| sed '/^y$/d' >"$DEBUGOUT"
@@ -167,7 +199,7 @@ get_avd_serial() {
 					-e '/^[[:space:]]*$/d' \
 					-e 's/^[[:space:]]*\([^[:space:]]*\)[[:space:]].*$/\1/' \
 				| (# inner subshell for pipeline workaround
-					while read serial; do
+					while read -r serial; do
 						checkname="$("$ANDROID_ADB" -s "$serial" emu avd name \
 							| sed -e 's/[[:space:]]*$//' -e '$d')"
 						if [ "$checkname" = "$avd_name" ]; then
@@ -185,7 +217,7 @@ get_avd_serial() {
 		)"
 		if [ -z "$avd_serial" ]; then
 			sleep 1
-			adb_times="$(($adb_times + 1))"
+			adb_times="$((adb_times + 1))"
 		fi
 	done
 	if [ -z "$avd_serial" ]; then
@@ -197,7 +229,7 @@ get_avd_serial() {
 serial="$(get_avd_serial mff_google_play)" || exit 1
 {
 	"$ANDROID_ADB" -s "$serial" shell pm path com.netmarble.mherosgb \
-		| while read pathline; do
+		| while read -r pathline; do
 			path="$(echo "$pathline" | sed 's/^package:[[:space:]]*//')"
 			file="$(basename "$path")"
 			"$ANDROID_ADB" pull "$path" "$MFFTEMPDIR/new-apks/$file" >"$DEBUGOUT"
@@ -300,7 +332,7 @@ if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 fi
 while [ -d "$OUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
-	i=$(($i + 1))
+	i=$((i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 
