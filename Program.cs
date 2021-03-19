@@ -1,17 +1,27 @@
 using System.IO;
+using CommandLine;
 
 namespace MFFDataApp {
 	/// <summary>
 	/// The primary application class
 	/// </summary>
 	public class Program {
-		const string gameName = "Marvel Future Fight";
-		const string saveDir = "/Users/chjones/Development/Marvel Future Fight/MffData/data";
-		const string dataDir = "/Users/chjones/Development/Marvel Future Fight/data";
 		/// <summary>
-		/// The primary application entry point
+		/// The name of the game
 		/// </summary>
-		public static void Main() {
+		const string gameName = "Marvel Future Fight";
+		/// <summary>
+		/// Marvel Future Fight data extraction and reporting
+		/// </summary>
+		/// <returns>Nonzero on error, 0 otherwise</returns>
+		static int Main() {
+			Parser cmdLine = new Parser();
+			string dataDir = cmdLine.GetOption( "datadir" );
+			string saveDir = cmdLine.GetOption( "outputdir" );
+			if ( string.IsNullOrEmpty( dataDir ) || string.IsNullOrEmpty( saveDir ) ) {
+				System.Console.Error.WriteLine( "Usage: MffDataApp --dataDir data_directory --outputDir output_directory" );
+				return 1;
+			}
 			if ( !Directory.Exists( dataDir ) ) {
 				throw new DirectoryNotFoundException();
 			}
@@ -28,6 +38,7 @@ namespace MFFDataApp {
 					version.Components["Roster"].WriteCSV( file );
 				}
 			}
+			return 0;
 		}
 	}
 }
