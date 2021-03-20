@@ -1,6 +1,6 @@
 # Contributing
 
-Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/MffData/issues) or emailed to the owner, <chjones@aleph0.com>.
+Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.
 
 ## Table of Contents
 
@@ -76,4 +76,4 @@ In addition, a linter is strongly recommended to quickly identify errors and dev
 
 ## Contact
 
-For any questions, comments, or concerns about the project, [open an issue on the GitHub repository](https://github.com/therealchjones/MffData/issues), or email the project maintainer at <chjones@aleph0.com>.
+For any questions, comments, or concerns about the project, [open an issue on the GitHub repository](https://github.com/therealchjones/mffer/issues), or email the project maintainer at <chjones@aleph0.com>.

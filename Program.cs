@@ -1,7 +1,7 @@
 using System.IO;
 using CommandLine;
 
-namespace MFFDataApp {
+namespace Mffer {
 	/// <summary>
 	/// The primary application class
 	/// </summary>
@@ -19,7 +19,7 @@ namespace MFFDataApp {
 			string dataDir = cmdLine.GetOption( "datadir" );
 			string saveDir = cmdLine.GetOption( "outputdir" );
 			if ( string.IsNullOrEmpty( dataDir ) || string.IsNullOrEmpty( saveDir ) ) {
-				System.Console.Error.WriteLine( "Usage: MffDataApp --dataDir data_directory --outputDir output_directory" );
+				System.Console.Error.WriteLine( "Usage: mffer --dataDir data_directory --outputDir output_directory" );
 				return 1;
 			}
 			if ( !Directory.Exists( dataDir ) ) {

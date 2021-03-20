@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace MFFDataApp {
+namespace Mffer {
 	/// <summary>
 	/// Provides a store of extracted <see cref="Game"/> data
 	/// </summary>

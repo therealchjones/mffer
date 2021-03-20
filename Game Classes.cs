@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace MFFDataApp {
+namespace Mffer {
 	/// <summary>
 	/// Represents a game, including one or more versions
 	/// </summary>
 	/// <remarks>
-	/// This is the primary class of the MffData namespace, and public
+	/// This is the primary class of the Mffer namespace, and public
 	/// interaction should be via this class. Abstractly, each game instance
 	/// includes one or more versions of the game, each of which includes
 	/// zero or more game components (such as a character roster, list of

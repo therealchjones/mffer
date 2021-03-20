@@ -1,6 +1,6 @@
-# MffData
+# mffer
 
-Extracting, evaluating, comparing, and managing data from Marvel Future Fight
+Marvel Future Fight Extraction & Reporting
 
 ## Marvel Future Fight
 
