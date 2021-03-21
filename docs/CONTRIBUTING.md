@@ -1,4 +1,4 @@
-# Contributing
+# Contributing to mffer
 
 Guidelines, notes, and tips for maintaining and adding to the mffer project
 
@@ -6,10 +6,9 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
 
 ## Table of Contents
 
--   [Table of Contents](#table-of-contents)
 -   [Introduction](#introduction)
--   [Expectations](#expectations)
--   [Pull Requests](#pull-requests)
+-   [Behavioral Expectations](#behavioral-expectations)
+-   [GitHub](#github)
 -   [Coding Style](#coding-style)
     -   [Whitespace Style](#whitespace-style)
     -   [Code Style](#code-style)
@@ -23,15 +22,23 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
 
 Thank you for your interest in this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
 
-## Expectations
+This document includes information ranging from [appropriate behavoirs when contributing to the project](#behavioral-expectations) to [specific development tools you might use](#tools) and [uniform code styles](#code-style). It does not include design motivations for the individual components, API documentation, or other notes that apply to only a subset of the project. (For those, try the [see also section](#see-also).) The [detailed table of contents](#table-of-contents) may be useful for locating pertinent data within this document; the [comprehensive README][(readme.md)] includes links to other documents in the project. External resources are linked throughout pertinent sections.
+
+## Behavioral Expectations
+
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](/CODE_OF_CONDUCT.md)
 
 The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work with others kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
 
-While this is the guiding spirit of the contributions to the project, the project is formally
+While this is the guiding spirit of the contributions to the project, the project has formally adopted the [Contributor Covenant 2.0](../CODE_OF_CONDUCT.md) for this project. In addition, users and visitors are expected to follow the [GitHub Community Guidelines](https://docs.github.com/en/github/site-policy/github-community-guidelines) and the [GitHub Terms of Service](https://docs.github.com/en/github/site-policy/github-terms-of-service). None of these documents is intended to allow or encourage behavior disallowed or discouraged by the others.
 
-## Pull Requests
+Let's do better.
 
-The ideal method for contibuting to this project is by making a pull request via [GitHub](https://github.com). This isn't always the easiest way, and has a bit of a learning curve if you haven't done it before. But it allows appropriate history tracking and attribution, as well as an easy way to ensure the community is able to review code and make other changes before adding something to the project.
+## GitHub
+
+[mffer](https://github.com/therealchjones/mffer) is hosted on [GitHub](https://github.com). Questions, requests, or comments can be left on the [issues page](https://github.com/therealchjones/mffer/issues/); the [list of open issues](https://github.com/therealchjones/mffer/issues?q=is%3Aissue+is%3Aopen+) is a great place to find questions you can answer, requests and comments to which you can respond, bugs you can fix, and enhancements you can implement.
+
+The ideal method for contibuting new content or making changes to existing content for this project is by [making a pull request](https://github.com/therealchjones/mffer/pulls). This isn't always the easiest way, and it has a bit of a learning curve if you haven't done it before, but it allows appropriate history tracking and attribution while ensuring the community is able to review code and make other changes before adding something to the project. If you're not sure how to do it, just post a question on the [issues page](https://github.com/therealchjones/mffer/issues/).
 
 ## Coding Style
 

@@ -1,12 +1,14 @@
 # mffer: Marvel Future Fight Extraction & Reporting
 
-This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project. A more concise [README document](../README.md) is available in the [root directory](/).
+This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project. A more concise [README document](../README.md) is available in the [root directory](../).
+
+## Table of Contents
 
 -   [Marvel Future Fight](#marvel-future-fight)
 -   [Usage](#usage)
     -   [Extracting the Data](#extracting-the-data)
     -   [Exploring the Data](#exploring-the-data)
-    -   [Exploring the Code](#exploring-the-code)
+        -   [Exploring the Code](#exploring-the-code)
 
 ## Marvel Future Fight
 
@@ -29,7 +31,7 @@ As this project includes evaluation of the binary distributions of the game, whi
 
 ### Exploring the Data
 
-### Exploring the Code
+#### Exploring the Code
 
     $ dotnet ./Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/app/\~~bEMNFRBZWig1c0nTBK2-Pg==/com.netmarble.mherosgb-XbORIH4ZtkJYZrkO7UlUOg==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/MFF-il2cppdumper-6.7.0
 
