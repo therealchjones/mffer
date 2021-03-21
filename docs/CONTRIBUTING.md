@@ -1,28 +1,33 @@
 # Contributing
 
+Guidelines, notes, and tips for maintaining and adding to the mffer project
+
 Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Expectations](#expectations)
-- [Pull Requests](#pull-requests)
-- [Coding Style](#coding-style)
-	- [Whitespace Style](#whitespace-style)
-	- [Code Style](#code-style)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Contact](#contact)
+-   [Table of Contents](#table-of-contents)
+-   [Introduction](#introduction)
+-   [Expectations](#expectations)
+-   [Pull Requests](#pull-requests)
+-   [Coding Style](#coding-style)
+    -   [Whitespace Style](#whitespace-style)
+    -   [Code Style](#code-style)
+    -   [Tools](#tools)
+        -   [Visual Studio Code](#visual-studio-code)
+        -   [Formatters](#formatters)
+        -   [Linters](#linters)
+-   [Contact](#contact)
 
 ## Introduction
 
-Thank you for your interest in improving this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
+Thank you for your interest in this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
 
 ## Expectations
 
-The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work together kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
+The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work with others kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
+
+While this is the guiding spirit of the contributions to the project, the project is formally
 
 ## Pull Requests
 
@@ -76,4 +81,4 @@ In addition, a linter is strongly recommended to quickly identify errors and dev
 
 ## Contact
 
-For any questions, comments, or concerns about the project, [open an issue on the GitHub repository](https://github.com/therealchjones/mffer/issues), or email the project maintainer at <chjones@aleph0.com>.
+Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.
