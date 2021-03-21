@@ -302,6 +302,7 @@ namespace Mffer {
 			}
 			foreach ( string manifestFile in manifestFiles ) {
 				AssetFile manifestAsset = new AssetFile();
+				string manifestFileCode = Regex.Replace( manifestFile, "^.*-([0-9a-f]*)-[0-9]*-[^-]*$", "$1" );
 				manifestAsset.LoadFromFile( manifestFile );
 				foreach ( AssetObject entry in manifestAsset.Properties["m_Container"].Properties["Array"].Array ) {
 					string pathID = entry.Properties["data"].Properties["second"].Properties["asset"].Properties["m_PathID"].String;
@@ -310,41 +311,42 @@ namespace Mffer {
 						newID = UInt64.MaxValue - newID + 1;
 						pathID = newID.ToString();
 					}
-					manifest.Add( pathID, entry.Properties["data"].Properties["first"].String );
+					manifest.Add( $"{manifestFileCode}-{pathID}", entry.Properties["data"].Properties["first"].String );
 				}
 			}
 			foreach ( string scriptFile in scriptFiles ) {
 				AssetFile scriptAsset = new AssetFile();
 				scriptAsset.LoadFromFile( scriptFile );
-				string pathID = Regex.Replace( scriptFile, "^.*-([0-9]*)-[^-]*$", "$1" );
+				string pathID = Regex.Replace( scriptFile, "^.*-([0-9a-f]*)-([0-9]*)-[^-]*$", "$1-$2" );
 				string scriptClass = scriptAsset.Name;
 				manifest.Add( pathID, scriptClass );
 			}
 			foreach ( string behaviorFile in behaviorFiles ) {
 				AssetFile behaviorAsset = new AssetFile();
 				behaviorAsset.LoadFromFile( behaviorFile );
+				string manifestFileCode = Regex.Replace( behaviorFile, "^.*-([0-9a-f]*)-[0-9]*-[^-]*$", "$1" );
 				string scriptID = behaviorAsset.Properties["m_Script"].Properties["m_PathID"].String;
 				if ( scriptID.StartsWith( '-' ) ) {
 					UInt64 newID = System.Convert.ToUInt64( scriptID.Substring( 1 ) );
 					newID = UInt64.MaxValue - newID + 1;
 					scriptID = newID.ToString();
 				}
-				if ( !manifest.ContainsKey( scriptID ) ) {
+				if ( !manifest.ContainsKey( $"{manifestFileCode}-{scriptID}" ) ) {
 					throw new Exception( $"Script pathID {scriptID} (from file {behaviorFile}) not found in manifest" );
 				}
-				behaviorAsset.AssetName = manifest[scriptID];
+				behaviorAsset.AssetName = manifest[$"{manifestFileCode}-{scriptID}"];
 				behaviorAsset.Name = behaviorAsset.AssetName;
 				if ( behaviorAsset.AssetName == null ) {
 					throw new Exception( $"Asset file {behaviorFile} has no asset name." );
 				}
-				if ( AssetFiles.ContainsKey( "asset.AssetName" ) ) {
+				if ( AssetFiles.ContainsKey( behaviorAsset.AssetName ) ) {
 					throw new Exception( $"Attempted to add asset {behaviorAsset.AssetName} (from file {behaviorFile}) which already exists." );
 				}
 				AssetFiles.Add( behaviorAsset.AssetName, behaviorAsset );
 			}
 			foreach ( string jsonFile in textFiles ) {
 				AssetFile asset = new AssetFile();
-				string pathID = Regex.Replace( jsonFile, "^.*-([0-9]*)-[^-]*$", "$1" );
+				string pathID = Regex.Replace( jsonFile, "^.*-([0-9a-f]*)-([0-9]*)-[^-]*$", "$1-$2" );
 				if ( manifest.ContainsKey( pathID ) ) {
 					asset.AssetName = manifest[pathID];
 				} else {
@@ -354,7 +356,7 @@ namespace Mffer {
 					throw new Exception( $"Asset file {jsonFile} has no asset name." );
 				}
 				asset.LoadFromFile( jsonFile );
-				if ( AssetFiles.ContainsKey( "asset.AssetName" ) ) {
+				if ( AssetFiles.ContainsKey( asset.AssetName ) ) {
 					throw new Exception( $"Attempted to add asset {asset.AssetName} (from file {jsonFile}) which already exists." );
 				}
 				AssetFiles.Add( asset.AssetName, asset );
