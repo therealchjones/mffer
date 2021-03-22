@@ -9,9 +9,12 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
 -   [Introduction](#introduction)
 -   [Behavioral Expectations](#behavioral-expectations)
 -   [GitHub](#github)
+-   [Application Purpose and Design](#application-purpose-and-design)
+-   [Documentation](#documentation)
 -   [Coding Style](#coding-style)
     -   [Whitespace Style](#whitespace-style)
     -   [Code Style](#code-style)
+    -   [Comments](#comments)
     -   [Tools](#tools)
         -   [Visual Studio Code](#visual-studio-code)
         -   [Formatters](#formatters)
@@ -40,6 +43,10 @@ Let's do better.
 
 The ideal method for contibuting new content or making changes to existing content for this project is by [making a pull request](https://github.com/therealchjones/mffer/pulls). This isn't always the easiest way, and it has a bit of a learning curve if you haven't done it before, but it allows appropriate history tracking and attribution while ensuring the community is able to review code and make other changes before adding something to the project. If you're not sure how to do it, just post a question on the [issues page](https://github.com/therealchjones/mffer/issues/).
 
+## Application Purpose and Design
+
+## Documentation
+
 ## Coding Style
 
 If this is the longest section of this document, that is in inverse relationship to its importance. Reading and understanding the above sections is a significantly better use of your time than memorizing the minutiae herein. However, consistent coding styles, even if mostly arbitrary (as the ones here certainly are) allow easier reading and review of code, more rapid improvement, and better project integration. As the project uses multiple file types and programming languages, styles that they can all share are recommended. Some of the specifics are listed below.
@@ -57,6 +64,8 @@ Apart from whitespace, different code structures and algorithms are widely accep
 -   [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions)
 
 Where necessary, coding style for individual pull requests can be discussed along with the content of the code submitted. If needed, more specific guidelines may be added to this document in the future.
+
+### Comments
 
 ### Tools
 

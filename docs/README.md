@@ -5,10 +5,14 @@ This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjo
 ## Table of Contents
 
 -   [Marvel Future Fight](#marvel-future-fight)
+-   [Requirements](#requirements)
 -   [Usage](#usage)
-    -   [Extracting the Data](#extracting-the-data)
+    -   [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
     -   [Exploring the Data](#exploring-the-data)
-        -   [Exploring the Code](#exploring-the-code)
+    -   [Exploring the Code](#exploring-the-code)
+        -   [Il2CppDumper](#il2cppdumper)
+        -   [Ghidra](#ghidra)
+    -   [Using and Presenting the Data](#using-and-presenting-the-data)
 
 ## Marvel Future Fight
 
@@ -25,15 +29,21 @@ The objectives of this umbrella project are:
 
 As this project includes evaluation of the binary distributions of the game, which may be prohibited by the company's terms of service, this is a private project not to be concurrently shared with the public. Where data and methods can be shared safely without compromising the future of the project, they should be.
 
+## Requirements
+
 ## Usage
 
-### Extracting the Data
+### Obtaining and Extracting the Data Files
 
 ### Exploring the Data
 
-#### Exploring the Code
+### Exploring the Code
+
+#### Il2CppDumper
 
     $ dotnet ./Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/app/\~~bEMNFRBZWig1c0nTBK2-Pg==/com.netmarble.mherosgb-XbORIH4ZtkJYZrkO7UlUOg==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/MFF-il2cppdumper-6.7.0
+
+#### Ghidra
 
 Options for ghidra:
 
@@ -56,3 +66,5 @@ In ghidra:
 -   Auto-Analyze: select all that's not red, Analyze.
 -   had to open a couple of binaries in ghidra to get them to work with osx security (demangler, decompiler)
 -   Ghidra->file->save
+
+### Using and Presenting the Data
