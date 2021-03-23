@@ -5,6 +5,8 @@ This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjo
 ## Table of Contents
 
 -   [Marvel Future Fight](#marvel-future-fight)
+-   [This Project](#this-project)
+    -   [Versioning](#versioning)
 -   [Requirements](#requirements)
 -   [Usage](#usage)
     -   [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
@@ -28,6 +30,21 @@ The objectives of this umbrella project are:
 -   easily track important player-specific data to evaluate progress and plan modifications
 
 As this project includes evaluation of the binary distributions of the game, which may be prohibited by the company's terms of service, this is a private project not to be concurrently shared with the public. Where data and methods can be shared safely without compromising the future of the project, they should be.
+
+## This Project
+
+### Versioning
+
+Semantic versioning (from [#52](https://github.com/therealchjones/mffer/issues/52)) https://semver.org
+initial version, per recommendations, will be 0.1.0
+
+Using Semantic Versioning 2.0.0
+
+"If all of this sounds desirable, all you need to do to start using Semantic Versioning is to declare that you are doing so and then follow the rules. Link to this website from your README so others know the rules and can benefit from them."
+
+"Major version zero (0.y.z) is for initial development. Anything MAY change at any time. The public API SHOULD NOT be considered stable."
+
+Briefly summarize (using exactly or a slight modification of the summary)
 
 ## Requirements
 

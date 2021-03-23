@@ -4,8 +4,20 @@ Guidelines, notes, and tips for maintaining and adding to the mffer project
 
 Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.
 
+## Q&A
+
+Where should I report bugs, request new or changed features, or ask for more help?
+: The [GitHub issues page](https://github.com/therealchjones/mffer/issues/) is just fine for all of these things.
+
+I don't know how to program, so how can I help?
+: Answer questions on the [GitHub issues page](https://github.com/therealchjones/mffer/issues/), make edits to [documentation](README.md), or just offer a kind word.
+
+What's a "pull request"?
+: Ah, you're new to git and its style of shared programming. Welcome! I'm glad you're here. There's _lots_ of information available to get you started---sometimes so much
+
 ## Table of Contents
 
+-   [Q&A](#qa)
 -   [Introduction](#introduction)
 -   [Behavioral Expectations](#behavioral-expectations)
 -   [GitHub](#github)
@@ -19,6 +31,8 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
         -   [Visual Studio Code](#visual-studio-code)
         -   [Formatters](#formatters)
         -   [Linters](#linters)
+-   [Development](#development)
+    -   [mffer app](#mffer-app)
 -   [Contact](#contact)
 
 ## Introduction
@@ -94,6 +108,19 @@ In addition, a linter is strongly recommended to quickly identify errors and dev
 | ---------- | -------------------------------------------------------------------------------------------------- | ------------- |
 | OmniSharp  | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) |
 | shellcheck | [timonwong.shellcheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)   | None          |
+
+## Development
+
+### mffer app
+
+Coding best practices:
+
+-   user-modifiable variables should be in the Program class
+-   validation of Program class settings should be done by called methods rather than by the user
+-   the Program class should only interact with the Game class
+-   interaction with the Game classes should be done via the Game class/object
+-   interaction with the Data classes should be done via the DataDirectory class/object
+-   this can be done by placing all classes within their associated "top level" class
 
 ## Contact
 
