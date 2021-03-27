@@ -1,10 +1,12 @@
-# mffer: Marvel Future Fight Extraction & Reporting
+# mffer
+
+Marvel Future Fight Extraction & Reporting
 
 This is a _brief_ overview of the [mffer](https://github.com/therealchjones/mffer) project. A more comprehensive [README document](docs/README.md) is available with [the other documentation](docs/) in the [docs directory](docs/).
 
 ## Marvel Future Fight
 
-[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is (or appears to be) made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
+[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game created with many industry-standard tools: it's coded in Java & C# for Unity and built with il2cpp, it's packaged as split APKs for Android from the Google Play Store, and it uses Facebook and proprietary servers for user and game data storage and communication. Even if you don't play MFF, the techniques used in this project for exploring the game may contain some useful knowledge.
 
 ## About mffer
 
