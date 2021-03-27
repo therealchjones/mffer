@@ -107,7 +107,7 @@ function testTeams() {
 }
 
 function checkAllTeams() {
-  var spreadsheet = SpreadsheetApp.openById("1RylUxJozEyvui7Fs-qHdlsplOmwXY0OIlxilWQhCPaA");
+  var spreadsheet = SpreadsheetApp.openById("[spreadsheet ID not specified]");
   var range = spreadsheet.getSheetByName('Characters').getRange('$A$2:$A').getValues();
   var characters = [];
   for ( var characterArray of range ) {
