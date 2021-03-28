@@ -810,6 +810,8 @@ namespace Mffer {
 					for ( int i = 0; i < 11; i++ ) {
 						if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
 							entries.Add( uniform.Skills[i].SkillId );
+						} else {
+							entries.Add( String.Empty );
 						}
 					}
 					foreach ( string entry in entries ) {
