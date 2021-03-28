@@ -5,5 +5,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+<PackageReference Include="MessagePack" Version="2.2.85" />
+</ItemGroup>
 
 </Project>
