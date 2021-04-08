@@ -1,0 +1,22 @@
+#!/bin/sh
+
+MFFTEMPDIR="$(mktemp -d)" || {
+	echo 'Unable to create temporary directory. Exiting.' >&2
+	exit 1
+}
+
+IL2CPPDUMPER="/Users/chjones/Development/Marvel Future Fight/tools/il2cppdumper"
+GHIDRA="/Users/chjones/Development/Marvel Future Fight/tools/ghidra/support/analyzeHeadless"
+GHIDRAPROJECTS="/Users/chjones/Development/Marvel Future Fight/ghidra"
+PROJECTNAME="mff-ghidra-6.9.0"
+SOURCEDIR="$(dirname "$(find "/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0/data/app" -type f -name libil2cpp.so)")"
+DESTDIR="$GHIDRAPROJECTS/$PROJECTNAME"
+
+mkdir -p "$DESTDIR"
+"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -import "$SOURCEDIR/"* -noanalysis \
+	-loader ElfLoader -loader-imagebase 0 \
+	-log "$DESTDIR"/"$PROJECTNAME"-import.log
+
+"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
+	-preScript
+dotnet Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.9.0/data/app/\~~MG58GFbliDwErf151hi0ZA==/com.netmarble.mherosgb-0vmRVMyRiZ9N3Wjw5gfiCQ==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.9.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/mff-il2cppdumper-6.9.0
