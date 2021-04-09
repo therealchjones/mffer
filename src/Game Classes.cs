@@ -72,7 +72,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="fileName">The file path in which to save game
 		/// data</param>
-		public void SaveAllData( string fileName ) {
+		public void WriteJson( string fileName ) {
 			// implemented as streamwriter at all levels because using a string or
 			// similar uses up all memory, same with JsonSerializer
 			using ( StreamWriter file = new StreamWriter( fileName ) ) {
