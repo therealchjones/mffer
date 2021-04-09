@@ -11,7 +11,7 @@ namespace Mffer {
 	/// Major game content is represented by derivatives of the
 	/// <see cref="Component"/> class. This class includes the base properties
 	/// and methods applicable to all derivatives, including lists of the
-	/// <see cref="AssetObject"/>s and other <see cref="Component"/>s required
+	/// <see cref="AssetFile"/>s and other <see cref="Component"/>s required
 	/// for loading data into the instance or evaluating or reporting the data.
 	/// </remarks>
 	public class Component {
@@ -20,19 +20,19 @@ namespace Mffer {
 		/// </summary>
 		public string Name { get; set; }
 		/// <summary>
-		/// Gets or sets a collection of <see cref="AssetObject"/>s storing
+		/// Gets or sets a collection of <see cref="AssetFile"/>s storing
 		/// data to be loaded into the <see cref="Component"/>, indexed by
 		/// name.
 		/// </summary>
 		/// <remarks>
-		/// Required <see cref="AssetObject"/>s should be named in the keys of
-		/// <see cref="Component.BackingAssets"/> when the derived instance
+		/// Required <see cref="AssetFile"/>s should be named in the keys of
+		/// <see cref="BackingAssets"/> when the derived instance
 		/// is initialized. When the parent <see cref="Version"/> loads data
 		/// into the <see cref="Component"/>, it must first load the named
-		/// <c>AssetObject</c>s and place them into the associated values of
-		/// <c>BackingAssets</c>.
+		/// <see cref="AssetFile"/>s and place them into the associated values of
+		/// <see cref="BackingAssets"/>.
 		/// </remarks>
-		public Dictionary<string, AssetObject> BackingAssets { get; set; }
+		public Dictionary<string, AssetFile> BackingAssets { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
 		/// by this <see cref="Component"/>, indexed by name.
@@ -50,12 +50,15 @@ namespace Mffer {
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
 		public Component() {
-			BackingAssets = new Dictionary<string, AssetObject>();
+			BackingAssets = new Dictionary<string, AssetFile>();
 			Dependencies = new Dictionary<string, Component>();
 		}
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
+		/// with name <paramref name="componentName"/>
 		/// </summary>
+		/// <param name="componentName">The name of the
+		/// <see cref="Component"/></param>
 		public Component( string componentName ) : this() {
 			Name = componentName;
 		}
@@ -68,8 +71,8 @@ namespace Mffer {
 		/// parameter is performed at the time of adding the
 		/// <see cref="AssetFile"/> name to the <see cref="BackingAssets"/> list.
 		/// This is deferred until attempting to load data into the
-		/// <see cref="Component"/> as the <c>BackingAssets</c> list may
-		/// be created before all <c>Asset</c>s are loaded.
+		/// <see cref="Component"/> as the <see cref="BackingAssets"/> list may
+		/// be created before all <see cref="AssetFile"/>s are loaded.
 		/// </remarks>
 		/// <param name="assetName">The name of the <see cref="AssetFile"/> to
 		/// add</param>
@@ -79,7 +82,7 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Adds the name of an asset to the list of
+		/// Adds the name of a <see cref="Component"/> to the list of
 		/// <see cref="Dependencies"/> for this <see cref="Component"/>
 		/// </summary>
 		/// <remarks>
@@ -87,8 +90,8 @@ namespace Mffer {
 		/// parameter is performed at the time of adding the
 		/// <see cref="Component"/> name to the <see cref="Dependencies"/> list.
 		/// This is deferred until attempting to load data into the
-		/// <see cref="Component"/> as the <c>Dependencies</c> list may
-		/// be created before all <c>Component</c>s are loaded.
+		/// <see cref="Component"/> as the <see cref="Dependencies"/> list may
+		/// be created before all <see cref="Component"/>s are loaded.
 		/// </remarks>
 		/// <param name="componentName">The name of the <see cref="Component"/>
 		/// to add</param>
@@ -100,7 +103,8 @@ namespace Mffer {
 		/// <summary>
 		/// Outputs data from this <see cref="Component"/> in JSON format
 		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to which to write</param>
+		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
+		/// which to write</param>
 		/// <param name="tabs">Baseline number of tab characters to insert
 		/// before each line of output</param>
 		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
@@ -112,14 +116,15 @@ namespace Mffer {
 		/// <remarks>
 		/// <see cref="WriteCSV( StreamWriter )"/> writes data from the
 		/// <see cref="Component"/> to <paramref name="file"/> in a format
-		/// useful for importing into a spreadsheet. <c>WriteCSV()</c> is not
-		/// intended to losslessly output all of the <see cref="Component"/>'s
-		/// data, but rather to present select data in usable format for
+		/// useful for importing into a spreadsheet.
+		/// <see cref="WriteCSV( StreamWriter )"/> is not intended to
+		/// losslessly output all of the <see cref="Component"/>'s
+		/// data, but rather to present select data in a usable format for
 		/// further processing. For the former purpose, use
 		/// <see cref="WriteJson(StreamWriter,int)"/>.
 		/// </remarks>
-		/// <param name="file"><see cref="StreamWriter"/> stream to which to
-		/// write</param>
+		/// <param name="file">The <see cref="StreamWriter"/> stream to which
+		/// to write</param>
 		public virtual void WriteCSV( StreamWriter file ) {
 		}
 		/// <summary>
@@ -130,13 +135,13 @@ namespace Mffer {
 		/// <see cref="Component.BackingAssets"/> and
 		/// <see cref="Component.Dependencies"/> to load data into
 		/// <see cref="Component"/>'s other properties. As the
-		/// <c>Component</c> does not have access to the overall
+		/// <see cref="Component"/> does not have access to the overall
 		/// sets of <see cref="Game.Version.Assets"/> and
 		/// <see cref="Game.Version.Components"/>, both
-		/// <c>BackingAssets</c> and <c>Dependencies</c> must be loaded by an
-		/// ancestor instance (e.g., via
+		/// <see cref="BackingAssets"/> and <see cref="Dependencies"/> must be
+		/// loaded by an ancestor instance (e.g., via
 		/// <see cref="Game.Version.LoadComponent(Component)"/>) before
-		/// <c>Component.Load()</c> can successfully run.
+		/// <see cref="Component.Load()"/> can successfully run.
 		/// </remarks>
 		/// <exception cref="System.ApplicationException">Thrown if objects
 		/// have not been loaded into <see cref="BackingAssets"/> or
@@ -145,7 +150,7 @@ namespace Mffer {
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
 			if ( BackingAssets.Count != 0 ) {
-				foreach ( KeyValuePair<string, AssetObject> item in BackingAssets ) {
+				foreach ( KeyValuePair<string, AssetFile> item in BackingAssets ) {
 					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
 						BackingAssets.Remove( item.Key );
 					} else {
@@ -175,613 +180,17 @@ namespace Mffer {
 		/// <see cref="Component.IsLoaded()"/> analyzes the data in
 		/// <c>Component</c>'s properties to determine whether the
 		/// <c>Component</c> has already been loaded (e.g., via
-		/// <see cref="Component.Load()"/>). Note that this not imply that
-		/// if <c>Component.Load()</c> were run again the properties
-		/// would be unchanged. In practice, <c>Component.Load()</c> should
-		/// only be run after all <see cref="Component.BackingAssets"/> and
-		/// <see cref="Component.Dependencies"/> have been loaded, so the
-		/// property loading should be reproducible at any point afterward.
+		/// <see cref="Component.Load()"/>). Note that this does not imply that
+		/// if <see cref="Component.Load()"/> were run again the properties
+		/// would be unchanged. In practice, <see cref="Component.Load()"/>
+		/// should only be run after all <see cref="BackingAssets"/>  and
+		/// <see cref="Dependencies"/> have been loaded, so the property
+		/// loading should be reproducible at any point afterward.
 		/// </remarks>
 		/// <returns><c>true</c> if the <see cref="Component"/> contains
-		/// data loaded data, <c>false</c> otherwise</returns>
+		/// loaded data, <c>false</c> otherwise</returns>
 		public virtual bool IsLoaded() {
 			return true;
-		}
-	}
-	/// <summary>
-	/// Provides access to the string localiization dictionary
-	/// </summary>
-	/// <remarks>
-	/// The <see cref="Localization"/> class is a derivative of
-	/// <see cref="Component"/> to provide access to the
-	/// <see cref="Version"/>'s string localization dictionary. This includes
-	/// methods to build the dictionary from the appropriate
-	/// <see cref="AssetFile"/>, translate encoded strings into localized
-	/// strings, and output the full dictionary as a JSON object.
-	/// </remarks>
-	public class Localization : Component {
-		/// <summary>
-		/// Gets or sets the dictionary object
-		/// </summary>
-		Dictionary<string, string> LocalDictionary { get; set; }
-		/// <summary>
-		/// Gets or sets the name of the localization language
-		/// </summary>
-		public string Language { get; set; }
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Localization"/>
-		/// <see cref="Component"/>-derived class.
-		/// </summary>
-		public Localization() : base() {
-			Name = "Localization";
-			LocalDictionary = new Dictionary<string, string>();
-			Language = "en";
-			AddBackingAsset( $"localization/localization_{Language}.csv||LocalizationTable_{Language}" );
-		}
-		/// <summary>
-		/// Determines whether the <see cref="Localization"/> has been
-		/// loaded.
-		/// </summary>
-		/// <returns><c>true</c> if the <see cref="Localization"/> already
-		/// contains loaded data, <c>false</c> otherwise.</returns>
-		/// <seealso cref="Component.IsLoaded()"/>
-		public override bool IsLoaded() {
-			return LocalDictionary.Count != 0;
-		}
-		/// <summary>
-		/// Loads data into this <see cref="Localization"/>
-		/// </summary>
-		/// <seealso cref="Component.Load()"/>
-		public override void Load() {
-			base.Load();
-			AssetObject DictionaryAsset = BackingAssets.First().Value;
-			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
-			// 6.7.0; will have to manage differently
-			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
-				foreach ( AssetObject entry in DictionaryAsset.Properties["m_Script"].Array ) {
-					LocalDictionary[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
-				}
-			} else {
-				Dictionary<string, string> keys = new Dictionary<string, string>();
-				Dictionary<string, string> values = new Dictionary<string, string>();
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					keys.Add( DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
-				}
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					values.Add( DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
-				}
-				if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
-					LocalDictionary = Enumerable.Range( 0, keys.Count() ).ToDictionary(
-						i => keys.Keys.ToList()[i],
-						i => values[keys.Values.ToList()[i]] );
-				} else {
-					throw new Exception( "Unable to build localization dictionary; invalid entries" );
-				}
-			}
-		}
-		/// <summary>
-		/// Decodes a string using the <see cref="Localization"/> dictionary
-		/// </summary>
-		/// <param name="input">An encoded string to be decoded</param>
-		/// <returns>The decoded and localized string</returns>
-		public string GetString( string input ) {
-			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
-				return LocalDictionary[input];
-			} else {
-				return LocalDictionary[MakeHash( input )];
-			}
-		}
-		/// <summary>
-		/// Creates a reproducible numeric hash from a string
-		/// </summary>
-		/// <remarks>
-		/// Recent versions of Marvel Future Fight use a dictionary with hashed
-		/// strings as keys rather than a flat CSV file for the localization
-		/// asset. <see cref="Localization.MakeHash(string)"/> calculates that
-		/// hash given the non-localized <paramref name="input"/> string.
-		/// </remarks>
-		/// <param name="input">The string to be hashed</param>
-		/// <returns>The hashed string</returns>
-		string MakeHash( string input ) {
-			int result = 0;
-			char[] textBytes = input.ToCharArray();
-			int i = 0;
-			int length = textBytes.Length;
-			int thisCharIndex = 0;
-			if ( i < length - 1 ) {
-				int nextCharIndex = 1;
-				do {
-					byte thisChar = Convert.ToByte( textBytes[thisCharIndex] );
-					byte nextChar = Convert.ToByte( textBytes[nextCharIndex] );
-					int subresult = ( ( ( result << 5 ) - result ) + Convert.ToInt32( thisChar ) );
-					result = ( subresult << 5 ) - subresult + Convert.ToInt32( nextChar );
-					i = i + 2;
-					thisCharIndex = i;
-					nextCharIndex = i + 1;
-				}
-				while ( i < length - 1 );
-			}
-			if ( i < length ) {
-				result = ( ( result << 5 ) - result ) + Convert.ToInt32( textBytes[thisCharIndex] );
-			}
-			return result.ToString();
-		}
-		/// <summary>
-		/// Outputs data from this <see cref="Localization"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-
-		}
-	}
-	/// <summary>
-	/// Represents a collection of all playable characters in the
-	/// <see cref="Game"/>
-	/// </summary>
-	/// <remarks>
-	/// <para><see cref="Roster"/> is derived from the <see cref="Component"/>
-	/// class and includes methods to load and present data about the
-	/// <see cref="Game"/>'s characters.</para>
-	/// <para>The data model for the <c>Roster</c> is hierarchical; each
-	/// <see cref="Character"/> has multiple <see cref="Uniform"/>s, each of
-	/// which has different properties associated with different
-	/// <see cref="CharacterLevel"/>s. Each type has several properties that
-	/// do not vary between descendants of that type. For instance, the
-	/// <see cref="Uniform.Gender"/> of a given <c>Character</c> and <c>Uniform</c> is
-	/// the same regardless of <c>CharacterLevel</c>.</para>
-	/// </remarks>
-	public class Roster : Component {
-		/// <summary>
-		/// Gets or sets a list of the <see cref="Game"/>'s
-		/// <see cref="Character"/>s indexed by the <c>Character</c>s'
-		/// <see cref="Character.GroupId"/>s.
-		/// </summary>
-		public Dictionary<string, Character> Characters { get; set; } // by groupId
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Roster"/> class
-		/// </summary>
-		/// <seealso cref="Component.Component()"/>
-		public Roster() : base() {
-			Name = "Roster";
-			Characters = new Dictionary<string, Character>();
-			AddBackingAsset( "IntHeroDataDictionary" );
-			AddDependency( "Localization" );
-		}
-		/// <summary>
-		/// Determines whether the <see cref="Roster"/> has been
-		/// loaded.
-		/// </summary>
-		/// <returns><c>true</c> if the <see cref="Roster"/> already
-		/// contains loaded data, <c>false</c> otherwise.</returns>
-		/// <seealso cref="Component.IsLoaded()"/>
-		public override bool IsLoaded() {
-			return Characters.Count != 0;
-		}
-		/// <summary>
-		/// Loads data into this <see cref="Roster"/>
-		/// </summary>
-		/// <seealso cref="Component.Load()"/>
-		public override void Load() {
-			base.Load();
-			AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
-			Localization LocalDictionary = (Localization)Dependencies["Localization"];
-			List<string> AllHeroIds = new List<string>();
-			foreach ( AssetObject entry in asset.Array ) {
-				if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
-					Character character;
-					string groupId = entry.Properties["data"].Properties["groupId"].String;
-					if ( Characters.ContainsKey( groupId ) ) {
-						character = Characters[groupId];
-					} else {
-						character = new Character();
-						character.GroupId = groupId;
-						Characters.Add( groupId, character );
-					}
-					string heroId = entry.Properties["data"].Properties["heroId"].String;
-					if ( AllHeroIds.Contains( heroId ) ) {
-						throw new Exception( $"HeroID {heroId} has already been used." );
-					} else {
-						AllHeroIds.Add( heroId );
-					}
-					CharacterLevel newLevel = new CharacterLevel();
-					newLevel.HeroId = heroId;
-					newLevel.Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
-					newLevel.Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
-					string baseId = newLevel.BaseId;
-					Uniform uniform;
-					if ( character.Uniforms.ContainsKey( baseId ) ) {
-						uniform = character.Uniforms[baseId];
-					} else {
-						uniform = new Uniform();
-						character.Uniforms.Add( baseId, uniform );
-						uniform.BaseId = baseId;
-						uniform.Camps = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String );
-						uniform.CharacterName = LocalDictionary.GetString( $"HERO_{baseId}" );
-						uniform.ClassType = LocalDictionary.GetString( "HEROCLASS_" + entry.Properties["data"].Properties["classType"].String );
-						uniform.Gender = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String );
-						uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
-						uniform.UniformName = LocalDictionary.GetString( $"HERO_COSTUME_{baseId}" );
-						switch ( entry.Properties["data"].Properties["mainAtk"].String ) {
-							case "0": uniform.MainAtk = "Physical"; break;
-							case "1": uniform.MainAtk = "Energy"; break;
-						}
-						if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
-							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String );
-						}
-						foreach ( AssetObject ability in entry.Properties["data"].Properties["abilitys"].Properties["Array"].Array ) {
-							if ( ability.Properties["data"].String != "0" ) {
-								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.Properties["data"].String ) );
-							}
-						}
-						if ( entry.Properties["data"].Properties["ability_hidden"].String != "0" ) {
-							uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_hidden"].String ) );
-						}
-					}
-					uniform.CharacterLevels.Add( heroId, newLevel );
-					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["leaderSkillId"].String ) );
-					foreach ( AssetObject skill in entry.Properties["data"].Properties["skillIds"].Properties["Array"].Array ) {
-						Skill newSkill = new Skill( skill.Properties["data"].String );
-						newLevel.Skills.Add( newSkill );
-					}
-					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["uniformSkillId"].String ) );
-					if ( String.IsNullOrEmpty( character.BaseName ) ) {
-						if ( uniform.UniformGroupId == "0" ) {
-							character.BaseName = LocalDictionary.GetString( $"HERO_{baseId}" );
-						}
-					}
-					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String );
-					character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
-					character.GrowType = Int32.Parse( entry.Properties["data"].Properties["growType"].String );
-				}
-			}
-		}
-		/// <summary>
-		/// Outputs select data from this <see cref="Roster"/> in CSV format
-		/// </summary>
-		/// <remarks>
-		/// <see cref="Roster.WriteCSV(StreamWriter)"/> writes a CSV
-		/// containing a flat representation of all playable characters and
-		/// different uniforms, and the properties associated with each. It
-		/// necessarily contains multiple redundant entries and is intended
-		/// for use in spreadsheet applications rather than as a manipulatable
-		/// data store.
-		/// </remarks>
-		/// <param name="file"><see cref="StreamWriter"/> stream to which to
-		/// write</param>
-		/// <seealso cref="Component.WriteCSV(StreamWriter)"/>
-		public override void WriteCSV( StreamWriter file ) {
-			char delimiter = '|';
-			List<string> header = new List<string> {
-				"Group ID",
-				"Base ID",
-				"BaseName",
-				"Character Name",
-				"Uniform Name",
-				"Uniform Group Id",
-				"Primary Attack",
-				"Type",
-				"Gender",
-				"Side",
-				"Allies",
-				"Max Tier",
-				"Growth Type",
-				"Abilities",
-				"World Boss Ability",
-				"Leader Skill",
-				"Skill 1",
-				"Skill 2",
-				"Skill 3",
-				"Passive Skill",
-				"Skill 4",
-				"Skill 5",
-				"T2 Passive Skill",
-				"T3 Skill",
-				"Awakened Skill",
-				"Uniform Skill"
-			};
-			file.WriteLine( String.Join( delimiter, header ) );
-			foreach ( Character character in Characters.Values ) {
-				foreach ( Uniform uniform in character.Uniforms.Values ) {
-					List<string> entries = new List<string> {
-						character.GroupId,
-						uniform.BaseId,
-						character.BaseName,
-						uniform.CharacterName,
-						uniform.UniformName,
-						uniform.UniformGroupId,
-						uniform.MainAtk,
-						uniform.ClassType,
-						uniform.Gender,
-						uniform.Camps,
-						character.Species,
-						character.MaxTier.ToString(),
-						character.GrowType.ToString()
-					};
-					int size = uniform.Abilities.Count;
-					string abilities = "";
-					for ( int i = 0; i < size; i++ ) {
-						abilities += uniform.Abilities[i];
-						if ( i < size - 1 ) abilities += ",";
-					}
-					entries.Add( abilities );
-					entries.Add( uniform.RaidAbility );
-					for ( int i = 0; i < 11; i++ ) {
-						if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
-							entries.Add( uniform.Skills[i].SkillId );
-						} else {
-							entries.Add( String.Empty );
-						}
-					}
-					foreach ( string entry in entries ) {
-						if ( entry.Contains( delimiter ) ) {
-							throw new FormatException( "Error: CSV delimiter is included in CSV data" );
-						}
-					}
-					file.WriteLine( String.Join( delimiter, entries ) );
-				}
-			}
-		}
-		/// <summary>
-		/// Outputs data from this <see cref="Roster"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-
-		}
-	}
-	/// <summary>
-	/// Represents a playable character in the <see cref="Version"/>
-	/// </summary>
-	/// <seealso cref="Roster"/>
-	public class Character {
-		/// <summary>
-		/// Gets or sets the unique Group ID of the <see cref="Character"/>
-		/// </summary>
-		/// <remarks>
-		/// Associated with the hierarchical model of the <see cref="Roster"/>
-		/// are multiple identifiers for the different object levels. A
-		/// <see cref="Character"/> equipped with a given <see cref="Uniform"/>
-		/// at a specific rank (i.e., number of stars) is uniquely identified
-		/// by a <see cref="CharacterLevel.HeroId"/>. Regardless of rank, the
-		/// <see cref="Character"/> in that <see cref="Uniform"/> is identified
-		/// by the <see cref="Uniform.BaseId"/>, and regardless of
-		/// <see cref="Uniform"/> the <see cref="Character"/> is identified by
-		/// a <see cref="Character.GroupId"/>. An additional identifier,
-		/// <see cref="Uniform.UniformGroupId"/> is only unique among the
-		/// <see cref="Uniform"/>s available for a given
-		/// <see cref="Character"/>.
-		/// </remarks>
-		public string GroupId { get; set; }
-		/// <summary>
-		/// Gets or sets the list of <see cref="Uniform"/>s available for the
-		/// <see cref="Character"/>, indexed by <see cref="Uniform.BaseId"/>
-		/// </summary>
-		public Dictionary<string, Uniform> Uniforms { get; set; } // by BaseId
-		/// <summary>
-		/// Gets or sets the name of the <see cref="Character"/> in the default
-		/// <see cref="Uniform"/>
-		/// </summary>
-		public string BaseName { get; set; }
-		/// <summary>
-		/// Gets or sets the growth type of the <see cref="Character"/>
-		/// </summary>
-		public int GrowType { get; set; }
-		/// <summary>
-		/// Gets or sets the starting level (grade) of the
-		/// <see cref="Character"/>
-		/// </summary>
-		public int StartGrade { get; set; }
-		/// <summary>
-		/// Gets or sets the allies (species) of the <see cref="Character"/>
-		/// </summary>
-		public string Species { get; set; }
-		/// <summary>
-		/// Gets the maximum tier of the <see cref="Character"/>
-		/// </summary>
-		/// <remarks>
-		/// This is determined automatically by the
-		/// <see cref="CharacterLevel"/>s available for each
-		/// <see cref="Uniform"/>.
-		/// </remarks>
-		public int MaxTier {
-			get {
-				foreach ( Uniform uniform in Uniforms.Values ) {
-					foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
-						if ( level.Tier == 3 ) return 3;
-					}
-					return 2;
-				}
-				throw new Exception( $"No uniforms found for character {BaseName} (groupId {GroupId})" );
-			}
-		}
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Character"/> class
-		/// </summary>
-		public Character() {
-			Uniforms = new Dictionary<string, Uniform>();
-		}
-	}
-	/// <summary>
-	/// Represents a uniform available to a playable <see cref="Character"/>
-	/// </summary>
-	public class Uniform {
-		/// <summary>
-		/// Gets or sets the name of the <see cref="Uniform"/>
-		/// </summary>
-		public string UniformName { get; set; }
-		/// <summary>
-		/// Gets or sets the name of the <see cref="Character"/> when wearing
-		/// this <see cref="Uniform"/>
-		/// </summary>
-		public string CharacterName { get; set; }
-		/// <summary>
-		/// Gets or sets this <see cref="Uniform"/>'s Uniform Group ID
-		/// </summary>
-		/// <remarks>
-		/// Note that this is not the <see cref="Character.GroupId"/>.
-		/// </remarks>
-		public string UniformGroupId { get; set; }
-		/// <summary>
-		/// Gets or sets the list of <see cref="CharacterLevel"/>s, indexed
-		/// by Hero ID
-		/// </summary>
-		/// <seealso cref="Character.GroupId"/>
-		public Dictionary<string, CharacterLevel> CharacterLevels { get; set; } // by heroId
-		/// <summary>
-		/// Gets or sets the allies (camps) of the <see cref="Character"/> when
-		/// wearing this <see cref="Uniform"/>
-		/// </summary>
-		public string Camps { get; set; }
-		/// <summary>
-		/// Gets or sets the gender of the <see cref="Character"/> when wearing
-		/// this <see cref="Uniform"/>
-		/// </summary>
-		public string Gender { get; set; }
-		/// <summary>
-		/// Gets or sets the BaseId of the <see cref="Character"/> when wearing
-		/// this <see cref="Uniform"/>
-		/// </summary>
-		public string BaseId { get; set; }
-		/// <summary>
-		/// Gets or sets the Class of the <see cref="Character"/> when
-		/// wearing this <see cref="Uniform"/>
-		/// </summary>
-		public string ClassType { get; set; }
-		/// <summary>
-		/// Gets or sets the Ally ability of the <see cref="Character"/> when
-		/// wearing this <see cref="Uniform"/>
-		/// </summary>
-		public string RaidAbility { get; set; }
-		/// <summary>
-		/// Gets or sets the main attack type of the <see cref="Character"/>
-		/// when wearing this <see cref="Uniform"/>
-		/// </summary>
-		public string MainAtk { get; set; }
-		/// <summary>
-		/// Gets or sets the list of abilities of the <see cref="Character"/>
-		/// when wearing this <see cref="Uniform"/>
-		/// </summary>
-		public List<string> Abilities { get; set; }
-		/// <summary>
-		/// Gets the full list of skills of the <see cref="Character"/> when
-		/// wearing this <see cref="Uniform"/>
-		/// </summary>
-		/// <remarks>
-		/// The list of <see cref="Skill"/>s available to the
-		/// <see cref="Character"/> increases as the <see cref="Character"/>'s
-		/// rank increases; <see cref="Skills"/> is the full list available
-		/// at maximum rank.
-		/// </remarks>
-		public List<Skill> Skills {
-			get {
-				List<Skill> maxSkillSet = new List<Skill>();
-				int maxCount = 0;
-				foreach ( CharacterLevel level in CharacterLevels.Values ) {
-					int count = 0;
-					foreach ( Skill skill in level.Skills ) {
-						if ( skill.SkillId != "0" ) {
-							count++;
-						}
-					}
-					if ( count > maxCount ) {
-						maxSkillSet = level.Skills;
-					}
-				}
-				return maxSkillSet;
-			}
-		}
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Uniform"/> class
-		/// </summary>
-		public Uniform() {
-			Abilities = new List<string>();
-			CharacterLevels = new Dictionary<string, CharacterLevel>();
-		}
-	}
-	/// <summary>
-	/// Represents a <see cref="Character"/> equipped with a particular
-	/// <see cref="Uniform"/> at a particular rank
-	/// </summary>
-	public class CharacterLevel {
-		/// <summary>
-		/// Gets or sets the hero ID for this <see cref="CharacterLevel"/>
-		/// </summary>
-		/// <seealso cref="Character.GroupId"/>
-		public string HeroId { get; set; }
-		/// <summary>
-		/// Gets or sets the rank (stars) for this <see cref="CharacterLevel"/>
-		/// </summary>
-		public int Rank { get; set; }
-		/// <summary>
-		/// Gets or sets the tier for this <see cref="CharacterLevel"/>
-		/// </summary>
-		public int Tier { get; set; }
-		/// <summary>
-		/// Gets or sets the list of skills available at this
-		/// <see cref="CharacterLevel"/>
-		/// </summary>
-		public List<Skill> Skills { get; set; }
-		/// <summary>
-		/// Gets the <see cref="BaseId"/> for the <see cref="Character"/> /
-		/// <see cref="Uniform"/> combination associated with this
-		/// <see cref="CharacterLevel"/>
-		/// </summary>
-		///	<remarks>
-		///	There is a many-to-one mapping of
-		///	<see cref="CharacterLevel.HeroId"/> to
-		///	<see cref="Uniform.BaseId"/> that is calculatable. For a given
-		///	<see cref="CharacterLevel"/>, then, properties of the
-		///	<see cref="Character"/> and <see cref="Uniform"/> that do not vary
-		///	with <see cref="CharacterLevel"/> can be
-		///	quickly found.
-		///</remarks>
-		public string BaseId {
-			get {
-				Int64 heroIdNumber = Int64.Parse( HeroId );
-				Int64 heroIdNumber1 = ( heroIdNumber * 0x51eb851f ) >> 32;
-				Int64 heroIdNumber2 = heroIdNumber1 >> 31;
-				heroIdNumber1 = heroIdNumber1 >> 5;
-				heroIdNumber = heroIdNumber1 + heroIdNumber2;
-				heroIdNumber = heroIdNumber * 100 + 1;
-				return heroIdNumber.ToString();
-			}
-		}
-		/// <summary>
-		/// Initializes a new instance of the <see cref="CharacterLevel"/>
-		/// class
-		/// </summary>
-		public CharacterLevel() {
-			Skills = new List<Skill>();
-		}
-	}
-	/// <summary>
-	/// Represents a <see cref="Character"/> skill
-	/// </summary>
-	public class Skill {
-		/// <summary>
-		/// Gets or sets the skill ID for this <see cref="Skill"/>
-		/// </summary>
-		public string SkillId { get; set; }
-		/// <summary>
-		/// Gets or sets the name of this <see cref="Skill"/>
-		/// </summary>
-		public string Name { get; set; }
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Skill"/> class
-		/// </summary>
-		/// <param name="skillId">The skill ID</param>
-		public Skill( String skillId ) {
-			SkillId = skillId;
 		}
 	}
 	/// <summary>
