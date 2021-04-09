@@ -26,13 +26,18 @@ namespace Mffer {
 		/// </summary>
 		public List<Version> Versions { get; set; }
 		/// <summary>
+		/// Initializes a new instance of the <see cref="Game"/> class
+		/// </summary>
+		public Game() {
+			Versions = new List<Version>();
+		}
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class and
 		/// sets its name
 		/// </summary>
 		/// <param name="gameName">game name</param>
-		public Game( string gameName ) {
+		public Game( string gameName ) : this() {
 			Name = gameName;
-			Versions = new List<Version>();
 		}
 		/// <summary>
 		/// Loads all game data from a directory into the <see cref="Game"/>
