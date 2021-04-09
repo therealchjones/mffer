@@ -45,7 +45,7 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="dir">path of a directory containing game data</param>
 		public void LoadAllData( string dir ) {
-			DataDirectory dataDir = new DataDirectory( dir );
+			DataSource dataDir = new DataSource( dir );
 			List<string> versionNames = dataDir.GetVersionNames();
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
@@ -105,7 +105,7 @@ namespace Mffer {
 		/// nearly all data; almost all game data are contained within a
 		/// <see cref="Version"/>, including the various <see cref="Component"/>s
 		/// and <see cref="AssetFile"/>s. Methods allow loading data from a
-		/// <see cref="DataDirectory"/>, writing the version's
+		/// <see cref="DataSource"/>, writing the version's
 		/// <see cref="AssetObject"/> and <see cref="Component"/> data to an existing
 		/// stream, and writing individual <see cref="Component"/> data in CSV
 		/// format to an existing stream.
