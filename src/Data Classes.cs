@@ -274,7 +274,7 @@ namespace Mffer {
 		/// to write</param>
 		/// <param name="tabs">The number of tabs with which to prepend each
 		/// line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public void WriteJson( StreamWriter file, int tabs = 0 ) {
 			List<string> Keys = AssetFiles.Keys.ToList<string>();
 			Keys.Sort();
@@ -536,7 +536,7 @@ namespace Mffer {
 		/// stream to which to write</param>
 		/// <param name="tabs">The number of tab characters to prepend to each
 		/// line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 			for ( int i = 0; i < tabs; i++ ) {
 				file.Write( "\t" );
@@ -626,7 +626,7 @@ namespace Mffer {
 		/// stream to which to write</param>
 		/// <param name="tabs">The number of tab characters to prepend to each
 		/// line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public void WriteJson( StreamWriter file, int tabs = 0 ) {
 			for ( int i = 0; i < tabs; i++ ) {
 				file.Write( "\t" );
@@ -829,7 +829,7 @@ namespace Mffer {
 		/// to write</param>
 		/// <param name="tabs">The number of tabs with which to prepend each
 		/// output line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
 			int counter = 0;
 			switch ( Type ) {
