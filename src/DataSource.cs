@@ -10,7 +10,7 @@ namespace Mffer {
 	/// Provides a store of extracted <see cref="Game"/> data
 	/// </summary>
 	/// <remarks>
-	/// <para>A <see cref="DataDirectory"/> is made up of a list of
+	/// <para>A <see cref="DataSource"/> is made up of a list of
 	/// filesystem <see cref="DirectoryInfo"/> (directory) objects
 	/// <see cref="dirs"/>, each of which is either a "version directory" or
 	/// a parent of one or more version directories. Version directories are
@@ -22,39 +22,39 @@ namespace Mffer {
 	/// <see cref="Version"/>; the <see cref="AssetFile"/>s and other data
 	/// files from all the directories combined form the data examined for that
 	/// <see cref="Version"/>.</para>
-	/// <para>The <see cref="DataDirectory"/> class includes these definitions,
+	/// <para>The <see cref="DataSource"/> class includes these definitions,
 	/// methods to add directories to the lists and verify their structures,
 	/// and methods to access the <see cref="AssetFile"/>s and other data
 	/// within the <see cref="versionDirs"/>.</para>
 	/// </remarks>
-	public class DataDirectory {
+	public class DataSource {
 		/// <summary>
 		/// Gets or sets the list of directories included in this
-		/// <see cref="DataDirectory"/>
+		/// <see cref="DataSource"/>
 		/// </summary>
-		/// <seealso cref="DataDirectory.Add(string)"/>
+		/// <seealso cref="DataSource.Add(string)"/>
 		List<DirectoryInfo> dirs { get; set; }
 		/// <summary>
 		/// Gets or sets the list of version directories represented by this
-		/// <see cref="DataDirectory"/>
+		/// <see cref="DataSource"/>
 		/// </summary>
-		/// <seealso cref="DataDirectory.AddVersionDirectory(DirectoryInfo)"/>
+		/// <seealso cref="DataSource.AddVersionDirectory(DirectoryInfo)"/>
 		Dictionary<string, List<DirectoryInfo>> versionDirs { get; set; }
 		/// <summary>
-		/// Initializes a new <see cref="DataDirectory"/> instance containing a
+		/// Initializes a new <see cref="DataSource"/> instance containing a
 		/// directory
 		/// </summary>
 		/// <remarks>The <paramref name="pathName"/> is validated and added to
 		/// the list of directories</remarks>
 		/// <param name="pathName">The full path name of a version directory or
 		/// parent of one or more version directories</param>
-		public DataDirectory( string pathName ) {
+		public DataSource( string pathName ) {
 			dirs = new List<DirectoryInfo>();
 			versionDirs = new Dictionary<string, List<DirectoryInfo>>();
 			Add( pathName );
 		}
 		/// <summary>
-		/// Adds a directory to the <see cref="DataDirectory"/>
+		/// Adds a directory to the <see cref="DataSource"/>
 		/// </summary>
 		/// <remarks>The <paramref name="pathName"/> is validated before
 		/// adding.</remarks>
@@ -91,7 +91,7 @@ namespace Mffer {
 		/// Adds a directory to the <see cref="versionDirs"/> list
 		/// </summary>
 		/// <remarks>
-		/// <para><see cref="DataDirectory.AddVersionDirectory(DirectoryInfo)"/>
+		/// <para><see cref="DataSource.AddVersionDirectory(DirectoryInfo)"/>
 		/// determines the name of the <see cref="Version"/> whose
 		/// <see cref="AssetFile"/>s are stored in the <c>assets</c>
 		/// subdirectory of <paramref name="dir"/> and adds
@@ -134,7 +134,7 @@ namespace Mffer {
 		/// Determines whether a given directory is in a directory list
 		/// </summary>
 		/// <remarks>The
-		/// <see cref="DataDirectory.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
+		/// <see cref="DataSource.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
 		/// utility method searches the full path names of the directories in
 		/// <paramref name="dirList"/> for a match to the full path name of the
 		/// directory <paramref name="directory"/>. In order to match, two
@@ -145,7 +145,7 @@ namespace Mffer {
 		/// <returns><c>true</c> if <paramref name="directory"/>'s full path
 		/// name matches one from <paramref name="dirList"/>, <c>false</c>
 		/// otherwise</returns>
-		/// <seealso cref="DataDirectory.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
+		/// <seealso cref="DataSource.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
 		bool IsIncluded( DirectoryInfo directory, List<DirectoryInfo> dirList ) {
 			foreach ( DirectoryInfo dir in dirList ) {
 				if ( dir.FullName == directory.FullName ) return true;
@@ -157,7 +157,7 @@ namespace Mffer {
 		/// dictionary
 		/// </summary>
 		/// <remarks>The
-		/// <see cref="DataDirectory.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
+		/// <see cref="DataSource.IsIncluded(DirectoryInfo, Dictionary{string, List{DirectoryInfo}})"/>
 		/// utility method searches the full path names of the directories in
 		/// all values of the <paramref name="versionList"/> dictionary for a
 		/// match to the full path name of the directory
@@ -170,7 +170,7 @@ namespace Mffer {
 		/// <returns><c>true</c> if <paramref name="directory"/>'s full path
 		/// name matches one from <paramref name="versionList"/>, <c>false</c>
 		/// otherwise</returns>
-		/// <seealso cref="DataDirectory.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
+		/// <seealso cref="DataSource.IsIncluded(DirectoryInfo, List{DirectoryInfo})"/>
 		bool IsIncluded( DirectoryInfo directory, Dictionary<string, List<DirectoryInfo>> versionList ) {
 			foreach ( List<DirectoryInfo> dirlist in versionList.Values ) {
 				if ( IsIncluded( directory, dirlist ) ) return true;
@@ -184,7 +184,7 @@ namespace Mffer {
 		/// A version directory must have a name that ends in a version string
 		/// (any string starting with a digit) and have a subdirectory named
 		/// <c>assets</c>. The
-		/// <see cref="DataDirectory.IsVersionDirectory(DirectoryInfo)"/>
+		/// <see cref="DataSource.IsVersionDirectory(DirectoryInfo)"/>
 		/// utility method determines whether <paramref name="directory"/>
 		/// meets these criteria.
 		/// </remarks>
@@ -204,7 +204,7 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Throws an exception identifying an invalid <see cref="DataDirectory"/>
+		/// Throws an exception identifying an invalid <see cref="DataSource"/>
 		/// </summary>
 		void ThrowBadDataDir() {
 			throw new ApplicationException( $"Unable to define structure of data directory." );
