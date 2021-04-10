@@ -102,7 +102,7 @@ namespace Mffer {
 		/// Represents a single version of a <see cref="Game"/>
 		/// </summary>
 		/// <remarks>
-		/// This is a private class. Different versions of a game may vary in
+		/// Different versions of a game may vary in
 		/// nearly all data; almost all game data are contained within a
 		/// <see cref="Version"/>, including the various <see cref="Component"/>s
 		/// and <see cref="AssetFile"/>s. Methods allow loading data from a
