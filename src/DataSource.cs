@@ -13,9 +13,10 @@ namespace Mffer {
 	/// Provides a store of extracted <see cref="Game"/> data
 	/// </summary>
 	/// <remarks>
-	/// <para>A <see cref="DataSource"/> is made up of a list of
-	/// filesystem <see cref="DirectoryInfo"/> (directory) objects
-	/// <see cref="dirs"/>, each of which is either a "version directory" or
+	/// <para>All filesystem interaction should be performed via this class. A
+	/// <see cref="DataSource"/> is made up of a list of filesystem
+	/// <see cref="DirectoryInfo"/> (directory) objects
+	/// <see cref="Directories"/>, each of which is either a "version directory" or
 	/// a parent of one or more version directories. Version directories are
 	/// filesystem directories (presented as a list of
 	/// <see cref="DirectoryInfo"/> objects, <see cref="versionDirs"/>) that
@@ -36,7 +37,7 @@ namespace Mffer {
 		/// <see cref="DataSource"/>
 		/// </summary>
 		/// <seealso cref="DataSource.Add(string)"/>
-		List<DirectoryInfo> dirs { get; set; }
+		List<DirectoryInfo> Directories { get; set; }
 		/// <summary>
 		/// Gets or sets the list of version directories represented by this
 		/// <see cref="DataSource"/>
@@ -52,7 +53,7 @@ namespace Mffer {
 		/// <param name="pathName">The full path name of a version directory or
 		/// parent of one or more version directories</param>
 		public DataSource( string pathName ) {
-			dirs = new List<DirectoryInfo>();
+			Directories = new List<DirectoryInfo>();
 			versionDirs = new Dictionary<string, List<DirectoryInfo>>();
 			Add( pathName );
 		}
@@ -68,7 +69,7 @@ namespace Mffer {
 				throw new DirectoryNotFoundException( $"Unable to access directory {pathName}" );
 			} else {
 				DirectoryInfo dir = new DirectoryInfo( pathName );
-				if ( !IsIncluded( dir, dirs ) ) {
+				if ( !IsIncluded( dir, Directories ) ) {
 					if ( IsVersionDirectory( dir ) ) {
 						AddVersionDirectory( dir );
 					} else {
@@ -86,7 +87,7 @@ namespace Mffer {
 							}
 						}
 					}
-					dirs.Add( dir );
+					Directories.Add( dir );
 				}
 			}
 		}
