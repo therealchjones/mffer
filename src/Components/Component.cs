@@ -31,7 +31,7 @@ namespace Mffer {
 		/// <see cref="AssetFile"/>s and place them into the associated values of
 		/// <see cref="BackingAssets"/>.
 		/// </remarks>
-		public Dictionary<string, AssetFile> BackingAssets { get; set; }
+		public Dictionary<string, GameObject> BackingAssets { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
 		/// by this <see cref="Component"/>, indexed by name.
@@ -49,7 +49,7 @@ namespace Mffer {
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
 		public Component() {
-			BackingAssets = new Dictionary<string, AssetFile>();
+			BackingAssets = new Dictionary<string, GameObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
 		/// <summary>
@@ -139,7 +139,7 @@ namespace Mffer {
 		/// <see cref="Game.Version.Components"/>, both
 		/// <see cref="BackingAssets"/> and <see cref="Dependencies"/> must be
 		/// loaded by an ancestor instance (e.g., via
-		/// <see cref="Game.Version.LoadComponent(Game.Component)"/>) before
+		/// <see cref="Game.Version.LoadComponent(Component)"/>) before
 		/// <see cref="Component.Load()"/> can successfully run.
 		/// </remarks>
 		/// <exception cref="System.ApplicationException">Thrown if objects
@@ -149,7 +149,7 @@ namespace Mffer {
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
 			if ( BackingAssets.Count != 0 ) {
-				foreach ( KeyValuePair<string, AssetFile> item in BackingAssets ) {
+				foreach ( KeyValuePair<string, GameObject> item in BackingAssets ) {
 					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
 						BackingAssets.Remove( item.Key );
 					} else {

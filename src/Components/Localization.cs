@@ -51,7 +51,7 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			AssetObject DictionaryAsset = BackingAssets.First().Value;
+			AssetObject DictionaryAsset = (AssetObject)BackingAssets.First().Value;
 			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
 			// 6.7.0; will have to manage differently
 			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {

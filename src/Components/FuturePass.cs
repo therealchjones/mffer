@@ -51,26 +51,26 @@ namespace Mffer {
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
-			foreach ( AssetObject seasonAsset in BackingAssets["text/data/future_pass.asset"].Properties["list"].Array ) {
+			foreach ( AssetObject seasonAsset in ( (AssetObject)BackingAssets["text/data/future_pass.asset"] ).Properties["list"].Array ) {
 				FuturePassSeason season = new FuturePassSeason();
 				season.Load( seasonAsset );
 				Seasons.Add( season );
 			}
-			foreach ( AssetObject stepAsset in BackingAssets["text/data/future_pass_step.asset"].Properties["list"].Array ) {
+			foreach ( AssetObject stepAsset in ( (AssetObject)BackingAssets["text/data/future_pass_step.asset"] ).Properties["list"].Array ) {
 				FuturePassStep step = new FuturePassStep();
 				step.passPoint = Int32.Parse( stepAsset.Properties["data"].Properties["passPoint"].String );
 				step.step = Int32.Parse( stepAsset.Properties["data"].Properties["step"].String );
 				step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
 				Steps[step.step - 1] = step;
 			}
-			foreach ( AssetObject rewardAsset in BackingAssets["text/data/future_pass_reward.asset"].Properties["list"].Array ) {
+			foreach ( AssetObject rewardAsset in ( (AssetObject)BackingAssets["text/data/future_pass_reward.asset"] ).Properties["list"].Array ) {
 				FuturePassReward reward = new FuturePassReward();
 				reward.Load( rewardAsset );
 				FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.Properties["data"].Properties["grade"].String );
 				int step = Int32.Parse( rewardAsset.Properties["data"].Properties["step"].String );
 				Steps[step - 1].Rewards[level] = reward;
 			}
-			foreach ( AssetObject stageAsset in BackingAssets["text/data/future_pass_contents.asset"].Properties["list"].Array ) {
+			foreach ( AssetObject stageAsset in ( (AssetObject)BackingAssets["text/data/future_pass_contents.asset"] ).Properties["list"].Array ) {
 				int sceneId = Int32.Parse( stageAsset.Properties["data"].Properties["sceneId"].String );
 				int stagePoints = Int32.Parse( stageAsset.Properties["data"].Properties["passPoint"].String );
 				StagePoints.Add( sceneId, stagePoints );

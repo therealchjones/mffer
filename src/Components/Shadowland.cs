@@ -28,8 +28,8 @@ namespace Mffer {
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
-			List<AssetObject> shadowlandFloors = BackingAssets["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
-			List<AssetObject> shadowlandRewards = BackingAssets["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
+			List<AssetObject> shadowlandFloors = ( (AssetObject)BackingAssets["text/data/shadowland_floor.csv"] ).Properties["m_Script"].Array;
+			List<AssetObject> shadowlandRewards = ( (AssetObject)BackingAssets["text/data/shadowland_reward.csv"] ).Properties["m_Script"].Array;
 			for ( int floorNum = 0; floorNum < BaseFloors.Length; floorNum++ ) {
 				ShadowlandFloor floor = new ShadowlandFloor();
 				floor.FloorNumber = floorNum + 1;

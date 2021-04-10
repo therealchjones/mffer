@@ -54,7 +54,7 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
+			AssetObject asset = ( (AssetObject)BackingAssets["IntHeroDataDictionary"] ).Properties["values"].Properties["Array"];
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
 			foreach ( AssetObject entry in asset.Array ) {
