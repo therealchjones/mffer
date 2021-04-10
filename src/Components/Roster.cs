@@ -470,5 +470,51 @@ namespace Mffer {
 			SkillId = skillId;
 		}
 	}
-
+	/// <summary>
+	/// Represents a skill (ability) available for a <see cref="Character"/>
+	/// </summary>
+	public class AbilityGroup {
+		/// <summary>
+		/// Gets or sets the ability group ID for this
+		/// <see cref="AbilityGroup"/>
+		/// </summary>
+		public int groupId { get; set; }
+		/// <summary>
+		/// Gets or sets the ability ID for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public int abilityId { get; set; }
+		/// <summary>
+		/// Gets or sets the time of action for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public long time { get; set; }
+		/// <summary>
+		/// Gets or sets the "tick" for this <see cref="AbilityGroup"/>
+		/// </summary>
+		public long tick { get; set; }
+		/// <summary>
+		/// Gets or sets whether this <see cref="AbilityGroup"/>'s action
+		/// continues when tagging a new <see cref="Character"/>
+		/// </summary>
+		public bool keepWhenTagging { get; set; }
+		/// <summary>
+		/// Geets or sets whether this <see cref="AbilityGroup"/>'s effect is
+		/// disabled
+		/// </summary>
+		public bool isEffectDisable { get; set; }
+		/// <summary>
+		/// Loads data into this <see cref="AbilityGroup"/> instance
+		/// </summary>
+		/// <param name="assetObject"><see cref="AssetObject"/> containing the
+		/// data to be loaded</param>
+		public void Load( AssetObject assetObject ) {
+			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
+			AssetObject abilityGroup = assetObject.Properties["data"];
+			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
+			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );
+			this.time = Int64.Parse( abilityGroup.Properties["time"].String );
+			this.tick = Int64.Parse( abilityGroup.Properties["tick"].String );
+			this.keepWhenTagging = Boolean.Parse( abilityGroup.Properties["keepWhenTagging"].String );
+			this.isEffectDisable = Boolean.Parse( abilityGroup.Properties["isEffectDisable"].String );
+		}
+	}
 }
