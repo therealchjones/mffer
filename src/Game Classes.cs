@@ -647,6 +647,7 @@ namespace Mffer {
 			Name = "Roster";
 			Characters = new Dictionary<string, Character>();
 			AddBackingAsset( "IntHeroDataDictionary" );
+			AddBackingAsset( "PotentialAwakeningDataList" );
 			AddDependency( "Localization" );
 		}
 		/// <summary>
@@ -898,6 +899,9 @@ namespace Mffer {
 				throw new Exception( $"No uniforms found for character {BaseName} (groupId {GroupId})" );
 			}
 		}
+		public int MaxGrade { get; }
+		public int MaxHeroId { get; }
+		public int StartTier { get; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Character"/> class
 		/// </summary>

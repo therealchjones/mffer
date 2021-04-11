@@ -1,0 +1,18 @@
+#!/bin/sh
+
+if [ "1" != "$#" ]; then
+	echo 'Usage: '"$(basename "$0")"' webapp_directory' >&2
+	exit 1
+fi
+
+WEBAPPDIR="$1"
+if [ ! -d "$WEBAPPDIR" ]; then
+	echo "Unable to find webapp in $WEBAPPDIR" >&2
+	exit 1
+fi
+
+CLASP="$(dirname "$0")"/tools/node_modules/.bin/clasp
+if [ ! -x "$CLASP" ]; then
+	echo "Unable to find clasp." >&2
+	exit 1
+fi

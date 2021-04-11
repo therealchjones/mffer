@@ -11,7 +11,11 @@
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary"
 			],
-			"problemMatcher": "$msCompile"
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		},
 		{
 			"label": "publish",
@@ -39,14 +43,14 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
-			"label": "download",
+			"label": "pull",
 			"type": "shell",
-			"command": "../../tools/node_modules/.bin/clasp",
+			"command": "${workspaceFolder}/tools/node_modules/.bin/clasp",
 			"args": [
 				"pull"
 			],
 			"options": {
-				"cwd": "src/webapp"
+				"cwd": "${workspaceFolder}/src/webapp"
 			},
 			"detail": "Pull the latest webapp code from Google Apps Script",
 			"runOptions": {
