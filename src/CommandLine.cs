@@ -36,7 +36,7 @@ namespace CommandLine {
 		/// parameters, to a string
 		/// </summary>
 		public override string ToString() {
-			return "Usage: mffer [-h] [--datadir data_directory] [--savedir output_directory]";
+			return "Usage: mffer [-h] --datadir data_directory --savedir output_directory";
 		}
 	}
 	/// <summary>
