@@ -1,18 +1,28 @@
 #!/bin/sh
 
-if [ "1" != "$#" ]; then
-	echo 'Usage: '"$(basename "$0")"' webapp_directory' >&2
-	exit 1
-fi
+# This should be run from the root/workspace folder
 
-WEBAPPDIR="$1"
+ROOTDIR="$PWD"
+WEBAPPDIR="$ROOTDIR"/src/webapp
+CLASP="$ROOTDIR"/tools/node_modules/.bin/clasp
+
 if [ ! -d "$WEBAPPDIR" ]; then
 	echo "Unable to find webapp in $WEBAPPDIR" >&2
 	exit 1
 fi
 
-CLASP="$(dirname "$0")"/tools/node_modules/.bin/clasp
 if [ ! -x "$CLASP" ]; then
-	echo "Unable to find clasp." >&2
+	echo "Unable to find clasp at $CLASP." >&2
 	exit 1
 fi
+
+cd "$WEBAPPDIR" || {
+	echo "Unable to enter directory '$WEBAPPDIR'" >&2
+	exit 1
+}
+
+if [ "You are not logged in." = "$("$CLASP" login --status)" ]; then
+	"$CLASP" login
+fi
+
+"$CLASP" push

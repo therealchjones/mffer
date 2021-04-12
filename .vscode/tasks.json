@@ -43,16 +43,13 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
-			"label": "pull",
+			"label": "push webapp",
 			"type": "shell",
-			"command": "${workspaceFolder}/tools/node_modules/.bin/clasp",
-			"args": [
-				"pull"
-			],
+			"command": "${workspaceFolder}/tools/pushwebapp",
 			"options": {
-				"cwd": "${workspaceFolder}/src/webapp"
+				"cwd": "${workspaceFolder}"
 			},
-			"detail": "Pull the latest webapp code from Google Apps Script",
+			"detail": "Push the latest webapp code to Google Apps Script",
 			"runOptions": {
 				"instanceLimit": 1
 			},
@@ -65,7 +62,8 @@
 				"clear": false
 			},
 			"isBackground": false,
-			"promptOnClose": true
+			"promptOnClose": true,
+			"problemMatcher": []
 		}
 	]
 }
