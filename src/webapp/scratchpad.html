@@ -1,0 +1,126 @@
+<!--
+
+
+    TODO
+automatically show available good/meta/teams?
+Recommended Teams:
+prior success
+likely success
+experimental
+
+
+Finish inputting character info
+
+
+/***
+TODO:
+- sidebar for important content on pages, especially for pages like Heroic Quests where you have to scroll a lot
+- - base it on active sheet instead of what is clicked on? Unsure how to generate "dynamic" content that doesn't
+- - involve clicking on a link, such as time based or when clicking on a tab
+- anything here that needs much of an interface (like the calculators) should be deployed as web apps instead
+- make stuff into more manageable included script files and/or libraries? (Apparently all share namespace, can just
+have multiple .gs files?
+- refactor, starting with webapp, more modular, in different files
+- would like to find some way to code in better editor, maybe xcode?
+***/
+
+	Of note, scripts seem to appropriately wait until the spreadsheet has finished calculating before getting values
+tested this with a "test calc" loop that took several seconds to run, which caused the script to take several seconds,
+but it returned the right (new) value
+
+
+// an onEdit trigger to allow a radio-button-like checkbox on the Shadowland Calculator
+/*
+function onEdit(e) {
+  if ( e ) {
+    var range = e.range;
+    if ( range.getGridId() == SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Shadowland Calculator').getSheetId() ) {
+      var radioRange = range.getSheet().getRange("'Shadowland Calculator'!E6:E");
+      var selected = rangeIntersection( range, radioRange );
+      if ( selected ) {
+        var values = selected.getValues();
+        var rows = selected.getHeight();
+        Logger.log("Rows: " + rows)
+        var cols = selected.getWidth();
+        var i=0,j=0;
+        out:
+        for ( i; i<rows; i++ ) {
+          for ( j; j<cols; j++ ) {
+            if ( values[i][j] == true ) { break out; }
+          }
+        }
+        if ( values[i][j] == true ) {
+          // then uncheck all the other cells in the radio-button-like area
+          radioRange.uncheck();
+          selected.getCell(i+1,j+1).check();
+        }
+      } else {
+        return;
+      }
+    } else {
+      return;
+    }
+  } else {
+    return;
+  }
+}
+*/
+
+/* Check to see if the spreadsheet's open and if so warn the user we're about to start
+ * maintenance, allow delay/proceed
+ */
+function warnForMaintenance() {
+  /* if ( currentRange.getRanges().length > 1 || currentRange.getRanges()[0].getWidth() > 1 ) {
+     var ui=SpreadsheetApp.getUi();
+     ui.alert("Error", "This macro works only when selecting contiguous cells from a single column", ui.ButtonSet.OK );
+     return false;
+   } */
+}
+// Takes array of characters and makes teams of three (one leader and two others)
+// each team is a one-to-three-entry array; returns an array of the teams
+function makeTeams( characters ) {
+  var teams = [];
+  for ( var leader of characters ) {
+    teams.push( [ leader ] );
+    for ( var teammember2 of characters ) {
+      if ( teammember2 != leader ) {
+        teams.push( [ leader, teammember2 ] );
+        for ( var teammember3 of characters ) {
+          if ( characters.indexOf( teammember3 ) > characters.indexOf( teammember2 ) ) {
+            if ( teammember3 != leader ) {
+              teams.push( [ leader, teammember2, teammember3 ] );
+            }
+          }
+        }
+      }
+    }
+  }
+  return teams;
+}
+
+function testTeams() {
+  var characters = [ 1, 2, 3 ];
+  var teams = makeTeams( characters );
+  for ( var team of teams ) {
+    console.log( team );
+  }
+}
+
+function checkAllTeams() {
+  var spreadsheet = SpreadsheetApp.openById("[spreadsheet ID not specified]");
+  var range = spreadsheet.getSheetByName('Characters').getRange('$A$2:$A').getValues();
+  var characters = [];
+  for ( var characterArray of range ) {
+    var character = characterArray[0];
+    if ( character != "" ) {
+      characters.push( characterArray[0] );
+    }
+  }
+  console.log("Total: " + characters.length + " characters");
+  var teams = makeTeams( characters );
+  console.log("Total: " + teams.length + " teams");
+  console.log("A sample: ");
+  console.log( teams[ Math.floor(Math.random()*teams.length)] );
+}
+
+-->
