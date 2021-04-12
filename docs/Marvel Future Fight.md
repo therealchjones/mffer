@@ -24,4 +24,24 @@ understanding the programmed mechanics of the game.
 
 ## Unity
 
-## IL2CPP
+### Assets & Asset Bundles
+
+### IL2CPP
+
+## The `mffer` Model
+
+-   `Game` (Marvel Future Fight)
+    -   contains one or more `Version`s
+        -   each of which has several `Component`s such as:
+            -   `Roster`, the group of playable `Character`s
+            -   `Shadowland` and other game styles
+            -   A `Localization` dictionary to translate strings
+    -   has one or more `Player`s
+    -   gets its data from a `DataStore`, a set of directories on a filesystem that contain
+        -   `AssetFiles` (each of which is associated with a `Version`), which recursively contain many
+            -   `AssetObject`s
+
+A fully detailed description of the types (and their associated members) is
+available in the API reference. Of note, while these are quite clearly arranged
+hierarchically in `mffer` conceptually, this does not imply that the types
+themselves are nested; they are generally not nested in Marvel Future Fight code.

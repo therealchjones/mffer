@@ -33,8 +33,18 @@ download and extract game data
     -   platform tools: adb
     -   platforms: android-30
     -   system-images: android-30;google_apis_playstore;x86 and android-30;google_apis;x86'
+-   Java runtime or SDK (required by Android command line tools)
 -   il2cppdumper
 -   UABE (Windows)
+
+At least macOS and most Linux distributions satisfy the needs for the initial
+environment. They may require installation of a Java runtime (or SDK) if one is
+not already installed. The Java requirement is for the Android command line
+tools, but Java may be useful for other items of interest to those using mffer, such as the ghidra disassembler. We recommend the OpenJDK 11 distribution freely available from (AdoptOpenJDK)[AdoptOpenJDK.com] at [https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot].
+
+The (Android command-line tools)[https://developer.android.com/studio/command-line] are part of Android Studio, but may also be obtained separately from the larger application at [https://developer.android.com/studio#command-tools]. This basic package includes `sdkmanager` which `autoextract` will automatically use to update the command-line tools themselves as well as obtain temporary copies of all the other Android SDK packages required to run the Android emulator and extract the Marvel Future Fight data from it.
+
+il2cppdumper and UABE are required for the initial processing of the MFF data after it's been extracted from the Android systems. Terminal instructions for using these are provided when appropriate during `autoextract`'s run.
 
 #### Usage
 

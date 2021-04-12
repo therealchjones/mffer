@@ -19,7 +19,7 @@ namespace Mffer {
 			string dataDir = cmdLine.GetOption( "datadir" );
 			string saveDir = cmdLine.GetOption( "outputdir" );
 			if ( string.IsNullOrEmpty( dataDir ) || string.IsNullOrEmpty( saveDir ) ) {
-				System.Console.Error.WriteLine( "Usage: mffer --dataDir data_directory --outputDir output_directory" );
+				System.Console.Error.WriteLine( "Usage: mffer --datadir data_directory --outputdir output_directory" );
 				return 1;
 			}
 			if ( !Directory.Exists( dataDir ) ) {
