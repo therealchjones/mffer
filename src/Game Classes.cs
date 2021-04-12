@@ -617,20 +617,21 @@ namespace Mffer {
 		}
 	}
 	/// <summary>
-	/// Represents a collection of all playable characters in the
-	/// <see cref="Game"/>
+	/// Represents a collection of all playable characters in the <see
+	/// cref="Game"/>
 	/// </summary>
 	/// <remarks>
 	/// <para><see cref="Roster"/> is derived from the <see cref="Component"/>
 	/// class and includes methods to load and present data about the
 	/// <see cref="Game"/>'s characters.</para>
-	/// <para>The data model for the <c>Roster</c> is hierarchical; each
+	/// <para>The data model for the <see cref="Roster"/> is hierarchical; each
 	/// <see cref="Character"/> has multiple <see cref="Uniform"/>s, each of
 	/// which has different properties associated with different
-	/// <see cref="CharacterLevel"/>s. Each type has several properties that
-	/// do not vary between descendants of that type. For instance, the
-	/// <see cref="Uniform.Gender"/> of a given <c>Character</c> and <c>Uniform</c> is
-	/// the same regardless of <c>CharacterLevel</c>.</para>
+	/// <see cref="CharacterLevel"/>s. Each type has several properties that do not
+	/// vary between descendants of that type. For instance, the
+	/// <see cref="Uniform.Gender"/> of a given <see cref="Character"/> and
+	/// <see cref="Uniform"/> is the same regardless of
+	/// <see cref="CharacterLevel"/>.</para>
 	/// </remarks>
 	public class Roster : Component {
 		/// <summary>
@@ -1466,7 +1467,7 @@ namespace Mffer {
 	/// </summary>
 	public class MyCharacter {
 		/// <summary>
-		/// Gets or sets the <see cref="Character"/> to whiche the settings in
+		/// Gets or sets the <see cref="Character"/> to which the settings in
 		/// this <see cref="MyCharacter"/> instance apply
 		/// </summary>
 		public Character BaseCharacter { get; set; }
