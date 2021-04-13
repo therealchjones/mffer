@@ -37,6 +37,33 @@
 				"/consoleloggerparameters:NoSummary"
 			],
 			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "build API documentation",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"xmldocmd",
+				"${workspaceFolder}/bin/Debug/netcoreapp3.1/mffer.dll",
+				"${workspaceFolder}/docs/api",
+				"--visibility",
+				"private",
+				"--source",
+				"https://github.com/therealchjones/mffer",
+				"--clean",
+				"--permalink",
+				"pretty",
+				"--namespace-pages"
+			],
+			"detail": "generates Markdown-formatted API documentation from the XML comments",
+			"options": {
+				"cwd": "${workspaceFolder}/tools"
+			},
+			"promptOnClose": true,
+			"runOptions": {
+				"instanceLimit": 1
+			},
+			"problemMatcher": []
 		}
 	]
 }
