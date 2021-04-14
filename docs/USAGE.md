@@ -1,91 +1,170 @@
-# mffer: Marvel Future Fight Extraction & Reporting
+# Using `mffer`
 
-mffer update
-mffer new
-mffer record (add new raw data)
-mffer component componentName (eval/print componentName)
+There are several possible uses for the `mffer` project. A few are readily
+apparent, and the workflows for those are described here, with references to
+related documents as needed. In brief, these are:
 
-Usage instructions: (should guide the design of the code)
+-   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future Fight data
+-   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools) to extract and report Marvel Future Fight
+    data
+-   [Using the `mffer` library](#using-the-mffer-library) to develop a custom program
 
--   How to use the GUI/Webapp (if it’s not inuitive, make it better)
--   “ command line (verbs, options, arguments)
--   “ Library (via program.cs) (Library API similar to command line)
--   How to add a component via program.cs (basic component class API)
--   How to add a component via a new class (standard class inheritance)
--   How to contribute to the base (basic coding guidelines/formatting)
+Additionally, `mffer` code may be useful to those trying to explore Marvel
+Future Fight, explore similar apps, or contribute to `mffer` itself. For these
+topics, refer to the [Development guide](Development.md).
 
-## Requirements
+## Using the `mffer` webapp
 
-## Installation
+The `mffer` webapp is at https://mffer.org.
 
-## Workflow
+The webapp should be intuitive. If additional explanation is required here for
+proper use, that is due to limitations of the developers, not the users; please
+consider [filing an issue](https://github.com/therealchjones/mffer/issues) if
+something is unclear.
 
-### autoextract
+Please see also the [brief `mffer` webapp manual](webapp.md)
 
-download and extract game data
+## Using the `mffer` command line tools
 
-#### Requirements
+The `mffer` command line tools obtain the latest version of Marvel Future Fight,
+extract its usable data, process the data into a format suitable for human
+review or computer use, and deploy a webapp that presents the data to users for
+review and interaction. This may be useful for putting a copy of the webapp on a
+different server, for reviewing the raw data, or for testing when changing the
+underlying code. It is not necessary to use the command line tools to [just use
+the webapp yourself](https://mffer.org).
 
--   POSIX sh and typical development environment (in addition to POSIX, at least mktemp and tar are needed)
--   Android SDK or Android Studio with command line tools
-    -   command-line tools: sdkmanager, avdmanager
-    -   emulator
-    -   platform tools: adb
-    -   platforms: android-30
-    -   system-images: android-30;google_apis_playstore;x86 and android-30;google_apis;x86'
--   Java runtime or SDK (required by Android command line tools)
--   il2cppdumper
--   UABE (Windows)
+### Obtaining the `mffer` command line tools
 
-At least macOS and most Linux distributions satisfy the needs for the initial
-environment. They may require installation of a Java runtime (or SDK) if one is
+The `mffer` command line tools can be downloaded from GitHub and built; see the
+[Development guide](Development.md) for details.
+
+### Installation
+
+No installation is needed. After cloning the GitHub repository into a directory
+_`mffer`_ and building the tools (as described in the [Development
+guide](Development.md)), the tools are available at the following paths:
+
+|               |                                               |
+| ------------- | --------------------------------------------- |
+| `autoextract` | _`mffer`_`/src/autoextract`                   |
+| `mffer`       | _`mffer`_`/bin/Debug/netcoreapp3.1/mffer.dll` |
+
+### Requirements
+
+-   POSIX sh and typical development environment
+-   [Android Studio](https://developer.android.com/studio/) or standalone
+    [Android command-line
+    tools](https://developer.android.com/studio/#command-tools)
+-   Java runtime or SDK
+    (required by standalone Android command-line tools but included in Android Studio)
+-   [UABE](https://github.com/DerPopo/UABE)
+-   .NET Core 3.1 SDK
+
+macOS and most Linux distributions satisfy the needs for the initial
+environment. (In addition to the defined [POSIX
+utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar` and
+`mktemp` are used.) They may
+require installation of a Java runtime (or SDK) if one is
 not already installed. The Java requirement is for the Android command line
-tools, but Java may be useful for other items of interest to those using mffer, such as the ghidra disassembler. We recommend the OpenJDK 11 distribution freely available from (AdoptOpenJDK)[AdoptOpenJDK.com] at [https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot].
+tools (unless using the command line tools within Android Studio), but Java may be useful for other items of interest to those using mffer,
+such as the [ghidra disassembler](https://github.com/NationalSecurityAgency/ghidra). We recommend the OpenJDK 11 distribution freely
+available from (AdoptOpenJDK)[AdoptOpenJDK.com] at
+https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot.
 
-The (Android command-line tools)[https://developer.android.com/studio/command-line] are part of Android Studio, but may also be obtained separately from the larger application at [https://developer.android.com/studio#command-tools]. This basic package includes `sdkmanager` which `autoextract` will automatically use to update the command-line tools themselves as well as obtain temporary copies of all the other Android SDK packages required to run the Android emulator and extract the Marvel Future Fight data from it.
+The [Android command-line
+tools](https://developer.android.com/studio/command-line] are part of Android
+Studio, but may also be obtained separately from the larger application at
+https://developer.android.com/studio#command-tools. This basic package includes
+`sdkmanager` which `autoextract` will automatically use to update the
+command-line tools themselves as well as obtain temporary copies of all the
+other Android SDK packages required to run the Android emulator and extract the
+Marvel Future Fight data from it. `autoextract` will run an Android emulator
+automatically; unfortunately, this will not likely work within another emulator
+or virtual machine such as VirtualBox or Parallels. UABE is required for the
+initial processing of the MFF data after it's been extracted from the Android
+systems. UABE requires a Microsoft Windows environment, but works adequately
+within a virtual machine.
 
-il2cppdumper and UABE are required for the initial processing of the MFF data after it's been extracted from the Android systems. Terminal instructions for using these are provided when appropriate during `autoextract`'s run.
+### Workflow
 
-#### Usage
+1. Use `autoextract` to download and extract the latest Marvel Future Fight data
+   files:
 
-Run `autoextract -o ~/mff-data` or similar, then follow the instructions on the terminal.
+    ```shell
+    $ autoextract -o output_directory
+    ```
 
-```
-autoextract [-v] -o output_directory
-autoextract -h
-```
+    It will likely be several minutes before any output is displayed in the
+    terminal; if you'd like a few brief "status" messages while waiting to report
+    the current steps in the process, add the `-v` option. For example:
 
-```
-mandatory arguments:
-	-o output_directory
-	    place device-files/ and data/ directories into output_directory
-options:
-	-h	print this summarized help message
-	-v	print progress information; specify twice for debug output
-```
+    ```shell
+    $ ./autoextract -v -o ../data
+    Accepting Android command line tool licenses
+    Getting updated Android command line tools
+    Getting Android emulator and platform tools
+    Getting Android system images
+    ```
 
-### mffer
+    Adding `-v` again will add a great deal more output in the "debug" style,
+    including echoing all the shell commands and printing the "verbose" output
+    for other utilities that are called.
 
-process Marvel Future Fight data
+    Once tools have been downloaded and set up, an Android emulator will start,
+    and the terminal will direct you in the next steps:
 
-#### Requirements
+    ```shell
+    ************* USER INTERACTION REQUIRED *************
+    On the emulator, open the Google Play Store app, sign
+    in, and install the latest version of Marvel Future
+    Fight. Leave the emulator running.
+    ******************************************************
 
--   .NET Core 3.1 or .NET 5.0 or later
+    Press <enter> or <return> when that is complete.
+    ```
 
-#### Usage
+    Similar steps will occur a few more times; follow the directions to complete
+    obtaining and extracting the Marvel Future Fight files, which will be placed
+    into the _`output_directory`_`/MFF-data-`_`version`_ directory.
 
-Run `dotnet mffer.dll --datadir ~/mff-data --outputdir ~/mff-output` and wait. A while.
+2. Use `mffer` to process the extracted files:
 
-(It may be necessary to customize settings in Program.cs and build first, and is
-certainly necessary to download and extract data first. See
-(autoextract)[#autoextract]. )
+    ```shell
+    $ dotnet run mffer.dll --datadir data_directory --outputdir output_directory
+    ```
 
-```
-mffer --datadir data_directory --outputdir output_directory
-```
+    where _`data_directory`_ is the directory containing the files created by
+    `autoextract` (which was, of course, labelled _`output_directory`_ in that
+    step).
 
-### Google Apps Script & G Suite
+    `mffer` will take a potentially great deal of time to load the files from
+    _`data_directory`_, process them, and write new files to
+    _`output_directory`_. When complete, _`output_directory`_ will contain
+    `Marvel Future Fight.json`, a large file with the amalgamated data from all
+    the _`data_directory`_ files. It will also have one or more
+    `roster-`_`version`_`.csv` files containing information about the playable
+    characters in the game.
 
-use Marvel Future Fight data for game decisions
+3. Import `roster-`_`version`_`.csv` into Google Sheets to explore and use it in
+   a webapp.
 
-## See Also
+## Using the `mffer` library
+
+`mffer` is not built as a shareable library, but the source can be used for
+development of other tools. See the [Development guide](Development.md) for details.
+
+## Reviewing & changing `mffer` code
+
+Source code for the `mffer` project is available [on
+GitHub](https://github.com/therealchjones/mffer). Details regarding the code,
+from high-level design to appropriate indentation (tabs), are in the
+[Development guide](Development.md).
+
+## See also
+
+### Brief manuals
+
+-   [`autoextract`](autoextract.md)
+-   [`mffer`](mffer.md)
+-   [`mffer` webapp](webapp.md)

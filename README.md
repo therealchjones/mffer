@@ -2,6 +2,8 @@
 
 Marvel Future Fight extraction & reporting
 
+This project develops software that creates and updates the [mffer webapp](https://mffer.org). It is not necessary to review any of this to [use the webapp](https://mffer.org).
+
 This is a _brief_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project. A more [comprehensive README document](docs/README.md) is available in the [docs directory](docs/).
 
 ## Marvel Future Fight
@@ -32,4 +34,4 @@ The project may only be useful to developers. Detailed usage instructions for th
 
 ## Contributing
 
-Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has information for contributors with any level of experience. Use [the issues tracker] for any and all questions and comments, or email <chjones@aleph0.com>.
+Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has information for contributors with any level of experience. Use [the issues tracker](https://github.com/therealchjones/mffer/issues) for any and all questions and comments, or email <chjones@aleph0.com>.

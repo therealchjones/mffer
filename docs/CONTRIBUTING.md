@@ -50,6 +50,10 @@ Finally, bask in the warmth that comes from making a contribution to your compat
 
 And maybe you have another idea...
 
+## Copyright
+
+`mffer` is released into the "public domain" where such a thing exists; for the sake of formality, see [the CC0 license](../LICENSE). Further details about how this may effect your contributions are in the [Development guide](Development.md).
+
 ## Contact
 
 Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.

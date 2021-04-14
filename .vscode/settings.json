@@ -25,9 +25,6 @@
 	// Extension settings
 	/****************************************/
 	"markdown.extension.toc.omittedFromToc": {
-		"docs/CONTRIBUTING.md": [
-			"## Table of Contents"
-		],
 		"docs/README.md": [
 			"## Table of Contents"
 		]

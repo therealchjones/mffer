@@ -7,11 +7,6 @@ $ dotnet run mffer --datadir data_directory --outputdir output_directory
 $ dotnet run mffer -h
 ```
 
-- [Description](#description)
-- [Options](#options)
-- [Extended Description](#extended-description)
-- [Requirements](#requirements)
-
 ## Description
 
 `mffer` is the command-line workhorse of the [`mffer`
@@ -63,3 +58,7 @@ program. Additionally, `mffer` is most useful in processing output from
 functionality of `mffer` (and thus neither are its many requirements), obtaining
 and structuring the data from Marvel Future Fight to match the output of
 `autoextract` is somewhat more cumbersome.
+
+## See Also
+
+Other concepts, examples, and workflows including `mffer` are in the [Usage guide](USAGE.md).

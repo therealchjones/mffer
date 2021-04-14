@@ -1,6 +1,8 @@
 # mffer: Marvel Future Fight Extraction & Reporting
 
-This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project. A more concise [README document](../README.md) is available in the [root directory](../).
+This project develops software that creates and updates the [mffer webapp](https://mffer.org). It is not necessary to review any of this to [use the webapp](https://mffer.org).
+
+This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project with references to all other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
 
 ## Marvel Future Fight
 
@@ -33,21 +35,21 @@ I welcome outside contributions, comments, questions, concerns, pull requests, a
 
 ## Table of Contents
 
--   [Marvel Future Fight](#marvel-future-fight)
--   [About mffer](#about-mffer)
--   [Usage](#usage)
--   [Contributing](#contributing)
--   [Marvel Future Fight](#marvel-future-fight-1)
--   [This Project](#this-project)
-    -   [Versioning](#versioning)
--   [Requirements](#requirements)
--   [Usage](#usage-1)
-    -   [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
-    -   [Exploring the Data](#exploring-the-data)
-    -   [Exploring the Code](#exploring-the-code)
-        -   [Il2CppDumper](#il2cppdumper)
-        -   [Ghidra](#ghidra)
-    -   [Using and Presenting the Data](#using-and-presenting-the-data)
+- [Marvel Future Fight](#marvel-future-fight)
+- [About mffer](#about-mffer)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Marvel Future Fight](#marvel-future-fight-1)
+- [This Project](#this-project)
+	- [Versioning](#versioning)
+- [Requirements](#requirements)
+- [Usage](#usage-1)
+	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
+	- [Exploring the Data](#exploring-the-data)
+	- [Exploring the Code](#exploring-the-code)
+		- [Il2CppDumper](#il2cppdumper)
+		- [Ghidra](#ghidra)
+	- [Using and Presenting the Data](#using-and-presenting-the-data)
 
 ## Marvel Future Fight
 

@@ -28,6 +28,11 @@ understanding the programmed mechanics of the game.
 
 ### IL2CPP
 
+## Gameplay
+
+List qualities/stats/skills/effects useful for PVE, PVP, and both
+Build on strengths rather than mitigating weaknesses, or mitigate only critical weaknesses
+
 ## The `mffer` Model
 
 -   `Game` (Marvel Future Fight)
@@ -113,3 +118,6 @@ hashed version of the internal string rather than the raw string value as the
 key. We assume that if the hash algorithm or dictionary structure changes again,
 loading the `Localization` component will simply fail with an exception rather
 than having a more subtle error.
+
+MFF analysis - important functions with lots of info:
+TableUtility$$LoadAll
