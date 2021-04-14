@@ -342,13 +342,13 @@ i=1
 if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 	DEVICEFILEDIR="$DEVICEFILEDIR-$i"
 fi
-while [ -d "$MFFOUTPUTDIR"/device-files/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
+while [ -d "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
 	i=$((i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 
-mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/device-files/"$DEVICEFILEDIR" || {
+mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" || {
 	echo "Unable to move device files to output directory " >&2
 	echo "'$MFFOUTPUTDIR/device-files'." >&2
 	echo 'Stopping here so as to avoid deleting them all.' >&2
@@ -362,14 +362,14 @@ echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'Use UABE (in Windows) to extract assets from the '
 echo ' device:'
-echo "Open '$MFFOUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
+echo "Open '$MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
 echo " decompress text as prompted to '$MFFOUTPUTDIR/data/$DATADIR/text'"
 echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$MFFOUTPUTDIR/data/$DATADIR/assets'"
-echo "Open $MFFOUTPUTDIR/device-files/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
-echo " decompress localization_en as prompted to '$MFFOUTPUTDIR/data/$DATADIR/localization_en'"
+echo " ->UABE JSON dump to '$MFFOUTPUTDIR/$DATADIR/assets'"
+echo "Open $MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
+echo " decompress localization_en as prompted to '$MFFOUTPUTDIR/$DATADIR/localization_en'"
 echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$MFFOUTPUTDIR/data/$DATADIR/assets'"
+echo " ->UABE JSON dump to '$MFFOUTPUTDIR/$DATADIR/assets'"
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'

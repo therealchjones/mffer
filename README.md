@@ -1,18 +1,18 @@
-# mffer
+# `mffer`
 
-Marvel Future Fight Extraction & Reporting
+Marvel Future Fight extraction & reporting
 
-This is a _brief_ overview of the [mffer](https://github.com/therealchjones/mffer) project. A more comprehensive [README document](docs/README.md) is available with [the other documentation](docs/) in the [docs directory](docs/).
+This is a _brief_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project. A more [comprehensive README document](docs/README.md) is available in the [docs directory](docs/).
 
 ## Marvel Future Fight
 
-[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game created with many industry-standard tools: it's coded in Java & C# for Unity and built with il2cpp, it's packaged as split APKs for Android from the Google Play Store, and it uses Facebook and proprietary servers for user and game data storage and communication. Even if you don't play MFF, the techniques used in this project for exploring the game may contain some useful knowledge.
+[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game created with many industry-standard tools: it's coded in Java & C# for Unity and built with IL2CPP, it's packaged as split APKs for Android from the Play Store, and it uses Facebook and proprietary servers for user and game data storage and communication. Even if you don't play MFF, the techniques used in this project for exploring the game may contain some useful knowledge.
 
 ## About mffer
 
-This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [NetMarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
+This project facilitates analysis of [Marvel Future Fight](#marvel-future-fight) and provides access to the data it uses for game play. This is almost certainly against the [NetMarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
 
-The project currently includes multiple components:
+The project includes:
 
 -   a [shell script](docs/autoextract.md) to obtain the Marvel Future Fight data files
 -   a [.NET console app](docs/mffer.md) to parse the data files into an open and usable format
@@ -20,15 +20,16 @@ The project currently includes multiple components:
 
 ## Usage
 
-The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer). Briefly:
+The project may only be useful to developers. Detailed usage instructions for the individual components are documented in [the above component documents](#about-mffer). Briefly:
 
-```
-$ autoextract [-v] -o data_directory
-$ dotnet run -- --datadir data_directory --outputdir output_directory
-```
-
-Then import the resulting CSV file(s) to a Google Sheet for further work.
+1.  ```shell
+    $ autoextract -o data_directory
+    ```
+2.  ```shell
+    $ dotnet run mffer --datadir data_directory --outputdir output_directory
+    ```
+3.  Import the resulting CSV file(s) to a Google Sheet for further work.
 
 ## Contributing
 
-I welcome outside contributions, comments, questions, concerns, pull requests, and so forth. At least, I would if this were a public project in a public repository, but because I prefer not to be booted from my favorite game, you'll likely never hear about it. However, in the hypothetical case you'd like to contribute to a project you've never heard of, you can hypothetically learn about the best way to do so by hypothetically reading [CONTRIBUTING](docs/CONTRIBUTING.md), to which you also don't have access. You can also hypothetically email me at <chjones@aleph0.com>.
+Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has information for contributors with any level of experience. Use [the issues tracker] for any and all questions and comments, or email <chjones@aleph0.com>.

@@ -36,7 +36,7 @@ namespace CommandLine {
 		/// parameters, to a string
 		/// </summary>
 		public override string ToString() {
-			return "Usage: mffer [-h] --datadir data_directory --savedir output_directory";
+			return "Usage: mffer [-h] --datadir data_directory --outputdir output_directory";
 		}
 	}
 	/// <summary>
@@ -156,7 +156,6 @@ namespace CommandLine {
 					case "/?":
 						break;
 					case "--datadir":
-					case "--savedir":
 					case "--outputdir":
 						option = Arguments[i].Substring( 2 );
 						if ( i == Arguments.Count - 1 ) {
