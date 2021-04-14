@@ -3,3 +3,5 @@
 /data/
 /output/
 /tools/node_modules/*
+/docs/api/*
+/src/webapp/.clasp.json
