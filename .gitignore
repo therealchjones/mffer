@@ -4,3 +4,4 @@
 /output/
 /tools/node_modules/*
 /src/webapp/.clasp.json
+/docs/api/
