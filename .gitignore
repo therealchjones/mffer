@@ -2,3 +2,6 @@
 /obj/
 /data/
 /output/
+/docs/api/
+/tools/node_modules/
+/src/webapp/.clasp.json
