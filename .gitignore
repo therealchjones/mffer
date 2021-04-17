@@ -5,4 +5,4 @@
 /tools/node_modules/*
 src/webapp/.clasp.json
 docs/api/
-/tools/package-lock.json
+tools/package-lock.json
