@@ -15,6 +15,7 @@
 - [Setting up an environment](#setting-up-an-environment)
 	- [Requirements](#requirements)
 	- [Recommendations](#recommendations)
+	- [Setting up a useful development system](#setting-up-a-useful-development-system)
 - [Writing documentation](#writing-documentation)
 	- [README](#readme)
 		- [At-a-glance](#at-a-glance)
@@ -80,10 +81,26 @@ doesn't have to be a "real issue" (though those are welcome as well).
 
 ## Setting up an environment
 
+Using exactly the same development tools as other developers is neither
+appropriate nor desired. Some overlap when working on the same project is
+needed, such as the expectation to use identical (or at least quite similar)
+runtimes. Others are personal preference, and somewhere between these extremes
+are tools that are not required but may make the work easier. When a tool is
+purely a matter of preference, it is included in these recommendations only if
+the project has included data to somehow enhance the use of that tool---for
+instance, the many extensions recommended for Visual Studio Code are not at all
+required, but the recommendations and associated settings are in the repository
+itself, so they're recommended here as well. Finally, remember that these are
+requirements and recommendations for full development of `mffer`, not
+necessarily just for building from source files, and certainly not just for
+running the programs.
+
 ### Requirements
 
+-   POSIX-compatible development environment (and several near-ubiquitous
+    POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
+    `mktemp`)
 -   .NET Core 3.1 SDK
--   POSIX-compatible development environment
 
 ### Recommendations
 
@@ -91,9 +108,22 @@ doesn't have to be a "real issue" (though those are welcome as well).
 -   Node.js with several modules via npm
 -   Google account with access to Google Apps Script
 -   git
--   tar
--   mktemp
 -   at least a few gigabytes of RAM
+
+### Setting up a useful development system
+
+1. Clone the `mffer` repository into a new directory:
+    ```shell
+    $ git clone https://github.com/therealchjones/mffer.git
+    ```
+2. Open the new `mffer` directory in Visual Studio Code using the Explorer
+   panel's "Open Folder" button
+3. Open the Extensions panel and install the extensions "recommended by users of
+   the current workspace"
+4. Open the `tools` directory and install the needed Node.js modules:
+    ```shell
+    $ cd mffer/tools && npm install
+    ```
 
 ## Writing documentation
 

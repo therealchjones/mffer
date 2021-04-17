@@ -1,0 +1,9 @@
+{
+	"name": "mffer-tools",
+	"dependencies": {
+		"forked-clasp": "2.11.2"
+	},
+	"devDependencies": {
+		"stream-json": "1.7.1"
+	}
+}
