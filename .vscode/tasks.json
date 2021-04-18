@@ -11,7 +11,11 @@
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary"
 			],
-			"problemMatcher": "$msCompile"
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		},
 		{
 			"label": "publish",
@@ -63,6 +67,28 @@
 			"runOptions": {
 				"instanceLimit": 1
 			},
+		},
+		{
+			"label": "push webapp",
+			"type": "shell",
+			"command": "${workspaceFolder}/tools/pushwebapp",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"detail": "Push the latest webapp code to Google Apps Script",
+			"runOptions": {
+				"instanceLimit": 1
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"isBackground": false,
+			"promptOnClose": true,
 			"problemMatcher": []
 		}
 	]

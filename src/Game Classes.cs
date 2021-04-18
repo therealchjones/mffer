@@ -648,6 +648,7 @@ namespace Mffer {
 			Name = "Roster";
 			Characters = new Dictionary<string, Character>();
 			AddBackingAsset( "IntHeroDataDictionary" );
+			AddBackingAsset( "PotentialAwakeningDataList" );
 			AddDependency( "Localization" );
 		}
 		/// <summary>
@@ -811,6 +812,8 @@ namespace Mffer {
 					for ( int i = 0; i < 11; i++ ) {
 						if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
 							entries.Add( uniform.Skills[i].SkillId );
+						} else {
+							entries.Add( String.Empty );
 						}
 					}
 					foreach ( string entry in entries ) {
@@ -897,6 +900,69 @@ namespace Mffer {
 					return 2;
 				}
 				throw new Exception( $"No uniforms found for character {BaseName} (groupId {GroupId})" );
+			}
+		}
+		/// <summary>
+		/// Gets the maximum grade (rank/stars) of the <see cref="Character"/>
+		/// </summary>
+		/// <remarks>
+		/// This is determined automatically by the
+		/// <see cref="CharacterLevel"/>s available for each
+		/// <see cref="Uniform"/>.
+		/// </remarks>
+		public int MaxGrade {
+			get {
+				int maxGrade = 1;
+				foreach ( Uniform uniform in Uniforms.Values ) {
+					foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
+						if ( level.Rank > maxGrade ) {
+							maxGrade = level.Rank;
+						}
+					}
+				}
+				return maxGrade;
+			}
+		}
+		/// <summary>
+		/// Gets the maximum heroId for this <see cref="Character"/>
+		/// </summary>
+		/// <remarks>
+		/// This is determined automatically by the
+		/// <see cref="CharacterLevel"/>s available for each
+		/// <see cref="Uniform"/>.
+		/// </remarks>
+		public string MaxHeroId {
+			get {
+				string maxHeroId = "0";
+				foreach ( Uniform uniform in Uniforms.Values ) {
+					foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
+						if ( Convert.ToInt32( level.HeroId ) > Convert.ToInt32( maxHeroId ) ) {
+							maxHeroId = level.HeroId;
+						}
+					}
+				}
+				return maxHeroId;
+			}
+		}
+		/// <summary>
+		/// Gets the initial ("native") tier for this <see cref="Character"/>
+		/// </summary>
+		/// <remarks>
+		/// This is determined automatically by the
+		/// <see cref="CharacterLevel"/>s available for each
+		/// <see cref="Uniform"/>.
+		/// </remarks>
+		public int StartTier {
+			get {
+				int minTier = 8;
+				foreach ( Uniform uniform in Uniforms.Values ) {
+					foreach ( CharacterLevel level in uniform.CharacterLevels.Values ) {
+						if ( level.Tier < minTier ) {
+							minTier = level.Tier;
+						}
+					}
+				}
+				return minTier;
 			}
 		}
 		/// <summary>
