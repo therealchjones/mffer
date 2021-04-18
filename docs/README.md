@@ -4,6 +4,22 @@ This project develops software that creates and updates the [mffer webapp](https
 
 This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project with references to all other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
 
+- [Marvel Future Fight](#marvel-future-fight)
+- [About mffer](#about-mffer)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [Marvel Future Fight](#marvel-future-fight-1)
+- [This Project](#this-project)
+	- [Versioning](#versioning)
+- [Requirements](#requirements)
+- [Usage](#usage-1)
+	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
+	- [Exploring the Data](#exploring-the-data)
+	- [Exploring the Code](#exploring-the-code)
+		- [Il2CppDumper](#il2cppdumper)
+		- [Ghidra](#ghidra)
+	- [Using and Presenting the Data](#using-and-presenting-the-data)
+
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is (or appears to be) made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
@@ -20,7 +36,7 @@ The project currently includes multiple components:
 
 ## Usage
 
-The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer). Briefly:
+The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer), with an overall workflow in [USAGE](USAGE.md). Briefly:
 
 ```
 $ autoextract [-v] -o data_directory
@@ -70,30 +86,35 @@ As this project includes evaluation of the binary distributions of the game, whi
 
 ### Versioning
 
-Semantic versioning (from [#52](https://github.com/therealchjones/mffer/issues/52)) https://semver.org
-initial version, per recommendations, will be 0.1.0
-
-Using Semantic Versioning 2.0.0
-
-"If all of this sounds desirable, all you need to do to start using Semantic Versioning is to declare that you are doing so and then follow the rules. Link to this website from your README so others know the rules and can benefit from them."
-
-"Major version zero (0.y.z) is for initial development. Anything MAY change at any time. The public API SHOULD NOT be considered stable."
-
-Briefly summarize (using exactly or a slight modification of the summary)
+`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version numbers. While no formal release (and thus stable API) has been made, the major version will remain 0. The minor version will continue to be incremented for any changes to what is _expected to be_ the API. The patch version will change with any other "releases". The first (unstable) release (without a stable API) will be version 0.1.0.
 
 ## Requirements
 
 ## Usage
 
+A workflow for general use may be found in [USAGE](USAGE.md). Full options and further descriptions of individual commands can be found in their corresponding pages: [`autoextract`](autoextract.md), [`mffer`](mffer.md), and [the webapp](webapp.md).
+
 ### Obtaining and Extracting the Data Files
+
+Follow the workflow in [USAGE](USAGE.md) to obtain and extract the data files into `data/MFF-data-`_`version`_ and `data/MFF-device-files-`_`version`_ directories.
 
 ### Exploring the Data
 
+`data/MFF-data-`_`version`_ contains files that are primarily of use for further processing by the `mffer` program, and that should be the preferred method for further exploration of this data. The files in `data/MFF-device-files`_`version`_ are copied directly from the emulated Android device, and exploring these are the best way to identify previously unprocessed data.
+
 ### Exploring the Code
+
+While a great deal of information may be accessible via the raw files in `data/MFF-device-files`_`version`_, the majority of code for running the game, including algorithms and use of the data, are not easily evaluated directly. While more details and specifics are given in [The Structure of Marvel Future Fight](mff.md), much of the data you'll want to review is in a file deep within the device files directory structure named `libil2cpp.so`, and this must be further processed before being further evaluated.
 
 #### Il2CppDumper
 
-    $ dotnet ./Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/app/\~~bEMNFRBZWig1c0nTBK2-Pg==/com.netmarble.mherosgb-XbORIH4ZtkJYZrkO7UlUOg==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.7.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/MFF-il2cppdumper-6.7.0
+Il2CppDumper is a .NET application used to determine the structure of `libil2cpp.so`. Obtain the program and extract it into your working directory. Find the `libil2cpp.so` file beneath the `MFF-device-files-`_`version`_ directory in `data/app/`_`gobbledygook_string`_`/com.netmarble.mherosgb-`_`more_gobbledygook`_`/lib/arm/`, and copy it to your working directory. Do the same for the file `data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat`. Then run:
+
+```shell
+$ dotnet Il2CppDumper.dll libil2cpp.so global-metadata.dat ./
+```
+
+This will create new files in that working directory; we're most interested in the `il2cpp.h` file, for use in the next step.
 
 #### Ghidra
 
@@ -120,3 +141,5 @@ In ghidra:
 -   Ghidra->file->save
 
 ### Using and Presenting the Data
+
+Upload the results using the webapp.

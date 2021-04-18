@@ -28,10 +28,16 @@ understanding the programmed mechanics of the game.
 
 ### IL2CPP
 
-## Gameplay
+[An introduction to IL2CPP internals](https://blogs.unity3d.com/2015/05/06/an-introduction-to-ilcpp-internals/)
+[How To Data Mine Unity Apps](https://critical.gg/how-to-datamine-unity-apps/)
 
-List qualities/stats/skills/effects useful for PVE, PVP, and both
-Build on strengths rather than mitigating weaknesses, or mitigate only critical weaknesses
+## Marvel Future Fight code
+
+### Useful functions
+
+Important functions with lots of info to explore:
+
+-   `TableUtility$$LoadAll`
 
 ## The `mffer` Model
 
@@ -118,6 +124,3 @@ hashed version of the internal string rather than the raw string value as the
 key. We assume that if the hash algorithm or dictionary structure changes again,
 loading the `Localization` component will simply fail with an exception rather
 than having a more subtle error.
-
-MFF analysis - important functions with lots of info:
-TableUtility$$LoadAll
