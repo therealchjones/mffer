@@ -1,8 +1,9 @@
 /bin/
-/obj/
 /data/
+/docs/api/
+/obj/
 /output/
+/src/webapp/.clasp.json
+/tools/.nuget/
 /tools/node_modules/*
-src/webapp/.clasp.json
-docs/api/
-tools/package-lock.json
+/tools/package-lock.json
