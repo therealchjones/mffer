@@ -17,10 +17,11 @@
 	- [Recommendations](#recommendations)
 	- [Setting up a useful development system](#setting-up-a-useful-development-system)
 - [Writing documentation](#writing-documentation)
+	- [Source tree](#source-tree)
 	- [README](#readme)
-		- [At-a-glance](#at-a-glance)
-		- [Comprehensive](#comprehensive)
-		- [Associated info](#associated-info)
+		- [At-a-glance README](#at-a-glance-readme)
+		- [Comprehensive README](#comprehensive-readme)
+		- [More about READMEs](#more-about-readmes)
 	- [CONTRIBUTING](#contributing)
 - [Writing code](#writing-code)
 	- [Coding Style](#coding-style)
@@ -34,7 +35,10 @@
 - [Making a custom `Program.cs`](#making-a-custom-programcs)
 - [Making a custom `Component`](#making-a-custom-component)
 - [Changing `mffer` internals](#changing-mffer-internals)
+	- [`mffer` best practices](#mffer-best-practices)
 	- [Models & designs](#models--designs)
+		- [The repository directory tree](#the-repository-directory-tree)
+		- [Code structure](#code-structure)
 - [The `mffer` APIs](#the-mffer-apis)
 - [Building `mffer`](#building-mffer)
 - [Deploying & releasing](#deploying--releasing)
@@ -95,17 +99,20 @@ requirements and recommendations for full development of `mffer`, not
 necessarily just for building from source files, and certainly not just for
 running the programs.
 
+Details regarding the specific uses or purposes of the below are also documented
+in the [Tools](#tools) section of [Writing code](#writing-code).
+
 ### Requirements
 
--   POSIX-compatible development environment (and several near-ubiquitous
+-   POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
     `mktemp`)
 -   .NET Core 3.1 SDK
 
 ### Recommendations
 
--   Visual Studio Code with several extensions
--   Node.js with several modules via npm
+-   Visual Studio Code
+-   Node.js with npm
 -   Google account with access to Google Apps Script
 -   git
 -   at least a few gigabytes of RAM
@@ -116,34 +123,62 @@ running the programs.
     ```shell
     $ git clone https://github.com/therealchjones/mffer.git
     ```
-2. Open the new `mffer` directory in Visual Studio Code using the Explorer
-   panel's "Open Folder" button
-3. Open the Extensions panel and install the extensions "recommended by users of
-   the current workspace"
-4. Open the `tools` directory and install the needed Node.js modules:
+2. Open the new `mffer` directory in Visual Studio Code. If you have installed
+   the `code` command line tool, use:
+
+    ```shell
+    $ code mffer
+    ```
+
+    Otherwise, you can open it using Visual Studio Code's Explorer
+    panel's "Open Folder" button.
+
+    Either should also prompt you to install the recommended Visual Studio Code
+    extensions. If not (or if you say no the first time), open the Command
+    Palette to run "Extensions: Show Recommended Extensions" and install those
+    listed under "Workspace Recommendations".
+
+3. Open the `tools` directory and install the recommended Node.js modules:
     ```shell
     $ cd mffer/tools && npm install
+    ```
+4. From the same `tools` directory, install the recommended .NET tools:
+    ```shell
+    $ dotnet tool restore
     ```
 
 ## Writing documentation
 
+Documentation is important. Below are a few guidelines in writing the
+documentation associated with `mffer`.
+
+### Source tree
+
+With few exceptions (notably, a [brief README](../README.md), the
+[License](../LICENSE), and the [Contributor Covenant](../CODE_OF_CONDUCT.md)),
+documentation should be in the [`docs` directory](./). [`docs/api`](api/) is home
+to the auto-generated API reference and should generally not be edited.
+
 ### README
 
--   Two versions:
-    -   "At-a-glance" in /
-    -   "Comprehensive"/index in docs
+There are two different README files in the project:
+
+-   An ["at-a-glance" version](../README.md) in [/](../)
+-   A ["Comprehensive" version/index](README.md) in [docs](./)
+
+For both versions,
+
 -   [shields](https://shields.io)/badges etc are nice but not great for a
     readme, more "marketing"; would probably be good for a website though not
-    for the readme. I get that these are decent quick "status" markers for
+    for the README. I get that these are decent quick "status" markers for
     builds, etc., but probably not a good resource for a reference. Great
     comment from [How to write a kickass
     README](https://dev.to/scottydocs/how-to-write-a-kickass-readme-5af9):
     > Take a cue from those same old school manuals you reference as to what
     > they include. Who cares about badges and emojis. That's marketing. Put
     > marketing on your site. This is about getting shit done
--   Both versions
 
-#### At-a-glance
+#### At-a-glance README
 
 -   What the project does ([How to write a kickass
     README](https://dev.to/scottydocs/how-to-write-a-kickass-readme-5af9))
@@ -163,7 +198,7 @@ running the programs.
     -   Licensing
     -   Contact
 
-#### Comprehensive
+#### Comprehensive README
 
 -   anything from [At-a-glance](#at-a-glance)
 -   name the thing ([How to write a kickass
@@ -199,7 +234,7 @@ running the programs.
         and [ Contributor’s
         Guide](https://github.com/18F/midas/blob/dev/CONTRIBUTING.md)
 
-#### Associated info
+#### More about READMEs
 
 -   https://github.com/RichardLitt/standard-readme/blob/master/spec.md
 -   checklist:
@@ -277,10 +312,10 @@ should almost always be on the same line as the function or method call, class
 or struct definition, or other label associated with it. A space need not be
 between the function or method call label and its associated parentheses, but
 can be if it increases readability. More detailed descriptions of spacing
-associated with specific circumstances can be gathered from the [EditorConfig
-file](.editorconfig); the nonstandard extensions EditorConfig settings are
-documented in Microsoft's [.NET & C# Formatting Rules
-Reference](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules).
+associated with specific circumstances can be gathered from the
+[EditorConfig file](../.editorconfig); the nonstandard extension EditorConfig settings are
+documented in Microsoft's
+[.NET & C# Formatting Rules Reference](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules).
 
 #### Code Style
 
@@ -289,17 +324,17 @@ function of the code is clear and doesn't introduce additional risk for error.
 In general (whitespace and choice of programming languages notwithstanding),
 excellent guides for coding practices to use and to avoid can be found in:
 
--   [GitLab Style
-    Guides](https://docs.gitlab.com/ee/development/contributing/style_guides.html)
+-   [GitLab Style Guides](https://docs.gitlab.com/ee/development/contributing/style_guides.html)
 -   [Google Style Guides](https://google.github.io/styleguide/)
--   [Microsoft C# Coding
-    Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions)
+-   [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions)
 
 Where necessary, coding style for individual pull requests can be discussed
 along with the content of the code submitted. If needed, more specific
 guidelines may be added to this document in the future.
 
 #### Comments
+
+Use XML commenting to document all types and members, not just public.
 
 ### Tools
 
@@ -308,7 +343,8 @@ to use tools that enforce this style wherever possible. None of the below is
 required to begin contributing to the project, but may be exceedingly helpful to
 those doing so with any frequency. As such, certain files and settings are
 included in the project to ease the consistent use of these tools by all
-contributors.
+contributors. These are also covered in
+[Setting up an environment](#setting-up-an-environment).
 
 #### Visual Studio Code
 
@@ -318,8 +354,8 @@ contributing to the project, it is relatively easy to use VS Code to set up an
 environment that automatically mimics much of the style used throughout the
 project. If you clone or fork the current project repository, your new one will
 include a [`.vscode` directory](.vscode/) that stores
-[settings](.vscode/settings.json) and [extension
-recommendations](.vscode/extensions.json) to use for this project in particular.
+[settings](.vscode/settings.json) and
+[extension recommendations](.vscode/extensions.json) to use for this project in particular.
 If you use a different editor, you should use one that allows you to set formats
 that are applied automatically, and they should match those set in this project.
 
@@ -330,12 +366,12 @@ tools and as extensions for Visual Studio Code. Where appropriate, specific
 settings that are different than the defaults are kept in settings files
 included in the repository.
 
-| Formatter    | VS Code Extension                                                                                          | Configuration                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.editorconfig](.editorconfig)                                                     |
-| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [.editorconfig](.editorconfig)                                                     |
-| Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                                               |
-| shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in [VS Code Settings](.vscode/settings.json): `"shellformat.flag": "-bn -ci -i 0"` |
+| Formatter    | VS Code Extension                                                                                          | Configuration                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.editorconfig](../.editorconfig)                                                     |
+| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [.editorconfig](../.editorconfig)                                                     |
+| Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                                                  |
+| shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in [VS Code Settings](../.vscode/settings.json): `"shellformat.flag": "-bn -ci -i 0"` |
 
 #### Linters
 
@@ -351,30 +387,178 @@ Linters recommended for this project include:
 
 ## Making a custom `Program.cs`
 
+`mffer` isn't (yet) built as a library, but you can still change the main entry
+point in [Program.cs](../src/Program.cs) as you see fit, rather than using the
+default one with multiple command line options that automatically reads and
+reports all supported data.
+
 ## Making a custom `Component`
+
+The next step in customizing `mffer` for your own needs is to create a custom
+derivative of the [`Component` type](api//Mffer/ComponentType.md). This
+can be done in a [Custom `Program.cs`](#making-a-custom-programcs) or in a
+separate file. The derivative type should include a
+[constructor](api/mffer/../Mffer/Component/Component.md) that establishes the
+needed assets or other requirements and override a
+[Load() method](api/Mffer/Component/Load.md) that parses imported assets into
+the component members. More details are available in the
+[`Component` API entry](api//Mffer/ComponentType.md).
+
+Accessing the newly designed component will typically involve
+[customizing `Program.cs`](#making-a-custom-programcs) or
+[changing more internals](#changing-mffer-internals) to customize the
+[`Version` type](api/Mffer/VersionType.md) so that your component is loaded
+along with all the others.
 
 ## Changing `mffer` internals
 
-Coding best practices:
+Changing the underlying workings of `mffer` may be necessary to alter
+calculations, change how data is extracted or reported for existing
+`Component`s, or to improve performance or other conditions. Every attempt has
+been made to keep code appropriately encapsulated and abstracted so that
+modifying one area need not break another, but this must be assumed to be far
+from perfect.
 
--   user-modifiable variables should be in the Program class
--   validation of Program class settings should be done by called methods rather
-    than by the user
--   the Program class should only interact with the Game class
--   interaction with the Game classes should be done via the Game class/object
--   interaction with the Data classes should be done via the DataDirectory
-    class/object
--   this can be done by placing all classes within their associated "top level"
-    class
+### `mffer` best practices
+
+In an effort to "compartmentalize" the code and continue to make
+it customizable, please attempt to use the following "best practices":
+
+-   Anything that is "user-facing", such as filesystem pathnames or command line
+    options, should be customizable by modifying only `Program.cs`.
+-   _Validation_ of those options set in `Program.cs` should be done in called
+    methods rather than in `Program.cs` itself wherever possible. For instance,
+    if a directory _`data_directory`_ is passed as a command line option to set
+    the directory containing data to extract, then passed to a method
+    `GetData()` to read from the directory, _`data_directory`_ should be set
+    within `Program.cs` but then `GetData()` should accept _`data_directory`_ as
+    a string and perform validation (for instance, to ensure the directory
+    exists and is readable), before using it, rather than expecting it to be
+    done by `Program.Main()`. This keeps `Program.cs` to a minimum and allows
+    simpler customization.
+-   The `Program` class should interact only with the `Game` class. (This
+    additionally means that `Game` should provide appropriate access to any
+    internals that may be needed so that `Program` can reach them via `Game`.)
+    For example, within `Program.Main` do not use:
+    ```csharp
+    foreach ( Version version in game.Versions ) {
+    	string filename = $"{saveDir}/roster-{version.Name}.csv";
+    	using ( StreamWriter file = new StreamWriter( filename ) ) {
+    		version.Components["Roster"].WriteCSV( file );
+    	}
+    }
+    ```
+    Instead, avoid use of the `Version` class and exposing further internals of
+    `Game` by writing an appropriate method `WriteAllRosters` that can be used like:
+    ```csharp
+    string filename = $"{saveDir}/roster-{version.Name}.csv";
+    game.WriteAllRosters( filename );
+    ```
+    This same style, making best use of encapsulation and abstraction, should be
+    used wherever possible in interactions between types.
+-   Do not relax the "visibility" of types without very good reason. For
+    instance, `Component` and `Game` should likely be `public` for the purposes of
+    externally accessing them from `Program.Main` or externally creating new
+    `Component` derivatives. However, limiting access of other types to
+    `protected` or `private` will prevent both unnecessary clutter in the public
+    API and breaking classes not used as designed.
+-   Though not strictly required, much of the above can be promoted by including
+    types as subclasses of others. For instance, rather than a separate
+    `Version` class within the `Mffer` namespace, `Version` is a subclass of
+    `Game`. This alone does not require `Version` to be `private` or
+    `protected`, but the cumbersome nature of instantiating a `Game.Version`
+    object encourages seeking a different way of accessing version informtion.
 
 ### Models & designs
 
+#### The repository directory tree
+
+```
+mffer/
+  .vscode/
+  docs/
+    api/
+  src/
+    webapp/
+  tools/
+    .config/
+	.nuget/
+    node_modules/
+```
+
+The root `mffer` directory contains project-specific settings like
+`.editorconfig` for formatting, `nuget.config` for tool and dependent package
+management, `mffer.csproj` for build settings, and the brief "at-a-glance" README.
+
+`.vscode` includes specific Visual Studio Code settings to provide consistent
+formatting, recommend extensions, and make building, debugging, and other tasks
+easier.
+
+`docs` contains most in-depth documentation, including this file. The `api`
+subdirectory is an empty one used for generating API documentation during the
+build process.
+
+`src` contains most of the source code for the project, with the Google Apps
+Script project housed in the `webapp` subdirectory.
+
+`tools` houses items used only for development and testing, including
+`package.json` and an empty `node_modules` directory for Node.js-based programs,
+`.nuget` for NuGet packages, and `.config/dotnet-tools.json` for dotnet local
+tools.
+
+#### Code structure
+
+Corresponding to the above [best practices](#mffer-best-practices), the design
+of `mffer` is based on the principles of abstraction, encapsulation, and
+polymorphism. Much of the code is arranged in a classic object oriented fashion
+with little functional or static typing.
+
+Though described in far more detail in the [API](#the-mffer-apis), the basic
+structure of the included code is:
+
+-   CommandLine namespace (`CommandLine.cs`), a simple command-line parser
+-   Mffer namespace
+    -   Program class (`Program.cs`), user-facing code
+    -   Game class (`Game Classes.cs`), dealing with all aspects of in-game data
+    -   DataDirectory class (`Data Classes.cs`), interfacing between asset object and
+        the filesystem
+
+The `src` directory additionally includes the `autoextract` script and the
+`webapp` directory, which are planned to be internalized into the main `mffer`
+code at some point.
+
+More about the assumptions about how Marvel Future Fight works (from a
+programming perspective) are explicitly listed in
+[The Structure of Marvel Future Fight](mff.md), along with how they correspond
+to the design structures of `mffer`. Refer to that document and the [API](api/)
+for further detils.
+
 ## The `mffer` APIs
+
+All included types and membes are included in the API documentation, generated
+as part of the build process from the triple-slash XML comments describing them
+in the code itself.
 
 ## Building `mffer`
 
+1. `autoextract` is a shell script and requires no building.
+2. Building the dotnet app: from within the root `mffer` directory,
+    ```shell
+    $ dotnet build mffer.csproj
+    ```
+3. Build the API documentation: from within the `tools` directory,
+    ```shell
+    $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
+    ```
+4. `webapp` must be uploaded but there's nothing to build
+
 ## Deploying & releasing
+
+Honestly, I've never done it. I've got some ideas, but we'll see how it goes
+before I document them.
 
 ## See also
 
 -   [The Structure of Marvel Future Fight](mff.md)
+-   [Contributing to `mffer`](CONTRIBUTING.md)
+-   [`mffer` APIs](api/)
