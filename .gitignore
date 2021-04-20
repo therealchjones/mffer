@@ -1,9 +1,10 @@
+/.jython_cache/
 /bin/
 /data/
 /docs/api/
 /obj/
 /output/
 /src/webapp/.clasp.json
-/tools/.nuget/
+/tools/.nuget/*
 /tools/node_modules/*
 /tools/package-lock.json

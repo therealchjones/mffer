@@ -1,22 +1,61 @@
 #!/bin/sh
 
+GHIDRA="/usr/local/Caskroom/ghidra/9.2.2,20201229/ghidra_9.2.2_PUBLIC/support/analyzeHeadless"
+GHIDRAPROJECTS="/Users/chjones/Development/Marvel Future Fight/ghidra"
+IMPORTSCRIPT="/Users/chjones/Development/Marvel Future Fight/mffer/src/ImportC.py"
+DEVICEFILEDIR="/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0"
+
 MFFTEMPDIR="$(mktemp -d)" || {
 	echo 'Unable to create temporary directory. Exiting.' >&2
 	exit 1
 }
+trap 'rm -rf "$MFFTEMPDIR"; kill -- -$$' EXIT HUP INT QUIT TERM
 
-IL2CPPDUMPER="/Users/chjones/Development/Marvel Future Fight/tools/il2cppdumper"
-GHIDRA="/Users/chjones/Development/Marvel Future Fight/tools/ghidra/support/analyzeHeadless"
-GHIDRAPROJECTS="/Users/chjones/Development/Marvel Future Fight/ghidra"
+cd "$MFFTEMPDIR" || {
+	echo 'Unable to enter temporary directory. Exiting.' >&2
+	exit 1
+}
+git clone --recursive -b 2021.1 https://github.com/djkaty/Il2CppInspector || {
+	echo 'Unable to obtain Il2CppInspector. Exiting.' >&2
+	exit 1
+}
+I2CIDIR="$MFFTEMPDIR/Il2CppInspector"
+cd "$I2CIDIR/Il2CppInspector.CLI" || {
+	echo 'Unable to enter Il2CppInspector directory. Exiting.' >&2
+	exit 1
+}
+dotnet publish -r osx-x64 -c Release || {
+	echo 'Unable to build Il2CppInspector. Exiting.' >&2
+	exit 1
+}
+
+HEADERDIR="$I2CIDIR/Il2CppInspector.CLI/cpp/appdata"
+BINDIR="$I2CIDIR/Il2CppInspector.CLI/bin/Release/netcoreapp3.1/osx-x64"
+SCRIPTDIR="$I2CIDIR/Il2CppInspector.CLI"
+
 PROJECTNAME="mff-ghidra-6.9.0"
-SOURCEDIR="$(dirname "$(find "/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0/data/app" -type f -name libil2cpp.so)")"
+LIBIL2CPP="$(find "$DEVICEFILEDIR" -type f -name libil2cpp.so)"
+GLOBALMETADATA="$(find "$DEVICEFILEDIR" -type f -name global-metadata.dat)"
+SOURCEDIR="$(dirname "$LIBIL2CPP")"
 DESTDIR="$GHIDRAPROJECTS/$PROJECTNAME"
 
-mkdir -p "$DESTDIR"
+mkdir -p "$DESTDIR" "$BINDIR/plugins"
 "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -import "$SOURCEDIR/"* -noanalysis \
 	-loader ElfLoader -loader-imagebase 0 \
 	-log "$DESTDIR"/"$PROJECTNAME"-import.log
 
-"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
-	-preScript
-dotnet Il2CppDumper.dll ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.9.0/data/app/\~~MG58GFbliDwErf151hi0ZA==/com.netmarble.mherosgb-0vmRVMyRiZ9N3Wjw5gfiCQ==/lib/arm/libil2cpp.so ~/Development/Marvel\ Future\ Fight/device-files/MFF-device-6.9.0/data/media/0/Android/data/com.netmarble.mherosgb/files/il2cpp/Metadata/global-metadata.dat ~/Development/Marvel\ Future\ Fight/il2cppdumper/mff-il2cppdumper-6.9.0
+"$BINDIR"/Il2CppInspector -p il2cpp.py -t Ghidra \
+	-i "$LIBIL2CPP" -m "$GLOBALMETADATA"
+
+HEADERFILE="$HEADERDIR/il2cpp-types.h"
+sed '/^typedef struct Il2CppString Il2CppString;$/s/$/'"\n"'typedef struct Il2CppStringBuilder Il2CppStringBuilder;/' \
+	"$HEADERFILE" >"$HEADERFILE-new" && mv "$HEADERFILE-new" "$HEADERFILE"
+
+cp "$IMPORTSCRIPT" "$SCRIPTDIR"
+
+### Weird bug - when the 2nd script isn't found, it fails and says the first script wasn't found
+### -scriptPath apparently can't have spaces, or maybe they need to be extra escaped?
+"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" -noanalysis \
+	-scriptPath "$SCRIPTDIR" \
+	-preScript "$(basename "$IMPORTSCRIPT")" "$HEADERFILE" -preScript il2cpp.py \
+	-log "$DESTDIR"/"$PROJECTNAME"-il2cpp.log
