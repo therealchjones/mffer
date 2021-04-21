@@ -1,5 +1,21 @@
 # The Structure of Marvel Future Fight
 
+Or, On the Many Details of How I Wasted Massive Amounts of Time and the
+Existentially Inconsequential Things I Learned
+
+- [Introduction](#introduction)
+- [Exploration Techniques](#exploration-techniques)
+- [Unity](#unity)
+	- [Assets & Asset Bundles](#assets--asset-bundles)
+	- [IL2CPP](#il2cpp)
+- [Marvel Future Fight code](#marvel-future-fight-code)
+	- [Useful functions](#useful-functions)
+- [The `mffer` Model](#the-mffer-model)
+	- [Assumptions in `mffer`](#assumptions-in-mffer)
+		- [Roster & Character model](#roster--character-model)
+		- [Character ID models](#character-id-models)
+		- [Localization changes](#localization-changes)
+
 ## Introduction
 
 (Marvel Future Fight)[http://www.marvelfuturefight.com/] is a mobile (iOS and
@@ -21,6 +37,8 @@ This is (or strives to be) a development document, not gameplay instructions or
 advice. Although knowing minutiae of expertly playing Marvel Future Fight is not
 necessary, general knowledge of the game is expected and may be necessary for
 understanding the programmed mechanics of the game.
+
+## Exploration Techniques
 
 ## Unity
 
