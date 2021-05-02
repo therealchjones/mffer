@@ -23,20 +23,21 @@ Existentially Inconsequential Things I Learned
 
 ## Introduction
 
-(Marvel Future Fight)[http://www.marvelfuturefight.com/] is a mobile (iOS and
+[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS and
 Android) online role playing game published by
-(NetMarble)[http://netmarble.com]. It is developed using
-(Unity)[https://unity.com] and compiled into native code for its platforms using
-(IL2CPP)[https://docs.unity3d.com/Manual/IL2CPP.html]. The Android version is
+[NetMarble](http://netmarble.com). It is developed using
+[Unity](https://unity.com) and compiled into native code for its platforms using
+[IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html). The Android version is
 available from the Play Store.
 
 The programming and delivery of Marvel Future Fight are complex but accessible,
 and this document attempts to gather a great deal of information describing the
 exploration of Marvel Future Fight code, as well as to explicitly list some
 assumptions made in the development of
-(mffer)[https://github.com/therealchjones/mffer]. Where information is unknown
+[mffer](https://github.com/therealchjones/mffer). Where information is unknown
 but thought to be true, such assumption is written explicitly. For definitive
-information, evaluation of the code defining the information is given where possible.
+information, evaluation of the code defining the information is given where
+possible.
 
 This is (or strives to be) a development document, not gameplay instructions or
 advice. Although knowing minutiae of expertly playing Marvel Future Fight is not
@@ -45,8 +46,9 @@ understanding the programmed mechanics of the game.
 
 ## Exploration Techniques
 
-Reverse engineering techniques are varied. Some are described here, with findings noted both here and in the
-[Marvel Future Fight section](#marvel-future-fight).
+Reverse engineering techniques are varied. Some are described here, with
+findings noted both here and in the [Marvel Future Fight
+section](#marvel-future-fight).
 
 ### Static analysis
 
@@ -54,9 +56,10 @@ Reverse engineering techniques are varied. Some are described here, with finding
 
 ##### File changes
 
-Evaluate files changed between different runs of the same version on the same account (change in time only),
-different versions (change in time and version), different accounts (before and after signing in),
-running application versus closed.
+Evaluate files changed between different runs of the same version on the same
+account (change in time only), different versions (change in time and version),
+different accounts (before and after signing in), running application versus
+closed.
 
 Findings:
 
@@ -65,7 +68,9 @@ Findings:
 -   app directory: vdex & odex differences
 -   multiple authentication token differences
 -   shared_prefs:
-    -   com.netmarble.mherosgb.v2.playerprefs.xml: a few strings & keys, possibly different but not grossly; need to evaluate these with parsed XML/strings
+    -   com.netmarble.mherosgb.v2.playerprefs.xml: a few strings & keys,
+        possibly different but not grossly; need to evaluate these with parsed
+        XML/strings
     -   ff_openudid.xml: different device IDs
     -   marblePush.ko_Kr.real.xml: different registration IDs
 -   /data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
@@ -76,13 +81,15 @@ Findings:
 
 ### IL2CPP
 
-[An introduction to IL2CPP internals](https://blogs.unity3d.com/2015/05/06/an-introduction-to-ilcpp-internals/)
-[How To Data Mine Unity Apps](https://critical.gg/how-to-datamine-unity-apps/)
+-   [An introduction to IL2CPP internals](https://blogs.unity3d.com/2015/05/06/an-introduction-to-ilcpp-internals/)
+
+-   [How To Data Mine Unity Apps](https://critical.gg/how-to-datamine-unity-apps/)
 
 ## Android
 
-On the Android filesystem, there is a great deal of overlapping mounting and linking of directories. The
-`autoextract` script mitigates this somewhat by checking the inode number (serial number) of each directory.
+On the Android filesystem, there is a great deal of overlapping mounting and
+linking of directories. The `autoextract` script mitigates this somewhat by
+checking the inode number (serial number) of each directory.
 
 ## Marvel Future Fight
 
@@ -101,14 +108,17 @@ Important functions with lots of info to explore:
             -   `Shadowland` and other game styles
             -   A `Localization` dictionary to translate strings
     -   has one or more `Player`s
-    -   gets its data from a `DataStore`, a set of directories on a filesystem that contain
-        -   `AssetFiles` (each of which is associated with a `Version`), which recursively contain many
+    -   gets its data from a `DataStore`, a set of directories on a filesystem
+        that contain
+        -   `AssetFiles` (each of which is associated with a `Version`), which
+            recursively contain many
             -   `AssetObject`s
 
 A fully detailed description of the types (and their associated members) is
 available in the API reference. Of note, while these are quite clearly arranged
 hierarchically in `mffer` conceptually, this does not imply that the types
-themselves are nested; they are generally not nested in Marvel Future Fight code.
+themselves are nested; they are generally not nested in Marvel Future Fight
+code.
 
 ### Assumptions in `mffer`
 
@@ -134,9 +144,9 @@ object properties rather than the hierarchy used in `mffer`, and we only assume
 that the hierarchical model fits reality. Specifically, multiple character
 properties are associated with different levels in the hierarchy, and the
 assumptions we make in which property is associated with a given level is based
-upon both gameplay experience and how that property is evaluated in Marvel Future
-Fight code. (This also relates to the below (Character ID
-models)[#character-id-models] assumptions.)
+upon both gameplay experience and how that property is evaluated in Marvel
+Future Fight code. (This also relates to the below [Character ID
+models](#character-id-models) assumptions.)
 
 The prototypical example of this sort of assumption is the character's `gender`
 property. A game character's genders may be different depending upon the
@@ -162,10 +172,10 @@ the characters in loading the `Roster` component:
     represented by a single unique `heroId`.
 -   A given character equipped with a given uniform (regardless of tier, rank,
     or other customization) is represented by a single unique `baseId`.
--   A given character (regardless of uniform, tier, rank, or other customization)
-    is represented by a single unique `groupId`.
--   An additional identifier, `UniformGroupId` is unique only among the uniforms for
-    a given character; specifically, we assume the default uniform for each
+-   A given character (regardless of uniform, tier, rank, or other
+    customization) is represented by a single unique `groupId`.
+-   An additional identifier, `UniformGroupId` is unique only among the uniforms
+    for a given character; specifically, we assume the default uniform for each
     character has `uniformId` `0`.
 
 #### Localization changes
