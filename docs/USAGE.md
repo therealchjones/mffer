@@ -48,6 +48,7 @@ guide](Development.md)), the tools are available at the following paths:
 |               |                                               |
 | ------------- | --------------------------------------------- |
 | `autoextract` | _`mffer`_`/src/autoextract`                   |
+| `autoanalyze` | _`mffer`_`/src/autoanalyze`                   |
 | `mffer`       | _`mffer`_`/bin/Debug/netcoreapp3.1/mffer.dll` |
 
 ### Requirements
@@ -59,32 +60,33 @@ guide](Development.md)), the tools are available at the following paths:
 -   Java runtime or SDK
     (required by standalone Android command-line tools but included in Android Studio)
 -   [UABE](https://github.com/DerPopo/UABE)
+-   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
+    (required only for `autoanalyze` and further analysis)
 -   .NET Core 3.1 SDK
 
 macOS and most Linux distributions satisfy the needs for the initial
 environment. (In addition to the defined [POSIX
 utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar` and
-`mktemp` are used.) They may
-require installation of a Java runtime (or SDK) if one is
-not already installed. The Java requirement is for the Android command line
-tools (unless using the command line tools within Android Studio), but Java may be useful for other items of interest to those using mffer,
-such as the [ghidra disassembler](https://github.com/NationalSecurityAgency/ghidra). We recommend the OpenJDK 11 distribution freely
-available from (AdoptOpenJDK)[AdoptOpenJDK.com] at
+`mktemp` are used.) They may require installation of a Java runtime (or SDK) if
+one is not already installed. The Java requirement is for the Android command
+line tools (unless using the command line tools within Android Studio) and the
+[ghidra disassembler](https://github.com/NationalSecurityAgency/ghidra). We
+recommend the OpenJDK 11 distribution freely available from
+(AdoptOpenJDK)[AdoptOpenJDK.com] at
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot.
 
-The [Android command-line
-tools](https://developer.android.com/studio/command-line] are part of Android
-Studio, but may also be obtained separately from the larger application at
-https://developer.android.com/studio#command-tools. This basic package includes
-`sdkmanager` which `autoextract` will automatically use to update the
-command-line tools themselves as well as obtain temporary copies of all the
-other Android SDK packages required to run the Android emulator and extract the
-Marvel Future Fight data from it. `autoextract` will run an Android emulator
-automatically; unfortunately, this will not likely work within another emulator
-or virtual machine such as VirtualBox or Parallels. UABE is required for the
-initial processing of the MFF data after it's been extracted from the Android
-systems. UABE requires a Microsoft Windows environment, but works adequately
-within a virtual machine.
+The [Android command-line tools](https://developer.android.com/studio/command-line)
+are part of Android Studio, but may also be obtained separately from the larger
+application at https://developer.android.com/studio#command-tools. This basic
+package includes `sdkmanager` which `autoextract` will automatically use to
+update the command-line tools themselves as well as obtain temporary copies of
+all the other Android SDK packages required to run the Android emulator and
+extract the Marvel Future Fight data from it. `autoextract` will run an Android
+emulator automatically; unfortunately, this will not likely work within another
+emulator or virtual machine such as VirtualBox or Parallels. UABE is required
+for the initial processing of the MFF data after it's been extracted from the
+Android systems. UABE requires a Microsoft Windows environment, but works
+adequately within a virtual machine.
 
 ### Workflow
 
@@ -149,6 +151,11 @@ within a virtual machine.
 3. Import `roster-`_`version`_`.csv` into Google Sheets to explore and use it in
    a webapp.
 
+4. (Optional) For further exploration of Marvel Future Fight code, use
+   `autoanalyze` to create and populate a ghidra project with this version of
+   Marvel Future Fight's data. More details are available in
+   [The Structure of Marvel Future Fight](mff.md).
+
 ## Using the `mffer` library
 
 `mffer` is not built as a shareable library, but the source can be used for
@@ -165,6 +172,11 @@ from high-level design to appropriate indentation (tabs), are in the
 
 ### Brief manuals
 
+-   [`autoanalyze`](autoanalyze.md)
 -   [`autoextract`](autoextract.md)
 -   [`mffer`](mffer.md)
 -   [`mffer` webapp](webapp.md)
+
+### Guides & References
+
+-   [The Structure of Marvel Future Fight](mff.md)
