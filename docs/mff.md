@@ -5,10 +5,15 @@ Existentially Inconsequential Things I Learned
 
 - [Introduction](#introduction)
 - [Exploration Techniques](#exploration-techniques)
+	- [Static analysis](#static-analysis)
+		- [External files](#external-files)
+			- [File changes](#file-changes)
+				- [Version 7.0.0, change in time, personal account, not running](#version-700-change-in-time-personal-account-not-running)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
 	- [IL2CPP](#il2cpp)
-- [Marvel Future Fight code](#marvel-future-fight-code)
+- [Android](#android)
+- [Marvel Future Fight](#marvel-future-fight)
 	- [Useful functions](#useful-functions)
 - [The `mffer` Model](#the-mffer-model)
 	- [Assumptions in `mffer`](#assumptions-in-mffer)
@@ -40,6 +45,31 @@ understanding the programmed mechanics of the game.
 
 ## Exploration Techniques
 
+Reverse engineering techniques are varied. Some are described here, with findings noted both here and in the
+[Marvel Future Fight section](#marvel-future-fight).
+
+### Static analysis
+
+#### External files
+
+##### File changes
+
+Evaluate files changed between different runs of the same version on the same account (change in time only),
+different versions (change in time and version), different accounts (before and after signing in),
+running application versus closed.
+
+Findings:
+
+###### Version 7.0.0, change in time, personal account, not running
+
+-   app directory: vdex & odex differences
+-   multiple authentication token differences
+-   shared_prefs:
+    -   com.netmarble.mherosgb.v2.playerprefs.xml: a few strings & keys, possibly different but not grossly; need to evaluate these with parsed XML/strings
+    -   ff_openudid.xml: different device IDs
+    -   marblePush.ko_Kr.real.xml: different registration IDs
+-   /data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
+
 ## Unity
 
 ### Assets & Asset Bundles
@@ -49,7 +79,12 @@ understanding the programmed mechanics of the game.
 [An introduction to IL2CPP internals](https://blogs.unity3d.com/2015/05/06/an-introduction-to-ilcpp-internals/)
 [How To Data Mine Unity Apps](https://critical.gg/how-to-datamine-unity-apps/)
 
-## Marvel Future Fight code
+## Android
+
+On the Android filesystem, there is a great deal of overlapping mounting and linking of directories. The
+`autoextract` script mitigates this somewhat by checking the inode number (serial number) of each directory.
+
+## Marvel Future Fight
 
 ### Useful functions
 

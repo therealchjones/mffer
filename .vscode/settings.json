@@ -31,5 +31,8 @@
 	},
 	"markdown.extension.toc.levels": "2..6",
 	"omnisharp.enableEditorConfigSupport": true,
-	"shellformat.flag": "-bn -ci -i 0"
+	"shellformat.flag": "-bn -ci -i 0",
+	"shellcheck.customArgs": [
+		"-x"
+	]
 }

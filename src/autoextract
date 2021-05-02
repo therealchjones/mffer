@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# shellcheck source=./common.sh
+if [ -r "$(dirname "$0")"/common.sh ]; then
+	. "$(dirname "$0")"/common.sh
+fi
+
 summary() {
 	echo "$(basename "$0"): download and extract game data"
 }
@@ -66,20 +71,16 @@ if [ "$VERBOSE" = "Y" ]; then
 	VERBOSEOUT=/dev/stdout
 fi
 
-MFFTEMPDIR="$(mktemp -d)" || {
-	echo 'Unable to create temporary directory. Exiting.' >&2
-	exit 1
-}
+MFFTEMPDIR="$(mktemp -d)" \
+	|| throwfatal 'Unable to create temporary directory. Exiting.'
 
 if [ -d "$MFFTEMPDIR" ]; then
 	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
-		echo "Temporary directory '$MFFTEMPDIR' is not empty. Exiting." >&2
-		exit 1
+		throwfatal "Temporary directory '$MFFTEMPDIR' is not empty. Exiting."
 	fi
 	trap 'rm -rf "$MFFTEMPDIR"; kill -- -$$' EXIT HUP INT QUIT TERM
 else
-	echo "Unable to create temporary directory. Exiting" >&2
-	exit 1
+	throwfatal "Unable to create temporary directory. Exiting."
 fi
 if [ -z "$HOME" ]; then
 	echo 'Warning: HOME environment variable is not set.' >&2
@@ -103,6 +104,7 @@ if ! mkdir -p -- "$MFFOUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
 	usage >&2
 	exit 1
 fi
+MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
 
 ANDROID_SDKMANAGER="${ANDROID_SDKMANAGER:-$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)}"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
@@ -166,7 +168,7 @@ if [ ! -x "$ANDROID_ADB" ]; then
 	exit 1
 fi
 echo 'Creating Android virtual devices' >"$VERBOSEOUT"
-mkdir -p "$MFFTEMPDIR/avd"
+mkdir -p -- "$MFFTEMPDIR/avd"
 "$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'mff_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
 "$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis;x86' --name 'mff_no_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
 for name in mff_google_play mff_no_google_play; do
@@ -174,7 +176,7 @@ for name in mff_google_play mff_no_google_play; do
 		"$MFFTEMPDIR"/avd/"$name".avd/config.ini >"$MFFTEMPDIR/newconfig" \
 		&& mv "$MFFTEMPDIR/newconfig" "$MFFTEMPDIR/avd/$name.avd/config.ini"
 done
-echo 'Starting Google Play Android virtual device.' >"$VERBOSEOUT"
+echo 'Starting Google Play Android virtual device' >"$VERBOSEOUT"
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'On the emulator, open the Google Play Store app, sign'
@@ -184,7 +186,7 @@ echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
 if [ "$DEBUG" = "Y" ]; then EMULATOR_VERBOSETAG="-verbose"; fi
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio >"$DEBUGOUT" 2>&1 &
+"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
 read -r
 if ! ps -p "$emulator_pid" >/dev/null; then
@@ -255,7 +257,7 @@ serial="$(get_avd_serial mff_google_play)" || exit 1
 echo 'Stopping Google Play emulator' >"$VERBOSEOUT"
 kill "$emulator_pid"
 echo 'Starting rootable Android virtual device' >"$VERBOSEOUT"
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_no_google_play -no-boot-anim -no-audio >"$DEBUGOUT" 2>&1 &
+"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_no_google_play -no-boot-anim -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
 echo 'Connecting to emulator' >"$VERBOSEOUT"
 serial="$(get_avd_serial mff_no_google_play)" || exit 1
@@ -269,12 +271,6 @@ echo 'Installing Marvel Future Fight' >"$VERBOSEOUT"
 		echo "Unable to install. Exiting." >&2
 		exit 1
 	}
-{
-	VERSIONSTRING="$(
-		"$ANDROID_ADB" -s "$serial" shell dumpsys package com.netmarble.mherosgb \
-			| grep versionName | cut -f2 -d'='
-	)"
-}
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo '1. Open Marvel Future Fight.'
@@ -289,8 +285,8 @@ echo '   Data". Wait for the downloads to finish.'
 echo '6. Go to the "Account" tab and sign in to Facebook; if'
 echo '   prompted for Chrome sign in and sync, "No Thanks".'
 echo '7. When the app restarts and returns to the main'
-echo '   lobby screen, press the square button and swipe up'
-echo '   to close the app.'
+echo '   lobby screen, press the triangle button and exit'
+echo '   the game.'
 echo '8. Leave the emulator running and...'
 echo '******************************************************'
 echo ''
@@ -318,7 +314,9 @@ find / -path '*[Nn][Ee][Tt][Mm][Aa][Rr][Bb][Ll][Ee]*' -type f -print0 2>/dev/nul
 	done \
 	| cut -f2 -d' ' \
 	| sed 's#^\/##' >/sdcard/Download/allfiles
-tar -C / -czf /sdcard/Download/device-files.tar.gz -T /sdcard/Download/allfiles
+tar -C / -czf /sdcard/Download/device-files.tar.gz -T /sdcard/Download/allfiles \
+	2>/sdcard/Download/device-files-errors.log
+grep -v ': No such file or directory$' /sdcard/Download/device-files-errors.log >&2
 EndOfScript
 "$ANDROID_ADB" -s "$serial" push "$MFFTEMPDIR/getfiles" /sdcard/Download >"$DEBUGOUT"
 "$ANDROID_ADB" -s "$serial" shell su root '/bin/sh /sdcard/Download/getfiles' >"$DEBUGOUT"
@@ -330,23 +328,68 @@ echo 'Downloading virtual device files' >"$VERBOSEOUT"
 	}
 kill $emulator_pid
 echo 'Extracting virtual device files' >"$VERBOSEOUT"
-mkdir -p "$MFFTEMPDIR"/release/device-files
+mkdir -p -- "$MFFTEMPDIR"/release/device-files
 cd "$MFFTEMPDIR"/release/device-files && tar xzf "$MFFTEMPDIR/device-files.tar.gz"
 if [ ! -d "$MFFOUTPUTDIR" ]; then
 	echo "Unable to access output directory '$MFFOUTPUTDIR'. Exiting." >&2
 	exit 1
 fi
 
-DEVICEFILEDIR="MFF-device-$VERSIONSTRING"
+MFFVERSION="$(
+	grep -Eo '<string name="PATCH_VERSION">[^<]*</string>' \
+		"$MFFTEMPDIR"/release/device-files/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml \
+		| sed -E 's#^.*<string name="PATCH_VERSION">([^<]*)</string>.*$#\1#'
+)"
+MFFVERSION2="$(
+	grep -Eo '<package-info\b[^>]*/>' \
+		"$MFFTEMPDIR"/release/device-files/data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml \
+		| sed -E 's#^.*<package-info[^>]*[[:space:]]version="([^"]*)".*$#\1#'
+)"
+MFFVERSION3="$(date -r "$(
+	{
+		NEWESTFILE=''
+		for file in "$MFFTEMPDIR"/release/device-files/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/*; do
+			if [ -z "$NEWESTFILE" ] || [ ! -r "$NEWESTFILE" ]; then
+				NEWESTFILE="$file"
+			elif [ "$(date -r "$file" '+%s')" -gt "$(date -r "$NEWESTFILE" '+%s')" ]; then
+				NEWESTFILE="$file"
+			fi
+		done
+		echo "$NEWESTFILE"
+	}
+)" '+%Y%m%d')"
+if [ -z "$MFFVERSION" ] || [ -z "$MFFVERSION2" ] || [ -z "$MFFVERSION3" ]; then
+	echo "Unable to determine app version." >&2
+	echo "MFFVERSION='$MFFVERSION'" >&2
+	echo "MFFVERSION2='$MFFVERSION2'" >&2
+	echo "MFFVERSION3='$MFFVERSION3'" >&2
+	exit 1
+fi
+VERSIONSTRING="$MFFVERSION-$MFFVERSION2-$MFFVERSION3"
+
+DEVICEFILEDIR="mff-device-files-$VERSIONSTRING"
 i=1
+# if $DEVICEFILEDIR already ends in -1, add another one to avoid
+# removing it in the next step
 if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
 	DEVICEFILEDIR="$DEVICEFILEDIR-$i"
 fi
-while [ -d "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" ] && [ "$i" -lt 99 ]; do
+while [ -d "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" ] && [ "$i" -lt 100 ]; do
 	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
 	i=$((i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
+if [ "$i" = "100" ]; then
+	echo 'Unable to create directory' >&2
+	echo "'${DEVICEFILEDIR%-$i}'" >&2
+	echo "or any variant appending '-n' for 1 <= n <= 99" >&2
+	echo 'because they already exist.' >&2
+	echo 'Stopping here so as to avoid deleting' >&2
+	echo "'$MFFTEMPDIR/release/device-files'" >&2
+	echo 'Press <enter> or <return> to end the program after moving them manually.' >&2
+	read -r
+	exit 1
+fi
 
 mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" || {
 	echo "Unable to move device files to output directory " >&2
@@ -357,13 +400,13 @@ mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" || {
 	exit 1
 }
 
-DATADIR="MFF-data-$VERSIONSTRING"
+DATADIR="mff-data-$VERSIONSTRING"
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo 'Use UABE (in Windows) to extract assets from the '
 echo ' device:'
 echo "Open '$MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
-echo " decompress text as prompted to '$MFFOUTPUTDIR/data/$DATADIR/text'"
+echo " decompress text as prompted to '$MFFOUTPUTDIR/$DATADIR/text'"
 echo 'Choose Info->Select all (using shift-click)->Export Dump'
 echo " ->UABE JSON dump to '$MFFOUTPUTDIR/$DATADIR/assets'"
 echo "Open $MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"

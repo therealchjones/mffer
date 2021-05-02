@@ -1,24 +1,139 @@
 #!/bin/sh
 
-GHIDRA="/usr/local/Caskroom/ghidra/9.2.2,20201229/ghidra_9.2.2_PUBLIC/support/analyzeHeadless"
-GHIDRAPROJECTS="/Users/chjones/Development/Marvel Future Fight/ghidra"
-IMPORTSCRIPT="/Users/chjones/Development/Marvel Future Fight/mffer/src/ImportC.py"
-DEVICEFILEDIR="/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0"
+# shellcheck source=./common.sh
+if [ -f "$(dirname "$0")"/common.sh ]; then
+	. "$(dirname "$0")"/common.sh
+fi
 
-PROJECTNAME="mff-ghidra-6.9.0"
+summary() {
+	echo "$(basename "$0"): create and populate ghidra project from game data"
+}
+
+usage() {
+	echo "usage: $(basename "$0") [-v] -i input_directory -o output_directory"
+	echo "       $(basename "$0") -h"
+}
+
+description() {
+	echo "mandatory arguments:"
+	echo " 	-i input_directory"
+	echo " 		input directory containing files extracted from a device"
+	echo "	-o output_directory"
+	echo "		output directory to store analysis files"
+	echo "options:"
+	echo "	-h	print this summarized help message"
+	echo "	-v	print progress information; specify twice for debug output"
+}
+
+DEBUG=N
+VERBOSE=N
+
+while getopts 'hvo:i:' option; do
+	case "$option" in
+		h)
+			if [ "$#" = "1" ]; then
+				summary
+				usage
+				description
+				exit 0
+			else
+				usage >&2
+				exit 1
+			fi
+			;;
+		v)
+			if [ "Y" = "$VERBOSE" ]; then
+				DEBUG=Y
+			fi
+			VERBOSE=Y
+			;;
+		o)
+			MFFOUTPUTDIR="$OPTARG"
+			;;
+		i)
+			MFFINPUTDIR="$OPTARG"
+			;;
+		?)
+			usage >&2
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
+if [ "$#" != "0" ]; then
+	usage >&2
+	exit 1
+fi
+
+DEBUGOUT=/dev/null
+VERBOSEOUT=/dev/null
+if [ "$DEBUG" = "Y" ]; then
+	set -x
+	DEBUGOUT=/dev/stdout
+	VERBOSE=Y
+fi
+if [ "$VERBOSE" = "Y" ]; then
+	VERBOSEOUT=/dev/stdout
+fi
+
+if [ "Y" = "$VERBOSE" ]; then
+	CURLOPTS='-v'
+	GITOPTS='-v'
+else
+	CURLOPTS='-Ss'
+	GITOPTS='-q'
+fi
+
+if [ -z "$MFFINPUTDIR" ] || [ -z "$MFFOUTPUTDIR" ]; then
+	usage >&2
+	exit 1
+fi
+
+MFFINPUTDIR="$(getdir "$MFFINPUTDIR")" || {
+	usage >&2
+	exit 1
+}
+if ! mkdir -p -- "$MFFOUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
+	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
+	usage >&2
+	exit 1
+fi
+MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")" || {
+	usage >&2
+	exit 1
+}
+
+DEVICEFILEDIR="$MFFINPUTDIR"
+GHIDRAPROJECTS="$MFFOUTPUTDIR"
+VERSIONSTRING="$(basename "$MFFINPUTDIR" | sed -E 's/^[^0-9]*([0-9].*)$/\1/')"
+JADXDIR="$MFFOUTPUTDIR/mff-jadx-${VERSIONSTRING}"
+
+GHIDRALOCAL="$(find /usr/local -name 'analyzeHeadless')"
+GHIDRA="${GHIDRA:-$GHIDRALOCAL}"
+if [ ! -x "$GHIDRA" ]; then
+	throwfatal "Unable to find ghidra headless program at '$GHIDRA'. Specify GHIDRA in environment to locate."
+fi
+
+IMPORTSCRIPT="$(getdir "$(dirname "$0")")"/ImportC.py
+
+PROJECTNAME="mff-ghidra-$VERSIONSTRING"
 LIBIL2CPP="$(find "$DEVICEFILEDIR" -type f -name libil2cpp.so)"
+BASEAPK="$(find "$DEVICEFILEDIR" -type f -name base.apk)"
+SPLITAPK="$(find "$DEVICEFILEDIR" -type f -name 'split_config*.apk')"
+MFFABI="$(basename "$SPLITAPK")"
+MFFABI="${SPLITAPK%.apk}"
+MFFABI="${MFFABI#split_config.}"
 GLOBALMETADATA="$(find "$DEVICEFILEDIR" -type f -name global-metadata.dat)"
 SOURCEDIR="$(dirname "$LIBIL2CPP")"
 DESTDIR="$GHIDRAPROJECTS/$PROJECTNAME"
 if [ -d "$DESTDIR" ]; then
-	echo "The project directory $DESTDIR already exists; will not overwrite." >&2
+	echo "The project directory '$DESTDIR' already exists; will not overwrite." >&2
 	echo "Remove $DESTDIR to attempt creating a new analysis project." >&2
 	exit 1
 fi
 
 cleanup() {
 	rm -rf "$MFFTEMPDIR"
-	kill -- -$$
 }
 
 MFFTEMPDIR="$(mktemp -d)" || {
@@ -27,6 +142,7 @@ MFFTEMPDIR="$(mktemp -d)" || {
 }
 trap 'cleanup' EXIT HUP INT QUIT TERM
 
+echo "Downloading Il2CppInspector..." >"$VERBOSEOUT"
 I2CIDIR="$MFFTEMPDIR/Il2CppInspector"
 HEADERDIR="$I2CIDIR/Il2CppInspector.CLI/cpp/appdata"
 BINDIR="$I2CIDIR/Il2CppInspector.CLI/bin/Release/netcoreapp3.1/osx-x64"
@@ -35,7 +151,7 @@ cd "$MFFTEMPDIR" || {
 	echo 'Unable to enter temporary directory. Exiting.' >&2
 	exit 1
 }
-git clone --recursive -b 2021.1 https://github.com/djkaty/Il2CppInspector || {
+git clone "$GITOPTS" -c advice.detachedHead=false --recursive -b 2021.1 https://github.com/djkaty/Il2CppInspector >"$DEBUGOUT" || {
 	echo 'Unable to obtain Il2CppInspector. Exiting.' >&2
 	exit 1
 }
@@ -43,18 +159,30 @@ cd "$I2CIDIR/Il2CppInspector.CLI" || {
 	echo 'Unable to enter Il2CppInspector directory. Exiting.' >&2
 	exit 1
 }
-dotnet publish -r osx-x64 -c Release || {
+echo 'Building Il2CppInspector...' >"$VERBOSEOUT"
+dotnet publish -r osx-x64 -c Release >"$DEBUGOUT" || {
 	echo 'Unable to build Il2CppInspector. Exiting.' >&2
 	exit 1
 }
 
+echo 'Downloading jadx and decompiling java...' >"$VERBOSEOUT"
+curl "$CURLOPTS" -L -o "$MFFTEMPDIR/jadx.zip" "https://github.com/skylot/jadx/releases/download/v1.2.0/jadx-1.2.0.zip" >"$DEBUGOUT" \
+	&& mkdir "$MFFTEMPDIR/jadx" \
+	&& unzip -d "$MFFTEMPDIR/jadx" "$MFFTEMPDIR/jadx.zip" >"$DEBUGOUT" \
+	&& mkdir -p "$JADXDIR/base" "$JADXDIR/$MFFABI" \
+	&& "$MFFTEMPDIR/jadx/bin/jadx" -d "$JADXDIR/base" "$BASEAPK" >"$DEBUGOUT" \
+	&& "$MFFTEMPDIR/jadx/bin/jadx" -d "$JADXDIR/$MFFABI" "$SPLITAPK" >"$DEBUGOUT"
+
 mkdir -p "$DESTDIR" "$BINDIR/plugins"
+
+echo 'Building ghidra project...' >"$VERBOSEOUT"
 "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -import "$SOURCEDIR/"* -noanalysis \
 	-loader ElfLoader -loader-imagebase 0 \
-	-log "$DESTDIR"/"$PROJECTNAME"-import.log
+	-log "$DESTDIR"/"$PROJECTNAME"-import.log >"$DEBUGOUT" 2>&1
 
+echo 'Building data structures...' >"$VERBOSEOUT"
 "$BINDIR"/Il2CppInspector -p il2cpp.py -t Ghidra \
-	-i "$LIBIL2CPP" -m "$GLOBALMETADATA"
+	-i "$LIBIL2CPP" -m "$GLOBALMETADATA" >"$DEBUGOUT"
 
 HEADERFILE="$HEADERDIR/il2cpp-types.h"
 sed '/^typedef struct Il2CppString Il2CppString;$/s/$/'"\n"'typedef struct Il2CppStringBuilder Il2CppStringBuilder;/' \
@@ -62,11 +190,13 @@ sed '/^typedef struct Il2CppString Il2CppString;$/s/$/'"\n"'typedef struct Il2Cp
 
 cp "$IMPORTSCRIPT" "$SCRIPTDIR"
 
+echo 'Importing data structures...' >"$VERBOSEOUT"
 "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" -noanalysis \
 	-scriptPath "$SCRIPTDIR" \
 	-preScript "$(basename "$IMPORTSCRIPT")" "$HEADERFILE" -preScript il2cpp.py \
 	-log "$DESTDIR"/"$PROJECTNAME"-il2cpp.log \
-	-scriptlog "$DESTDIR"/"$PROJECTNAME"-scripts.log
+	-scriptlog "$DESTDIR"/"$PROJECTNAME"-scripts.log >"$DEBUGOUT" 2>&1
 
+echo 'Analyzing binary...' >"$VERBOSEOUT"
 "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
-	-log "$DESTDIR"/"$PROJECTNAME"-analysis.log
+	-log "$DESTDIR"/"$PROJECTNAME"-analysis.log >"$DEBUGOUT" 2>&1
