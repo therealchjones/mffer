@@ -8,3 +8,4 @@
 /tools/.nuget/*
 /tools/node_modules/*
 /tools/package-lock.json
+.python-version
