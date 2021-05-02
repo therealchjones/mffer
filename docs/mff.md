@@ -89,7 +89,61 @@ Findings:
 
 On the Android filesystem, there is a great deal of overlapping mounting and
 linking of directories. The `autoextract` script mitigates this somewhat by
-checking the inode number (serial number) of each directory.
+checking the inode number (serial number) of each directory and only including a
+single one from the list of identical directories. The remaining directory tree
+that includes all directories whose names case-insensitively include the string
+`netmarble` is extracted for each release into a directory called
+`mff-device-files-`_`version_string`_. As of this writing (version
+7.0.1-170126-20210423), that tree is:
+
+```
+/data
+  /misc
+    /iorapd/com.netmarble.mherosgb/170126/com.netmarble.mherosgb.SRNativeActivity/raw_traces
+    /profiles/cur/0/com.netmarble.mherosgb
+  /app/~~[string1]==/com.netmarble.mherosgb-[string2]==
+    /oat/x86
+    /lib/arm
+  /system/graphicsstats
+    /[string3]/com.netmarble.mherosgb/170126
+    /[string4]/com.netmarble.mherosgb/170126
+  /system_ce/0/shortcut_service/packages
+  /data/com.netmarble.mherosgb
+    /databases
+    /app_webview
+      /Default
+        /GPUCache
+		  /index-dir
+    /cache/WebView
+	  /Crashpad
+    /shared_prefs
+    /no_backup
+    /files
+      /nmscrash
+        /lib
+        /bc_current
+  /media/0/Android/data/com.netmarble.mherosgb/files
+    /bundle
+    /il2cpp
+      /Resources
+        /etc
+          /mono
+            /1.0
+            /2.0
+              /Browsers
+            /mconfig
+      /Metadata
+    /bundle_each
+    /Cookies
+```
+
+For the above tree, directories are concatenated (like
+`/system_ce/0/shortcut_service/packages`) if none of the intermediate
+directories contains any other files or directories; thus, each line in this tree
+contains at least two items, which may be files or directores, or contains no
+other directories. Indented directories are children of the first directory
+above them that is indented less. `[string`_`n`_`]` represents a string that
+varies by installation.
 
 ## Marvel Future Fight
 
