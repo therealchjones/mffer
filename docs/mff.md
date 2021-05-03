@@ -9,6 +9,10 @@ Existentially Inconsequential Things I Learned
 		- [External files](#external-files)
 			- [File changes](#file-changes)
 				- [Version 7.0.0, change in time, personal account, not running](#version-700-change-in-time-personal-account-not-running)
+				- [Versions 7.0.0->7.0.1, change in time & version, personal account, not running](#versions-700-701-change-in-time--version-personal-account-not-running)
+				- [Version 7.0.1, change in time, anonymous account, from not restarted to restarted](#version-701-change-in-time-anonymous-account-from-not-restarted-to-restarted)
+				- [Version 7.0.1, change in time, change from anonymous account to personal login, not restarted](#version-701-change-in-time-change-from-anonymous-account-to-personal-login-not-restarted)
+				- [Version 7.0.1, change in time, personal account, from not restarted to restarted](#version-701-change-in-time-personal-account-from-not-restarted-to-restarted)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
 	- [IL2CPP](#il2cpp)
@@ -75,6 +79,26 @@ Findings:
     -   marblePush.ko_Kr.real.xml: different registration IDs
 -   /data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
 
+###### Versions 7.0.0->7.0.1, change in time & version, personal account, not running
+
+-   same as above, plus base APK, library, and metadata changes
+
+###### Version 7.0.1, change in time, anonymous account, from not restarted to restarted
+
+-   change from AppEventsLogger events log to an empty file
+-   shared_prefs changes
+
+###### Version 7.0.1, change in time, change from anonymous account to personal login, not restarted
+
+-   Facebook login changes
+-   shared_prefs changes
+
+###### Version 7.0.1, change in time, personal account, from not restarted to restarted
+
+-   shared_prefs changes
+-   data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/newcontents
+    & notices
+
 ## Unity
 
 ### Assets & Asset Bundles
@@ -100,8 +124,8 @@ that includes all directories whose names case-insensitively include the string
 /data
   /misc
     /iorapd/com.netmarble.mherosgb/170126/com.netmarble.mherosgb.SRNativeActivity/raw_traces
-    /profiles/cur/0/com.netmarble.mherosgb
-  /app/~~[string1]==/com.netmarble.mherosgb-[string2]==
+    /profiles/cur/0/com.netmarble.mherosgb (profile-guided compilation, probably not useful)
+  /app/~~[string1]==/com.netmarble.mherosgb-[string2]== (APK and binary libraries)
     /oat/x86
     /lib/arm
   /system/graphicsstats
