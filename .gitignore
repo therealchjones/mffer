@@ -1,7 +1,10 @@
+/.jython_cache/
+/.python-version
 /bin/
 /obj/
 /data/
 /output/
+/tools/.nuget/*
 /tools/node_modules/*
 /docs/api/*
 /src/webapp/.clasp.json
