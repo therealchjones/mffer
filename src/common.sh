@@ -4,7 +4,7 @@
 #
 # This is done by changing to the directory $1, so is best done in a
 # subshell, as in:
-# NEWDIR="$(getdir ""../new_dir")"
+# NEWDIR="$(getdir "../new_dir")"
 # (Otherwise, changing back to the previous directory creates its own
 # set of problems.) Additionally, this requires the directory to exist, so it
 # should be created before calling getdir if necessary.

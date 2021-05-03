@@ -1,0 +1,123 @@
+#!/bin/sh
+
+# shellcheck source=./common.sh
+if [ -r "$(dirname "$0")"/common.sh ]; then
+	. "$(dirname "$0")"/common.sh
+fi
+
+summary() {
+	echo "$(basename "$0"): download and extract game data"
+}
+
+usage() {
+	echo "usage: $(basename "$0") [-v] device-files-dir1 device-files-dir2"
+	echo "       $(basename "$0") -h"
+}
+
+description() {
+	echo "mandatory arguments:"
+	echo "	device-files-dir1, device-files-dir2"
+	echo "		device file directory trees to compare"
+	echo "options:"
+	echo "	-h	print this summarized help message"
+	echo "	-v	increase level of comparison; may be specified multiple times:"
+	echo "      without -v: show files only in one directory or the other"
+	echo "      -v: show files that differ between directories"
+	echo "      -vv: show where files differ between directories"
+	echo "legend:"
+	echo "  -: the file exists only in device-files-dir1"
+	echo "  +: the file exists only in device-files-dir2"
+	echo "  Δ: the file differs between the two directories"
+}
+
+VERBOSE=0
+while getopts 'hv' option; do
+	case "$option" in
+		h)
+			if [ "$#" = "1" ]; then
+				summary
+				usage
+				description
+				exit 0
+			else
+				usage >&2
+				exit 1
+			fi
+			;;
+		v)
+			if [ -z "$VERBOSE" ]; then
+				VERBOSE=0
+			fi
+			VERBOSE=$((VERBOSE + 1))
+			;;
+		?)
+			usage >&2
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
+if [ "$#" != "2" ]; then
+	usage >&2
+	exit 1
+fi
+
+DFDDIR1="$(getdir "$1")"
+DFDDIR2="$(getdir "$2")"
+
+DFDTMPDIR="$(mktemp -d)" || {
+	throwfatal "Unable to create temporary directory"
+}
+trap 'rm -rf "$DFDTMPDIR"' EXIT HUP INT QUIT TERM
+
+for dir in "$DFDDIR1" "$DFDDIR2"; do
+	find "$dir" -type f \
+		| sed -e "s#^$dir##" \
+			-e 's#^\(/data/app/\)[^/]*\(/com.netmarble.mherosgb-\)[^/]*/#\1*\2*/#' \
+			-e '\#^/data/data/com.netmarble.mherosgb/files/nmscrash/bc_current/#d' \
+			-e '\#^/data/system/graphicsstats/#d' \
+			-e '/perfetto_trace.pb/d' \
+			-e '/.DS_Store$/d' \
+			-e '\#/data/data/com.netmarble.mherosgb/files/nmscrash/#d' \
+		| sort >"$DFDTMPDIR/$(basename "$dir")"
+done
+
+makediff() {
+	file1="$DFDTMPDIR/$(basename "$DFDDIR1")"
+	file2="$DFDTMPDIR/$(basename "$DFDDIR2")"
+	lines="$1"
+	diff -U "$lines" "$file1" "$file2" \
+		| sed -e '1,3d' \
+			>"$DFDTMPDIR/diff"
+	grep '^@' "$DFDTMPDIR/diff" >/dev/null
+}
+contextlines=999
+while makediff "$contextlines"; do
+	contextlines=$((contextlines * 2))
+done
+
+if [ -z "$VERBOSE" ] || [ "0" = "$VERBOSE" ]; then
+	grep '^[-+]' "$DFDTMPDIR/diff"
+elif [ "1" -le "$VERBOSE" ]; then
+	while read -r fileline; do
+		case "$fileline" in
+			[-+]*)
+				echo "$fileline"
+				;;
+			*)
+				file1="$(find "$DFDDIR1" -path '*'"$fileline")"
+				file2="$(find "$DFDDIR2" -path '*'"$fileline")"
+				if [ -z "$file1" ] || [ -z "$file2" ]; then
+					echo "Error: unable to identify ${fileline} in both directories." >&2
+				elif ! cmp -s "$file1" "$file2"; then
+					echo 'Δ'"$fileline"
+					if [ "2" -le "$VERBOSE" ]; then
+						echo "--"
+						diff -u "$file1" "$file2"
+						echo "--"
+					fi
+				fi
+				;;
+		esac
+	done <"$DFDTMPDIR/diff"
+fi
