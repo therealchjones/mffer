@@ -155,10 +155,12 @@ namespace CommandLine {
 					case "/H":
 					case "/?":
 						break;
+					case "-x":
+					case "--xmlfile":
 					case "--datadir":
 					case "--savedir":
 					case "--outputdir":
-						option = Arguments[i].Substring( 2 );
+						option = StripDashes( Arguments[i] );
 						if ( i == Arguments.Count - 1 ) {
 							throw new ArgumentException( $"'{option}' requires an argument" );
 						} else if ( Options.ContainsKey( option ) ) {
@@ -188,6 +190,21 @@ namespace CommandLine {
 			} else {
 				throw new ApplicationException( $"Option '{option}' not defined" );
 			}
+		}
+		private string StripDashes( string argument ) {
+			if ( String.IsNullOrEmpty( argument ) ) {
+				return argument;
+			}
+			if ( argument[0] == '-' ) {
+				argument = argument.Substring( 1 );
+			}
+			if ( String.IsNullOrEmpty( argument ) ) {
+				return argument;
+			}
+			if ( argument[0] == '-' ) {
+				argument = argument.Substring( 1 );
+			}
+			return argument;
 		}
 	}
 }

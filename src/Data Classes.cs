@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Xml;
-using MessagePack;
 
 namespace Mffer {
 	/// <summary>
@@ -232,18 +229,6 @@ namespace Mffer {
 			assets.LoadFromVersionDirectory( versionDirs[versionName] );
 			return assets;
 		}
-		/// <summary>
-		/// Creates a collection of the identified preference files for a
-		/// particular <see cref="Version"/>
-		/// </summary>
-		/// <param name="versionName">The name of the <see cref="Version"/> for
-		/// which to create the collection</param>
-		/// <returns>The collection of preference files associated with the
-		/// given <see cref="Version"/></returns>
-		public Dictionary<string, PreferenceFile> GetPreferences( string versionName ) {
-			AssetBundle assets = GetAssets( versionName );
-			return assets.PreferenceFiles;
-		}
 	}
 	/// <summary>
 	/// Represents a collection of <see cref="AssetFile"/>s
@@ -255,16 +240,10 @@ namespace Mffer {
 		/// </summary>
 		public Dictionary<string, AssetFile> AssetFiles { get; set; }
 		/// <summary>
-		/// Sets or gets a dictionary of <see cref="PreferenceFile"/>s indexed
-		/// by <see cref="PreferenceFile"/> name
-		/// </summary>
-		public Dictionary<string, PreferenceFile> PreferenceFiles { get; set; }
-		/// <summary>
 		/// Initializes a new <see cref="AssetBundle"/> instance
 		/// </summary>
 		public AssetBundle() {
 			AssetFiles = new Dictionary<string, AssetFile>();
-			PreferenceFiles = new Dictionary<string, PreferenceFile>();
 		}
 		/// <summary>
 		/// Writes a JSON-formatted representaton of the
@@ -301,7 +280,6 @@ namespace Mffer {
 			HashSet<string> textFiles = new HashSet<string>();
 			HashSet<string> jsonFiles = new HashSet<string>();
 			HashSet<string> checkFiles = new HashSet<string>();
-			HashSet<string> prefFiles = new HashSet<string>();
 			EnumerationOptions fileOptions = new EnumerationOptions();
 			fileOptions.MatchCasing = MatchCasing.CaseInsensitive;
 			foreach ( DirectoryInfo directory in dirs ) {
@@ -311,7 +289,6 @@ namespace Mffer {
 				behaviorFiles.UnionWith( Directory.GetFiles( assetDir, "*-MonoBehaviour.json" ) );
 				textFiles.UnionWith( Directory.GetFiles( assetDir, "*-TextAsset.json" ) );
 				jsonFiles.UnionWith( Directory.GetFiles( assetDir ) );
-				prefFiles.UnionWith( Directory.GetFiles( directory.FullName, "*.xml" ) );
 			}
 			checkFiles.UnionWith( manifestFiles );
 			checkFiles.UnionWith( scriptFiles );
@@ -385,11 +362,6 @@ namespace Mffer {
 					throw new Exception( $"Attempted to add asset {asset.AssetName} (from file {jsonFile}) which already exists." );
 				}
 				AssetFiles.Add( asset.AssetName, asset );
-			}
-			foreach ( string prefFile in prefFiles ) {
-				PreferenceFile preferences = new PreferenceFile();
-				preferences.LoadFromFile( prefFile );
-				PreferenceFiles.Add( preferences.Name, preferences );
 			}
 		}
 	}
@@ -558,100 +530,7 @@ namespace Mffer {
 		}
 	}
 	/// <summary>
-	/// Represents the settings from an XML-based preferences file
-	/// </summary>
-	/// <remarks>
-	/// Each <see cref="PreferenceFile"/> represents the multiple
-	/// key-value pairs present in an XML file, typically from the
-	/// <code>shared_prefs</code> directory on an Android device or other
-	/// locations corresponding to Unity's <code>PlayerPrefs</code> class.
-	/// </remarks>
-	/// <seealso
-	/// href="https://docs.unity3d.com/ScriptReference/PlayerPrefs.html"/>
-	/// "/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml"
-	public class PreferenceFile {
-		/// <summary>
-		/// Gets or sets the filename from which preferences are obtained
-		/// </summary>
-		public string Name { get; set; }
-		/// <summary>
-		/// Gets or sets the name-value pairs of preferences
-		/// </summary>
-		public Dictionary<string, string> Preferences { get; set; }
-		/// <summary>
-		/// Loads preferences from the given file into the
-		/// <see cref="PreferenceFile"/> object
-		/// </summary>
-		/// <param name="fileName">path name of the file to read</param>
-		public void LoadFromFile( string fileName ) {
-			Name = new FileInfo( fileName ).Name;
-			using ( StreamReader file = new StreamReader( fileName ) ) {
-				XmlDocument xmlDocument = new XmlDocument();
-				xmlDocument.Load( file );
-				XmlElement root = xmlDocument.DocumentElement;
-				foreach ( XmlElement node in root.ChildNodes ) {
-					string name = Uri.UnescapeDataString( node.GetAttribute( "name" ) );
-					string value = Uri.UnescapeDataString( node.InnerText );
-					if ( !String.IsNullOrEmpty( name ) ) {
-						try {
-							name = Encoding.Unicode.GetString( Convert.FromBase64String( name ) );
-						} catch ( System.FormatException ) {
-						}
-					}
-					if ( !String.IsNullOrEmpty( value ) ) {
-						byte[] bytes = null;
-						try {
-							bytes = Convert.FromBase64String( value );
-							value = MessagePackSerializer.ConvertToJson( bytes );
-						} catch ( System.FormatException ) {
-
-						} catch ( MessagePack.MessagePackSerializationException ) {
-							value = Encoding.Unicode.GetString( bytes );
-						}
-						try {
-							JsonDocument json = JsonDocument.Parse( value );
-						} catch ( JsonException ) {
-
-						}
-					}
-					Preferences.Add( name, value );
-				}
-			}
-		}
-		/// <summary>
-		/// Writes the data from the <see cref="PreferenceFile"/> to a
-		/// <see cref="StreamWriter"/> stream
-		/// </summary>
-		/// <param name="file">The name of the <see cref="StreamWriter"/>
-		/// stream to which to write</param>
-		/// <param name="tabs">The number of tab characters to prepend to each
-		/// line</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public void WriteJson( StreamWriter file, int tabs = 0 ) {
-			for ( int i = 0; i < tabs; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( $"\"{Name}\" : " + "{" );
-			List<string> preferenceNames = Preferences.Keys.ToList();
-			for ( int i = 0; i < preferenceNames.Count; i++ ) {
-				for ( int j = 0; j < tabs + 1; j++ ) {
-					file.Write( "\t" );
-				}
-				file.Write( $"\"{preferenceNames[i]}\": \"{Preferences[preferenceNames[i]]}\"" );
-				if ( i < preferenceNames.Count - 1 ) {
-					file.WriteLine( "," );
-				} else {
-					file.WriteLine();
-				}
-			}
-			for ( int i = 0; i < tabs; i++ ) {
-				file.Write( "\t" );
-			}
-			file.Write( "}" );
-		}
-	}
-	/// <summary>
-	/// Represents a single object from a <see cref="AssetFile"/>
+	/// Represents a single object from an <see cref="AssetFile"/>
 	/// </summary>
 	/// <remarks>
 	/// Each <see cref="AssetFile"/> represents data loaded from a
@@ -661,7 +540,7 @@ namespace Mffer {
 	/// <see cref="Array"/>. The class includes methods for parsing the
 	/// JSON members and writing the objects to a JSON stream.
 	/// </remarks>
-	public class AssetObject {
+	public class AssetObject : GameObject {
 		/// <summary>
 		/// Gets or sets the name of the <see cref="AssetObject"/>
 		/// </summary>
@@ -830,7 +709,7 @@ namespace Mffer {
 		/// <param name="tabs">The number of tabs with which to prepend each
 		/// output line</param>
 		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
+		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 			int counter = 0;
 			switch ( Type ) {
 				case JsonValueKind.Object:
