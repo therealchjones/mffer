@@ -48,6 +48,41 @@ namespace Mffer {
 		}
 		private dynamic _value = null;
 		/// <summary>
+		/// Parses JSON into this <see cref="GameObject"/>'s value
+		/// </summary>
+		/// <param name="element">A <see cref="JsonElement"/> from a
+		/// <see cref="JsonDocument"/> to load</param>
+		public void LoadJson( JsonElement element ) {
+			switch ( element.ValueKind ) {
+				case JsonValueKind.Object:
+					Value = new Dictionary<string, GameObject>();
+					foreach ( JsonProperty jsonProperty in element.EnumerateObject() ) {
+						GameObject newObject = new GameObject();
+						newObject.LoadJson( jsonProperty.Value );
+						// Use item[] instead of Add() to allow duplicate keys,
+						// with later ones overwriting previous, something that
+						// occurs sometimes in the level.txt TextAssets
+						( (Dictionary<string, GameObject>)Value )[jsonProperty.Name] = newObject;
+					}
+					return;
+				case JsonValueKind.Array:
+					int arrayCounter = 0;
+					Value = new List<GameObject>();
+					foreach ( JsonElement jsonElement in element.EnumerateArray() ) {
+						GameObject newObject = new GameObject();
+						newObject.LoadJson( jsonElement );
+						( (List<GameObject>)Value ).Insert( arrayCounter, newObject );
+						arrayCounter++;
+					}
+					return;
+				case JsonValueKind.Undefined:
+					throw new JsonException( $"Unable to parse JSON element." );
+				default:
+					Value = element.ToString();
+					return;
+			}
+		}
+		/// <summary>
 		/// Parses XML into this <see cref="GameObject"/>'s value
 		/// </summary>
 		/// <remarks>
@@ -69,7 +104,20 @@ namespace Mffer {
 					Value = null;
 					return;
 				case XmlNodeType.Text:
-					Value = DecodeString( node.Value );
+					string textString = DecodeString( node.Value );
+					if ( textString.Contains( '{' ) ) {
+						try {
+							JsonDocumentOptions jsonOptions = new JsonDocumentOptions {
+								CommentHandling = JsonCommentHandling.Skip,
+								AllowTrailingCommas = true
+							};
+							JsonDocument json = JsonDocument.Parse( textString, jsonOptions );
+							LoadJson( json.RootElement );
+							json.Dispose();
+						} catch ( JsonException ) {
+							Value = textString;
+						}
+					}
 					return;
 				case XmlNodeType.EntityReference:
 					Value = DecodeString( node.InnerText );
