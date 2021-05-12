@@ -117,6 +117,8 @@ namespace Mffer {
 						} catch ( JsonException ) {
 							Value = textString;
 						}
+					} else {
+						Value = textString;
 					}
 					return;
 				case XmlNodeType.EntityReference:
@@ -197,8 +199,12 @@ namespace Mffer {
 		/// <returns>The decoded string, or the original string if not encoded</returns>
 		string DecodeString( string value ) {
 			string decodedString = value;
-			if ( !String.IsNullOrEmpty( decodedString ) ) {
+			if ( String.IsNullOrEmpty( decodedString ) ) {
+				decodedString = "";
+			} else {
 				decodedString = Uri.UnescapeDataString( decodedString );
+				// To do: if the string is an MD5, just return it (otherwise it will be
+				//        interpreted incorrectly as base64
 				Span<byte> bytes = new Span<byte>( new byte[decodedString.Length] );
 				if ( Convert.TryFromBase64String( decodedString, bytes, out int bytesWritten ) ) {
 					bytes = bytes.Slice( 0, bytesWritten );
