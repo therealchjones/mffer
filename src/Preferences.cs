@@ -46,10 +46,10 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="fileName">path name of the file to read</param>
 		public void LoadFromFile( string fileName ) {
-			FileInfo file = new FileInfo( fileName );
-			if ( !file.Exists ) {
-				throw new ArgumentException( $"Unable to access file {fileName}." );
+			if ( !File.Exists( fileName ) ) {
+				throw new ArgumentException( $"XML document '{fileName}' is not accessible." );
 			}
+			FileInfo file = new FileInfo( fileName );
 			Name = file.Name;
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.Load( file.FullName );

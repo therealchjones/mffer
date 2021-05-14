@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml;
 using MessagePack;
 
@@ -203,18 +204,26 @@ namespace Mffer {
 				decodedString = "";
 			} else {
 				decodedString = Uri.UnescapeDataString( decodedString );
-				// To do: if the string is an MD5, just return it (otherwise it will be
-				//        interpreted incorrectly as base64
-				Span<byte> bytes = new Span<byte>( new byte[decodedString.Length] );
-				if ( Convert.TryFromBase64String( decodedString, bytes, out int bytesWritten ) ) {
-					bytes = bytes.Slice( 0, bytesWritten );
-					try {
-						decodedString = MessagePackSerializer.ConvertToJson( bytes.ToArray() );
-						if ( !decodedString.Contains( '{' ) ) {
+				// If the string has a space, leave it alone
+				// if the string is just digits, leave it alone
+				// If the string is already (consistent with) an MD5 sum, leave as is
+				// and then random flags that should stay the same even though they match base64 format
+				if ( !decodedString.Contains( ' ' )
+					&& !Regex.IsMatch( decodedString, @"^[0-9]+$" )
+					&& !Regex.IsMatch( decodedString, @"^[0-9A-F]{32}$" )
+					&& decodedString != "UnityGraphicsQuality"
+					&& !decodedString.StartsWith( "cinematicbattlenoticeday" ) ) {
+					Span<byte> bytes = new Span<byte>( new byte[decodedString.Length] );
+					if ( Convert.TryFromBase64String( decodedString, bytes, out int bytesWritten ) ) {
+						bytes = bytes.Slice( 0, bytesWritten );
+						try {
+							decodedString = MessagePackSerializer.ConvertToJson( bytes.ToArray() );
+							if ( !decodedString.Contains( '{' ) ) {
+								decodedString = Encoding.Unicode.GetString( bytes );
+							}
+						} catch ( MessagePackSerializationException ) {
 							decodedString = Encoding.Unicode.GetString( bytes );
 						}
-					} catch ( MessagePackSerializationException ) {
-						decodedString = Encoding.Unicode.GetString( bytes );
 					}
 				}
 			}

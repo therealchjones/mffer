@@ -229,6 +229,34 @@ namespace Mffer {
 			assets.LoadFromVersionDirectory( versionDirs[versionName] );
 			return assets;
 		}
+		/// <summary>
+		/// Gets the loaded <see cref="PreferenceFile"/> for a particular
+		/// <see cref="Version"/>
+		/// </summary>
+		/// <param name="versionName">The name of the <see cref="Version"/> for
+		/// which to create the <see cref="PreferenceFile"/></param>
+		/// <returns>The <see cref="PreferenceFile"/> with information loaded for
+		/// the given <see cref="Version"/></returns>
+		public PreferenceFile GetPreferences( string versionName ) {
+			List<FileInfo> preferenceFiles = new List<FileInfo>();
+			if ( String.IsNullOrEmpty( versionName ) ) {
+				throw new ArgumentNullException( "Version name cannot be empty." );
+			}
+			foreach ( DirectoryInfo dir in dirs ) {
+				DirectoryInfo[] deviceDirs =
+					dir.GetDirectories( $"*device*-{versionName}" );
+				foreach ( DirectoryInfo deviceDir in deviceDirs ) {
+					FileInfo[] files = deviceDir.GetFiles( "com.netmarble.mherosgb.v2.playerprefs.xml" );
+					preferenceFiles.AddRange( files );
+				}
+			}
+			if ( preferenceFiles.Count == 0 ) {
+				return null;
+			} else if ( preferenceFiles.Count > 1 ) {
+				ThrowBadDataDir();
+			}
+			return new PreferenceFile( preferenceFiles.First().FullName );
+		}
 	}
 	/// <summary>
 	/// Represents a collection of <see cref="AssetFile"/>s

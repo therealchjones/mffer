@@ -45,6 +45,7 @@ namespace Mffer {
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
 				version.Assets = dataDir.GetAssets( versionName );
+				version.Preferences = dataDir.GetPreferences( versionName );
 				version.LoadAllComponents();
 				Versions.Add( version );
 			}
@@ -120,6 +121,11 @@ namespace Mffer {
 			/// this <see cref="Version"/>
 			/// </summary>
 			public AssetBundle Assets { get; set; }
+			/// <summary>
+			/// Gets or sets the <see cref="PreferenceFile"/> associated with this
+			/// <see cref="Version"/>
+			/// </summary>
+			public PreferenceFile Preferences { get; set; }
 			/// <summary>
 			/// Initializes a new instance of the <see cref="Version"/> class
 			/// </summary>
@@ -218,6 +224,12 @@ namespace Mffer {
 									string assetsString = String.Join( ", ", assetName.Split( "||" ) );
 									throw new ApplicationException( $"Unable to find any of the possible assets ({assetsString}) for component '{component.Name}'" );
 								}
+							} else if ( assetName == "Preferences" ) {
+								if ( Preferences is null ) {
+									throw new ApplicationException( $"Unable to access preferences for component {component.Name}; not found or not preloaded." );
+								} else {
+									component.BackingAssets[assetName] = Preferences;
+								}
 							} else {
 								throw new ApplicationException( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
 							}
@@ -297,6 +309,19 @@ namespace Mffer {
 					}
 					file.Write( "}" );
 				}
+				if ( !( Preferences is null ) && !String.IsNullOrEmpty( Preferences.Name ) ) {
+					file.WriteLine( "," );
+					for ( int i = 0; i < tabs + 1; i++ ) {
+						file.Write( "\t" );
+					}
+					file.WriteLine( "\"Preferences\" : {" );
+					Preferences.WriteJson( file, tabs + 2 );
+					file.WriteLine();
+					for ( int i = 0; i < tabs + 1; i++ ) {
+						file.Write( "\t" );
+					}
+					file.Write( "}" );
+				}
 				file.WriteLine();
 				for ( int i = 0; i < tabs; i++ ) {
 					file.Write( "\t" );
@@ -334,7 +359,7 @@ namespace Mffer {
 			/// <c>AssetObject</c>s and place them into the associated values of
 			/// <c>BackingAssets</c>.
 			/// </remarks>
-			public Dictionary<string, AssetObject> BackingAssets { get; set; }
+			public Dictionary<string, GameObject> BackingAssets { get; set; }
 			/// <summary>
 			/// Gets or sets a collection of <see cref="Component"/>s referred to
 			/// by this <see cref="Component"/>, indexed by name.
@@ -352,7 +377,7 @@ namespace Mffer {
 			/// Initializes a new instance of the <see cref="Component"/> class
 			/// </summary>
 			protected Component() {
-				BackingAssets = new Dictionary<string, AssetObject>();
+				BackingAssets = new Dictionary<string, GameObject>();
 				Dependencies = new Dictionary<string, Component>();
 			}
 			/// <summary>
@@ -441,7 +466,7 @@ namespace Mffer {
 			public virtual void Load() {
 				if ( IsLoaded() ) return;
 				if ( BackingAssets.Count != 0 ) {
-					foreach ( KeyValuePair<string, AssetObject> item in BackingAssets ) {
+					foreach ( KeyValuePair<string, GameObject> item in BackingAssets ) {
 						if ( String.IsNullOrWhiteSpace( item.Key ) ) {
 							BackingAssets.Remove( item.Key );
 						} else {
@@ -530,7 +555,7 @@ namespace Mffer {
 			/// <seealso cref="Component.Load()"/>
 			public override void Load() {
 				base.Load();
-				AssetObject DictionaryAsset = BackingAssets.First().Value;
+				AssetObject DictionaryAsset = (AssetObject)( BackingAssets.First().Value );
 				// the localization dictionary was a CSV in 6.2.0, but is in an asset in
 				// 6.7.0; will have to manage differently
 				if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
@@ -665,7 +690,7 @@ namespace Mffer {
 			/// <seealso cref="Component.Load()"/>
 			public override void Load() {
 				base.Load();
-				AssetObject asset = BackingAssets["IntHeroDataDictionary"].Properties["values"].Properties["Array"];
+				AssetObject asset = ( (AssetObject)BackingAssets["IntHeroDataDictionary"] ).Properties["values"].Properties["Array"];
 				Localization LocalDictionary = (Localization)Dependencies["Localization"];
 				List<string> AllHeroIds = new List<string>();
 				foreach ( AssetObject entry in asset.Array ) {
@@ -1143,8 +1168,8 @@ namespace Mffer {
 			/// <seealso cref="Component.Load()"/>
 			public override void Load() {
 				base.Load();
-				List<AssetObject> shadowlandFloors = BackingAssets["text/data/shadowland_floor.csv"].Properties["m_Script"].Array;
-				List<AssetObject> shadowlandRewards = BackingAssets["text/data/shadowland_reward.csv"].Properties["m_Script"].Array;
+				List<AssetObject> shadowlandFloors = ( (AssetObject)BackingAssets["text/data/shadowland_floor.csv"] ).Properties["m_Script"].Array;
+				List<AssetObject> shadowlandRewards = ( (AssetObject)BackingAssets["text/data/shadowland_reward.csv"] ).Properties["m_Script"].Array;
 				for ( int floorNum = 0; floorNum < BaseFloors.Length; floorNum++ ) {
 					ShadowlandFloor floor = new ShadowlandFloor();
 					floor.FloorNumber = floorNum + 1;
@@ -1276,26 +1301,26 @@ namespace Mffer {
 			/// <seealso cref="Component.Load()"/>
 			public override void Load() {
 				base.Load();
-				foreach ( AssetObject seasonAsset in BackingAssets["text/data/future_pass.asset"].Properties["list"].Array ) {
+				foreach ( AssetObject seasonAsset in ( (AssetObject)BackingAssets["text/data/future_pass.asset"] ).Properties["list"].Array ) {
 					FuturePassSeason season = new FuturePassSeason();
 					season.Load( seasonAsset );
 					Seasons.Add( season );
 				}
-				foreach ( AssetObject stepAsset in BackingAssets["text/data/future_pass_step.asset"].Properties["list"].Array ) {
+				foreach ( AssetObject stepAsset in ( (AssetObject)BackingAssets["text/data/future_pass_step.asset"] ).Properties["list"].Array ) {
 					FuturePassStep step = new FuturePassStep();
 					step.passPoint = Int32.Parse( stepAsset.Properties["data"].Properties["passPoint"].String );
 					step.step = Int32.Parse( stepAsset.Properties["data"].Properties["step"].String );
 					step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
 					Steps[step.step - 1] = step;
 				}
-				foreach ( AssetObject rewardAsset in BackingAssets["text/data/future_pass_reward.asset"].Properties["list"].Array ) {
+				foreach ( AssetObject rewardAsset in ( (AssetObject)BackingAssets["text/data/future_pass_reward.asset"] ).Properties["list"].Array ) {
 					FuturePassReward reward = new FuturePassReward();
 					reward.Load( rewardAsset );
 					FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.Properties["data"].Properties["grade"].String );
 					int step = Int32.Parse( rewardAsset.Properties["data"].Properties["step"].String );
 					Steps[step - 1].Rewards[level] = reward;
 				}
-				foreach ( AssetObject stageAsset in BackingAssets["text/data/future_pass_contents.asset"].Properties["list"].Array ) {
+				foreach ( AssetObject stageAsset in ( (AssetObject)BackingAssets["text/data/future_pass_contents.asset"] ).Properties["list"].Array ) {
 					int sceneId = Int32.Parse( stageAsset.Properties["data"].Properties["sceneId"].String );
 					int stagePoints = Int32.Parse( stageAsset.Properties["data"].Properties["passPoint"].String );
 					StagePoints.Add( sceneId, stagePoints );
