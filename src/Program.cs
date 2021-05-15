@@ -31,7 +31,7 @@ namespace Mffer {
 			Game game = new Game( gameName );
 			game.LoadAllData( dataDir );
 			string saveFile = $"{saveDir}/{gameName}.json";
-			game.SaveAllData( saveFile );
+			game.WriteJson( saveFile );
 			foreach ( Game.Version version in game.Versions ) {
 				string filename = $"{saveDir}/roster-{version.Name}.csv";
 				using ( StreamWriter file = new StreamWriter( filename ) ) {
