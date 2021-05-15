@@ -420,8 +420,8 @@ namespace Mffer {
 		/// <param name="filename">The name of the file from which to load
 		/// data</param>
 		public void LoadFromFile( string filename ) {
-			string jsonText = File.ReadAllText( filename );
-			JsonDocument json = GetJson( jsonText );
+			FileStream jsonFile = File.OpenRead( filename );
+			JsonDocument json = GetJson( jsonFile );
 			JsonElement jsonRoot = json.RootElement;
 			JsonValueKind jsonType = jsonRoot.ValueKind;
 			JsonElement Value = new JsonElement();
@@ -441,6 +441,7 @@ namespace Mffer {
 				propertyCount++;
 			}
 			json.Dispose();
+			jsonFile.Dispose();
 			if ( propertyCount == 0 ) {
 				throw new JsonException( $"{filename} does not contain any JSON members beyond root." );
 			} else if ( propertyCount != 1 ) {
@@ -515,9 +516,11 @@ namespace Mffer {
 							if ( AssetName.EndsWith( ".csv", true, null ) ) {
 								valueString = CSVtoJson( valueString );
 							}
-							JsonDocument jsonDocument = GetJson( valueString );
+							MemoryStream valueStream = new MemoryStream( System.Text.Encoding.Default.GetBytes( valueString ) );
+							JsonDocument jsonDocument = GetJson( valueStream );
 							value = jsonDocument.RootElement.Clone();
 							jsonDocument.Dispose();
+							valueStream.Dispose();
 						}
 						newAsset.ParseJson( value );
 						if ( Properties.ContainsKey( newAsset.Name ) ) {
@@ -606,7 +609,7 @@ namespace Mffer {
 		/// parsing</param>
 		/// <returns><see cref="JsonDocument"/> loaded with data from the
 		/// <paramref name="json"/> string</returns>
-		protected JsonDocument GetJson( string json ) {
+		protected JsonDocument GetJson( Stream json ) {
 			var options = new JsonDocumentOptions {
 				AllowTrailingCommas = true,
 				CommentHandling = JsonCommentHandling.Skip
