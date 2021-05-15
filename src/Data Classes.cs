@@ -309,8 +309,6 @@ namespace Mffer {
 			HashSet<string> textFiles = new HashSet<string>();
 			HashSet<string> jsonFiles = new HashSet<string>();
 			HashSet<string> checkFiles = new HashSet<string>();
-			EnumerationOptions fileOptions = new EnumerationOptions();
-			fileOptions.MatchCasing = MatchCasing.CaseInsensitive;
 			foreach ( DirectoryInfo directory in dirs ) {
 				string assetDir = directory.FullName + "/assets";
 				manifestFiles.UnionWith( Directory.GetFiles( assetDir, "*-AssetBundle.json" ) );
