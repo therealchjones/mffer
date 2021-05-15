@@ -238,15 +238,16 @@ namespace Mffer {
 		/// <returns>The <see cref="PreferenceFile"/> with information loaded for
 		/// the given <see cref="Version"/></returns>
 		public PreferenceFile GetPreferences( string versionName ) {
-			List<FileInfo> preferenceFiles = new List<FileInfo>();
 			if ( String.IsNullOrEmpty( versionName ) ) {
 				throw new ArgumentNullException( "Version name cannot be empty." );
 			}
+			List<FileInfo> preferenceFiles = new List<FileInfo>();
 			foreach ( DirectoryInfo dir in dirs ) {
 				DirectoryInfo[] deviceDirs =
 					dir.GetDirectories( $"*device*-{versionName}" );
 				foreach ( DirectoryInfo deviceDir in deviceDirs ) {
-					FileInfo[] files = deviceDir.GetFiles( "com.netmarble.mherosgb.v2.playerprefs.xml" );
+					FileInfo[] files =
+						deviceDir.GetFiles( "com.netmarble.mherosgb.v2.playerprefs.xml", SearchOption.AllDirectories );
 					preferenceFiles.AddRange( files );
 				}
 			}

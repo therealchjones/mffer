@@ -44,8 +44,8 @@ namespace Mffer {
 			List<string> versionNames = dataDir.GetVersionNames();
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
-				version.Assets = dataDir.GetAssets( versionName );
 				version.Preferences = dataDir.GetPreferences( versionName );
+				version.Assets = dataDir.GetAssets( versionName );
 				version.LoadAllComponents();
 				Versions.Add( version );
 			}
