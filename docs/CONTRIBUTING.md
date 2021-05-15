@@ -1,79 +1,59 @@
-# Contributing
+# Contributing to mffer
+
+Guidelines, notes, and tips for maintaining and adding to the mffer project
 
 Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Expectations](#expectations)
-- [Pull Requests](#pull-requests)
-- [Coding Style](#coding-style)
-	- [Whitespace Style](#whitespace-style)
-	- [Code Style](#code-style)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Contact](#contact)
-
 ## Introduction
 
-Thank you for your interest in improving this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
+Thank you for your interest in this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
 
-## Expectations
+This document includes information ranging from [appropriate behavoirs when contributing to the project](#behavioral-expectations) to the [general instructions for contributing](#so-youve-got-this-idea). It does not include many technical details, such as the project design, coding styles, and recommended tools. (For those, try the [see also section](#see-also) or dive right into [Development.md](Development.md).) For information that's not directly related to contributing to the `mffer` project, check [the comprehensive README.md](README.md).
 
-The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work together kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
+## Quick Questions & Answers
 
-## Pull Requests
+### Where should I report bugs, request new or changed features, or ask for more help?
 
-The ideal method for contibuting to this project is by making a pull request via [GitHub](https://github.com). This isn't always the easiest way, and has a bit of a learning curve if you haven't done it before. But it allows appropriate history tracking and attribution, as well as an easy way to ensure the community is able to review code and make other changes before adding something to the project.
+The [GitHub issues page](https://github.com/therealchjones/mffer/issues/) is just fine for all of these things. Your "issue" doesn't have to be perfect---others can ask for more details as needed.
 
-## Coding Style
+### I don't know how to program, so how can I help?
 
-If this is the longest section of this document, that is in inverse relationship to its importance. Reading and understanding the above sections is a significantly better use of your time than memorizing the minutiae herein. However, consistent coding styles, even if mostly arbitrary (as the ones here certainly are) allow easier reading and review of code, more rapid improvement, and better project integration. As the project uses multiple file types and programming languages, styles that they can all share are recommended. Some of the specifics are listed below.
+Answer questions on the [GitHub issues page](https://github.com/therealchjones/mffer/issues/), make edits to [documentation](README.md), or just offer a kind word.
 
-### Whitespace Style
+### What format should I use for a pull request?
 
-The overarching message is that whitespace is good. It adds to readability in many ways. The initial indenting whitespace (where needed) in each file is a tab character, not multiple spaces. Additionally, spaces should be used liberally to separate surrounding parentheses, braces, brackets, and operators from nearby content. The major exception to this rule is that an opening bracket of any kind should almost always be on the same line as the function or method call, class or struct definition, or other label associated with it. A space need not be between the function or method call label and its associated parentheses, but can be if it increases readability. More detailed descriptions of spacing associated with specific circumstances can be gathered from the [EditorConfig file](.editorconfig); the nonstandard extensions EditorConfig settings are documented in Microsoft's [.NET & C# Formatting Rules Reference](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules).
+The best format is "submitted"! Ask questions, expect feedback and changes, and please submit PRs even when you're still working on them. For the nitty-gritty details of coding style, merge types, and so on, please refer to the [Development guide](Development.md).
 
-### Code Style
+### What's a "pull request"?
 
-Apart from whitespace, different code structures and algorithms are widely acceptable, as long as the function of the code is clear and doesn't introduce additional risk for error. In general (whitespace and choice of programming languages notwithstanding), excellent guides for coding practices to use and to avoid can be found in:
+Ah, you're new to git and its style of shared programming. Welcome! I'm glad you're here. There's _lots_ of information available to get you started. [First Contributions](https://firstcontributions.github.io) is one place to learn the general process of the "fork-clone-edit-pull request" workflow. For plenty more details, try [Getting Started with GitHub](https://docs.github.com/en/github/getting-started-with-github).
 
--   [GitLab Style Guides](https://docs.gitlab.com/ee/development/contributing/style_guides.html)
--   [Google Style Guides](https://google.github.io/styleguide/)
--   [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions)
+## Behavioral Expectations
 
-Where necessary, coding style for individual pull requests can be discussed along with the content of the code submitted. If needed, more specific guidelines may be added to this document in the future.
+The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work with others kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
 
-### Tools
+While this is the guiding spirit of the contributions to the project, the project has formally adopted the [Contributor Covenant 2.0](../CODE_OF_CONDUCT.md). In addition, users and visitors are expected to follow the [GitHub Community Guidelines](https://docs.github.com/en/github/site-policy/github-community-guidelines) and the [GitHub Terms of Service](https://docs.github.com/en/github/site-policy/github-terms-of-service). None of these documents is intended to allow or encourage behavior disallowed or discouraged by the others.
 
-The easiest way to ensure coding style is consistent throughout the project is to use tools that enforce this style wherever possible. None of the below is required to begin contributing to the project, but may be exceedingly helpful to those doing so with any frequency. As such, certain files and settings are included in the project to ease the consistent use of these tools by all contributors.
+Let's do better.
 
-#### Visual Studio Code
+## So you've got this idea...
 
-Much of the initial work on the project has been done in [Visual Studio Code](https://code.visualstudio.com). While this is in no way required for contributing to the project, it is relatively easy to use VS Code to set up an environment that automatically mimics much of the style used throughout the project. If you clone or fork the current project repository, your new one will include a [`.vscode` directory](.vscode/) that stores [settings](.vscode/settings.json) and [extension recommendations](.vscode/extensions.json) to use for this project in particular. If you use a different editor, you should use one that allows you to set formats that are applied automatically, and they should match those set in this project.
+Wonderful! Think about it a bit. Try to explicitly define (even if just mentally) what it is you're trying to do and how. Then take a look at the [GitHub issues page](https://github.com/therealchjones/mffer/issues/) and search for ideas like yours---someone else may have already made progress, run into problems that need to be fixed first, or had a discussion about alternate methods that could be better. That's great! Minds working together, even asynchronously, produce excellent results.
 
-#### Formatters
+Post an issue yourself talking about your idea. Start discussing it openly; there's not a great benefit in "saving up" until your idea is near completion (or you're stuck). Even if you don't know exactly how to do what you want, others may be able to point you in the right direction.
 
-Formatters for individual code types are often available as both standalone tools and as extensions for Visual Studio Code. Where appropriate, specific settings that are different than the defaults are kept in settings files included in the repository.
+Take a look at the [Development guide](Development.md), and figure out how your idea best fits into the project: should you edit some documentation, write a program that uses the `mffer` library, or write a better algorithm for reading from the filesystem? This may also lead you to browsing the [source code](https://github.com/therealchjones/mffer/) or reviewing the [API](api/).
 
-| Formatter    | VS Code Extension                                                                                          | Configuration                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.editorconfig](.editorconfig)                                                     |
-| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [.editorconfig](.editorconfig)                                                     |
-| Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                                               |
-| shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in [VS Code Settings](.vscode/settings.json): `"shellformat.flag": "-bn -ci -i 0"` |
+Fork the project, make the changes you want, ensure it works the way you think it should (and doesn't break anything else) and submit a pull request to merge your new code with the main project. It's okay if it's not perfect or even finished; once you submit a PR the code can be reviewed by others and you can make more changes before the final version is added to `main`.
 
-#### Linters
+Finally, bask in the warmth that comes from making a contribution to your compatriots. Celebrate your inquisitiveness and industriousness. Enjoy your creation.
 
-In addition, a linter is strongly recommended to quickly identify errors and deviations from best practices. All code is expected to avoid both "errors" and "informational" warnings from linters with rare exceptions for clear reasons. Linters recommended for this project include:
+And maybe you have another idea...
 
-| Linter     | VS Code Extension                                                                                  | Configuration |
-| ---------- | -------------------------------------------------------------------------------------------------- | ------------- |
-| OmniSharp  | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) |
-| shellcheck | [timonwong.shellcheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)   | None          |
+## Copyright
+
+`mffer` is released into the "public domain" where such a thing exists; for the sake of formality, see [the CC0 license](../LICENSE). Further details about how this may effect your contributions are in the [Development guide](Development.md).
 
 ## Contact
 
-For any questions, comments, or concerns about the project, [open an issue on the GitHub repository](https://github.com/therealchjones/mffer/issues), or email the project maintainer at <chjones@aleph0.com>.
+Any questions, comments, or concerns can be posted in the [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues) or emailed to the owner, <chjones@aleph0.com>.

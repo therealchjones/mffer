@@ -1,10 +1,11 @@
 /.jython_cache/
 /.python-version
 /bin/
-/obj/
 /data/
+/docs/api/*
+/obj/
 /output/
+/src/webapp/.clasp.json
 /tools/.nuget/*
 /tools/node_modules/*
-/docs/api/*
-/src/webapp/.clasp.json
+/tools/package-lock.json

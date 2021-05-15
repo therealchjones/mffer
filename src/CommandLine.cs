@@ -36,7 +36,7 @@ namespace CommandLine {
 		/// parameters, to a string
 		/// </summary>
 		public override string ToString() {
-			return "Usage: mffer [-h] [--datadir data_directory] [--savedir output_directory]";
+			return "Usage: mffer [-h] --datadir data_directory --outputdir output_directory";
 		}
 	}
 	/// <summary>
@@ -158,7 +158,6 @@ namespace CommandLine {
 					case "-x":
 					case "--xmlfile":
 					case "--datadir":
-					case "--savedir":
 					case "--outputdir":
 						option = StripDashes( Arguments[i] );
 						if ( i == Arguments.Count - 1 ) {
