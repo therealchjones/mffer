@@ -2,7 +2,7 @@
 /.python-version
 /bin/
 /data/
-/docs/api/
+/docs/api/*
 /obj/
 /output/
 /src/webapp/.clasp.json

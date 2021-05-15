@@ -19,13 +19,13 @@ namespace Mffer {
 	/// store <see cref="Game"/> <see cref="AssetFile"/>s and (possibly)
 	/// other <see cref="Game"/> data.</para>
 	/// <para>Multiple directories may be associated with the same
-	/// <see cref="Version"/>; the <see cref="AssetFile"/>s from all the
-	/// directories combined form the data examined for that
+	/// <see cref="Version"/>; the <see cref="AssetFile"/>s and other data
+	/// files from all the directories combined form the data examined for that
 	/// <see cref="Version"/>.</para>
 	/// <para>The <see cref="DataDirectory"/> class includes these definitions,
 	/// methods to add directories to the lists and verify their structures,
-	/// and methods to access the <see cref="AssetFile"/>s within the
-	/// <see cref="versionDirs"/>.</para>
+	/// and methods to access the <see cref="AssetFile"/>s and other data
+	/// within the <see cref="versionDirs"/>.</para>
 	/// </remarks>
 	public class DataDirectory {
 		/// <summary>
@@ -66,7 +66,6 @@ namespace Mffer {
 			} else {
 				DirectoryInfo dir = new DirectoryInfo( pathName );
 				if ( !IsIncluded( dir, dirs ) ) {
-					dirs.Add( dir );
 					if ( IsVersionDirectory( dir ) ) {
 						AddVersionDirectory( dir );
 					} else {
@@ -84,6 +83,7 @@ namespace Mffer {
 							}
 						}
 					}
+					dirs.Add( dir );
 				}
 			}
 		}
@@ -207,7 +207,7 @@ namespace Mffer {
 		/// Throws an exception identifying an invalid <see cref="DataDirectory"/>
 		/// </summary>
 		void ThrowBadDataDir() {
-			throw new Exception( $"Unable to define structure of data directory." );
+			throw new ApplicationException( $"Unable to define structure of data directory." );
 		}
 		/// <summary>
 		/// Creates a list of the identified version names
@@ -228,6 +228,35 @@ namespace Mffer {
 			AssetBundle assets = new AssetBundle();
 			assets.LoadFromVersionDirectory( versionDirs[versionName] );
 			return assets;
+		}
+		/// <summary>
+		/// Gets the loaded <see cref="PreferenceFile"/> for a particular
+		/// <see cref="Version"/>
+		/// </summary>
+		/// <param name="versionName">The name of the <see cref="Version"/> for
+		/// which to create the <see cref="PreferenceFile"/></param>
+		/// <returns>The <see cref="PreferenceFile"/> with information loaded for
+		/// the given <see cref="Version"/></returns>
+		public PreferenceFile GetPreferences( string versionName ) {
+			if ( String.IsNullOrEmpty( versionName ) ) {
+				throw new ArgumentNullException( "Version name cannot be empty." );
+			}
+			List<FileInfo> preferenceFiles = new List<FileInfo>();
+			foreach ( DirectoryInfo dir in dirs ) {
+				DirectoryInfo[] deviceDirs =
+					dir.GetDirectories( $"*device*-{versionName}" );
+				foreach ( DirectoryInfo deviceDir in deviceDirs ) {
+					FileInfo[] files =
+						deviceDir.GetFiles( "com.netmarble.mherosgb.v2.playerprefs.xml", SearchOption.AllDirectories );
+					preferenceFiles.AddRange( files );
+				}
+			}
+			if ( preferenceFiles.Count == 0 ) {
+				return null;
+			} else if ( preferenceFiles.Count > 1 ) {
+				ThrowBadDataDir();
+			}
+			return new PreferenceFile( preferenceFiles.First().FullName );
 		}
 	}
 	/// <summary>
@@ -253,7 +282,7 @@ namespace Mffer {
 		/// to write</param>
 		/// <param name="tabs">The number of tabs with which to prepend each
 		/// line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public void WriteJson( StreamWriter file, int tabs = 0 ) {
 			List<string> Keys = AssetFiles.Keys.ToList<string>();
 			Keys.Sort();
@@ -506,7 +535,7 @@ namespace Mffer {
 		/// stream to which to write</param>
 		/// <param name="tabs">The number of tab characters to prepend to each
 		/// line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 			for ( int i = 0; i < tabs; i++ ) {
 				file.Write( "\t" );
@@ -528,7 +557,7 @@ namespace Mffer {
 		}
 	}
 	/// <summary>
-	/// Represents a single object from a <see cref="AssetFile"/>
+	/// Represents a single object from an <see cref="AssetFile"/>
 	/// </summary>
 	/// <remarks>
 	/// Each <see cref="AssetFile"/> represents data loaded from a
@@ -538,7 +567,7 @@ namespace Mffer {
 	/// <see cref="Array"/>. The class includes methods for parsing the
 	/// JSON members and writing the objects to a JSON stream.
 	/// </remarks>
-	public class AssetObject {
+	public class AssetObject : GameObject {
 		/// <summary>
 		/// Gets or sets the name of the <see cref="AssetObject"/>
 		/// </summary>
@@ -706,8 +735,8 @@ namespace Mffer {
 		/// to write</param>
 		/// <param name="tabs">The number of tabs with which to prepend each
 		/// output line</param>
-		/// <seealso cref="Version.WriteJson(StreamWriter, int)"/>
-		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
+		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
+		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 			int counter = 0;
 			switch ( Type ) {
 				case JsonValueKind.Object:
