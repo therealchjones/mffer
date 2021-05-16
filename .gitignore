@@ -1,5 +1,5 @@
 /.jython_cache/
-/.python-version
+/.python3-venv/*
 /bin/
 /data/
 /docs/api/*
