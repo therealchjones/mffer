@@ -34,6 +34,5 @@
 	"shellformat.flag": "-bn -ci -i 0",
 	"shellcheck.customArgs": [
 		"-x"
-	],
-	"python.pythonPath": ".python3-venv/bin/python"
+	]
 }
