@@ -33,14 +33,11 @@ namespace Mffer {
 		/// </summary>
 		public dynamic Value {
 			get {
-				if ( _value is null ) return null;
-				if ( _value is string || _value is List<GameObject> || _value is Dictionary<string, GameObject> ) return _value;
+				if ( IsGameObjectValue( _value ) ) return _value;
 				throw new InvalidOperationException( $"The object's type is not allowed: {_value.GetType().Name}" );
 			}
 			set {
-				if ( value is null ) {
-					_value = null;
-				} else if ( value is string || value is List<GameObject> || value is Dictionary<string, GameObject> ) {
+				if ( IsGameObjectValue( value ) ) {
 					_value = value;
 				} else {
 					throw new InvalidOperationException( $"Unable to give object value of type {value.GetType().Name}." );
@@ -48,6 +45,18 @@ namespace Mffer {
 			}
 		}
 		private dynamic _value = null;
+		bool IsGameObjectValue( dynamic type ) {
+			if ( type is null ) return true;
+			if ( type is string ) return true;
+			if ( type.GetType().IsGenericType &&
+				type.GetType().GetGenericTypeDefinition() == typeof( List<> ) &&
+				typeof( GameObject ).IsAssignableFrom( type.GetType().GenericTypeArguments[0] ) ) return true;
+			if ( type.GetType().IsGenericType &&
+				type.GetType().GetGenericTypeDefinition() == typeof( Dictionary<,> ) &&
+				type.GetType().GenericTypeArguments[0] == typeof( string ) &&
+				typeof( GameObject ).IsAssignableFrom( type.GetType().GenericTypeArguments[1] ) ) return true;
+			return false;
+		}
 		/// <summary>
 		/// Parses JSON into this <see cref="GameObject"/>'s value
 		/// </summary>
@@ -198,7 +207,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="value">The string to (potentially) decode</param>
 		/// <returns>The decoded string, or the original string if not encoded</returns>
-		string DecodeString( string value ) {
+		protected string DecodeString( string value ) {
 			string decodedString = value;
 			if ( String.IsNullOrEmpty( decodedString ) ) {
 				decodedString = "";

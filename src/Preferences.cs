@@ -41,6 +41,14 @@ namespace Mffer {
 			LoadFromFile( fileName );
 		}
 		/// <summary>
+		/// Initializes a new <see cref="PreferenceFile"/> instance containing the preferences from
+		/// <paramref name="file"/>
+		/// </summary>
+		/// <param name="file"><see cref="FileInfo"/> from which to load preferences</param>
+		public PreferenceFile( FileInfo file ) : this() {
+			LoadFromFile( file );
+		}
+		/// <summary>
 		/// Loads preferences from the given file into the
 		/// <see cref="PreferenceFile"/> object
 		/// </summary>
@@ -50,6 +58,14 @@ namespace Mffer {
 				throw new ArgumentException( $"XML document '{fileName}' is not accessible." );
 			}
 			FileInfo file = new FileInfo( fileName );
+			LoadFromFile( file );
+		}
+		/// <summary>
+		/// Loads preferences from the given file into the
+		/// <see cref="PreferenceFile"/> object
+		/// </summary>
+		/// <param name="file"><see cref="FileInfo"/> to read</param>
+		public void LoadFromFile( FileInfo file ) {
 			Name = file.Name;
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.Load( file.FullName );

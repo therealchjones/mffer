@@ -45,12 +45,12 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="dir">path of a directory containing game data</param>
 		public void LoadAllData( string dir ) {
-			DataSource dataDir = new DataSource( dir );
-			List<string> versionNames = dataDir.GetVersionNames();
+			DataSource dataSource = new DataSource( dir );
+			List<string> versionNames = dataSource.GetVersionNames();
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
-				version.Preferences = dataDir.GetPreferences( versionName );
-				version.Assets = dataDir.GetAssets( versionName );
+				version.Assets = dataSource.GetAssets( versionName );
+				version.LoadAllAssets();
 				version.LoadAllComponents();
 				Versions.Add( version );
 			}
@@ -111,7 +111,11 @@ namespace Mffer {
 		/// stream, and writing individual <see cref="Component"/> data in CSV
 		/// format to an existing stream.
 		/// </remarks>
-		public class Version {
+		public class Version : GameObject {
+			/// <summary>
+			/// To Remove, placeholder
+			/// </summary>
+			public PreferenceFile Preferences { get; set; }
 			/// <summary>
 			/// Gets or sets the name of the <see cref="Version"/>
 			/// </summary>
@@ -127,18 +131,12 @@ namespace Mffer {
 			/// </summary>
 			public AssetBundle Assets { get; set; }
 			/// <summary>
-			/// Gets or sets the <see cref="PreferenceFile"/> associated with this
-			/// <see cref="Version"/>
-			/// </summary>
-			public PreferenceFile Preferences { get; set; }
-			/// <summary>
 			/// Initializes a new instance of the <see cref="Version"/> class
 			/// </summary>
-			public Version() {
+			public Version() : base() {
 				Name = "";
 				Components = new Dictionary<string, Component>();
-				Assets = new AssetBundle();
-
+				Assets = null;
 				AddComponent( new Localization() );
 				AddComponent( new Roster() );
 			}
@@ -150,6 +148,22 @@ namespace Mffer {
 			/// <seealso cref="Version.Version()"/>
 			public Version( string versionName ) : this() {
 				Name = versionName;
+			}
+			/// <summary>
+			/// Loads all data for this <see cref="Version"/> from the
+			/// <see cref="DataSource"/>
+			/// </summary>
+			/// <remarks>
+			/// <see cref="LoadAllAssets()"/> loads all available data,
+			/// including data which is not required by any defined
+			/// <see cref="Component"/>s,
+			/// from the <see cref="DataSource"/>'s identified
+			/// <see cref="AssetFile"/>s. This is usually necessary only for
+			/// extensive cataloging and exploration rather than for creating
+			/// usable data for the <see cref="Component"/>s.
+			/// </remarks>
+			public void LoadAllAssets() {
+				Assets.LoadAll();
 			}
 			/// <summary>
 			/// Adds a <see cref="Component"/> to this <see cref="Version"/>
@@ -229,12 +243,9 @@ namespace Mffer {
 									string assetsString = String.Join( ", ", assetName.Split( "||" ) );
 									throw new ApplicationException( $"Unable to find any of the possible assets ({assetsString}) for component '{component.Name}'" );
 								}
-							} else if ( assetName == "Preferences" ) {
-								if ( Preferences is null ) {
-									throw new ApplicationException( $"Unable to access preferences for component {component.Name}; not found or not preloaded." );
-								} else {
-									component.BackingAssets[assetName] = Preferences;
-								}
+							} else if ( assetName == "Preferences.xml" ) {
+
+								component.BackingAssets[assetName] = null;
 							} else {
 								throw new ApplicationException( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
 							}
@@ -276,7 +287,7 @@ namespace Mffer {
 			/// <param name="tabs">Baseline number of tab characters to insert
 			/// before each line of output</param>
 			/// <seealso href="https://json.org">JSON.org</seealso>
-			public void WriteJson( StreamWriter file, int tabs = 0 ) {
+			public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 				for ( int i = 0; i < tabs; i++ ) {
 					file.Write( "\t" );
 				}
