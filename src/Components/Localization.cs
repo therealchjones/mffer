@@ -51,12 +51,12 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			AssetObject DictionaryAsset = (AssetObject)BackingAssets.First().Value;
+			dynamic DictionaryAsset = BackingAssets.First().Value.AsDynamic();
 			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
 			// 6.7.0; will have to manage differently
 			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
-				foreach ( AssetObject entry in DictionaryAsset.Properties["m_Script"].Array ) {
-					LocalDictionary[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
+				foreach ( dynamic entry in DictionaryAsset.m_Script ) {
+					LocalDictionary[entry.KEY] = entry.TEXT;
 				}
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();

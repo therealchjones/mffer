@@ -54,11 +54,11 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			AssetObject asset = ( (AssetObject)BackingAssets["IntHeroDataDictionary"] ).Properties["values"].Properties["Array"];
+			dynamic asset = BackingAssets["IntHeroDataDictionary"].AsDynamic().values;
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
-			foreach ( AssetObject entry in asset.Array ) {
-				if ( entry.Properties["data"].Properties["isVisible"].String == "1" ) {
+			foreach ( dynamic entry in asset ) {
+				if ( entry.data.isVisible == "1" ) {
 					Character character;
 					string groupId = entry.Properties["data"].Properties["groupId"].String;
 					if ( Characters.ContainsKey( groupId ) ) {
@@ -99,9 +99,9 @@ namespace Mffer {
 						if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
 							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String );
 						}
-						foreach ( AssetObject ability in entry.Properties["data"].Properties["abilitys"].Properties["Array"].Array ) {
-							if ( ability.Properties["data"].String != "0" ) {
-								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.Properties["data"].String ) );
+						foreach ( dynamic ability in entry.data.abilitys ) {
+							if ( ability.data != "0" ) {
+								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.data ) );
 							}
 						}
 						if ( entry.Properties["data"].Properties["ability_hidden"].String != "0" ) {
@@ -110,8 +110,8 @@ namespace Mffer {
 					}
 					uniform.CharacterLevels.Add( heroId, newLevel );
 					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["leaderSkillId"].String ) );
-					foreach ( AssetObject skill in entry.Properties["data"].Properties["skillIds"].Properties["Array"].Array ) {
-						Skill newSkill = new Skill( skill.Properties["data"].String );
+					foreach ( dynamic skill in entry.Properties["data"].Properties["skillIds"].Properties["Array"].Array ) {
+						Skill newSkill = new Skill( skill.data );
 						newLevel.Skills.Add( newSkill );
 					}
 					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["uniformSkillId"].String ) );
@@ -506,9 +506,9 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="assetObject"><see cref="AssetObject"/> containing the
 		/// data to be loaded</param>
-		public void Load( AssetObject assetObject ) {
+		public void Load( dynamic assetObject ) {
 			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
-			AssetObject abilityGroup = assetObject.Properties["data"];
+			dynamic abilityGroup = assetObject.Properties["data"];
 			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
 			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );
 			this.time = Int64.Parse( abilityGroup.Properties["time"].String );

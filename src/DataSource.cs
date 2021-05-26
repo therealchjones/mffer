@@ -291,9 +291,7 @@ namespace Mffer {
 					// or more likely just treat it as the object it is without trying to
 					// change it into a GameObject?
 					if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
-						SerializedType type = DynamicFile.Types[assetData.TypeID];
 						pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
-						pathIDIndex[assetData.PathID].Load( dynamicAsset, type );
 					} else {
 						pathIDIndex[assetData.PathID].Load( dynamicAsset );
 					}
