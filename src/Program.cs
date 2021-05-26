@@ -66,7 +66,7 @@ namespace Mffer {
 			}
 			DirectoryInfo dataDir = new DirectoryInfo( dataDirName );
 			Game = new Game( GameName );
-			Game.LoadAllData( dataDir.FullName );
+			Game.LoadAll( dataDir.FullName );
 		}
 		/// <summary>
 		/// Outputs all loaded <see cref="Game"/> data

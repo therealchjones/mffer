@@ -106,7 +106,7 @@ namespace Mffer {
 		/// <summary>
 		/// Loads all available data into the <see cref="AssetFiles"/>
 		/// </summary>
-		public void LoadAllAssets() {
+		public void LoadAll() {
 			foreach ( AssetFile assetFile in AssetFiles.Values ) {
 				assetFile.LoadAll();
 			}

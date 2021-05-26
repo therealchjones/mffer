@@ -18,10 +18,9 @@ namespace Mffer {
 	/// cref="GameObject"/> can be easily represented in JSON format; a <see
 	/// cref="GameObject"/> is analagous to a JSON documnent (though more
 	/// restrictive). <see cref="GameObject"/>s form the base from which other
-	/// game data such as <see cref="AssetObject"/>s and <see
-	/// cref="PreferenceObject"/>s are derived. This class contains the basic
-	/// structure and simple methods for manipulation of the objects that can be
-	/// further extended as needed.
+	/// game data such as <see cref="AssetObject"/>s are derived. This class
+	/// contains the basic structure and simple methods for manipulation of the
+	/// objects that can be further extended as needed.
 	/// </remarks>
 	/// <seealso cref="AssetObject"/>
 	/// <seealso cref="PreferenceObject"/>
@@ -33,11 +32,11 @@ namespace Mffer {
 		/// </summary>
 		public dynamic Value {
 			get {
-				if ( IsGameObjectValue( _value ) ) return _value;
+				if ( IsValidValue( _value ) ) return _value;
 				throw new InvalidOperationException( $"The object's type is not allowed: {_value.GetType().Name}" );
 			}
 			set {
-				if ( IsGameObjectValue( value ) ) {
+				if ( IsValidValue( value ) ) {
 					_value = value;
 				} else {
 					throw new InvalidOperationException( $"Unable to give object value of type {value.GetType().Name}." );
@@ -45,7 +44,13 @@ namespace Mffer {
 			}
 		}
 		private dynamic _value = null;
-		bool IsGameObjectValue( dynamic type ) {
+		/// <summary>
+		/// Initializes a new <see cref="GameObject"/> instance
+		/// </summary>
+		public GameObject() {
+			Value = null;
+		}
+		static bool IsValidValue( dynamic type ) {
 			if ( type is null ) return true;
 			if ( type is string ) return true;
 			if ( type.GetType().IsGenericType &&
@@ -62,13 +67,13 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="element">A <see cref="JsonElement"/> from a
 		/// <see cref="JsonDocument"/> to load</param>
-		public void LoadJson( JsonElement element ) {
+		public void Load( JsonElement element ) {
 			switch ( element.ValueKind ) {
 				case JsonValueKind.Object:
 					Value = new Dictionary<string, GameObject>();
 					foreach ( JsonProperty jsonProperty in element.EnumerateObject() ) {
 						GameObject newObject = new GameObject();
-						newObject.LoadJson( jsonProperty.Value );
+						newObject.Load( jsonProperty.Value );
 						// Use item[] instead of Add() to allow duplicate keys,
 						// with later ones overwriting previous, something that
 						// occurs sometimes in the level.txt TextAssets
@@ -80,7 +85,7 @@ namespace Mffer {
 					Value = new List<GameObject>();
 					foreach ( JsonElement jsonElement in element.EnumerateArray() ) {
 						GameObject newObject = new GameObject();
-						newObject.LoadJson( jsonElement );
+						newObject.Load( jsonElement );
 						( (List<GameObject>)Value ).Insert( arrayCounter, newObject );
 						arrayCounter++;
 					}
@@ -96,14 +101,14 @@ namespace Mffer {
 		/// Parses XML into this <see cref="GameObject"/>'s value
 		/// </summary>
 		/// <remarks>
-		/// <see cref="GameObject.LoadXml"/> implicitly associates the <paramref name="node"/>
+		/// <see cref="GameObject.Load(XmlNode)"/> implicitly associates the <paramref name="node"/>
 		/// data with this <see cref="GameObject"/>. Since the <see cref="GameObject"/> itself
 		/// may have no "name" (but potentially be referred to by a parent <see cref="GameObject"/>),
 		/// only <see cref="GameObject.Value"/> is modified by this method, and any "name" must
 		/// be determined by a calling method.
 		/// </remarks>
 		/// <param name="node">The XML node to parse</param>
-		public void LoadXml( XmlNode node ) {
+		public void Load( XmlNode node ) {
 			node.Normalize();
 			switch ( node.NodeType ) {
 				// node types to ignore
@@ -122,7 +127,7 @@ namespace Mffer {
 								AllowTrailingCommas = true
 							};
 							JsonDocument json = JsonDocument.Parse( textString, jsonOptions );
-							LoadJson( json.RootElement );
+							Load( json.RootElement );
 							json.Dispose();
 						} catch ( JsonException ) {
 							Value = textString;
@@ -135,7 +140,7 @@ namespace Mffer {
 					Value = DecodeString( node.InnerText );
 					return;
 				case XmlNodeType.Document:
-					LoadXml( ( (XmlDocument)node ).DocumentElement );
+					Load( ( (XmlDocument)node ).DocumentElement );
 					return;
 				case XmlNodeType.Element:
 					Dictionary<string, GameObject> dictionary = new Dictionary<string, GameObject>();
@@ -144,7 +149,7 @@ namespace Mffer {
 							if ( attribute.Specified ) {
 								string name = attribute.Name;
 								GameObject value = new GameObject();
-								value.LoadXml( attribute );
+								value.Load( attribute );
 								if ( dictionary.ContainsKey( name ) ) {
 									throw new FormatException( $"Multiple attributes named '{name}'." );
 								}
@@ -168,7 +173,7 @@ namespace Mffer {
 									name = $"{name}-{i}";
 								}
 								GameObject value = new GameObject();
-								value.LoadXml( child );
+								value.Load( child );
 								dictionary.Add( name, value );
 							}
 						}
@@ -207,7 +212,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="value">The string to (potentially) decode</param>
 		/// <returns>The decoded string, or the original string if not encoded</returns>
-		protected string DecodeString( string value ) {
+		protected static string DecodeString( string value ) {
 			string decodedString = value;
 			if ( String.IsNullOrEmpty( decodedString ) ) {
 				decodedString = "";
@@ -218,6 +223,7 @@ namespace Mffer {
 				// If the string is already (consistent with) an MD5 sum, leave as is
 				// and then random flags that should stay the same even though they match base64 format
 				if ( !decodedString.Contains( ' ' )
+					&& !decodedString.Contains( '\t' )
 					&& !Regex.IsMatch( decodedString, @"^[0-9]+$" )
 					&& !Regex.IsMatch( decodedString, @"^[0-9A-F]{32}$" )
 					&& decodedString != "UnityGraphicsQuality"
@@ -234,6 +240,7 @@ namespace Mffer {
 							decodedString = Encoding.Unicode.GetString( bytes );
 						}
 					}
+					// TODO: #104 Add CSV parsing (CSVtoJson) here?
 				}
 			}
 			return decodedString;
@@ -291,6 +298,92 @@ namespace Mffer {
 					return;
 				default:
 					throw new FormatException( $"Unable to write object of type {Value.GetType()} in JSON format." );
+			}
+		}
+		/// <summary>
+		/// Converts a CSV-formatted string to JSON format
+		/// </summary>
+		/// <param name="csv">The data in CSV format</param>
+		/// <returns>A string containing the data in JSON format</returns>
+		public static string CSVtoJson( string csv ) {
+			if ( String.IsNullOrWhiteSpace( csv ) ) return null;
+			string[] lines = csv.Split( new char[] { '\r', '\n' } );
+			int firstLine;
+			string[] headers = null;
+			for ( firstLine = 0; firstLine < lines.Length; firstLine++ ) {
+				if ( !String.IsNullOrWhiteSpace( lines[firstLine] ) ) {
+					headers = lines[firstLine].Split( '\t' );
+					for ( int cellNum = 0; cellNum < headers.Length; cellNum++ ) {
+						string cellText = headers[cellNum];
+						string escapechars = "([\\\"\\\\])";
+						Regex regex = new Regex( escapechars );
+						cellText = regex.Replace( cellText, "\\$1" );
+						headers[cellNum] = cellText;
+					}
+					break;
+				}
+			}
+			if ( headers == null ) { return null; }
+			string jsonArray = "[ ";
+			for ( int i = firstLine + 1; i < lines.Length; i++ ) {
+				if ( String.IsNullOrWhiteSpace( lines[i] ) ) continue;
+				string[] line = lines[i].Split( '\t' );
+				if ( line.Length != headers.Length ) {
+					throw new Exception( $"CSV poorly formed." );
+				}
+				string lineString = "{";
+				for ( int j = 0; j < headers.Length; j++ ) {
+					string cellText = line[j];
+					string escapechars = "([\\\"\\\\])";
+					Regex regex = new Regex( escapechars );
+					cellText = regex.Replace( cellText, "\\$1" );
+					lineString += $"\"0 string {headers[j]}\": \"{cellText}\"";
+					if ( j != headers.Length - 1 ) {
+						lineString += ", ";
+					}
+				}
+				lineString += "},";
+				jsonArray += lineString;
+			}
+			jsonArray = jsonArray.TrimEnd( new char[] { ',', ' ', '\t' } );
+			jsonArray += " ]";
+			return jsonArray;
+		}
+		/// <summary>
+		///	Obtains a value from a nested <see cref="GameObject"/>
+		/// </summary>
+		/// <param name="key">The optional name of <see cref="GameObject"/>
+		/// for which to search</param>
+		/// <returns>The value associated with this <see cref="GameObject"/>
+		/// and (optionally) <paramref name="key"/></returns>
+		/// <remarks>This method is not yet fully implemented.</remarks>
+		public string GetValue( string key = null ) {
+			switch ( Value ) {
+				case List<GameObject>:
+					if ( Value.Count == 1 ) {
+						return Value[0].GetValue( key );
+					} else {
+						throw new Exception( "Unable to get unique value: Array has multiple items." );
+					}
+				case Dictionary<string, GameObject>:
+					if ( key != null ) {
+						if ( Value.ContainsKey( key ) ) {
+							return Value[key].GetValue();
+						} else if ( Value.Count() > 1 ) {
+							throw new Exception( $"Unable to get unique value: Object has no property '{key}'." );
+						}
+					}
+					if ( Value.Count() == 1 ) {
+						return Value.First().Value.GetValue( key );
+					} else {
+						throw new Exception( "Unable to get unique value: Object has multiple properties." );
+					}
+				default:
+					if ( key != null ) {
+						throw new Exception( $"Unable to get a unique value: identfied string before any key '{key}'." );
+					} else {
+						return Value;
+					}
 			}
 		}
 	}

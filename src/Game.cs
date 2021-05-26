@@ -16,7 +16,7 @@ namespace Mffer {
 	/// data from the filesystem, saving consolidated data to a file, and
 	/// saving individual CSV files for use elsewhere.
 	/// </remarks>
-	public class Game {
+	public class Game : GameObject {
 		/// <summary>
 		/// Gets or sets the name of the game
 		/// </summary>
@@ -28,7 +28,7 @@ namespace Mffer {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class
 		/// </summary>
-		public Game() {
+		public Game() : base() {
 			Versions = new List<Version>();
 		}
 		/// <summary>
@@ -44,14 +44,14 @@ namespace Mffer {
 		/// instance
 		/// </summary>
 		/// <param name="dir">path of a directory containing game data</param>
-		public void LoadAllData( string dir ) {
+		public void LoadAll( string dir ) {
 			DataSource dataSource = new DataSource( dir );
 			List<string> versionNames = dataSource.GetVersionNames();
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
 				version.Assets = dataSource.GetAssets( versionName );
-				version.LoadAllAssets();
-				version.LoadAllComponents();
+				version.LoadAssets();
+				version.LoadComponents();
 				Versions.Add( version );
 			}
 		}
@@ -154,7 +154,7 @@ namespace Mffer {
 			/// <see cref="DataSource"/>
 			/// </summary>
 			/// <remarks>
-			/// <see cref="LoadAllAssets()"/> loads all available data,
+			/// <see cref="LoadAssets()"/> loads all available data,
 			/// including data which is not required by any defined
 			/// <see cref="Component"/>s,
 			/// from the <see cref="DataSource"/>'s identified
@@ -162,7 +162,7 @@ namespace Mffer {
 			/// extensive cataloging and exploration rather than for creating
 			/// usable data for the <see cref="Component"/>s.
 			/// </remarks>
-			public void LoadAllAssets() {
+			public void LoadAssets() {
 				Assets.LoadAll();
 			}
 			/// <summary>
@@ -176,7 +176,7 @@ namespace Mffer {
 			/// <summary>
 			/// Loads data into all of the included <see cref="Component"/>s
 			/// </summary>
-			public void LoadAllComponents() {
+			public void LoadComponents() {
 				foreach ( Component component in Components.Values ) {
 					LoadComponent( component );
 				}

@@ -20,7 +20,6 @@ namespace Mffer {
 	/// </remarks>
 	/// <seealso
 	/// href="https://docs.unity3d.com/ScriptReference/PlayerPrefs.html"/>
-	/// "/Users/chjones/Development/Marvel Future Fight/device-files/MFF-device-6.9.0/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml"
 	public class PreferenceFile : PreferenceObject {
 		/// <summary>
 		/// Gets or sets the filename from which preferences are obtained
@@ -37,39 +36,28 @@ namespace Mffer {
 		/// <paramref name="fileName"/>
 		/// </summary>
 		/// <param name="fileName">Name of file from which to load preferences</param>
-		public PreferenceFile( string fileName ) : this() {
-			LoadFromFile( fileName );
-		}
+		public PreferenceFile( string fileName ) : this( new FileInfo( fileName ) ) { }
 		/// <summary>
 		/// Initializes a new <see cref="PreferenceFile"/> instance containing the preferences from
 		/// <paramref name="file"/>
 		/// </summary>
 		/// <param name="file"><see cref="FileInfo"/> from which to load preferences</param>
 		public PreferenceFile( FileInfo file ) : this() {
-			LoadFromFile( file );
-		}
-		/// <summary>
-		/// Loads preferences from the given file into the
-		/// <see cref="PreferenceFile"/> object
-		/// </summary>
-		/// <param name="fileName">path name of the file to read</param>
-		public void LoadFromFile( string fileName ) {
-			if ( !File.Exists( fileName ) ) {
-				throw new ArgumentException( $"XML document '{fileName}' is not accessible." );
-			}
-			FileInfo file = new FileInfo( fileName );
-			LoadFromFile( file );
+			Load( file );
 		}
 		/// <summary>
 		/// Loads preferences from the given file into the
 		/// <see cref="PreferenceFile"/> object
 		/// </summary>
 		/// <param name="file"><see cref="FileInfo"/> to read</param>
-		public void LoadFromFile( FileInfo file ) {
+		public void Load( FileInfo file ) {
+			if ( !file.Exists ) {
+				throw new ArgumentException( $"XML document '{file.FullName}' is not accessible." );
+			}
 			Name = file.Name;
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.Load( file.FullName );
-			LoadXml( xmlDocument );
+			Load( xmlDocument );
 		}
 	}
 }

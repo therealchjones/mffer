@@ -399,21 +399,3 @@ mv "$MFFTEMPDIR"/release/device-files "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" || {
 	read -r
 	exit 1
 }
-
-DATADIR="mff-data-$VERSIONSTRING"
-echo ''
-echo '************* USER INTERACTION REQUIRED *************'
-echo 'Use UABE (in Windows) to extract assets from the '
-echo ' device:'
-echo "Open '$MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text',"
-echo " decompress text as prompted to '$MFFOUTPUTDIR/$DATADIR/text'"
-echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$MFFOUTPUTDIR/$DATADIR/assets'"
-echo "Open $MFFOUTPUTDIR/$DEVICEFILEDIR/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/localization_en',"
-echo " decompress localization_en as prompted to '$MFFOUTPUTDIR/$DATADIR/localization_en'"
-echo 'Choose Info->Select all (using shift-click)->Export Dump'
-echo " ->UABE JSON dump to '$MFFOUTPUTDIR/$DATADIR/assets'"
-echo '******************************************************'
-echo ''
-echo 'Press <enter> or <return> when that is complete.'
-read -r
