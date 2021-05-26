@@ -292,9 +292,8 @@ namespace Mffer {
 					// change it into a GameObject?
 					if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
 						pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
-					} else {
-						pathIDIndex[assetData.PathID].Load( dynamicAsset );
 					}
+					pathIDIndex[assetData.PathID].Load( dynamicAsset );
 				} else {
 					if ( dynamicAsset.TypeName != "MonoScript" && dynamicAsset.TypeName != "AssetBundle" ) {
 						throw new InvalidDataException( "Path ID of object not found in manifest" );
@@ -439,6 +438,7 @@ namespace Mffer {
 				case "MonoBehaviour":
 					// this way of doing it is untenable. Need to get all properties/members of objects array
 					// as a dictionary
+					/*
 					Dictionary<string, AssetObject> properties = new Dictionary<string, AssetObject>();
 					if ( asset.HasMember( "keys" ) ) {
 						AssetObject keys = new AssetObject( asset.keys );
@@ -464,6 +464,7 @@ namespace Mffer {
 						throw new NotImplementedException( "Unable to get meaningful data from asset" );
 					}
 					Value = properties;
+					*/
 					break;
 				// Ignore these types when loading assets
 				case "MonoScript":

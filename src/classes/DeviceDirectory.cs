@@ -107,8 +107,11 @@ namespace Mffer {
 		/// Loads all available data into the <see cref="AssetFiles"/>
 		/// </summary>
 		public void LoadAll() {
-			foreach ( AssetFile assetFile in AssetFiles.Values ) {
-				assetFile.LoadAll();
+			foreach ( GameObject entry in AssetFiles.Values ) {
+				if ( entry is AssetFile ) {
+					AssetFile assetFile = entry as AssetFile;
+					assetFile.LoadAll();
+				}
 			}
 		}
 		/// <summary>
