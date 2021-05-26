@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -149,6 +150,27 @@ namespace Mffer {
 			public Version( string versionName ) : this() {
 				Name = versionName;
 			}
+			dynamic GetAsset( string assetName, string assetFile ) {
+				if ( assetFile is null ) {
+					throw new ArgumentNullException( "assetFile" );
+				}
+				if ( !Assets.AssetFiles.ContainsKey( assetFile ) ) {
+					throw new KeyNotFoundException( $"Unable to find asset file named {assetFile}" );
+				}
+				return ( (AssetFile)Assets.AssetFiles[assetFile] ).GetRawAsset( assetName );
+			}
+			dynamic GetAsset( string assetName ) {
+				dynamic asset = null;
+				foreach ( string assetFile in Assets.AssetFiles.Keys ) {
+					try {
+						asset = GetAsset( assetName, assetFile );
+					} catch ( KeyNotFoundException ) { }
+				}
+				if ( asset is null ) {
+					throw new KeyNotFoundException( $"Unable to find asset '{assetName}'" );
+				}
+				return asset;
+			}
 			/// <summary>
 			/// Loads all data for this <see cref="Version"/> from the
 			/// <see cref="DataSource"/>
@@ -224,7 +246,7 @@ namespace Mffer {
 					foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
 						if ( component.BackingAssets[assetName] == null ) {
 							if ( Assets.AssetFiles.ContainsKey( assetName ) ) {
-								component.BackingAssets[assetName] = Assets.AssetFiles[assetName];
+								component.BackingAssets[assetName] = GetAsset( assetName );
 							} else if ( assetName.Contains( "||" ) ) {
 								foreach ( string possibleAssetName in assetName.Split( "||" ) ) {
 									string possibleName = possibleAssetName.Trim();
@@ -234,7 +256,7 @@ namespace Mffer {
 										break;
 									}
 									if ( Assets.AssetFiles.ContainsKey( possibleName ) ) {
-										component.BackingAssets.Add( possibleName, Assets.AssetFiles[possibleName] );
+										component.BackingAssets.Add( possibleName, GetAsset( possibleName ) );
 										component.BackingAssets.Remove( assetName );
 										break;
 									}

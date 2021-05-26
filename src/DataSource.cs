@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using AssetsTools;
 using AssetsTools.Dynamic;
 
@@ -185,10 +183,10 @@ namespace Mffer {
 	/// </remarks>
 	public class AssetFile : GameObject {
 		/// <summary>
-		/// Gets or sets the <see cref="FileInfo"/> instance containing
+		/// Gets or sets the <see cref="AssetsFile"/> instance containing
 		/// data for this <see cref="AssetFile"/>
 		/// </summary>
-		FileInfo File { get; set; }
+		AssetsFile DynamicFile { get; set; }
 		/// <summary>
 		/// Gets or sets the dictionary of assets, indexed by asset name
 		/// </summary>
@@ -212,7 +210,7 @@ namespace Mffer {
 			if ( !file.Exists ) {
 				throw new FileNotFoundException( "Unable to access file", file.FullName );
 			}
-			File = file;
+			DynamicFile = AssetBundleFile.LoadFromFile( file.FullName ).Files[0].ToAssetsFile(); ;
 			LoadManifest();
 		}
 		/// <summary>
@@ -220,16 +218,15 @@ namespace Mffer {
 		/// data from the <see cref="File"/>
 		/// </summary>
 		void LoadManifest() {
-			if ( File is null ) {
+			if ( DynamicFile is null ) {
 				throw new Exception( "No asset file is loaded." );
 			}
-			AssetsFile assetsFile = AssetBundleFile.LoadFromFile( File.FullName ).Files[0].ToAssetsFile();
-			List<AssetsFile.ObjectType> manifests = assetsFile.ObjectsWithClass( ClassIDType.AssetBundle ).ToList();
+			List<AssetsFile.ObjectType> manifests = DynamicFile.ObjectsWithClass( ClassIDType.AssetBundle ).ToList();
 			if ( manifests.Count == 0 ) {
-				throw new FileLoadException( $"Unable to identify AssetBundle manifest in {File.FullName}" );
+				throw new FileLoadException( $"Unable to identify AssetBundle manifest" );
 			}
 			if ( manifests.Count > 1 ) {
-				throw new FileLoadException( $"Multiple AssetBundle manifests found in {File.FullName}" );
+				throw new FileLoadException( $"Multiple AssetBundle manifests found" );
 			}
 			dynamic manifest = manifests[0].ToDynamicAsset().AsDynamic();
 			foreach ( string assetName in manifest.m_Container.Keys ) {
@@ -238,6 +235,39 @@ namespace Mffer {
 				Assets.Add( assetName, asset );
 			}
 		}
+		/// <summary>
+		/// Retrieves the <see cref="DynamicAsset"/> of the given name
+		/// </summary>
+		/// <param name="assetName">Name of the asset to obtain</param>
+		/// <returns>The asset named <paramref name="assetName"/></returns>
+		public dynamic GetRawAsset( string assetName ) {
+			if ( !Assets.ContainsKey( assetName ) ) {
+				throw new KeyNotFoundException( "Unable to find asset named '{assetName}'" );
+			}
+			if ( Assets[assetName].RawAsset is null ) {
+				LoadAsset( assetName );
+			}
+			return Assets[assetName].RawAsset.AsDynamic();
+		}
+		void LoadAsset( string assetName ) {
+			if ( String.IsNullOrEmpty( assetName ) ) {
+				throw new ArgumentNullException( "assetName" );
+			}
+			if ( !Assets.ContainsKey( assetName ) ) {
+				throw new KeyNotFoundException( $"Unable to find asset named '{assetName}'" );
+			}
+			if ( Assets[assetName] is null ) {
+				throw new ApplicationException( $"Asset {assetName} was not properly initialized" );
+			}
+			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
+				if ( assetData.PathID == Assets[assetName].PathID ) {
+					Assets[assetName].Load( assetData.ToDynamicAsset() );
+					return;
+				}
+			}
+			throw new ApplicationException( $"Unable to find asset data for '{assetName}'" );
+		}
+
 		/// <summary>
 		/// Loads all available data from <see cref="File"/> into the
 		/// individual <see cref="Assets"/>
@@ -250,8 +280,7 @@ namespace Mffer {
 			foreach ( KeyValuePair<string, Asset> entry in Assets ) {
 				pathIDIndex.Add( entry.Value.PathID, entry.Value );
 			}
-			AssetsFile assetsFile = AssetBundleFile.LoadFromFile( File.FullName ).Files[0].ToAssetsFile();
-			foreach ( AssetsFile.ObjectType assetData in assetsFile.Objects ) {
+			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
 				// first, get appropriate type tree from the asset file
 				DynamicAsset dynamicAsset = assetData.ToDynamicAsset();
 				if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
@@ -262,7 +291,7 @@ namespace Mffer {
 					// or more likely just treat it as the object it is without trying to
 					// change it into a GameObject?
 					if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
-						SerializedType type = assetsFile.Types[assetData.TypeID];
+						SerializedType type = DynamicFile.Types[assetData.TypeID];
 						pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
 						pathIDIndex[assetData.PathID].Load( dynamicAsset, type );
 					} else {
@@ -286,7 +315,7 @@ namespace Mffer {
 			}
 			long ClassPathID = dynamicAsset.AsDynamic().m_Script.m_PathID;
 			foreach ( AssetsFile.ObjectType monoScript in
-				AssetBundleFile.LoadFromFile( File.FullName ).Files[0].ToAssetsFile().ObjectsWithClass( ClassIDType.MonoScript ) ) {
+				DynamicFile.ObjectsWithClass( ClassIDType.MonoScript ) ) {
 				if ( monoScript.PathID == ClassPathID ) {
 					return monoScript.ToDynamicAsset().AsDynamic().m_ClassName;
 				}
@@ -307,10 +336,6 @@ namespace Mffer {
 				file.Write( "\t" );
 			}
 			file.WriteLine( "{" );
-			for ( int i = 0; i < tabs + 1; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( $"\"File\" : \"{File.FullName}\"," );
 			for ( int i = 0; i < tabs + 1; i++ ) {
 				file.Write( "\t" );
 			}
@@ -352,6 +377,11 @@ namespace Mffer {
 	/// </summary>
 	public class Asset : AssetObject {
 		/// <summary>
+		/// Gets or sets the <see cref="DynamicAsset"/> containing unparsed data
+		/// for the <see cref="Asset"/>
+		/// </summary>
+		public DynamicAsset RawAsset { get; set; }
+		/// <summary>
 		/// Gets or sets the <see cref="Asset"/>'s path ID
 		/// </summary>
 		public long PathID { get; set; }
@@ -385,6 +415,7 @@ namespace Mffer {
 		/// <param name="dynamicAsset"><see cref="DynamicAsset"/> from which
 		/// to load data</param>
 		public void Load( DynamicAsset dynamicAsset ) {
+			RawAsset = dynamicAsset;
 			dynamic asset = dynamicAsset.AsDynamic();
 			if ( asset.HasMember( "m_Name" ) ) {
 				if ( asset.m_Name is string ) {
