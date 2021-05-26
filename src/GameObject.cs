@@ -30,7 +30,7 @@ namespace Mffer {
 		/// Gets or sets the value of the object, which may be a string,
 		/// array, or object
 		/// </summary>
-		public dynamic Value {
+		public virtual dynamic Value {
 			get {
 				if ( IsValidValue( _value ) ) return _value;
 				throw new InvalidOperationException( $"The object's type is not allowed: {_value.GetType().Name}" );

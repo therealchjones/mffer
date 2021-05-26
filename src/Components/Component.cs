@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -13,7 +14,7 @@ namespace Mffer {
 	/// <see cref="AssetFile"/>s and other <see cref="Component"/>s required
 	/// for loading data into the instance or evaluating or reporting the data.
 	/// </remarks>
-	public class Component {
+	public class Component : GameObject {
 		/// <summary>
 		/// Gets or sets the name of the <see cref="Component"/>
 		/// </summary>
@@ -31,7 +32,7 @@ namespace Mffer {
 		/// <see cref="AssetFile"/>s and place them into the associated values of
 		/// <see cref="BackingAssets"/>.
 		/// </remarks>
-		public Dictionary<string, GameObject> BackingAssets { get; set; }
+		public Dictionary<string, DynamicAsset> BackingAssets { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
 		/// by this <see cref="Component"/>, indexed by name.
@@ -49,7 +50,7 @@ namespace Mffer {
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
 		public Component() {
-			BackingAssets = new Dictionary<string, GameObject>();
+			BackingAssets = new Dictionary<string, DynamicAsset>();
 			Dependencies = new Dictionary<string, Component>();
 		}
 		/// <summary>
@@ -107,7 +108,7 @@ namespace Mffer {
 		/// <param name="tabs">Baseline number of tab characters to insert
 		/// before each line of output</param>
 		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
+		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
 		}
 		/// <summary>
 		/// Outputs select data from this <see cref="Component"/> in CSV format
@@ -149,7 +150,7 @@ namespace Mffer {
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
 			if ( BackingAssets.Count != 0 ) {
-				foreach ( KeyValuePair<string, GameObject> item in BackingAssets ) {
+				foreach ( KeyValuePair<string, DynamicAsset> item in BackingAssets ) {
 					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
 						BackingAssets.Remove( item.Key );
 					} else {
