@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using CommandLine;
@@ -59,7 +60,7 @@ namespace Mffer {
 				dataDirName = Arguments["datadir"];
 			} else {
 				// TODO: #103 build CommandLineException class into CommandLine
-				System.Console.WriteLine( "You must provide the name of a data directory." );
+				throw new Exception( "You must provide the name of a data directory." );
 			}
 			if ( !Directory.Exists( dataDirName ) ) {
 				throw new DirectoryNotFoundException( $"Unable to access directory '${dataDirName}'" );

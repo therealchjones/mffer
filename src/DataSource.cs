@@ -10,43 +10,48 @@ namespace Mffer {
 	/// Provides a store of <see cref="Game"/> data
 	/// </summary>
 	/// <remarks>
-	/// <para>All filesystem interaction from the <see cref="Game"/> class
-	/// should be performed via this class. A <see cref="DataSource"/> is built
-	/// from <see cref="DeviceDirectory"/> objects that are each associated with
-	/// a given <see cref="Version"/> of the <see cref="Game"/>. Data from the
-	/// <see cref="DeviceDirectory"/> are loaded into the <see
-	/// cref="AssetBundle"/> associated with the same version when requested by
-	/// the a <see cref="Game"/> instance.</para>
+	/// <para>All filesystem interaction (with the possible exception of
+	/// validating command-line arguments) should be performed via this class. A
+	/// <see cref="DataSource"/> is built from <see cref="AssetBundle"/>
+	/// objects that are each associated with a given <see cref="Version"/> of
+	/// the <see cref="Game"/>. Data from each <see cref="DeviceDirectory"/> are
+	/// loaded into the <see cref="AssetBundle"/> associated with the same
+	/// version when requested by the a <see cref="Game"/> instance.</para>
 	/// <para>The <see cref="DataSource"/> class includes these definitions and
 	/// methods to build instances of them and access their data.</para>
 	/// </remarks>
 	public class DataSource : GameObject {
 		/// <summary>
-		/// Gets or sets the parsed assets, indexed by version name
+		/// Gets or sets the imported data, indexed by version name
 		/// </summary>
-		public Dictionary<string, AssetBundle> Assets { get; set; }
+		public Dictionary<string, AssetBundle> VersionData { get; set; }
 		/// <summary>
 		/// Initializes a new <see cref="DataSource"/> instance
 		/// </summary>
 		DataSource() : base() {
-			Assets = new Dictionary<string, AssetBundle>();
+			VersionData = new Dictionary<string, AssetBundle>();
 		}
 		/// <summary>
 		/// Initializes a new <see cref="DataSource"/> instance containing a
 		/// directory
 		/// </summary>
-		/// <remarks>The <paramref name="pathName"/> is validated and added to
-		/// the list of directories</remarks>
-		/// <param name="pathName">The full path name of a device directory</param>
+		/// <remarks>The <paramref name="pathName"/> is validated and examined
+		/// for appropriate directories to import.</remarks>
+		/// <seealso cref="Add(string)"/>
+		/// <param name="pathName">The full path name of a device directory or
+		/// parent of device directories</param>
 		public DataSource( string pathName ) : this() {
 			Add( pathName );
 		}
 		/// <summary>
-		/// Adds a device directory to the <see cref="DataSource"/>
+		/// Adds a directory to the <see cref="DataSource"/>
 		/// </summary>
-		/// <remarks>The <paramref name="pathName"/> is validated before
-		/// adding.</remarks>
-		/// <param name="pathName">The full path name of a device directory</param>
+		/// <remarks>he <paramref name="pathName"/> is validated and examined
+		/// for appropriate directories to import. The given <paramref
+		/// name="pathName"/> may be a <see cref="DeviceDirectory"/> or a parent
+		/// of one or more <see cref="DeviceDirectory"/>s.</remarks>.
+		/// <param name="pathName">The full path name of a device directory or
+		/// parent of device directories</param>
 		public void Add( string pathName ) {
 			if ( String.IsNullOrEmpty( pathName ) ) {
 				throw new ArgumentNullException( "pathName" );
@@ -71,18 +76,18 @@ namespace Mffer {
 			}
 			DeviceDirectory deviceDirectory = new DeviceDirectory( directory );
 			string version = deviceDirectory.VersionName;
-			if ( Assets.ContainsKey( version ) ) {
-				throw new FileLoadException( $"Unable to load device directory '{deviceDirectory.FullName};: already loaded assets for version {version}" );
+			if ( VersionData.ContainsKey( version ) ) {
+				throw new FileLoadException( $"Unable to load device directory '{deviceDirectory.FullName}': already loaded assets for version {version}" );
 			}
 			AssetBundle assetBundle = new AssetBundle( deviceDirectory );
-			Assets.Add( version, assetBundle );
+			VersionData.Add( version, assetBundle );
 		}
 		/// <summary>
 		/// Creates a list of the identified version names
 		/// </summary>
-		/// <returns>The list of identified version names</returns>
+		/// <returns>The list of loaded version names</returns>
 		public List<string> GetVersionNames() {
-			return Assets.Keys.ToList();
+			return VersionData.Keys.ToList();
 		}
 		/// <summary>
 		/// Provides the <see cref="AssetBundle"/> associated with the given version name
@@ -93,14 +98,14 @@ namespace Mffer {
 			if ( String.IsNullOrEmpty( versionName ) ) {
 				throw new ArgumentNullException( "versionName", "The version name must not be empty." );
 			}
-			if ( !Assets.ContainsKey( versionName ) ) {
-				throw new ArgumentException( $"There is no asset for version {versionName}.", "versionName" );
+			if ( !VersionData.ContainsKey( versionName ) ) {
+				throw new ArgumentException( $"No data loaded for version {versionName}", "versionName" );
 			}
-			return Assets[versionName];
+			return VersionData[versionName];
 		}
 	}
 	/// <summary>
-	/// Represents a collection of <see cref="AssetFile"/>s
+	/// Represents a collection of data associated with a single <see cref="Version"/>
 	/// </summary>
 	/// <remarks>
 	/// An <see cref="AssetBundle"/> includes all parsed (or parseable) files
@@ -108,22 +113,22 @@ namespace Mffer {
 	/// with a given <see cref="Version"/>.
 	/// </remarks>
 	public class AssetBundle : GameObject {
+		// TODO: #105 Change AssetBundle to DataBundle to differentiate from (real) AssetBundles
 		/// <summary>
 		/// Gets or sets the <see cref="DeviceDirectory"/> from which this
 		/// <see cref="AssetBundle"/> loads its data
 		/// </summary>
 		DeviceDirectory BackingDirectory { get; set; }
 		/// <summary>
-		/// Sets or gets a dictionary of <see cref="AssetFile"/>s indexed by
-		/// <see cref="AssetFile"/> name
+		/// Sets or gets a dictionary of files containing <see cref="Version"/>
+		/// data, indexed by filename
 		/// </summary>
 		/// <remarks>
-		/// <see cref="AssetBundle.AssetFiles"/> is a link to the
-		/// <see cref="AssetBundle.BackingDirectory"/>'s
-		/// <see cref="DeviceDirectory.AssetFiles"/> property for
-		/// convenience.
+		/// <see cref="AssetBundle.DataFiles"/> is a link to the <see
+		/// cref="AssetBundle.BackingDirectory"/>'s <see
+		/// cref="DeviceDirectory.AssetFiles"/> property for convenience.
 		/// </remarks>
-		public Dictionary<string, GameObject> AssetFiles {
+		public Dictionary<string, GameObject> DataFiles {
 			get => BackingDirectory.AssetFiles;
 		}
 		/// <summary>
@@ -133,7 +138,7 @@ namespace Mffer {
 
 		}
 		/// <summary>
-		/// initializes a new <see cref="AssetBundle"/> instance based on the
+		/// Initializes a new <see cref="AssetBundle"/> instance based on the
 		/// given <see cref="DeviceDirectory"/>
 		/// </summary>
 		/// <param name="backingDirectory"><see cref="DeviceDirectory"/> from
@@ -154,11 +159,11 @@ namespace Mffer {
 		/// line</param>
 		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-			List<string> Keys = AssetFiles.Keys.ToList<string>();
+			List<string> Keys = DataFiles.Keys.ToList<string>();
 			Keys.Sort();
 			int counter = 0;
 			foreach ( string key in Keys ) {
-				AssetFiles[key].WriteJson( file, tabs );
+				DataFiles[key].WriteJson( file, tabs );
 				if ( counter < Keys.Count() - 1 ) {
 					file.Write( "," );
 				}
@@ -167,7 +172,7 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Loads all asset data into the <see cref="AssetFiles"/>
+		/// Loads all available data into the <see cref="DataFiles"/>
 		/// </summary>
 		public void LoadAll() {
 			BackingDirectory.LoadAll();
@@ -267,7 +272,6 @@ namespace Mffer {
 			}
 			throw new ApplicationException( $"Unable to find asset data for '{assetName}'" );
 		}
-
 		/// <summary>
 		/// Loads all available data from <see cref="File"/> into the
 		/// individual <see cref="Assets"/>
@@ -523,7 +527,7 @@ namespace Mffer {
 			Value = DecodeString( assetString );
 		}
 		/// <summary>
-		/// Initializes a new instance of the <see  cref="AssetObject"/> class
+		/// Initializes a new instance of the <see cref="AssetObject"/> class
 		/// and loads data from an imported object
 		/// </summary>
 		/// <param name="dynamicAsset"></param>
