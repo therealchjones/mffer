@@ -12,10 +12,10 @@ namespace Mffer {
 	/// <remarks>
 	/// <para>All filesystem interaction (with the possible exception of
 	/// validating command-line arguments) should be performed via this class. A
-	/// <see cref="DataSource"/> is built from <see cref="AssetBundle"/>
+	/// <see cref="DataSource"/> is built from <see cref="DataBundle"/>
 	/// objects that are each associated with a given <see cref="Version"/> of
 	/// the <see cref="Game"/>. Data from each <see cref="DeviceDirectory"/> are
-	/// loaded into the <see cref="AssetBundle"/> associated with the same
+	/// loaded into the <see cref="DataBundle"/> associated with the same
 	/// version when requested by the a <see cref="Game"/> instance.</para>
 	/// <para>The <see cref="DataSource"/> class includes these definitions and
 	/// methods to build instances of them and access their data.</para>
@@ -24,12 +24,12 @@ namespace Mffer {
 		/// <summary>
 		/// Gets or sets the imported data, indexed by version name
 		/// </summary>
-		public Dictionary<string, AssetBundle> VersionData { get; set; }
+		public Dictionary<string, DataBundle> VersionData { get; set; }
 		/// <summary>
 		/// Initializes a new <see cref="DataSource"/> instance
 		/// </summary>
 		DataSource() : base() {
-			VersionData = new Dictionary<string, AssetBundle>();
+			VersionData = new Dictionary<string, DataBundle>();
 		}
 		/// <summary>
 		/// Initializes a new <see cref="DataSource"/> instance containing a
@@ -79,7 +79,7 @@ namespace Mffer {
 			if ( VersionData.ContainsKey( version ) ) {
 				throw new FileLoadException( $"Unable to load device directory '{deviceDirectory.FullName}': already loaded assets for version {version}" );
 			}
-			AssetBundle assetBundle = new AssetBundle( deviceDirectory );
+			DataBundle assetBundle = new DataBundle( deviceDirectory );
 			VersionData.Add( version, assetBundle );
 		}
 		/// <summary>
@@ -90,11 +90,11 @@ namespace Mffer {
 			return VersionData.Keys.ToList();
 		}
 		/// <summary>
-		/// Provides the <see cref="AssetBundle"/> associated with the given version name
+		/// Provides the <see cref="DataBundle"/> associated with the given version name
 		/// </summary>
 		/// <param name="versionName">Name of the version</param>
-		/// <returns>The <see cref="AssetBundle"/> for version <paramref name="versionName"/></returns>
-		public AssetBundle GetAssets( string versionName ) {
+		/// <returns>The <see cref="DataBundle"/> for version <paramref name="versionName"/></returns>
+		public DataBundle GetData( string versionName ) {
 			if ( String.IsNullOrEmpty( versionName ) ) {
 				throw new ArgumentNullException( "versionName", "The version name must not be empty." );
 			}
@@ -108,15 +108,15 @@ namespace Mffer {
 	/// Represents a collection of data associated with a single <see cref="Version"/>
 	/// </summary>
 	/// <remarks>
-	/// An <see cref="AssetBundle"/> includes all parsed (or parseable) files
+	/// An <see cref="DataBundle"/> includes all parsed (or parseable) files
 	/// from a given <see cref="DeviceDirectory"/>, and therefore all associated
 	/// with a given <see cref="Version"/>.
 	/// </remarks>
-	public class AssetBundle : GameObject {
+	public class DataBundle : GameObject {
 		// TODO: #105 Change AssetBundle to DataBundle to differentiate from (real) AssetBundles
 		/// <summary>
 		/// Gets or sets the <see cref="DeviceDirectory"/> from which this
-		/// <see cref="AssetBundle"/> loads its data
+		/// <see cref="DataBundle"/> loads its data
 		/// </summary>
 		DeviceDirectory BackingDirectory { get; set; }
 		/// <summary>
@@ -124,26 +124,26 @@ namespace Mffer {
 		/// data, indexed by filename
 		/// </summary>
 		/// <remarks>
-		/// <see cref="AssetBundle.DataFiles"/> is a link to the <see
-		/// cref="AssetBundle.BackingDirectory"/>'s <see
+		/// <see cref="DataBundle.DataFiles"/> is a link to the <see
+		/// cref="DataBundle.BackingDirectory"/>'s <see
 		/// cref="DeviceDirectory.DataFiles"/> property for convenience.
 		/// </remarks>
 		public Dictionary<string, GameObject> DataFiles {
 			get => BackingDirectory.DataFiles;
 		}
 		/// <summary>
-		/// Initializes a new <see cref="AssetBundle"/> instance
+		/// Initializes a new <see cref="DataBundle"/> instance
 		/// </summary>
-		AssetBundle() : base() {
+		DataBundle() : base() {
 
 		}
 		/// <summary>
-		/// Initializes a new <see cref="AssetBundle"/> instance based on the
+		/// Initializes a new <see cref="DataBundle"/> instance based on the
 		/// given <see cref="DeviceDirectory"/>
 		/// </summary>
 		/// <param name="backingDirectory"><see cref="DeviceDirectory"/> from
-		/// which this <see cref="AssetBundle"/> will load its data</param>
-		public AssetBundle( DeviceDirectory backingDirectory ) : this() {
+		/// which this <see cref="DataBundle"/> will load its data</param>
+		public DataBundle( DeviceDirectory backingDirectory ) : this() {
 			if ( backingDirectory is null ) {
 				throw new ArgumentNullException( "backngDirectory" );
 			}
@@ -151,7 +151,7 @@ namespace Mffer {
 		}
 		/// <summary>
 		/// Writes a JSON-formatted representaton of the
-		/// <see cref="AssetBundle"/> to a <see cref="StreamWriter"/> stream
+		/// <see cref="DataBundle"/> to a <see cref="StreamWriter"/> stream
 		/// </summary>
 		/// <param name="file">The <see cref="StreamWriter"/> stream to which
 		/// to write</param>

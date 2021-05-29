@@ -49,8 +49,8 @@ namespace Mffer {
 			List<string> versionNames = dataSource.GetVersionNames();
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
-				version.Assets = dataSource.GetAssets( versionName );
-				version.LoadAssets();
+				version.Data = dataSource.GetData( versionName );
+				version.LoadData();
 				version.LoadComponents();
 				Versions.Add( version );
 			}
@@ -129,15 +129,14 @@ namespace Mffer {
 			/// Gets or sets the group of <see cref="AssetFile"/>s associated with
 			/// this <see cref="Version"/>
 			/// </summary>
-			// TODO: #106 change to a better name
-			public AssetBundle Assets { get; set; }
+			public DataBundle Data { get; set; }
 			/// <summary>
 			/// Initializes a new instance of the <see cref="Version"/> class
 			/// </summary>
 			public Version() : base() {
 				Name = "";
 				Components = new Dictionary<string, Component>();
-				Assets = null;
+				Data = null;
 				AddComponent( new Localization() );
 				AddComponent( new Roster() );
 			}
@@ -154,10 +153,10 @@ namespace Mffer {
 				if ( assetFile is null ) {
 					throw new ArgumentNullException( "assetFile" );
 				}
-				if ( !Assets.DataFiles.ContainsKey( assetFile ) ) {
+				if ( !Data.DataFiles.ContainsKey( assetFile ) ) {
 					throw new KeyNotFoundException( $"Unable to find asset file named {assetFile}" );
 				}
-				GameObject file = Assets.DataFiles[assetFile];
+				GameObject file = Data.DataFiles[assetFile];
 				if ( file is AssetFile ) {
 					return ( (AssetFile)file ).GetAsset( assetName );
 				} else if ( file is PreferenceFile && assetName == ( (PreferenceFile)file ).Name ) {
@@ -168,7 +167,7 @@ namespace Mffer {
 			}
 			dynamic GetAsset( string assetName ) {
 				dynamic asset = null;
-				foreach ( string assetFile in Assets.DataFiles.Keys ) {
+				foreach ( string assetFile in Data.DataFiles.Keys ) {
 					try {
 						asset = GetAsset( assetName, assetFile );
 					} catch ( KeyNotFoundException ) {
@@ -180,7 +179,7 @@ namespace Mffer {
 			}
 			bool TryGetAsset( string assetName, out dynamic asset ) {
 				asset = null;
-				foreach ( string fileName in Assets.DataFiles.Keys ) {
+				foreach ( string fileName in Data.DataFiles.Keys ) {
 					try {
 						asset = GetAsset( assetName, fileName );
 					} catch ( KeyNotFoundException ) {
@@ -195,7 +194,7 @@ namespace Mffer {
 			/// <see cref="DataSource"/>
 			/// </summary>
 			/// <remarks>
-			/// <see cref="LoadAssets()"/> loads all available data,
+			/// <see cref="LoadData()"/> loads all available data,
 			/// including data which is not required by any defined
 			/// <see cref="Component"/>s,
 			/// from the <see cref="DataSource"/>'s identified
@@ -203,8 +202,8 @@ namespace Mffer {
 			/// extensive cataloging and exploration rather than for creating
 			/// usable data for the <see cref="Component"/>s.
 			/// </remarks>
-			public void LoadAssets() {
-				Assets.LoadAll();
+			public void LoadData() {
+				Data.LoadAll();
 			}
 			/// <summary>
 			/// Adds a <see cref="Component"/> to this <see cref="Version"/>
@@ -337,7 +336,7 @@ namespace Mffer {
 					file.Write( "\t" );
 				}
 				file.WriteLine( "\"Assets\" : {" );
-				Assets.WriteJson( file, tabs + 2 );
+				Data.WriteJson( file, tabs + 2 );
 				file.WriteLine();
 				for ( int i = 0; i < tabs + 1; i++ ) {
 					file.Write( "\t" );

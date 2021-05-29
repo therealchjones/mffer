@@ -134,7 +134,7 @@ namespace Mffer {
 		/// cref="Component.Dependencies"/> to load data into <see
 		/// cref="Component"/>'s other properties. As the <see
 		/// cref="Component"/> does not have access to the overall sets of <see
-		/// cref="Game.Version.Assets"/> and <see
+		/// cref="Game.Version.Data"/> and <see
 		/// cref="Game.Version.Components"/>, both <see cref="BackingData"/> and
 		/// <see cref="Dependencies"/> must be loaded by an ancestor instance
 		/// (e.g., via <see cref="Game.Version.LoadComponent(Component)"/>)
