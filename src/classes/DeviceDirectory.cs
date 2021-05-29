@@ -8,19 +8,18 @@ namespace Mffer {
 	/// containing a Marvel Future Fight installation
 	/// </summary>
 	/// <remarks>
-	/// <para><see cref="DeviceDirectory"/>s are objects built from
-	/// filesystem directory trees that are subsets of the filesystem from
-	/// an Android device upon which Marvel Future Fight has been installed.
-	/// Although the <see cref="RootDirectory"/> matches the <c>/</c>
-	/// directory from the Android filesystem, not all subdirectories need
-	/// be included (and most overlapping mounts are not); typically a
-	/// <see cref="DeviceDirectory"/> includes only those subtrees associated
-	/// with the Marvel Future Fight installation.</para>
-	/// <para>The filesystem directory upon which a
-	/// <see cref="DeviceDirectory"/> is based is typically created by the
+	/// <para><see cref="DeviceDirectory"/>s are built from filesystem directory
+	/// trees that are subsets of the filesystem from an Android device upon
+	/// which Marvel Future Fight has been installed. Although the <see
+	/// cref="RootDirectory"/> matches the <c>/</c> directory from the Android
+	/// filesystem, not all subdirectories need be included (and most
+	/// overlapping mounts are not); typically a <see cref="DeviceDirectory"/>
+	/// includes only those subtrees associated with the Marvel Future Fight
+	/// installation.</para>
+	/// <para>The filesystem directory upon which a <see
+	/// cref="DeviceDirectory"/> is based is typically created by the
 	/// <c>autoextract</c> program and has a name similar to
-	/// <c>mff-device-files-7.0.1-170126-20210423</c>, ending in a
-	/// version name.</para>
+	/// <c>mff-device-files-7.0.1-170126-20210423</c>.</para>
 	/// </remarks>
 	public class DeviceDirectory : GameObject {
 		/// <summary>
@@ -32,19 +31,22 @@ namespace Mffer {
 			"data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml"
 			};
 		/// <summary>
-		/// The filesystem directory in which this <see cref="DeviceDirectory"/> is rooted
+		/// The filesystem directory in which this <see cref="DeviceDirectory"/>
+		/// is rooted
 		/// </summary>
 		DirectoryInfo RootDirectory { get; set; }
 		/// <summary>
-		/// Gets or sets the individual files containing assets, indexed by file name
+		/// Gets or sets the individual files containing data to evaluate,
+		/// indexed by file name
 		/// </summary>
 		/// <remarks>
-		/// <see cref="DataFiles"/> provides access to the files listed in
-		/// <see cref="FilePaths"/>.
+		/// <see cref="DataFiles"/> provides access to the files listed in <see
+		/// cref="FilePaths"/>.
 		/// </remarks>
 		public Dictionary<string, GameObject> DataFiles { get; }
 		/// <summary>
-		/// Gets the <see cref="Version"/> name for the <see cref="DeviceDirectory"/>
+		/// Gets the <see cref="Version"/> name for the <see
+		/// cref="DeviceDirectory"/>
 		/// </summary>
 		public string VersionName {
 			get {
@@ -70,8 +72,8 @@ namespace Mffer {
 			DataFiles = new Dictionary<string, GameObject>();
 		}
 		/// <summary>
-		/// Creates an instance of the <see cref="DeviceDirectory"/> class
-		/// from the given <paramref name="directory"/>
+		/// Creates an instance of the <see cref="DeviceDirectory"/> class from
+		/// the given <paramref name="directory"/>
 		/// </summary>
 		/// <param name="directory">The root of a filesystem directory tree
 		/// copied from an Android filesystem</param>
@@ -87,30 +89,28 @@ namespace Mffer {
 			}
 			RootDirectory = directory;
 			foreach ( string filePath in FilePaths ) {
-				FileInfo file = new FileInfo( directory + "/" + filePath );
-				GameObject assetFile = null;
+				FileInfo file = new FileInfo( RootDirectory.FullName + "/" + filePath );
 				if ( !file.Exists ) {
 					throw new FileNotFoundException( $"Unable to access file '{file.FullName}'" );
-				}
-				if ( file.Name.EndsWith( ".xml", true, null ) ) {
-					assetFile = new PreferenceFile( file );
-				} else {
-					assetFile = new AssetFile( file );
 				}
 				if ( DataFiles.ContainsKey( file.Name ) ) {
 					throw new FileLoadException( $"Unable to load '{file.FullName}': another file named '{file.Name}' is already loaded." );
 				}
-				DataFiles.Add( file.Name, assetFile );
+				GameObject dataFile = null;
+				if ( file.Name.EndsWith( ".xml", true, null ) ) {
+					dataFile = new PreferenceFile( file );
+				} else {
+					dataFile = new AssetFile( file );
+				}
+				DataFiles.Add( file.Name, dataFile );
 			}
 		}
 		/// <summary>
 		/// Loads all available data into the <see cref="DataFiles"/>
 		/// </summary>
-		public void LoadAll() {
+		public override void LoadAll() {
 			foreach ( GameObject entry in DataFiles.Values ) {
-				if ( entry is AssetFile ) {
-					( (AssetFile)entry ).LoadAll();
-				}
+				entry.LoadAll();
 			}
 		}
 		/// <summary>

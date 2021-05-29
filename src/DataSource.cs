@@ -174,7 +174,7 @@ namespace Mffer {
 		/// <summary>
 		/// Loads all available data into the <see cref="DataFiles"/>
 		/// </summary>
-		public void LoadAll() {
+		public override void LoadAll() {
 			BackingDirectory.LoadAll();
 		}
 	}
@@ -291,7 +291,7 @@ namespace Mffer {
 		/// Loads all available data from <see cref="File"/> into the
 		/// individual <see cref="Assets"/>
 		/// </summary>
-		public void LoadAll() {
+		public override void LoadAll() {
 			if ( Assets.Count == 0 ) {
 				LoadManifest();
 			}
@@ -300,15 +300,8 @@ namespace Mffer {
 				pathIDIndex.Add( entry.Value.PathID, entry.Value );
 			}
 			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
-				// first, get appropriate type tree from the asset file
 				DynamicAsset dynamicAsset = assetData.ToDynamicAsset();
 				if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
-					// then pass it as an argument to the Load for MonoBehaviours and
-					// use the appropriate level for each assetobject
-					// use dynamic GetMemberBinder to get the member with TryGetMember or similar
-					// see also https://stackoverflow.com/questions/2634858/how-do-i-reflect-over-the-members-of-dynamic-object
-					// or more likely just treat it as the object it is without trying to
-					// change it into a GameObject?
 					if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
 						pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
 					}

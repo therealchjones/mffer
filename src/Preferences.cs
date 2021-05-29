@@ -22,14 +22,30 @@ namespace Mffer {
 	/// href="https://docs.unity3d.com/ScriptReference/PlayerPrefs.html"/>
 	public class PreferenceFile : PreferenceObject {
 		/// <summary>
-		/// Gets or sets the filename from which preferences are obtained
+		/// Gets or sets the file from which preferences are obtained
 		/// </summary>
-		public string Name { get; set; }
+		FileInfo File { get; set; }
+		/// <summary>
+		/// Gets the name of the file from which preferences are obtained
+		/// </summary>
+		public string Name {
+			get {
+				return File.Name;
+			}
+		}
+		/// <summary>
+		/// Gets the full pathname of the file from which preferences are
+		/// obtained
+		/// </summary>
+		public string FullName {
+			get {
+				return File.FullName;
+			}
+		}
 		/// <summary>
 		/// Initializes a new <see cref="PreferenceFile"/> instance
 		/// </summary>
 		public PreferenceFile() : base() {
-			Name = null;
 		}
 		/// <summary>
 		/// Initializes a new <see cref="PreferenceFile"/> instance containing the preferences from
@@ -43,21 +59,31 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="file"><see cref="FileInfo"/> from which to load preferences</param>
 		public PreferenceFile( FileInfo file ) : this() {
-			Load( file );
+			File = file;
 		}
 		/// <summary>
-		/// Loads preferences from the given file into the
-		/// <see cref="PreferenceFile"/> object
+		/// Loads preferences from the given file
 		/// </summary>
 		/// <param name="file"><see cref="FileInfo"/> to read</param>
 		public void Load( FileInfo file ) {
+			if ( Value is not null ) {
+				throw new Exception( $"Preference file '{Name}' already loaded" );
+			}
 			if ( !file.Exists ) {
 				throw new ArgumentException( $"XML document '{file.FullName}' is not accessible." );
 			}
-			Name = file.Name;
+			File = file;
 			XmlDocument xmlDocument = new XmlDocument();
 			xmlDocument.Load( file.FullName );
 			Load( xmlDocument );
+		}
+		/// <summary>
+		/// Loads preference data from <see cref="PreferenceFile.File"/>
+		/// </summary>
+		public override void LoadAll() {
+			if ( Value is null ) {
+				Load( File );
+			}
 		}
 	}
 }

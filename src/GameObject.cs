@@ -63,6 +63,18 @@ namespace Mffer {
 			return false;
 		}
 		/// <summary>
+		/// Loads associated data into the appropriate members
+		/// </summary>
+		/// <remarks>
+		/// Derived classes should implement <see cref="LoadAll()"/> to parse
+		/// data from other associated objects into appropriate class members. This would typically
+		/// call an appropriate <c>Load</c> method for each of the included associated objects. (See, for instance,
+		/// <see cref="AssetFile.LoadAll()"/>.)
+		/// </remarks>
+		public virtual void LoadAll() {
+			return;
+		}
+		/// <summary>
 		/// Parses JSON into this <see cref="GameObject"/>'s value
 		/// </summary>
 		/// <param name="element">A <see cref="JsonElement"/> from a
