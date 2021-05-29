@@ -126,10 +126,10 @@ namespace Mffer {
 		/// <remarks>
 		/// <see cref="AssetBundle.DataFiles"/> is a link to the <see
 		/// cref="AssetBundle.BackingDirectory"/>'s <see
-		/// cref="DeviceDirectory.AssetFiles"/> property for convenience.
+		/// cref="DeviceDirectory.DataFiles"/> property for convenience.
 		/// </remarks>
 		public Dictionary<string, GameObject> DataFiles {
-			get => BackingDirectory.AssetFiles;
+			get => BackingDirectory.DataFiles;
 		}
 		/// <summary>
 		/// Initializes a new <see cref="AssetBundle"/> instance
@@ -246,13 +246,28 @@ namespace Mffer {
 		/// <param name="assetName">Name of the asset to obtain</param>
 		/// <returns>The asset named <paramref name="assetName"/></returns>
 		public dynamic GetRawAsset( string assetName ) {
-			if ( !Assets.ContainsKey( assetName ) ) {
-				throw new KeyNotFoundException( "Unable to find asset named '{assetName}'" );
+			Asset asset = GetAsset( assetName );
+			return asset.RawAsset.AsDynamic();
+		}
+		/// <summary>
+		/// Retrieves the <see cref="Asset"/> of the given name
+		/// </summary>
+		/// <param name="assetName">Name of the <see cref="Asset"/> to obtain</param>
+		/// <returns>The asset named <paramref name="assetName"/></returns>
+		public Asset GetAsset( string assetName ) {
+			string foundName = null;
+			if ( Assets.ContainsKey( assetName ) ) {
+				foundName = assetName;
+			} else if ( Assets.ContainsKey( assetName + ".asset" ) ) {
+				foundName = assetName + ".asset";
 			}
-			if ( Assets[assetName].RawAsset is null ) {
-				LoadAsset( assetName );
+			if ( foundName is null ) {
+				throw new KeyNotFoundException( $"Unable to find asset '{assetName}'" );
 			}
-			return Assets[assetName].RawAsset.AsDynamic();
+			if ( Assets[foundName].RawAsset is null ) {
+				LoadAsset( foundName );
+			}
+			return Assets[foundName];
 		}
 		void LoadAsset( string assetName ) {
 			if ( String.IsNullOrEmpty( assetName ) ) {

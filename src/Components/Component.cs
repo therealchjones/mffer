@@ -20,19 +20,17 @@ namespace Mffer {
 		/// </summary>
 		public string Name { get; set; }
 		/// <summary>
-		/// Gets or sets a collection of <see cref="AssetFile"/>s storing
-		/// data to be loaded into the <see cref="Component"/>, indexed by
-		/// name.
+		/// Gets or sets a collection of files storing data to be loaded into
+		/// the <see cref="Component"/>, indexed by name.
 		/// </summary>
 		/// <remarks>
-		/// Required <see cref="AssetFile"/>s should be named in the keys of
-		/// <see cref="BackingAssets"/> when the derived instance
-		/// is initialized. When the parent <see cref="Version"/> loads data
-		/// into the <see cref="Component"/>, it must first load the named
-		/// <see cref="AssetFile"/>s and place them into the associated values of
-		/// <see cref="BackingAssets"/>.
+		/// Required files should be named in the keys of <see
+		/// cref="BackingData"/> when the derived instance is initialized. When
+		/// the parent <see cref="Version"/> loads data into the <see
+		/// cref="Component"/>, it must first load the named files and place
+		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
-		public Dictionary<string, DynamicAsset> BackingAssets { get; set; }
+		public Dictionary<string, GameObject> BackingData { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
 		/// by this <see cref="Component"/>, indexed by name.
@@ -42,15 +40,15 @@ namespace Mffer {
 		/// <see cref="Component.Dependencies"/> when the derived instance
 		/// is initialized. When the parent <see cref="Version"/> loads data
 		/// into this <see cref="Component"/>, it must first load the named
-		/// <c>Component</c>s and place them into the associated values of
-		/// <c>Dependencies</c>.
+		/// <see cref="Component"/>s and place them into the associated values of
+		/// <see cref="Dependencies"/>.
 		/// </remarks>
 		public Dictionary<string, Component> Dependencies { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
 		public Component() {
-			BackingAssets = new Dictionary<string, DynamicAsset>();
+			BackingData = new Dictionary<string, GameObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
 		/// <summary>
@@ -63,22 +61,22 @@ namespace Mffer {
 			Name = componentName;
 		}
 		/// <summary>
-		/// Adds the name of an asset to the list of
-		/// <see cref="BackingAssets"/> for this <see cref="Component"/>
+		/// Adds the name of an asset to the list of <see cref="BackingData"/>
+		/// for this <see cref="Component"/>
 		/// </summary>
 		/// <remarks>
 		/// No validation or checking of the <paramref name="assetName"/>
-		/// parameter is performed at the time of adding the
-		/// <see cref="AssetFile"/> name to the <see cref="BackingAssets"/> list.
-		/// This is deferred until attempting to load data into the
-		/// <see cref="Component"/> as the <see cref="BackingAssets"/> list may
-		/// be created before all <see cref="AssetFile"/>s are loaded.
+		/// parameter is performed at the time of adding the <see
+		/// cref="AssetFile"/> name to the <see cref="BackingData"/> list. This
+		/// is deferred until attempting to load data into the <see
+		/// cref="Component"/> as the <see cref="BackingData"/> list may be
+		/// created before all <see cref="AssetFile"/>s are loaded.
 		/// </remarks>
 		/// <param name="assetName">The name of the <see cref="AssetFile"/> to
 		/// add</param>
-		public virtual void AddBackingAsset( string assetName ) {
-			if ( !BackingAssets.ContainsKey( assetName ) ) {
-				BackingAssets.Add( assetName, null );
+		public virtual void AddBackingData( string assetName ) {
+			if ( !BackingData.ContainsKey( assetName ) ) {
+				BackingData.Add( assetName, null );
 			}
 		}
 		/// <summary>
@@ -131,28 +129,30 @@ namespace Mffer {
 		/// Loads data into this <see cref="Component"/>
 		/// </summary>
 		/// <remarks>
-		/// <see cref="Component.Load()"/> uses objects loaded into
-		/// <see cref="Component.BackingAssets"/> and
-		/// <see cref="Component.Dependencies"/> to load data into
-		/// <see cref="Component"/>'s other properties. As the
-		/// <see cref="Component"/> does not have access to the overall
-		/// sets of <see cref="Game.Version.Assets"/> and
-		/// <see cref="Game.Version.Components"/>, both
-		/// <see cref="BackingAssets"/> and <see cref="Dependencies"/> must be
-		/// loaded by an ancestor instance (e.g., via
-		/// <see cref="Game.Version.LoadComponent(Component)"/>) before
-		/// <see cref="Component.Load()"/> can successfully run.
+		/// <para><see cref="Component.Load()"/> uses objects loaded into <see
+		/// cref="Component.BackingData"/> and <see
+		/// cref="Component.Dependencies"/> to load data into <see
+		/// cref="Component"/>'s other properties. As the <see
+		/// cref="Component"/> does not have access to the overall sets of <see
+		/// cref="Game.Version.Assets"/> and <see
+		/// cref="Game.Version.Components"/>, both <see cref="BackingData"/> and
+		/// <see cref="Dependencies"/> must be loaded by an ancestor instance
+		/// (e.g., via <see cref="Game.Version.LoadComponent(Component)"/>)
+		/// before <see cref="Component.Load()"/> can successfully run.</para>
+		/// <para>Note that the base <see cref="Component.Load()"/> only checks
+		/// to ensure that backing data and dependencies are loaded; individual
+		/// derived classes must implement any storing of that data in other
+		/// members.</para>
 		/// </remarks>
-		/// <exception cref="System.ApplicationException">Thrown if objects
-		/// have not been loaded into <see cref="BackingAssets"/> or
-		/// <see cref="Dependencies"/> before running
-		/// <see cref="Load()"/></exception>
+		/// <exception cref="System.Exception">Thrown if objects have not been
+		/// loaded into <see cref="BackingData"/> or <see cref="Dependencies"/>
+		/// before running <see cref="Load()"/></exception>
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
-			if ( BackingAssets.Count != 0 ) {
-				foreach ( KeyValuePair<string, DynamicAsset> item in BackingAssets ) {
+			if ( BackingData.Count != 0 ) {
+				foreach ( KeyValuePair<string, GameObject> item in BackingData ) {
 					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
-						BackingAssets.Remove( item.Key );
+						BackingData.Remove( item.Key );
 					} else {
 						if ( item.Value == null ) {
 							throw new Exception( $"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed." );
@@ -183,7 +183,7 @@ namespace Mffer {
 		/// <see cref="Component.Load()"/>). Note that this does not imply that
 		/// if <see cref="Component.Load()"/> were run again the properties
 		/// would be unchanged. In practice, <see cref="Component.Load()"/>
-		/// should only be run after all <see cref="BackingAssets"/>  and
+		/// should only be run after all <see cref="BackingData"/>  and
 		/// <see cref="Dependencies"/> have been loaded, so the property
 		/// loading should be reproducible at any point afterward.
 		/// </remarks>

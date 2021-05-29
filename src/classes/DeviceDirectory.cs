@@ -39,10 +39,10 @@ namespace Mffer {
 		/// Gets or sets the individual files containing assets, indexed by file name
 		/// </summary>
 		/// <remarks>
-		/// <see cref="AssetFiles"/> provides access to the files listed in
+		/// <see cref="DataFiles"/> provides access to the files listed in
 		/// <see cref="FilePaths"/>.
 		/// </remarks>
-		public Dictionary<string, GameObject> AssetFiles { get; }
+		public Dictionary<string, GameObject> DataFiles { get; }
 		/// <summary>
 		/// Gets the <see cref="Version"/> name for the <see cref="DeviceDirectory"/>
 		/// </summary>
@@ -67,7 +67,7 @@ namespace Mffer {
 		/// Initializes a new <see cref="DeviceDirectory"/> instance
 		/// </summary>
 		DeviceDirectory() : base() {
-			AssetFiles = new Dictionary<string, GameObject>();
+			DataFiles = new Dictionary<string, GameObject>();
 		}
 		/// <summary>
 		/// Creates an instance of the <see cref="DeviceDirectory"/> class
@@ -97,20 +97,19 @@ namespace Mffer {
 				} else {
 					assetFile = new AssetFile( file );
 				}
-				if ( AssetFiles.ContainsKey( file.Name ) ) {
+				if ( DataFiles.ContainsKey( file.Name ) ) {
 					throw new FileLoadException( $"Unable to load '{file.FullName}': another file named '{file.Name}' is already loaded." );
 				}
-				AssetFiles.Add( file.Name, assetFile );
+				DataFiles.Add( file.Name, assetFile );
 			}
 		}
 		/// <summary>
-		/// Loads all available data into the <see cref="AssetFiles"/>
+		/// Loads all available data into the <see cref="DataFiles"/>
 		/// </summary>
 		public void LoadAll() {
-			foreach ( GameObject entry in AssetFiles.Values ) {
+			foreach ( GameObject entry in DataFiles.Values ) {
 				if ( entry is AssetFile ) {
-					AssetFile assetFile = entry as AssetFile;
-					assetFile.LoadAll();
+					( (AssetFile)entry ).LoadAll();
 				}
 			}
 		}

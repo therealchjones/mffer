@@ -32,7 +32,7 @@ namespace Mffer {
 			Name = "Localization";
 			LocalDictionary = new Dictionary<string, string>();
 			Language = "en";
-			AddBackingAsset( $"localization/localization_{Language}.csv||LocalizationTable_{Language}" );
+			AddBackingData( $"localization/localization_{Language}.csv||localization/localization_{Language}.asset" );
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Localization"/> has been
@@ -51,23 +51,23 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			dynamic DictionaryAsset = BackingAssets.First().Value.AsDynamic();
+			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).RawAsset.AsDynamic();
 			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
 			// 6.7.0; will have to manage differently
-			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
+			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
 				foreach ( dynamic entry in DictionaryAsset.m_Script ) {
 					LocalDictionary[entry.KEY] = entry.TEXT;
 				}
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();
 				Dictionary<string, string> values = new Dictionary<string, string>();
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					keys.Add( DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.keyTable.keys.Length ) ) {
+					keys.Add( DictionaryAsset.keyTable.keys[keyNum].ToString(),
+						DictionaryAsset.keyTable.values[keyNum].ToString() );
 				}
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					values.Add( DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.valueTable.keys.Length ) ) {
+					values.Add( DictionaryAsset.valueTable.keys[keyNum].ToString(),
+						DictionaryAsset.valueTable.values[keyNum].ToString() );
 				}
 				if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
 					LocalDictionary = Enumerable.Range( 0, keys.Count() ).ToDictionary(
@@ -84,7 +84,7 @@ namespace Mffer {
 		/// <param name="input">An encoded string to be decoded</param>
 		/// <returns>The decoded and localized string</returns>
 		public string GetString( string input ) {
-			if ( BackingAssets.First().Key.EndsWith( ".csv",
+			if ( BackingData.First().Key.EndsWith( ".csv",
 				StringComparison.InvariantCultureIgnoreCase ) ) {
 				return LocalDictionary[input];
 			} else {
@@ -135,7 +135,7 @@ namespace Mffer {
 		/// before each line of output</param>
 		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
 		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-
+			throw new NotImplementedException();
 		}
 	}
 }

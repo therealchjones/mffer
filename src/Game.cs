@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -130,6 +129,7 @@ namespace Mffer {
 			/// Gets or sets the group of <see cref="AssetFile"/>s associated with
 			/// this <see cref="Version"/>
 			/// </summary>
+			// TODO: #106 change to a better name
 			public AssetBundle Assets { get; set; }
 			/// <summary>
 			/// Initializes a new instance of the <see cref="Version"/> class
@@ -159,11 +159,11 @@ namespace Mffer {
 				}
 				GameObject file = Assets.DataFiles[assetFile];
 				if ( file is AssetFile ) {
-					return ( (AssetFile)file ).GetRawAsset( assetName );
+					return ( (AssetFile)file ).GetAsset( assetName );
 				} else if ( file is PreferenceFile && assetName == ( (PreferenceFile)file ).Name ) {
 					return (PreferenceFile)file;
 				} else {
-					throw new InvalidDataException( $"Unable to evaluate asset file" );
+					throw new KeyNotFoundException( $"Unable to find asset '{assetName}' in '{assetFile}'" );
 				}
 			}
 			dynamic GetAsset( string assetName ) {
@@ -250,43 +250,43 @@ namespace Mffer {
 			/// <remarks>
 			/// Will load available data into <paramref name="component"/> from
 			/// <see cref="AssetFile"/>s named in
-			/// <see cref="Component.BackingAssets"/>. (The assets will be loaded
+			/// <see cref="Component.BackingData"/>. (The assets will be loaded
 			/// if they aren't already.) If data has already been loaded into
 			/// <paramref name="component"/>, it will not be changed.
 			/// </remarks>
 			/// <param name="component">The <see cref="Component"/> to load with data</param>
 			/// <exception cref="System.ApplicationException">Thrown if a required
 			/// <see cref="AssetFile"/> from <paramref name="component"/>'s
-			/// <see cref="Component.BackingAssets"/> or a required <see cref="Component"/>
+			/// <see cref="Component.BackingData"/> or a required <see cref="Component"/>
 			/// from <see cref="Component.Dependencies"/> is not found or cannot be
 			/// loaded.</exception>
 			public void LoadComponent( Component component ) {
 				if ( !component.IsLoaded() ) {
-					foreach ( string assetName in component.BackingAssets.Keys.ToList<string>() ) {
-						if ( component.BackingAssets[assetName] == null ) {
+					foreach ( string assetName in component.BackingData.Keys.ToList<string>() ) {
+						if ( component.BackingData[assetName] == null ) {
 							dynamic asset = null;
 							if ( TryGetAsset( assetName, out asset ) ) {
-								component.BackingAssets[assetName] = asset;
+								component.BackingData[assetName] = asset;
 							} else if ( assetName.Contains( "||" ) ) {
 								foreach ( string possibleAssetName in assetName.Split( "||" ) ) {
 									string possibleName = possibleAssetName.Trim();
 									if ( String.IsNullOrEmpty( possibleName ) ) continue;
-									if ( component.BackingAssets.ContainsKey( possibleName ) ) {
-										component.BackingAssets.Remove( assetName );
+									if ( component.BackingData.ContainsKey( possibleName ) ) {
+										component.BackingData.Remove( assetName );
 										break;
 									}
 									if ( TryGetAsset( possibleName, out asset ) ) {
-										component.BackingAssets.Add( possibleName, asset );
-										component.BackingAssets.Remove( assetName );
+										component.BackingData.Add( possibleName, asset );
+										component.BackingData.Remove( assetName );
 										break;
 									}
 								}
-								if ( component.BackingAssets.ContainsKey( assetName ) ) {
+								if ( component.BackingData.ContainsKey( assetName ) ) {
 									string assetsString = String.Join( ", ", assetName.Split( "||" ) );
 									throw new ApplicationException( $"Unable to find any of the possible assets ({assetsString}) for component '{component.Name}'" );
 								}
 							} else if ( assetName == "Preferences.xml" || assetName == "Preferences" ) {
-								component.BackingAssets[assetName] = GetAsset( "com.netmarble.mherosgb.v2.playerprefs.xml", "com.netmarble.mherosgb.v2.playerprefs.xml" );
+								component.BackingData[assetName] = GetAsset( "com.netmarble.mherosgb.v2.playerprefs.xml", "com.netmarble.mherosgb.v2.playerprefs.xml" );
 							} else {
 								throw new ApplicationException( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
 							}
