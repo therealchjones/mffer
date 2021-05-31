@@ -41,10 +41,10 @@ namespace Mffer {
 			Seasons = new List<FuturePassSeason>();
 			Steps = new Dictionary<int, FuturePassStep>();
 			StagePoints = new Dictionary<int, int>();
-			AddBackingAsset( "text/data/future_pass.asset" );
-			AddBackingAsset( "text/data/future_pass_step.asset" );
-			AddBackingAsset( "text/data/future_pass_reward.asset" );
-			AddBackingAsset( "text/data/future_pass_contents.asset" );
+			AddBackingData( "text/data/future_pass.asset" );
+			AddBackingData( "text/data/future_pass_step.asset" );
+			AddBackingData( "text/data/future_pass_reward.asset" );
+			AddBackingData( "text/data/future_pass_contents.asset" );
 		}
 		/// <summary>
 		/// Load data into this <see cref="FuturePass"/> instance
@@ -52,26 +52,26 @@ namespace Mffer {
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
-			foreach ( dynamic seasonAsset in ( BackingAssets["text/data/future_pass.asset"].AsDynamic().list ) ) {
+			foreach ( dynamic seasonAsset in ( ( (Asset)BackingData["text/data/future_pass.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassSeason season = new FuturePassSeason();
 				season.Load( seasonAsset );
 				Seasons.Add( season );
 			}
-			foreach ( dynamic stepAsset in ( BackingAssets["text/data/future_pass_step.asset"].AsDynamic().list ) ) {
+			foreach ( dynamic stepAsset in ( ( (Asset)BackingData["text/data/future_pass_step.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassStep step = new FuturePassStep();
 				step.passPoint = Int32.Parse( stepAsset.data.passPoint );
 				step.step = Int32.Parse( stepAsset.data.step );
 				step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
 				Steps[step.step - 1] = step;
 			}
-			foreach ( dynamic rewardAsset in ( BackingAssets["text/data/future_pass_reward.asset"].AsDynamic().list ) ) {
+			foreach ( dynamic rewardAsset in ( ( (Asset)BackingData["text/data/future_pass_reward.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassReward reward = new FuturePassReward();
 				reward.Load( rewardAsset );
 				FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.data.grade );
 				int step = Int32.Parse( rewardAsset.data.step );
 				Steps[step - 1].Rewards[level] = reward;
 			}
-			foreach ( dynamic stageAsset in ( BackingAssets["text/data/future_pass_contents.asset"].AsDynamic().list ) ) {
+			foreach ( dynamic stageAsset in ( ( (Asset)BackingData["text/data/future_pass_contents.asset"] ).RawAsset.AsDynamic().list ) ) {
 				int sceneId = Int32.Parse( stageAsset.data.sceneId );
 				int stagePoints = Int32.Parse( stageAsset.data.passPoint );
 				StagePoints.Add( sceneId, stagePoints );
