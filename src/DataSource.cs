@@ -191,7 +191,7 @@ namespace Mffer {
 		/// Gets or sets the <see cref="AssetsFile"/> instance containing
 		/// data for this <see cref="AssetFile"/>
 		/// </summary>
-		AssetsFile DynamicFile { get; set; }
+		public AssetsFile DynamicFile { get; set; }
 		/// <summary>
 		/// Gets or sets the dictionary of assets, indexed by asset name
 		/// </summary>
@@ -233,7 +233,7 @@ namespace Mffer {
 			if ( manifests.Count > 1 ) {
 				throw new FileLoadException( $"Multiple AssetBundle manifests found" );
 			}
-			dynamic manifest = manifests[0].ToDynamicAsset().AsDynamic();
+			dynamic manifest = GetDynamicAsset( manifests[0] ).AsDynamic();
 			foreach ( string assetName in manifest.m_Container.Keys ) {
 				long assetPathId = manifest.m_Container[assetName].asset.m_PathID;
 				Asset asset = new Asset( assetPathId );
@@ -269,6 +269,11 @@ namespace Mffer {
 			}
 			return Assets[foundName];
 		}
+		/// <summary>
+		/// Loads data into the <see cref="Asset"/> with the given name
+		/// </summary>
+		/// <param name="assetName">Name of the <see cref="Asset"/> to load with
+		/// data</param>
 		void LoadAsset( string assetName ) {
 			if ( String.IsNullOrEmpty( assetName ) ) {
 				throw new ArgumentNullException( "assetName" );
@@ -281,11 +286,36 @@ namespace Mffer {
 			}
 			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
 				if ( assetData.PathID == Assets[assetName].PathID ) {
-					Assets[assetName].Load( assetData.ToDynamicAsset() );
+					DynamicAsset dynamicAsset = GetDynamicAsset( assetData );
+					Assets[assetName].Load( dynamicAsset );
 					return;
 				}
 			}
 			throw new ApplicationException( $"Unable to find asset data for '{assetName}'" );
+		}
+		/// <summary>
+		/// Obtain a dynamic representation of the asset data
+		/// </summary>
+		/// <remarks>
+		/// While <see
+		/// cref="AssetsTools.Dynamic.Extensions.ToDynamicAsset"/><c>()</c> is
+		/// the obvious way to do this, that method can make errors due to
+		/// caching when <see cref="DynamicAsset"/>s are created from more than
+		/// one <see cref="AssetsFile"/>. This somewhat more convoluted method
+		/// for MonoBehaviours (which appears to be the only object in which the
+		/// error occurs) is thus used instead.
+		/// </remarks>
+		/// <param name="assetData"></param>
+		/// <returns></returns>
+		public DynamicAsset GetDynamicAsset( AssetsFile.ObjectType assetData ) {
+			DynamicAsset dynamicAsset = null;
+			if ( DynamicFile.Types[assetData.TypeID].ClassID == (int)ClassIDType.MonoBehaviour ) {
+				Func<UnityBinaryReader, DynamicAsset> deserialize = DynamicAsset.GenDeserializer( DynamicFile.Types[assetData.TypeID].TypeTree.Nodes );
+				dynamicAsset = deserialize( new UnityBinaryReader( assetData.Data ) );
+			} else {
+				dynamicAsset = assetData.ToDynamicAsset();
+			}
+			return dynamicAsset;
 		}
 		/// <summary>
 		/// Loads all available data from <see cref="File"/> into the
@@ -300,15 +330,18 @@ namespace Mffer {
 				pathIDIndex.Add( entry.Value.PathID, entry.Value );
 			}
 			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
-				DynamicAsset dynamicAsset = assetData.ToDynamicAsset();
-				if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
-					if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
-						pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
-					}
-					pathIDIndex[assetData.PathID].Load( dynamicAsset );
-				} else {
-					if ( dynamicAsset.TypeName != "MonoScript" && dynamicAsset.TypeName != "AssetBundle" ) {
-						throw new InvalidDataException( "Path ID of object not found in manifest" );
+				DynamicAsset dynamicAsset = null;
+				dynamicAsset = GetDynamicAsset( assetData );
+				if ( dynamicAsset != null ) {
+					if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
+						if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
+							pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
+						}
+						pathIDIndex[assetData.PathID].Load( dynamicAsset );
+					} else {
+						if ( dynamicAsset.TypeName != "MonoScript" && dynamicAsset.TypeName != "AssetBundle" ) {
+							throw new InvalidDataException( "Path ID of object not found in manifest" );
+						}
 					}
 				}
 			}
@@ -326,7 +359,7 @@ namespace Mffer {
 			foreach ( AssetsFile.ObjectType monoScript in
 				DynamicFile.ObjectsWithClass( ClassIDType.MonoScript ) ) {
 				if ( monoScript.PathID == ClassPathID ) {
-					return monoScript.ToDynamicAsset().AsDynamic().m_ClassName;
+					return GetDynamicAsset( monoScript ).AsDynamic().m_ClassName;
 				}
 			}
 			throw new InvalidDataException( "Unable to determine class name for MonoBehaviour" );

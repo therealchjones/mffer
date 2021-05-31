@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -52,11 +53,10 @@ namespace Mffer {
 			base.Load();
 			if ( IsLoaded() ) return;
 			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).RawAsset.AsDynamic();
-			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
-			// 6.7.0; will have to manage differently
 			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
-				foreach ( dynamic entry in DictionaryAsset.m_Script ) {
-					LocalDictionary[entry.KEY] = entry.TEXT;
+				JsonDocument dictionary = JsonDocument.Parse( CSVtoJson( DictionaryAsset.m_Script ) );
+				foreach ( JsonElement entry in dictionary.RootElement.EnumerateArray() ) {
+					LocalDictionary[entry.GetProperty( "KEY" ).GetString()] = entry.GetProperty( "TEXT" ).GetString();
 				}
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();

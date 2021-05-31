@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -22,9 +23,9 @@ namespace Mffer {
 	/// </remarks>
 	public class Roster : Component {
 		/// <summary>
-		/// Gets or sets a list of the <see cref="Game"/>'s
-		/// <see cref="Character"/>s indexed by the <c>Character</c>s'
-		/// <see cref="Character.GroupId"/>s.
+		/// Gets or sets a list of the <see cref="Game"/>'s <see
+		/// cref="Character"/>s indexed by the <see cref="Character"/>s' <see
+		/// cref="Character.GroupId"/>s.
 		/// </summary>
 		Dictionary<string, Character> Characters { get; set; }
 		/// <summary>
@@ -34,7 +35,7 @@ namespace Mffer {
 		public Roster() : base() {
 			Name = "Roster";
 			Characters = new Dictionary<string, Character>();
-			AddBackingAsset( "IntHeroDataDictionary" );
+			AddBackingData( "IntHeroDataDictionary||text/data/hero_list.asset" );
 			AddDependency( "Localization" );
 		}
 		/// <summary>
@@ -54,13 +55,21 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			dynamic asset = BackingAssets["IntHeroDataDictionary"].AsDynamic().values;
+			if ( BackingData.Count != 1 ) {
+				throw new InvalidDataException();
+			}
+			DynamicAssetArray asset = null;
+			foreach ( Asset entry in BackingData.Values ) {
+				asset = entry.RawAsset.AsDynamic().values;
+			}
+			int assetLength = asset.Count();
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
-			foreach ( dynamic entry in asset ) {
-				if ( entry.data.isVisible == "1" ) {
+			for ( int i = 0; i < assetLength; i++ ) {
+				dynamic entry = asset[i];
+				if ( entry.isVisible == 1 ) {
 					Character character;
-					string groupId = entry.Properties["data"].Properties["groupId"].String;
+					string groupId = entry.groupId.ToString();
 					if ( Characters.ContainsKey( groupId ) ) {
 						character = Characters[groupId];
 					} else {
@@ -68,7 +77,7 @@ namespace Mffer {
 						character.GroupId = groupId;
 						Characters.Add( groupId, character );
 					}
-					string heroId = entry.Properties["data"].Properties["heroId"].String;
+					string heroId = entry.heroId.ToString();
 					if ( AllHeroIds.Contains( heroId ) ) {
 						throw new Exception( $"HeroID {heroId} has already been used." );
 					} else {
@@ -76,8 +85,8 @@ namespace Mffer {
 					}
 					CharacterLevel newLevel = new CharacterLevel();
 					newLevel.HeroId = heroId;
-					newLevel.Rank = Int32.Parse( entry.Properties["data"].Properties["grade"].String );
-					newLevel.Tier = Int32.Parse( entry.Properties["data"].Properties["tier"].String );
+					newLevel.Rank = Int32.Parse( entry.grade.ToString() );
+					newLevel.Tier = Int32.Parse( entry.tier.ToString() );
 					string baseId = newLevel.BaseId;
 					Uniform uniform;
 					if ( character.Uniforms.ContainsKey( baseId ) ) {
@@ -86,43 +95,43 @@ namespace Mffer {
 						uniform = new Uniform();
 						character.Uniforms.Add( baseId, uniform );
 						uniform.BaseId = baseId;
-						uniform.Camps = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stCamps"].String );
+						uniform.Camps = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.stCamps );
 						uniform.CharacterName = LocalDictionary.GetString( $"HERO_{baseId}" );
-						uniform.ClassType = LocalDictionary.GetString( "HEROCLASS_" + entry.Properties["data"].Properties["classType"].String );
-						uniform.Gender = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["stGender"].String );
-						uniform.UniformGroupId = entry.Properties["data"].Properties["uniformGroupId"].String;
+						uniform.ClassType = LocalDictionary.GetString( "HEROCLASS_" + entry.classType.ToString() );
+						uniform.Gender = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.stGender );
+						uniform.UniformGroupId = entry.uniformGroupId.ToString();
 						uniform.UniformName = LocalDictionary.GetString( $"HERO_COSTUME_{baseId}" );
-						switch ( entry.Properties["data"].Properties["mainAtk"].String ) {
+						switch ( entry.mainAtk.ToString() ) {
 							case "0": uniform.MainAtk = "Physical"; break;
 							case "1": uniform.MainAtk = "Energy"; break;
 						}
-						if ( entry.Properties["data"].Properties["ability_raid"].String != "0" ) {
-							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_raid"].String );
+						if ( entry.ability_raid.ToString() != "0" ) {
+							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_raid.ToString() );
 						}
-						foreach ( dynamic ability in entry.data.abilitys ) {
-							if ( ability.data != "0" ) {
-								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.data ) );
+						foreach ( int ability in entry.abilitys ) {
+							if ( ability != 0 ) {
+								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.ToString() ) );
 							}
 						}
-						if ( entry.Properties["data"].Properties["ability_hidden"].String != "0" ) {
-							uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["ability_hidden"].String ) );
+						if ( entry.ability_hidden.ToString() != "0" ) {
+							uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_hidden.ToString() ) );
 						}
 					}
 					uniform.CharacterLevels.Add( heroId, newLevel );
-					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["leaderSkillId"].String ) );
-					foreach ( dynamic skill in entry.Properties["data"].Properties["skillIds"].Properties["Array"].Array ) {
-						Skill newSkill = new Skill( skill.data );
+					newLevel.Skills.Add( new Skill( entry.leaderSkillId.ToString() ) );
+					foreach ( int skill in entry.skillIds ) {
+						Skill newSkill = new Skill( skill.ToString() );
 						newLevel.Skills.Add( newSkill );
 					}
-					newLevel.Skills.Add( new Skill( entry.Properties["data"].Properties["uniformSkillId"].String ) );
+					newLevel.Skills.Add( new Skill( entry.uniformSkillId.ToString() ) );
 					if ( String.IsNullOrEmpty( character.BaseName ) ) {
 						if ( uniform.UniformGroupId == "0" ) {
 							character.BaseName = LocalDictionary.GetString( $"HERO_{baseId}" );
 						}
 					}
-					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.Properties["data"].Properties["species"].String );
-					character.StartGrade = Int32.Parse( entry.Properties["data"].Properties["startGrade"].String );
-					character.GrowType = Int32.Parse( entry.Properties["data"].Properties["growType"].String );
+					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );
+					character.StartGrade = Int32.Parse( entry.startGrade.ToString() );
+					character.GrowType = Int32.Parse( entry.growType.ToString() );
 				}
 			}
 		}

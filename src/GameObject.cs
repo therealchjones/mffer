@@ -341,7 +341,7 @@ namespace Mffer {
 				if ( String.IsNullOrWhiteSpace( lines[i] ) ) continue;
 				string[] line = lines[i].Split( '\t' );
 				if ( line.Length != headers.Length ) {
-					throw new Exception( $"CSV poorly formed." );
+					throw new Exception( "CSV poorly formed." );
 				}
 				string lineString = "{";
 				for ( int j = 0; j < headers.Length; j++ ) {
@@ -349,7 +349,7 @@ namespace Mffer {
 					string escapechars = "([\\\"\\\\])";
 					Regex regex = new Regex( escapechars );
 					cellText = regex.Replace( cellText, "\\$1" );
-					lineString += $"\"0 string {headers[j]}\": \"{cellText}\"";
+					lineString += $"\"{headers[j]}\": \"{cellText}\"";
 					if ( j != headers.Length - 1 ) {
 						lineString += ", ";
 					}

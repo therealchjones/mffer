@@ -156,7 +156,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="fullString">The name of a directory</param>
 		/// <returns>The name of the <see cref="Version"/></returns>
-		static string GetVersionName( string fullString ) {
+		public static string GetVersionName( string fullString ) {
 			char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 			int firstDigit = fullString.IndexOfAny( digits );
 			if ( firstDigit == -1 ) return null;

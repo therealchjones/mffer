@@ -113,20 +113,16 @@ namespace Mffer {
 		/// </remarks>
 		public class Version : GameObject {
 			/// <summary>
-			/// To Remove, placeholder
-			/// </summary>
-			public PreferenceFile Preferences { get; set; }
-			/// <summary>
 			/// Gets or sets the name of the <see cref="Version"/>
 			/// </summary>
 			public string Name { get; set; }
 			/// <summary>
-			/// Gets or sets the list of included <see cref="Component"/>, indexed
-			/// by Component name
+			/// Gets or sets the list of included <see cref="Component"/>s,
+			/// indexed by Component name
 			/// </summary>
 			public Dictionary<string, Component> Components { get; set; }
 			/// <summary>
-			/// Gets or sets the group of <see cref="AssetFile"/>s associated with
+			/// Gets or sets the group of data files associated with
 			/// this <see cref="Version"/>
 			/// </summary>
 			public DataBundle Data { get; set; }
@@ -149,45 +145,42 @@ namespace Mffer {
 			public Version( string versionName ) : this() {
 				Name = versionName;
 			}
-			dynamic GetAsset( string assetName, string assetFile ) {
-				if ( assetFile is null ) {
+			dynamic GetData( string objectName, string dataFile ) {
+				if ( dataFile is null ) {
 					throw new ArgumentNullException( "assetFile" );
 				}
-				if ( !Data.DataFiles.ContainsKey( assetFile ) ) {
-					throw new KeyNotFoundException( $"Unable to find asset file named {assetFile}" );
+				if ( !Data.DataFiles.ContainsKey( dataFile ) ) {
+					throw new KeyNotFoundException( $"Unable to find asset file named {dataFile}" );
 				}
-				GameObject file = Data.DataFiles[assetFile];
+				GameObject file = Data.DataFiles[dataFile];
 				if ( file is AssetFile ) {
-					return ( (AssetFile)file ).GetAsset( assetName );
-				} else if ( file is PreferenceFile && assetName == ( (PreferenceFile)file ).Name ) {
+					return ( (AssetFile)file ).GetAsset( objectName );
+				} else if ( file is PreferenceFile && objectName == ( (PreferenceFile)file ).Name ) {
 					return (PreferenceFile)file;
 				} else {
-					throw new KeyNotFoundException( $"Unable to find asset '{assetName}' in '{assetFile}'" );
+					throw new KeyNotFoundException( $"Unable to find asset '{objectName}' in '{dataFile}'" );
 				}
 			}
-			dynamic GetAsset( string assetName ) {
-				dynamic asset = null;
-				foreach ( string assetFile in Data.DataFiles.Keys ) {
+			dynamic GetData( string objectName ) {
+				dynamic data = null;
+				foreach ( string dataFile in Data.DataFiles.Keys ) {
 					try {
-						asset = GetAsset( assetName, assetFile );
+						data = GetData( objectName, dataFile );
 					} catch ( KeyNotFoundException ) {
 						continue;
 					}
-					return asset;
+					return data;
 				}
-				throw new KeyNotFoundException( $"Unable to find asset '{assetName}'" );
+				throw new KeyNotFoundException( $"Unable to find asset '{objectName}'" );
 			}
-			bool TryGetAsset( string assetName, out dynamic asset ) {
-				asset = null;
-				foreach ( string fileName in Data.DataFiles.Keys ) {
-					try {
-						asset = GetAsset( assetName, fileName );
-					} catch ( KeyNotFoundException ) {
-						continue;
-					}
-					break;
+			bool TryGetObject( string objectName, out dynamic data ) {
+				data = null;
+				try {
+					data = GetData( objectName );
+				} catch ( KeyNotFoundException ) {
+					return false;
 				}
-				return asset != null;
+				return true;
 			}
 			/// <summary>
 			/// Loads all data for this <see cref="Version"/> from the
@@ -264,7 +257,7 @@ namespace Mffer {
 					foreach ( string assetName in component.BackingData.Keys.ToList<string>() ) {
 						if ( component.BackingData[assetName] == null ) {
 							dynamic asset = null;
-							if ( TryGetAsset( assetName, out asset ) ) {
+							if ( TryGetObject( assetName, out asset ) ) {
 								component.BackingData[assetName] = asset;
 							} else if ( assetName.Contains( "||" ) ) {
 								foreach ( string possibleAssetName in assetName.Split( "||" ) ) {
@@ -274,7 +267,7 @@ namespace Mffer {
 										component.BackingData.Remove( assetName );
 										break;
 									}
-									if ( TryGetAsset( possibleName, out asset ) ) {
+									if ( TryGetObject( possibleName, out asset ) ) {
 										component.BackingData.Add( possibleName, asset );
 										component.BackingData.Remove( assetName );
 										break;
@@ -285,7 +278,7 @@ namespace Mffer {
 									throw new ApplicationException( $"Unable to find any of the possible assets ({assetsString}) for component '{component.Name}'" );
 								}
 							} else if ( assetName == "Preferences.xml" || assetName == "Preferences" ) {
-								component.BackingData[assetName] = GetAsset( "com.netmarble.mherosgb.v2.playerprefs.xml", "com.netmarble.mherosgb.v2.playerprefs.xml" );
+								component.BackingData[assetName] = GetData( "com.netmarble.mherosgb.v2.playerprefs.xml", "com.netmarble.mherosgb.v2.playerprefs.xml" );
 							} else {
 								throw new ApplicationException( $"Unable to load asset '{assetName}' for component '{component.Name}'" );
 							}
@@ -359,19 +352,6 @@ namespace Mffer {
 							file.WriteLine( "," );
 						}
 					}
-					file.WriteLine();
-					for ( int i = 0; i < tabs + 1; i++ ) {
-						file.Write( "\t" );
-					}
-					file.Write( "}" );
-				}
-				if ( !( Preferences is null ) && !String.IsNullOrEmpty( Preferences.Name ) ) {
-					file.WriteLine( "," );
-					for ( int i = 0; i < tabs + 1; i++ ) {
-						file.Write( "\t" );
-					}
-					file.WriteLine( "\"Preferences\" : {" );
-					Preferences.WriteJson( file, tabs + 2 );
 					file.WriteLine();
 					for ( int i = 0; i < tabs + 1; i++ ) {
 						file.Write( "\t" );

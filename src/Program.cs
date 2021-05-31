@@ -59,7 +59,6 @@ namespace Mffer {
 			if ( Arguments.ContainsKey( "datadir" ) ) {
 				dataDirName = Arguments["datadir"];
 			} else {
-				// TODO: #103 build CommandLineException class into CommandLine
 				throw new Exception( "You must provide the name of a data directory." );
 			}
 			if ( !Directory.Exists( dataDirName ) ) {
