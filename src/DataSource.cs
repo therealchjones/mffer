@@ -270,6 +270,19 @@ namespace Mffer {
 			return Assets[foundName];
 		}
 		/// <summary>
+		/// Load the <paramref name="asset"/> with data from the given sources
+		/// </summary>
+		/// <param name="asset"><see cref="Asset"/> to load with data</param>
+		/// <param name="rawAsset"><see cref="DynamicAsset"/> containing data to load into <paramref name="asset"/></param>
+		/// <param name="type"><see cref="SerializedType"/> defining the structure of the <see cref="DynamicAsset"/></param>
+		private void LoadAsset( Asset asset, DynamicAsset rawAsset, SerializedType type ) {
+			if ( rawAsset.TypeName == "MonoBehaviour" ) {
+				asset.Load( rawAsset, GetClassName( rawAsset ), type );
+			} else {
+				asset.Load( rawAsset );
+			}
+		}
+		/// <summary>
 		/// Loads data into the <see cref="Asset"/> with the given name
 		/// </summary>
 		/// <param name="assetName">Name of the <see cref="Asset"/> to load with
@@ -286,8 +299,9 @@ namespace Mffer {
 			}
 			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
 				if ( assetData.PathID == Assets[assetName].PathID ) {
+					SerializedType type = DynamicFile.Types[assetData.TypeID];
 					DynamicAsset dynamicAsset = GetDynamicAsset( assetData );
-					Assets[assetName].Load( dynamicAsset );
+					LoadAsset( Assets[assetName], dynamicAsset, type );
 					return;
 				}
 			}
@@ -330,18 +344,12 @@ namespace Mffer {
 				pathIDIndex.Add( entry.Value.PathID, entry.Value );
 			}
 			foreach ( AssetsFile.ObjectType assetData in DynamicFile.Objects ) {
-				DynamicAsset dynamicAsset = null;
-				dynamicAsset = GetDynamicAsset( assetData );
-				if ( dynamicAsset != null ) {
-					if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
-						if ( dynamicAsset.TypeName == "MonoBehaviour" ) {
-							pathIDIndex[assetData.PathID].ClassName = GetClassName( dynamicAsset );
-						}
-						pathIDIndex[assetData.PathID].Load( dynamicAsset );
-					} else {
-						if ( dynamicAsset.TypeName != "MonoScript" && dynamicAsset.TypeName != "AssetBundle" ) {
-							throw new InvalidDataException( "Path ID of object not found in manifest" );
-						}
+				DynamicAsset dynamicAsset = GetDynamicAsset( assetData );
+				if ( pathIDIndex.ContainsKey( assetData.PathID ) ) {
+					LoadAsset( pathIDIndex[assetData.PathID], dynamicAsset, DynamicFile.Types[assetData.TypeID] );
+				} else {
+					if ( dynamicAsset.TypeName != "MonoScript" && dynamicAsset.TypeName != "AssetBundle" ) {
+						throw new InvalidDataException( "Path ID of object not found in manifest" );
 					}
 				}
 			}
@@ -431,10 +439,19 @@ namespace Mffer {
 		/// Gets or sets the class name of this <see cref="Asset"/>
 		/// </summary>
 		/// <remarks>
-		/// <see cref="ClassName"/> is null if this asset is not a
+		/// <see cref="ClassName"/> may be null if this asset is not a
 		/// MonoBehaviour
 		/// </remarks>
 		public string ClassName { get; set; }
+		/// <summary>
+		/// Gets or sets the <see cref="SerializedType"/> of this <see
+		/// cref="Asset"/>
+		/// </summary>
+		/// <remarks>
+		/// <see cref="ClassType"/> may be a new (empty) <see
+		/// cref="SerializedType"/> if this asset is not a MonoBehavior
+		/// </remarks>
+		public SerializedType ClassType { get; set; }
 		/// <summary>
 		/// Gets or sets the name of this <see cref="Asset"/>
 		/// </summary>
@@ -451,13 +468,19 @@ namespace Mffer {
 			PathID = pathID;
 		}
 		/// <summary>
-		/// Loads the <see cref="Asset"/> with data from the given
-		/// <see cref="DynamicAsset"/>
+		/// Loads the <see cref="Asset"/> with data from the given <see
+		/// cref="DynamicAsset"/>
 		/// </summary>
-		/// <param name="dynamicAsset"><see cref="DynamicAsset"/> from which
-		/// to load data</param>
-		public void Load( DynamicAsset dynamicAsset ) {
+		/// <param name="dynamicAsset"><see cref="DynamicAsset"/> from which to
+		/// load data</param>
+		/// <param name="className">Optional name of the class this asset
+		/// represents</param>
+		/// <param name="type">Optional type structure of the class this asset
+		/// represents</param>
+		public void Load( DynamicAsset dynamicAsset, string className = null, SerializedType type = new SerializedType() ) {
 			RawAsset = dynamicAsset;
+			if ( !String.IsNullOrEmpty( className ) ) ClassName = className;
+			if ( type.ScriptID is not null ) ClassType = type;
 			dynamic asset = dynamicAsset.AsDynamic();
 			if ( asset.HasMember( "m_Name" ) ) {
 				if ( asset.m_Name is string ) {
