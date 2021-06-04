@@ -215,6 +215,7 @@ namespace Mffer {
 			if ( !file.Exists ) {
 				throw new FileNotFoundException( "Unable to access file", file.FullName );
 			}
+			AssetFileTest.Test( file.FullName );
 			DynamicFile = AssetBundleFile.LoadFromFile( file.FullName ).Files[0].ToAssetsFile(); ;
 			LoadManifest();
 		}
