@@ -280,7 +280,7 @@ namespace Mffer {
 			if ( rawAsset.TypeName == "MonoBehaviour" ) {
 				asset.Load( rawAsset, GetClassName( rawAsset ), type );
 			} else {
-				asset.Load( rawAsset );
+				asset.Load( rawAsset, null, type );
 			}
 		}
 		/// <summary>
@@ -492,56 +492,7 @@ namespace Mffer {
 			} else {
 				throw new NotImplementedException( "Unable to find name of asset" );
 			}
-			switch ( dynamicAsset.TypeName ) {
-				case "TextAsset":
-					if ( asset.HasMember( "m_Script" ) ) {
-						if ( asset.m_Script is string ) {
-							Value = DecodeString( asset.m_Script );
-						} else {
-							throw new NotImplementedException( $"Don't know what to do with m_Script of type {asset.m_Script.GetType()}" );
-						}
-					} else {
-						throw new NotImplementedException( "Unable to determine value of this asset." );
-					}
-					break;
-				case "MonoBehaviour":
-					// this way of doing it is untenable. Need to get all properties/members of objects array
-					// as a dictionary
-					/*
-					Dictionary<string, AssetObject> properties = new Dictionary<string, AssetObject>();
-					if ( asset.HasMember( "keys" ) ) {
-						AssetObject keys = new AssetObject( asset.keys );
-						properties.Add( "keys", keys );
-					}
-					if ( asset.HasMember( "values" ) ) {
-						AssetObject values = new AssetObject( asset.values );
-						properties.Add( "values", values );
-					}
-					if ( asset.HasMember( "counts" ) ) {
-						AssetObject counts = new AssetObject( asset.counts );
-						properties.Add( "counts", counts );
-					}
-					if ( asset.HasMember( "list" ) ) {
-						AssetObject list = new AssetObject( asset.list );
-						properties.Add( "list", list );
-					}
-					if ( asset.HasMember( "table" ) ) {
-						AssetObject list = new AssetObject( asset.table );
-						properties.Add( "table", list );
-					}
-					if ( properties.Count == 0 ) {
-						throw new NotImplementedException( "Unable to get meaningful data from asset" );
-					}
-					Value = properties;
-					*/
-					break;
-				// Ignore these types when loading assets
-				case "MonoScript":
-				case "AssetBundle":
-					break;
-				default:
-					throw new NotImplementedException( $"Unable to handle asset of type {dynamicAsset.TypeName}" );
-			}
+			Value = dynamicAsset.ToGameObject( type.TypeTree.Nodes ).Value;
 		}
 		/// <summary>
 		/// Load this <see cref="Asset"/> from the given <see cref="DynamicAsset"/>

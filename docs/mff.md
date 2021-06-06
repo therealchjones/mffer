@@ -15,12 +15,14 @@ Existentially Inconsequential Things I Learned
 				- [Version 7.0.1, change in time, personal account, from not restarted to restarted](#version-701-change-in-time-personal-account-from-not-restarted-to-restarted)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
+		- [AssetsTools](#assetstools)
 	- [IL2CPP](#il2cpp)
 - [Android](#android)
 - [Marvel Future Fight](#marvel-future-fight)
 	- [Useful functions](#useful-functions)
 - [The `mffer` Model](#the-mffer-model)
 	- [Assumptions in `mffer`](#assumptions-in-mffer)
+		- [Asset and AssetBundle Files](#asset-and-assetbundle-files)
 		- [Roster & Character model](#roster--character-model)
 		- [Character ID models](#character-id-models)
 		- [Localization changes](#localization-changes)
@@ -104,7 +106,10 @@ Findings:
 ### Assets & Asset Bundles
 
 Unity programs store much of their data as "assets", either in individual files
-or in "asset bundles".
+or in "asset bundles". These bundles are packed binaries that can be read from
+disk (or a stream), in a defined format.
+
+#### AssetsTools
 
 ### IL2CPP
 
@@ -228,6 +233,20 @@ extracting, importing, and reporting data. There are likely many such implicit
 assumptions, but where explicitly made we attempt to test those assumptions at
 the time of import or processing. Additionally, to ensure both transparency and
 fidelity, we report those assumptions in this section.
+
+#### Asset and AssetBundle Files
+
+-   still need to deal with IsArray yes
+-   what about other types nodes?
+-   TypeTree level 0 - Base, "MonoBehaviour"
+-   1 - m_GameObject - PPtr<GameObject>
+-   Some nodes with children can be "leafs", like those with Type == "string" but children Array, size, char
+    an array is a level beneath the node it's named for (and is the only child), with size and data beneath that
+    probably write a generic object.WriteJson => object.ToString() for leafs
+-   Figure out how to deal with DynamicAssetArray type and whether the included DynamicAssets are
+-   Okay, dynamic asset array is (probably?) made up of multiple DynamicAssets in
+    the TypeTree
+-   Assumptions are tested via the AssetFileTest class
 
 #### Roster & Character model
 
