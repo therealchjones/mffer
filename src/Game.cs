@@ -57,48 +57,6 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Write all loaded data to a file
-		/// </summary>
-		/// <remarks>
-		/// <para>This method saves all loaded data from the <see cref="Game"/>
-		/// to a single file in JSON format, hierarchically arranged by game,
-		/// version, and components and assets. <paramref name="fileName"/>
-		/// is created if it does not exist (but its parent directory does);
-		/// <paramref name="fileName"/> is overwritten if it already
-		/// exists.</para>
-		/// <para>File access is obtained via the
-		/// <see cref="System.IO.StreamWriter.StreamWriter(string)"/> method;
-		/// see that method's description for exceptions that may be
-		/// thrown.</para>
-		/// </remarks>
-		/// <param name="fileName">The file path in which to save game
-		/// data</param>
-		public void WriteJson( string fileName ) {
-			// implemented as streamwriter at all levels because using a string or
-			// similar uses up all memory, same with JsonSerializer
-			using ( StreamWriter file = new StreamWriter( fileName ) ) {
-				file.WriteLine( "{" );
-				file.WriteLine( $"\t\"{Name}\" : " + "{" );
-				int versionCounter = 0;
-				foreach ( Version version in Versions ) {
-					// WriteJson should consistently write the instance as one or more
-					// JSON members (string: element) without a bare root element, and without
-					// a newline on the last line. It is on the caller to provide appropriate
-					// wrapping. The (optional) second argument prepends each line of
-					// the JSON output with that number of tabs
-					version.WriteJson( file, 2 );
-					versionCounter++;
-					if ( versionCounter < Versions.Count ) {
-						file.Write( "," );
-					}
-					file.WriteLine( "" );
-				}
-				file.WriteLine( "\t}" );
-				file.WriteLine( "}" );
-			}
-			return;
-		}
-		/// <summary>
 		/// Writes all loaded data to files, separated by version
 		/// </summary>
 		/// <param name="dirName">Name of a directory into which to write the files</param>
@@ -108,7 +66,7 @@ namespace Mffer {
 			JsonSerializerOptions serialOptions = new JsonSerializerOptions( JsonSerializerDefaults.General );
 			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
 			foreach ( Version version in Versions ) {
-				string fileName = directory.FullName + "/" + version.Name;
+				string fileName = directory.FullName + "/" + version.Name + ".json";
 				using ( Stream file = new FileStream( fileName, FileMode.CreateNew ) ) {
 					version.ToJson( file, serialOptions, writeOptions );
 				}
