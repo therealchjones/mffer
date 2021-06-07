@@ -90,6 +90,20 @@
 			"isBackground": false,
 			"promptOnClose": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "autoextract",
+			"type": "shell",
+			"command": "${workspaceFolder}/src/autoextract",
+			"args": [
+				"-v",
+				"-o",
+				"${workspaceFolder}/data"
+			],
+			"detail": "Download and extract the latest version of Marvel Future Fight",
+			"isBackground": false,
+			"promptOnClose": true,
+			"problemMatcher": []
 		}
 	]
 }
