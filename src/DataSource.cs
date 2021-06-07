@@ -191,7 +191,7 @@ namespace Mffer {
 		/// Gets or sets the <see cref="AssetsFile"/> instance containing
 		/// data for this <see cref="AssetFile"/>
 		/// </summary>
-		public AssetsFile DynamicFile { get; set; }
+		AssetsFile DynamicFile { get; set; }
 		/// <summary>
 		/// Gets or sets the dictionary of assets, indexed by asset name
 		/// </summary>

@@ -398,5 +398,39 @@ namespace Mffer {
 					}
 			}
 		}
+		/// <summary>
+		/// Expresses the <see cref="GameObject"/> in JSON format
+		/// </summary>
+		/// <remarks>
+		/// Note that for many objects in the <see cref="Mffer"/> namespace,
+		/// attempting to represent them as a string in JSON format will result
+		/// in an out-of-memory error. Most applications should use the <see
+		/// cref="ToJson(Utf8JsonWriter,JsonSerializerOptions)"/> overload instead.
+		/// </remarks>
+		/// <returns>A string containing data from the <see cref="GameObject"/>
+		/// in JSON format</returns>
+		/// <seealso href="https://json.org"/>
+		public string ToJson( JsonSerializerOptions options = default ) {
+			if ( options is null ) options = new JsonSerializerOptions();
+			return JsonSerializer.Serialize( this, this.GetType(), options );
+		}
+		/// <summary>
+		/// Writes the <see cref="GameObject"/> in JSON format to a <see cref="Utf8JsonWriter"/>
+		/// </summary>
+		/// <seealso cref="ToJson(JsonSerializerOptions)"/>
+		/// <seealso href="https://json.org"/>
+		public void ToJson( Utf8JsonWriter writer, JsonSerializerOptions options = default ) {
+			if ( options is null ) options = new JsonSerializerOptions();
+			JsonSerializer.Serialize( writer, this, this.GetType(), options );
+		}
+		/// <summary>
+		/// Writes the <see cref="GameObject"/> in JSON format to a <see cref="Utf8JsonWriter"/>
+		/// </summary>
+		/// <seealso cref="ToJson(JsonSerializerOptions)"/>
+		/// <seealso href="https://json.org"/>
+		public void ToJson( Stream stream, JsonSerializerOptions serializerOptions = default, JsonWriterOptions writerOptions = default ) {
+			Utf8JsonWriter utf8Writer = new Utf8JsonWriter( stream, writerOptions );
+			JsonSerializer.Serialize( utf8Writer, this, this.GetType(), serializerOptions );
+		}
 	}
 }

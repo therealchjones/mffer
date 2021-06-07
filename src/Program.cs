@@ -88,21 +88,7 @@ namespace Mffer {
 			} else {
 				System.Console.WriteLine( "You must provide the name of an output directory." );
 			}
-			DirectoryInfo saveDir = new DirectoryInfo( saveDirName );
-			if ( !saveDir.Exists ) {
-				saveDir.Create();
-			}
-			string saveFile = $"{saveDir}/{GameName}.json";
-			if ( Game is null ) {
-				LoadAll();
-			}
-			Game.WriteJson( saveFile );
-			foreach ( Game.Version version in Game.Versions ) {
-				string filename = $"{saveDir}/roster-{version.Name}.csv";
-				using ( StreamWriter file = new StreamWriter( filename ) ) {
-					version.Components["Roster"].WriteCSV( file );
-				}
-			}
+			Game.ToJsonFiles( saveDirName );
 		}
 	}
 }

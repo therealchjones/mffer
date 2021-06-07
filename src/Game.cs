@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -97,7 +98,22 @@ namespace Mffer {
 			}
 			return;
 		}
-
+		/// <summary>
+		/// Writes all loaded data to files, separated by version
+		/// </summary>
+		/// <param name="dirName">Name of a directory into which to write the files</param>
+		public void ToJsonFiles( string dirName ) {
+			DirectoryInfo directory = new DirectoryInfo( dirName );
+			if ( !directory.Exists ) directory.Create();
+			JsonSerializerOptions serialOptions = new JsonSerializerOptions( JsonSerializerDefaults.General );
+			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
+			foreach ( Version version in Versions ) {
+				string fileName = directory.FullName + "/" + version.Name;
+				using ( Stream file = new FileStream( fileName, FileMode.CreateNew ) ) {
+					version.ToJson( file, serialOptions, writeOptions );
+				}
+			}
+		}
 		/// <summary>
 		/// Represents a single version of a <see cref="Game"/>
 		/// </summary>
