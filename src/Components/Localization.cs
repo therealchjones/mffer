@@ -84,8 +84,7 @@ namespace Mffer {
 		/// <param name="input">An encoded string to be decoded</param>
 		/// <returns>The decoded and localized string</returns>
 		public string GetString( string input ) {
-			if ( BackingData.First().Key.EndsWith( ".csv",
-				StringComparison.InvariantCultureIgnoreCase ) ) {
+			if ( LocalDictionary.ContainsKey( "PACKAGE_01" ) ) {
 				return LocalDictionary[input];
 			} else {
 				return LocalDictionary[MakeHash( input )];

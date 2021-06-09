@@ -64,7 +64,7 @@ namespace Mffer {
 					if ( memberNodes.Count == 0 ) {
 						throw new NotImplementedException( "I don't know what's going on here." );
 					}
-					Dictionary<string, GameObject> assetDictionary = new Dictionary<string, GameObject>();
+					SortedDictionary<string, GameObject> assetDictionary = new SortedDictionary<string, GameObject>();
 					foreach ( TypeTree.Node[] nodeTree in memberNodes ) {
 						string nodeKey = nodeTree[0].Name;
 						object nodeValue = null;
@@ -77,16 +77,6 @@ namespace Mffer {
 				case Dictionary<string, GameObject> gameObjectDictionary:
 					gameObject.Value = gameObjectDictionary;
 					break;
-				case DynamicAssetDictionary<object, object> dynamicDictionary:
-					throw new NotImplementedException();
-				case ICollection<KeyValuePair<IFormattable, object>> objectDictionary:
-					Dictionary<string, GameObject> newDictionary = new Dictionary<string, GameObject>();
-					foreach ( KeyValuePair<IFormattable, object> entry in objectDictionary ) {
-						TypeTree.Node[] valueNodes = GetChildNodes( GetElementNodes( nodes ) )[0];
-						newDictionary.Add( entry.Key.ToString(), entry.Value.ToGameObject( valueNodes ) );
-					}
-					gameObject.Value = newDictionary;
-					break;
 				case List<GameObject> gameObjectList:
 					gameObject.Value = gameObjectList;
 					break;
@@ -97,6 +87,23 @@ namespace Mffer {
 						assetList.Add( assetArray[i].ToGameObject( GetElementNodes( nodes ) ) );
 					}
 					gameObject.Value = assetList;
+					break;
+				case IDictionary objectDictionary:
+					foreach ( var key in objectDictionary.Keys ) {
+						if ( key is string || key is IFormattable ) {
+							break;
+						}
+						throw new InvalidCastException( $"Unable to convert {key.GetType().Name} to string." );
+					}
+					Dictionary<string, GameObject> newDictionary = new Dictionary<string, GameObject>();
+					foreach ( var key in objectDictionary.Keys ) {
+						TypeTree.Node[] valueNodes = null;
+						if ( nodes is not null ) {
+							valueNodes = GetChildNodes( GetElementNodes( nodes ) )[0];
+						}
+						newDictionary.Add( key.ToString(), objectDictionary[key].ToGameObject( valueNodes ) );
+					}
+					gameObject.Value = newDictionary;
 					break;
 				case IEnumerable objectList: // Note that (generic) IEnumerable<object> won't match int[]
 					List<GameObject> newList = new List<GameObject>();
