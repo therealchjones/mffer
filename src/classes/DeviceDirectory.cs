@@ -89,7 +89,7 @@ namespace Mffer {
 			}
 			RootDirectory = directory;
 			foreach ( string filePath in FilePaths ) {
-				FileInfo file = new FileInfo( RootDirectory.FullName + "/" + filePath );
+				FileInfo file = new FileInfo( Path.Join( RootDirectory.FullName, filePath ) );
 				if ( !file.Exists ) {
 					throw new FileNotFoundException( $"Unable to access file '{file.FullName}'" );
 				}
@@ -138,7 +138,7 @@ namespace Mffer {
 			string version = GetVersionName( directory.Name );
 			if ( version is null ) return false;
 			foreach ( string filePath in FilePaths ) {
-				if ( !File.Exists( directory.FullName + "/" + filePath ) ) {
+				if ( !File.Exists( Path.Join( directory.FullName, filePath ) ) ) {
 					return false;
 				}
 			}

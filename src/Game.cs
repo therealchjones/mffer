@@ -66,10 +66,22 @@ namespace Mffer {
 			JsonSerializerOptions serialOptions = new JsonSerializerOptions( JsonSerializerDefaults.General );
 			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
 			foreach ( Version version in Versions ) {
-				string fileName = directory.FullName + "/" + version.Name + ".json";
-				using ( Stream file = new FileStream( fileName, FileMode.CreateNew ) ) {
+				string fileName = Path.Join( directory.FullName, version.Name + ".json" );
+				using ( Stream file = new FileStream( fileName, FileMode.Create ) ) {
 					version.ToJson( file, serialOptions, writeOptions );
 				}
+			}
+		}
+		/// <summary>
+		/// Write data from each <see cref="Version"/> to a usable file
+		/// </summary>
+		/// <param name="dirname">The name of a directory into which to write
+		/// the files</param>
+		public void WriteCSVs( string dirname ) {
+			DirectoryInfo directory = new DirectoryInfo( dirname );
+			if ( !directory.Exists ) directory.Create();
+			foreach ( Version version in Versions ) {
+				version.WriteCSVs( directory );
 			}
 		}
 		/// <summary>
@@ -270,73 +282,15 @@ namespace Mffer {
 				}
 			}
 			/// <summary>
-			/// Writes <see cref="Version"/> data to an existing stream in JSON format
+			/// Write usable <see cref="Component"/> data to a file
 			/// </summary>
-			/// <remarks>
-			/// <para><see cref="Version.WriteJson(StreamWriter, int)"/> outputs all
-			/// data from this <see cref="Version"/> to the
-			/// <see cref="System.IO.StreamWriter"/> stream
-			/// <paramref name="file"/> in JSON format. In order to accomodate
-			/// writing this data as part of a larger JSON document while
-			/// maintaining readability, the optional <paramref name="tabs"/>
-			/// parameter indicates a number of tab characters to insert at the
-			/// beginning of each line.</para>
-			/// <para><see cref="Version.WriteJson(StreamWriter, int)"/> works by
-			/// building the text for a <c>Version</c> JSON object and then
-			/// calling the <c>WriteJson()</c> method for each
-			/// <see cref="Component"/> and <see cref="AssetObject"/> associated
-			/// with this version. The generic <c>WriteJson()</c> is called in
-			/// turn for each property of each descendant of the <c>Version</c>.
-			/// <c>WriteJson()</c> outputs a single JSON value (string, array, or
-			/// object) without a trailing newline.</para>
-			/// </remarks>
-			/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to which to write</param>
-			/// <param name="tabs">Baseline number of tab characters to insert
-			/// before each line of output</param>
-			/// <seealso href="https://json.org">JSON.org</seealso>
-			public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-				for ( int i = 0; i < tabs; i++ ) {
-					file.Write( "\t" );
+			/// <param name="directory">The name of a directory into which files
+			/// will be written</param>
+			public void WriteCSVs( DirectoryInfo directory ) {
+				foreach ( Component component in Components.Values ) {
+					string fileName = Path.Combine( directory.FullName, component.Name + "-" + Name + ".csv" );
+					component.WriteCSV( fileName );
 				}
-				file.WriteLine( $"\"{Name}\" : " + "{" );
-				for ( int i = 0; i < tabs + 1; i++ ) {
-					file.Write( "\t" );
-				}
-				file.WriteLine( "\"Assets\" : {" );
-				Data.WriteJson( file, tabs + 2 );
-				file.WriteLine();
-				for ( int i = 0; i < tabs + 1; i++ ) {
-					file.Write( "\t" );
-				}
-				file.Write( "}" );
-				if ( Components.Count > 0 ) {
-					file.WriteLine( "," );
-					for ( int i = 0; i < tabs + 1; i++ ) {
-						file.Write( "\t" );
-					}
-					file.WriteLine( "\"Components\" : {" );
-					int componentCounter = 0;
-					List<string> components = Components.Keys.ToList<string>();
-					components.Sort();
-					foreach ( string key in components ) {
-						Component component = Components[key];
-						component.WriteJson( file, tabs + 2 );
-						componentCounter++;
-						if ( componentCounter < Components.Count - 1 ) {
-							file.WriteLine( "," );
-						}
-					}
-					file.WriteLine();
-					for ( int i = 0; i < tabs + 1; i++ ) {
-						file.Write( "\t" );
-					}
-					file.Write( "}" );
-				}
-				file.WriteLine();
-				for ( int i = 0; i < tabs; i++ ) {
-					file.Write( "\t" );
-				}
-				file.Write( "}" );
 			}
 		}
 	}

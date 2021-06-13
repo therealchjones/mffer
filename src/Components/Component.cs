@@ -99,31 +99,22 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Outputs data from this <see cref="Component"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-		}
-		/// <summary>
 		/// Outputs select data from this <see cref="Component"/> in CSV format
 		/// </summary>
 		/// <remarks>
-		/// <see cref="WriteCSV( StreamWriter )"/> writes data from the
-		/// <see cref="Component"/> to <paramref name="file"/> in a format
-		/// useful for importing into a spreadsheet.
-		/// <see cref="WriteCSV( StreamWriter )"/> is not intended to
-		/// losslessly output all of the <see cref="Component"/>'s
-		/// data, but rather to present select data in a usable format for
-		/// further processing. For the former purpose, use
-		/// <see cref="WriteJson(StreamWriter,int)"/>.
+		/// <para><see cref="WriteCSV( string )"/> writes data from the <see
+		/// cref="Component"/> to <paramref name="fileName"/> in a format useful
+		/// for importing into a spreadsheet. <see cref="WriteCSV( string )"/>
+		/// is not intended to losslessly output all of the <see
+		/// cref="Component"/>'s data, but rather to present select data in a
+		/// usable format for further processing.</para>
+		/// <para><see cref="Component.WriteCSV(string)"/> does not create the
+		/// file or any output. Derived classes should override the method if
+		/// output is desired. This behavior is intentional and allows new
+		/// components to output no CSV files by default.</para>
 		/// </remarks>
-		/// <param name="file">The <see cref="StreamWriter"/> stream to which
-		/// to write</param>
-		public virtual void WriteCSV( StreamWriter file ) {
+		/// <param name="fileName">The name of a file to which to write</param>
+		public virtual void WriteCSV( string fileName ) {
 		}
 		/// <summary>
 		/// Loads data into this <see cref="Component"/>

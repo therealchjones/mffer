@@ -139,17 +139,18 @@ namespace Mffer {
 		/// Outputs select data from this <see cref="Roster"/> in CSV format
 		/// </summary>
 		/// <remarks>
-		/// <see cref="Roster.WriteCSV(StreamWriter)"/> writes a CSV
+		/// <see cref="Roster.WriteCSV(string)"/> writes a CSV
 		/// containing a flat representation of all playable characters and
 		/// different uniforms, and the properties associated with each. It
 		/// necessarily contains multiple redundant entries and is intended
 		/// for use in spreadsheet applications rather than as a manipulatable
 		/// data store.
 		/// </remarks>
-		/// <param name="file"><see cref="StreamWriter"/> stream to which to
+		/// <param name="fileName">The name of a file to which to
 		/// write</param>
-		/// <seealso cref="Component.WriteCSV(StreamWriter)"/>
-		public override void WriteCSV( StreamWriter file ) {
+		/// <seealso cref="Component.WriteCSV(string)"/>
+		public override void WriteCSV( string fileName ) {
+			using StreamWriter file = new StreamWriter( fileName );
 			char delimiter = '|';
 			List<string> header = new List<string> {
 				"Group ID",
@@ -220,17 +221,6 @@ namespace Mffer {
 					file.WriteLine( String.Join( delimiter, entries ) );
 				}
 			}
-		}
-		/// <summary>
-		/// Outputs data from this <see cref="Roster"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-
 		}
 	}
 

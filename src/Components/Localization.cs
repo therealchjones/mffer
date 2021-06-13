@@ -125,16 +125,5 @@ namespace Mffer {
 			}
 			return result.ToString();
 		}
-		/// <summary>
-		/// Outputs data from this <see cref="Localization"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-			throw new NotImplementedException();
-		}
 	}
 }

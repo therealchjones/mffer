@@ -258,61 +258,6 @@ namespace Mffer {
 			return decodedString;
 		}
 		/// <summary>
-		/// Writes the data from the <see cref="GameObject"/> to a
-		/// <see cref="StreamWriter"/> stream
-		/// </summary>
-		/// <param name="file">The name of the <see cref="StreamWriter"/>
-		/// stream to which to write</param>
-		/// <param name="tabs">The number of tab characters to prepend to each
-		/// line</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public virtual void WriteJson( StreamWriter file, int tabs = 0 ) {
-			for ( int i = 0; i < tabs; i++ ) {
-				file.Write( "\t" );
-			}
-			switch ( Value ) {
-				case string s:
-					file.Write( "\"" + JsonEncodedText.Encode( s ) + "\"" );
-					return;
-				case List<GameObject> array:
-					file.WriteLine( "[" );
-					for ( int i = 0; i < array.Count; i++ ) {
-						array[i].WriteJson( file, tabs + 1 );
-						if ( i < array.Count - 1 ) {
-							file.Write( "," );
-						}
-						file.WriteLine();
-					}
-					for ( int i = 0; i < array.Count; i++ ) {
-						file.Write( "\t" );
-					}
-					file.Write( "]" );
-					return;
-				case Dictionary<string, GameObject> dictionary:
-					file.WriteLine( "{" );
-					int entryCounter = 0;
-					foreach ( KeyValuePair<string, GameObject> entry in dictionary ) {
-						for ( int t = 0; t < tabs + 1; t++ ) {
-							file.Write( "\t" );
-						}
-						file.WriteLine( "\"" + JsonEncodedText.Encode( entry.Key ) + "\" : " );
-						entry.Value.WriteJson( file, tabs + 2 );
-						if ( entryCounter < dictionary.Count - 1 ) {
-							file.Write( "," );
-						}
-						file.WriteLine();
-						entryCounter++;
-					}
-					for ( int t = 0; t < tabs; t++ ) {
-						file.Write( "\t" );
-					}
-					file.Write( "}" );
-					return;
-				default:
-					throw new FormatException( $"Unable to write object of type {Value.GetType()} in JSON format." );
-			}
-		}
-		/// <summary>
 		/// Converts a CSV-formatted string to JSON format
 		/// </summary>
 		/// <param name="csv">The data in CSV format</param>

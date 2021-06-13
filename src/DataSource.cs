@@ -150,28 +150,6 @@ namespace Mffer {
 			BackingDirectory = backingDirectory;
 		}
 		/// <summary>
-		/// Writes a JSON-formatted representaton of the
-		/// <see cref="DataBundle"/> to a <see cref="StreamWriter"/> stream
-		/// </summary>
-		/// <param name="file">The <see cref="StreamWriter"/> stream to which
-		/// to write</param>
-		/// <param name="tabs">The number of tabs with which to prepend each
-		/// line</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-			List<string> Keys = DataFiles.Keys.ToList<string>();
-			Keys.Sort();
-			int counter = 0;
-			foreach ( string key in Keys ) {
-				DataFiles[key].WriteJson( file, tabs );
-				if ( counter < Keys.Count() - 1 ) {
-					file.Write( "," );
-				}
-				file.WriteLine();
-				counter++;
-			}
-		}
-		/// <summary>
 		/// Loads all available data into the <see cref="DataFiles"/>
 		/// </summary>
 		public override void LoadAll() {
@@ -373,55 +351,6 @@ namespace Mffer {
 			}
 			throw new InvalidDataException( "Unable to determine class name for MonoBehaviour" );
 		}
-		/// <summary>
-		/// Writes the data from the <see cref="AssetFile"/> to a
-		/// <see cref="StreamWriter"/> stream
-		/// </summary>
-		/// <param name="file">The name of the <see cref="StreamWriter"/>
-		/// stream to which to write</param>
-		/// <param name="tabs">The number of tab characters to prepend to each
-		/// line</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-			for ( int i = 0; i < tabs; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( "{" );
-			for ( int i = 0; i < tabs + 1; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( "\"Assets\" : {" );
-			for ( int j = 0; j < Assets.Keys.Count; j++ ) {
-				string assetName = Assets.Keys.ToList()[j];
-				for ( int i = 0; i < tabs + 2; i++ ) {
-					file.Write( "\t" );
-				}
-				file.WriteLine( $"\"{assetName}\" : " );
-				Assets[assetName].WriteJson( file, tabs + 3 );
-				if ( j < Assets.Keys.Count - 1 ) {
-					file.Write( "," );
-				}
-				file.WriteLine();
-			}
-			for ( int i = 0; i < tabs + 1; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( "}," );
-			for ( int i = 0; i < tabs + 1; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( "\"Value\" : " );
-			base.WriteJson( file, tabs + 2 );
-			file.WriteLine();
-			for ( int i = 0; i < tabs + 1; i++ ) {
-				file.Write( "\t" );
-			}
-			file.WriteLine( "}" );
-			for ( int i = 0; i < tabs; i++ ) {
-				file.Write( "\t" );
-			}
-			file.Write( "}" );
-		}
 	}
 	/// <summary>
 	/// Represents a single asset used by Marvel Future Fight
@@ -503,18 +432,6 @@ namespace Mffer {
 		/// about the structure of <paramref name="dynamicAsset"/></param>
 		/// <remarks>This method is not yet implemented.</remarks>
 		public void Load( DynamicAsset dynamicAsset, SerializedType type ) {
-			throw new NotImplementedException();
-		}
-		/// <summary>
-		/// Writes the data from the <see cref="Asset"/> to a <see
-		/// cref="StreamWriter"/> stream
-		/// </summary>
-		/// <param name="file">The name of the <see cref="StreamWriter"/> stream
-		/// to which to write</param>
-		/// <param name="tabs">The number of tab characters to prepend to each
-		/// line</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs ) {
 			throw new NotImplementedException();
 		}
 	}
