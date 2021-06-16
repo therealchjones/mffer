@@ -9,7 +9,6 @@
 			"type": "coreclr",
 			"request": "launch",
 			"preLaunchTask": "${defaultBuildTask}",
-			"postDebugTask": "time",
 			// If you have changed target frameworks, make sure to update the program path.
 			"program": "${workspaceFolder}/bin/Debug/net5/mffer.dll",
 			"args": [

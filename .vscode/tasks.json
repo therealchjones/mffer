@@ -9,14 +9,13 @@
 				"build",
 				"${workspaceFolder}/mffer.csproj",
 				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:PerformanceSummary:Summary:ShowTimestamp"
+				"/consoleloggerparameters:NoSummary"
 			],
 			"problemMatcher": "$msCompile",
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
-			"dependsOn": "time",
 			"dependsOrder": "sequence"
 		},
 		{
@@ -105,24 +104,6 @@
 			"detail": "Download and extract the latest version of Marvel Future Fight",
 			"isBackground": false,
 			"promptOnClose": true,
-			"problemMatcher": []
-		},
-		{
-			"label": "time",
-			"type": "shell",
-			"command": "date",
-			"args": [],
-			"detail": "Print the date and time to the terminal",
-			"isBackground": false,
-			"promptOnClose": false,
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": false,
-				"panel": "shared",
-				"showReuseMessage": true,
-				"clear": false
-			},
 			"problemMatcher": []
 		}
 	]
