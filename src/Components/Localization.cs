@@ -20,7 +20,7 @@ namespace Mffer {
 		/// <summary>
 		/// Gets or sets the dictionary object
 		/// </summary>
-		Dictionary<string, string> LocalDictionary { get; set; }
+		public Dictionary<string, string> LocalDictionary { get; set; }
 		/// <summary>
 		/// Gets or sets the name of the localization language
 		/// </summary>

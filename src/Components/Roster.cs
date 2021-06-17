@@ -27,7 +27,7 @@ namespace Mffer {
 		/// cref="Character"/>s indexed by the <see cref="Character"/>s' <see
 		/// cref="Character.GroupId"/>s.
 		/// </summary>
-		Dictionary<string, Character> Characters { get; set; }
+		public Dictionary<string, Character> Characters { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Roster"/> class
 		/// </summary>

@@ -173,7 +173,7 @@ namespace Mffer {
 		/// <summary>
 		/// Gets or sets the dictionary of assets, indexed by asset name
 		/// </summary>
-		Dictionary<string, Asset> Assets { get; set; }
+		public Dictionary<string, Asset> Assets { get; set; }
 		/// <summary>
 		/// Initializes a new <see cref="AssetFile"/> instance
 		/// </summary>
@@ -381,7 +381,7 @@ namespace Mffer {
 		/// <see cref="ClassType"/> may be a new (empty) <see
 		/// cref="SerializedType"/> if this asset is not a MonoBehavior
 		/// </remarks>
-		public SerializedType ClassType { get; set; }
+		SerializedType ClassType { get; set; }
 		/// <summary>
 		/// Gets or sets the name of this <see cref="Asset"/>
 		/// </summary>
@@ -422,17 +422,6 @@ namespace Mffer {
 				throw new NotImplementedException( "Unable to find name of asset" );
 			}
 			Value = dynamicAsset.ToGameObject( type.TypeTree.Nodes ).Value;
-		}
-		/// <summary>
-		/// Load this <see cref="Asset"/> from the given <see cref="DynamicAsset"/>
-		/// using the given <see cref="SerializedType"/> definition
-		/// </summary>
-		/// <param name="dynamicAsset"><see cref="DynamicAsset"/> containing data to load</param>
-		/// <param name="type"><see cref="SerializedType"/> containing information
-		/// about the structure of <paramref name="dynamicAsset"/></param>
-		/// <remarks>This method is not yet implemented.</remarks>
-		public void Load( DynamicAsset dynamicAsset, SerializedType type ) {
-			throw new NotImplementedException();
 		}
 	}
 	/// <summary>
