@@ -6,7 +6,8 @@
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-<PackageReference Include="MessagePack" Version="2.2.85" />
-</ItemGroup>
+    <PackageReference Include="MessagePack" Version="2.2.85" />
+    <PackageReference Include="AssetsTools" Version="0.1.2" />
+  </ItemGroup>
 
 </Project>

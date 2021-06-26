@@ -3,15 +3,17 @@ using System.Collections.Generic;
 
 namespace CommandLine {
 	/// <summary>
-	/// Represents a model for describing a command line
+	/// Model of a valid command line
 	/// </summary>
 	/// <remarks>
-	/// The <see cref="Usage"/> class allows developers to describe
-	/// what command line arguments should be expected, the application
-	/// to evaluate command line arguments, and users to discover appropriate
-	/// arguments to pass. It provides methods for getting and setting
-	/// expected options and parameters, as well as for providing that
-	/// information to users and applications.
+	/// <para>
+	/// The <see cref="Usage"/> class allows developers to describe what command
+	/// line arguments should be expected, the application to evaluate command
+	/// line arguments, and users to discover appropriate arguments to pass. It
+	/// provides methods for getting and setting expected options and
+	/// parameters, as well as for providing that information to users and
+	/// applications.</para>
+	/// <para>This class is not yet fully implemented</para>
 	/// </remarks>
 	public class Usage {
 		/// <summary>

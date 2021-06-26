@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -19,7 +20,7 @@ namespace Mffer {
 		/// <summary>
 		/// Gets or sets the dictionary object
 		/// </summary>
-		Dictionary<string, string> LocalDictionary { get; set; }
+		public Dictionary<string, string> LocalDictionary { get; set; }
 		/// <summary>
 		/// Gets or sets the name of the localization language
 		/// </summary>
@@ -32,7 +33,7 @@ namespace Mffer {
 			Name = "Localization";
 			LocalDictionary = new Dictionary<string, string>();
 			Language = "en";
-			AddBackingAsset( $"localization/localization_{Language}.csv||LocalizationTable_{Language}" );
+			AddBackingData( $"localization/localization_{Language}.csv||localization/localization_{Language}.asset" );
 		}
 		/// <summary>
 		/// Determines whether the <see cref="Localization"/> has been
@@ -51,23 +52,22 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			AssetObject DictionaryAsset = (AssetObject)BackingAssets.First().Value;
-			// the localization dictionary was a CSV in 6.2.0, but is in an asset in
-			// 6.7.0; will have to manage differently
-			if ( BackingAssets.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
-				foreach ( AssetObject entry in DictionaryAsset.Properties["m_Script"].Array ) {
-					LocalDictionary[entry.Properties["KEY"].String] = entry.Properties["TEXT"].String;
+			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).RawAsset.AsDynamic();
+			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
+				JsonDocument dictionary = JsonDocument.Parse( CSVtoJson( DictionaryAsset.m_Script ) );
+				foreach ( JsonElement entry in dictionary.RootElement.EnumerateArray() ) {
+					LocalDictionary[entry.GetProperty( "KEY" ).GetString()] = entry.GetProperty( "TEXT" ).GetString();
 				}
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();
 				Dictionary<string, string> values = new Dictionary<string, string>();
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					keys.Add( DictionaryAsset.Properties["keyTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["keyTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.keyTable.keys.Length ) ) {
+					keys.Add( DictionaryAsset.keyTable.keys[keyNum].ToString(),
+						DictionaryAsset.keyTable.values[keyNum].ToString() );
 				}
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array.Count() ) ) {
-					values.Add( DictionaryAsset.Properties["valueTable"].Properties["keys"].Properties["Array"].Array[keyNum].Properties["data"].String,
-						DictionaryAsset.Properties["valueTable"].Properties["values"].Properties["Array"].Array[keyNum].Properties["data"].String );
+				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.valueTable.keys.Length ) ) {
+					values.Add( DictionaryAsset.valueTable.keys[keyNum].ToString(),
+						DictionaryAsset.valueTable.values[keyNum].ToString() );
 				}
 				if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
 					LocalDictionary = Enumerable.Range( 0, keys.Count() ).ToDictionary(
@@ -84,8 +84,7 @@ namespace Mffer {
 		/// <param name="input">An encoded string to be decoded</param>
 		/// <returns>The decoded and localized string</returns>
 		public string GetString( string input ) {
-			if ( BackingAssets.First().Key.EndsWith( ".csv",
-				StringComparison.InvariantCultureIgnoreCase ) ) {
+			if ( LocalDictionary.ContainsKey( "PACKAGE_01" ) ) {
 				return LocalDictionary[input];
 			} else {
 				return LocalDictionary[MakeHash( input )];
@@ -125,17 +124,6 @@ namespace Mffer {
 				result = ( ( result << 5 ) - result ) + Convert.ToInt32( textBytes[thisCharIndex] );
 			}
 			return result.ToString();
-		}
-		/// <summary>
-		/// Outputs data from this <see cref="Localization"/> in JSON format
-		/// </summary>
-		/// <param name="file"><see cref="System.IO.StreamWriter"/> stream to
-		/// which to write</param>
-		/// <param name="tabs">Baseline number of tab characters to insert
-		/// before each line of output</param>
-		/// <seealso cref="Game.Version.WriteJson(StreamWriter, int)"/>
-		public override void WriteJson( StreamWriter file, int tabs = 0 ) {
-
 		}
 	}
 }

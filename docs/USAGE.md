@@ -45,11 +45,11 @@ No installation is needed. After cloning the GitHub repository into a directory
 _`mffer`_ and building the tools (as described in the [Development
 guide](Development.md)), the tools are available at the following paths:
 
-|               |                                               |
-| ------------- | --------------------------------------------- |
-| `autoextract` | _`mffer`_`/src/autoextract`                   |
-| `autoanalyze` | _`mffer`_`/src/autoanalyze`                   |
-| `mffer`       | _`mffer`_`/bin/Debug/netcoreapp3.1/mffer.dll` |
+|               |                                      |
+| ------------- | ------------------------------------ |
+| `autoextract` | _`mffer`_`/src/autoextract`          |
+| `autoanalyze` | _`mffer`_`/src/autoanalyze`          |
+| `mffer`       | _`mffer`_`/bin/Debug/net5/mffer.dll` |
 
 ### Requirements
 
@@ -59,10 +59,9 @@ guide](Development.md)), the tools are available at the following paths:
     tools](https://developer.android.com/studio/#command-tools)
 -   Java runtime or SDK
     (required by standalone Android command-line tools but included in Android Studio)
--   [UABE](https://github.com/DerPopo/UABE)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
     (required only for `autoanalyze` and further analysis)
--   .NET Core 3.1 SDK
+-   .NET 5 SDK
 
 macOS and most Linux distributions satisfy the needs for the initial
 environment. (In addition to the defined [POSIX
@@ -85,8 +84,7 @@ extract the Marvel Future Fight data from it. `autoextract` will run an Android
 emulator automatically; unfortunately, this will not likely work within another
 emulator or virtual machine such as VirtualBox or Parallels. UABE is required
 for the initial processing of the MFF data after it's been extracted from the
-Android systems. UABE requires a Microsoft Windows environment, but works
-adequately within a virtual machine.
+Android systems.
 
 ### Workflow
 
@@ -94,7 +92,7 @@ adequately within a virtual machine.
    files:
 
     ```shell
-    $ autoextract -o output_directory
+    $ autoextract -o data_directory
     ```
 
     It will likely be several minutes before any output is displayed in the
@@ -128,7 +126,7 @@ adequately within a virtual machine.
 
     Similar steps will occur a few more times; follow the directions to complete
     obtaining and extracting the Marvel Future Fight files, which will be placed
-    into the _`output_directory`_`/MFF-data-`_`version`_ directory.
+    into the _`data_directory`_`/mff-device-files-`_`version`_ directory.
 
 2. Use `mffer` to process the extracted files:
 
@@ -137,14 +135,14 @@ adequately within a virtual machine.
     ```
 
     where _`data_directory`_ is the directory containing the files created by
-    `autoextract` (which was, of course, labelled _`output_directory`_ in that
-    step).
+    `autoextract`.
 
     `mffer` will take a potentially great deal of time to load the files from
     _`data_directory`_, process them, and write new files to
     _`output_directory`_. When complete, _`output_directory`_ will contain
-    `Marvel Future Fight.json`, a large file with the amalgamated data from all
-    the _`data_directory`_ files. It will also have one or more
+    _`version`_`.json` for each version of the game found in _`data_directory`_,
+    large files with amalgamated data from each version's files. It will also have one or
+    more
     `roster-`_`version`_`.csv` files containing information about the playable
     characters in the game.
 

@@ -19,8 +19,8 @@ namespace Mffer {
 		public Shadowland() : base() {
 			Name = "Shadowland";
 			BaseFloors = new ShadowlandFloor[35];
-			AddBackingAsset( "text/data/shadowland_floor.csv" );
-			AddBackingAsset( "text/data/shadowland_reward.csv" );
+			AddBackingData( "text/data/shadowland_floor.csv" );
+			AddBackingData( "text/data/shadowland_reward.csv" );
 		}
 		/// <summary>
 		/// Loads this <see cref="Shadowland"/> instance
@@ -28,13 +28,13 @@ namespace Mffer {
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
-			List<AssetObject> shadowlandFloors = ( (AssetObject)BackingAssets["text/data/shadowland_floor.csv"] ).Properties["m_Script"].Array;
-			List<AssetObject> shadowlandRewards = ( (AssetObject)BackingAssets["text/data/shadowland_reward.csv"] ).Properties["m_Script"].Array;
+			dynamic shadowlandFloors = ( (Asset)BackingData["text/data/shadowland_floor.csv"] ).RawAsset.AsDynamic().m_Script;
+			dynamic shadowlandRewards = ( (Asset)BackingData["text/data/shadowland_reward.csv"] ).RawAsset.AsDynamic().m_Script;
 			for ( int floorNum = 0; floorNum < BaseFloors.Length; floorNum++ ) {
 				ShadowlandFloor floor = new ShadowlandFloor();
 				floor.FloorNumber = floorNum + 1;
 				floor.BaseFloor = floor;
-				foreach ( AssetObject value in shadowlandRewards ) {
+				foreach ( dynamic value in shadowlandRewards ) {
 					if ( value.Properties["REWARD_GROUP"].String == shadowlandFloors[floorNum].Properties["REWARD_GROUP"].String ) {
 						List<ShadowlandReward> rewards = new List<ShadowlandReward>();
 						for ( int i = 1; i <= 2; i++ ) {

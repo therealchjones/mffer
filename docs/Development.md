@@ -527,11 +527,14 @@ The `src` directory additionally includes the `autoextract` script and the
 `webapp` directory, which are planned to be internalized into the main `mffer`
 code at some point.
 
-More about the assumptions about how Marvel Future Fight works (from a
-programming perspective) are explicitly listed in
-[The Structure of Marvel Future Fight](mff.md), along with how they correspond
-to the design structures of `mffer`. Refer to that document and the [API](api/)
-for further detils.
+Due to the reverse-engineering nature of the software and what documentation is
+available regarding Unity file formats, several assumptions are made in order to
+have a starting point for programming. Generally these are tested when used in
+the code itself, but many are tested in the AssetFileTest class. More about the
+assumptions about how Marvel Future Fight works (from a programming perspective)
+are explicitly listed in [The Structure of Marvel Future Fight](mff.md), along
+with how they correspond to the design structures of `mffer`. Refer to that
+document and the [API](api/) for further detils.
 
 ## The `mffer` APIs
 

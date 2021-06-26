@@ -15,12 +15,14 @@ Existentially Inconsequential Things I Learned
 				- [Version 7.0.1, change in time, personal account, from not restarted to restarted](#version-701-change-in-time-personal-account-from-not-restarted-to-restarted)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
+		- [AssetsTools](#assetstools)
 	- [IL2CPP](#il2cpp)
 - [Android](#android)
 - [Marvel Future Fight](#marvel-future-fight)
 	- [Useful functions](#useful-functions)
 - [The `mffer` Model](#the-mffer-model)
 	- [Assumptions in `mffer`](#assumptions-in-mffer)
+		- [Asset and AssetBundle Files](#asset-and-assetbundle-files)
 		- [Roster & Character model](#roster--character-model)
 		- [Character ID models](#character-id-models)
 		- [Localization changes](#localization-changes)
@@ -103,6 +105,12 @@ Findings:
 
 ### Assets & Asset Bundles
 
+Unity programs store much of their data as "assets", either in individual files
+or in "asset bundles". These bundles are packed binaries that can be read from
+disk (or a stream), in a defined format.
+
+#### AssetsTools
+
 ### IL2CPP
 
 -   [An introduction to IL2CPP internals](https://blogs.unity3d.com/2015/05/06/an-introduction-to-ilcpp-internals/)
@@ -140,14 +148,14 @@ that includes all directories whose names case-insensitively include the string
 		  /index-dir
     /cache/WebView
 	  /Crashpad
-    /shared_prefs
+    /shared_prefs (primary store of "preferences")
     /no_backup
     /files
       /nmscrash
         /lib
         /bc_current
   /media/0/Android/data/com.netmarble.mherosgb/files
-    /bundle
+    /bundle (primary store of assets/asset bundles)
     /il2cpp
       /Resources
         /etc
@@ -169,6 +177,14 @@ other directories. Indented directories are children of the first directory
 above them that is indented less. `[string`_`n`_`]` represents a string that
 varies by installation.
 
+There are various Unity assets and asset bundles throughout this tree (as well
+as within the `/data/app/*/*/base.apk` file), but the ones currently used in
+`mffer` are in
+`/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/`. Additionally,
+"preferences" from `/data/data/com.netmarbe.mherosgb/shared_prefs/` are
+extracted, though these do not store true individualized preferences as much
+more frequently updated data such as news, events, and achievements.
+
 ## Marvel Future Fight
 
 ### Useful functions
@@ -180,19 +196,22 @@ Important functions with lots of info to explore:
 ## The `mffer` Model
 
 -   `Game` (Marvel Future Fight)
-    -   contains one or more `Version`s
-        -   each of which has several `Component`s such as:
+    -   has zero or more `Player`s
+    -   has zero or more current `Event`s
+    -   has one or more `Version`s, each of which
+        -   has zero or more `Component`s such as
             -   `Roster`, the group of playable `Character`s
             -   `Shadowland` and other game styles
             -   A `Localization` dictionary to translate strings
-    -   has one or more `Player`s
-    -   gets its data from a `DataStore`, a set of directories on a filesystem
-        that contain
-        -   `AssetFiles` (each of which is associated with a `Version`), which
-            recursively contain many
-            -   `AssetObject`s
+        -   has an `AssetBundle` associated from the `Game`'s `DataSource`
+    -   has a `DataSource` with a dictionary associating `Version` names with
+        -   `AssetBundle`s, each based upon a `DeviceDirectory` also associated
+            with the given `Version` name, and each of which uses `AssetFile`s and/or
+            `PreferenceFile`s to load multiple
+            -   `AssetObject`s or `PreferenceObject`s, which may recursively
+                contain further `AssetObject`s or `PreferenceObject`s
 
-A fully detailed description of the types (and their associated members) is
+A detailed description of the types (and their associated members) is
 available in the API reference. Of note, while these are quite clearly arranged
 hierarchically in `mffer` conceptually, this does not imply that the types
 themselves are nested; they are generally not nested in Marvel Future Fight
@@ -214,6 +233,20 @@ extracting, importing, and reporting data. There are likely many such implicit
 assumptions, but where explicitly made we attempt to test those assumptions at
 the time of import or processing. Additionally, to ensure both transparency and
 fidelity, we report those assumptions in this section.
+
+#### Asset and AssetBundle Files
+
+-   still need to deal with IsArray yes
+-   what about other types nodes?
+-   TypeTree level 0 - Base, "MonoBehaviour"
+-   1 - m_GameObject - PPtr<GameObject>
+-   Some nodes with children can be "leafs", like those with Type == "string" but children Array, size, char
+    an array is a level beneath the node it's named for (and is the only child), with size and data beneath that
+    probably write a generic object.WriteJson => object.ToString() for leafs
+-   Figure out how to deal with DynamicAssetArray type and whether the included DynamicAssets are
+-   Okay, dynamic asset array is (probably?) made up of multiple DynamicAssets in
+    the TypeTree
+-   Assumptions are tested via the AssetFileTest class
 
 #### Roster & Character model
 

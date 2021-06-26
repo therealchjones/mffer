@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -40,10 +41,10 @@ namespace Mffer {
 			Seasons = new List<FuturePassSeason>();
 			Steps = new Dictionary<int, FuturePassStep>();
 			StagePoints = new Dictionary<int, int>();
-			AddBackingAsset( "text/data/future_pass.asset" );
-			AddBackingAsset( "text/data/future_pass_step.asset" );
-			AddBackingAsset( "text/data/future_pass_reward.asset" );
-			AddBackingAsset( "text/data/future_pass_contents.asset" );
+			AddBackingData( "text/data/future_pass.asset" );
+			AddBackingData( "text/data/future_pass_step.asset" );
+			AddBackingData( "text/data/future_pass_reward.asset" );
+			AddBackingData( "text/data/future_pass_contents.asset" );
 		}
 		/// <summary>
 		/// Load data into this <see cref="FuturePass"/> instance
@@ -51,28 +52,28 @@ namespace Mffer {
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
 			base.Load();
-			foreach ( AssetObject seasonAsset in ( (AssetObject)BackingAssets["text/data/future_pass.asset"] ).Properties["list"].Array ) {
+			foreach ( dynamic seasonAsset in ( ( (Asset)BackingData["text/data/future_pass.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassSeason season = new FuturePassSeason();
 				season.Load( seasonAsset );
 				Seasons.Add( season );
 			}
-			foreach ( AssetObject stepAsset in ( (AssetObject)BackingAssets["text/data/future_pass_step.asset"] ).Properties["list"].Array ) {
+			foreach ( dynamic stepAsset in ( ( (Asset)BackingData["text/data/future_pass_step.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassStep step = new FuturePassStep();
-				step.passPoint = Int32.Parse( stepAsset.Properties["data"].Properties["passPoint"].String );
-				step.step = Int32.Parse( stepAsset.Properties["data"].Properties["step"].String );
+				step.passPoint = Int32.Parse( stepAsset.data.passPoint );
+				step.step = Int32.Parse( stepAsset.data.step );
 				step.Rewards = new Dictionary<FuturePassType, FuturePassReward>();
 				Steps[step.step - 1] = step;
 			}
-			foreach ( AssetObject rewardAsset in ( (AssetObject)BackingAssets["text/data/future_pass_reward.asset"] ).Properties["list"].Array ) {
+			foreach ( dynamic rewardAsset in ( ( (Asset)BackingData["text/data/future_pass_reward.asset"] ).RawAsset.AsDynamic().list ) ) {
 				FuturePassReward reward = new FuturePassReward();
 				reward.Load( rewardAsset );
-				FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.Properties["data"].Properties["grade"].String );
-				int step = Int32.Parse( rewardAsset.Properties["data"].Properties["step"].String );
+				FuturePassType level = (FuturePassType)Int32.Parse( rewardAsset.data.grade );
+				int step = Int32.Parse( rewardAsset.data.step );
 				Steps[step - 1].Rewards[level] = reward;
 			}
-			foreach ( AssetObject stageAsset in ( (AssetObject)BackingAssets["text/data/future_pass_contents.asset"] ).Properties["list"].Array ) {
-				int sceneId = Int32.Parse( stageAsset.Properties["data"].Properties["sceneId"].String );
-				int stagePoints = Int32.Parse( stageAsset.Properties["data"].Properties["passPoint"].String );
+			foreach ( dynamic stageAsset in ( ( (Asset)BackingData["text/data/future_pass_contents.asset"] ).RawAsset.AsDynamic().list ) ) {
+				int sceneId = Int32.Parse( stageAsset.data.sceneId );
+				int stagePoints = Int32.Parse( stageAsset.data.passPoint );
 				StagePoints.Add( sceneId, stagePoints );
 			}
 		}
@@ -93,13 +94,14 @@ namespace Mffer {
 			/// <summary>
 			/// Load data into this <see cref="FuturePassReward"/> instance
 			/// </summary>
-			/// <param name="asset">Asset containing
+			/// <param name="dynamicAsset">Asset containing
 			/// <see cref="FuturePassReward"/> data</param>
-			public void Load( AssetObject asset ) {
-				this.rewardId = Int32.Parse( asset.Properties["data"].Properties["rewardId"].String );
-				this.rewardGroupId = Int32.Parse( asset.Properties["data"].Properties["rewardGroupId"].String );
-				this.Type = Int32.Parse( asset.Properties["data"].Properties["rewardType"].String );
-				this.Value = Int32.Parse( asset.Properties["data"].Properties["rewardValue"].String );
+			public void Load( DynamicAsset dynamicAsset ) {
+				dynamic asset = dynamicAsset.AsDynamic();
+				this.rewardId = Int32.Parse( asset.data.rewardId );
+				this.rewardGroupId = Int32.Parse( asset.data.rewardGroupId );
+				this.Type = Int32.Parse( asset.data.rewardType );
+				this.Value = Int32.Parse( asset.data.rewardValue );
 			}
 		}
 		/// <summary>
@@ -125,12 +127,13 @@ namespace Mffer {
 			/// <summary>
 			/// Loads data into this instance of <see cref="FuturePassSeason"/>
 			/// </summary>
-			/// <param name="asset">Asset containing
+			/// <param name="dynamicAsset">Asset containing
 			/// <see cref="FuturePassSeason"/> data</param>
-			public void Load( AssetObject asset ) {
-				this.endTime = asset.Properties["data"].Properties["endTime_unused"].String;
-				this.startTime = asset.Properties["data"].Properties["startTime_unused"].String;
-				this.rewardGroupId = Int32.Parse( asset.Properties["data"].Properties["rewardGroupId"].String );
+			public void Load( DynamicAsset dynamicAsset ) {
+				dynamic asset = dynamicAsset.AsDynamic();
+				this.endTime = asset.data.endTime_unused;
+				this.startTime = asset.data.startTime_unused;
+				this.rewardGroupId = Int32.Parse( asset.data.rewardGroupId );
 			}
 		}
 		/// <summary>

@@ -6,7 +6,7 @@ if [ -r "$(dirname "$0")"/common.sh ]; then
 fi
 
 summary() {
-	echo "$(basename "$0"): download and extract game data"
+	echo "$(basename "$0"): compare two device directory trees"
 }
 
 usage() {
@@ -65,9 +65,8 @@ fi
 DFDDIR1="$(getdir "$1")"
 DFDDIR2="$(getdir "$2")"
 
-DFDTMPDIR="$(mktemp -d)" || {
-	throwfatal "Unable to create temporary directory"
-}
+DFDTMPDIR="$(mktemp -d)" || throwfatal "Unable to create temporary directory"
+
 trap 'rm -rf "$DFDTMPDIR"' EXIT HUP INT QUIT TERM
 
 for dir in "$DFDDIR1" "$DFDDIR2"; do

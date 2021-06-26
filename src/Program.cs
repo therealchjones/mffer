@@ -1,44 +1,94 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using CommandLine;
 
 namespace Mffer {
 	/// <summary>
-	/// The primary application class
+	/// The primary user-facing program class
 	/// </summary>
-	public class Program {
+	public static class Program {
 		/// <summary>
 		/// The name of the game
 		/// </summary>
-		const string gameName = "Marvel Future Fight";
+		const string GameName = "Marvel Future Fight";
+		static Game Game { get; set; }
 		/// <summary>
-		/// Marvel Future Fight data extraction and reporting
+		/// Gets or sets a dictionary of the command line arguments,
+		/// indexed by option name
 		/// </summary>
-		/// <returns>Nonzero on error, 0 otherwise</returns>
-		static int Main() {
+		static Dictionary<string, string> Arguments { get; set; }
+		/// <summary>
+		/// Primary entry point of the program
+		/// </summary>
+		static void Main() {
+			LoadAll();
+			WriteAll();
+		}
+		/// <summary>
+		/// Loads command line arguments/options
+		/// </summary>
+		/// <remarks>
+		/// <see cref="GetArguments()"/> uses the <see cref="CommandLine"/> class
+		/// to build a dictionary of command-line arguments and their associated
+		/// options, flags, or parameters. This is saved in the static
+		/// <see cref="Arguments"/> property.
+		/// </remarks>
+		static void GetArguments() {
+			Arguments = new Dictionary<string, string>();
 			Parser cmdLine = new Parser();
-			string dataDir = cmdLine.GetOption( "datadir" );
-			string saveDir = cmdLine.GetOption( "outputdir" );
-			if ( string.IsNullOrEmpty( dataDir ) || string.IsNullOrEmpty( saveDir ) ) {
-				System.Console.Error.WriteLine( "Usage: mffer --datadir data_directory --outputdir output_directory" );
-				return 1;
+			Arguments.Add( "datadir", cmdLine.GetOption( "datadir" ) );
+			Arguments.Add( "outputdir", cmdLine.GetOption( "outputdir" ) );
+		}
+		/// <summary>
+		/// Loads all available game data
+		/// </summary>
+		/// <remarks>
+		/// <see cref="LoadAll()"/> uses <see cref="Arguments"/>'s
+		/// "datadir" value to load game information from a game data directory
+		/// into the <see cref="Program.Game"/> static property. All
+		/// information that is extractable from the data directory (including
+		/// all version and all assets and components within those versions)
+		/// will be loaded.
+		/// </remarks>
+		static void LoadAll() {
+			string dataDirName = null;
+			if ( Arguments is null ) {
+				GetArguments();
 			}
-			if ( !Directory.Exists( dataDir ) ) {
-				throw new DirectoryNotFoundException();
+			if ( Arguments.ContainsKey( "datadir" ) ) {
+				dataDirName = Arguments["datadir"];
+			} else {
+				throw new Exception( "You must provide the name of a data directory." );
 			}
-			if ( !Directory.Exists( saveDir ) ) {
-				throw new DirectoryNotFoundException();
+			if ( !Directory.Exists( dataDirName ) ) {
+				throw new DirectoryNotFoundException( $"Unable to access directory '${dataDirName}'" );
 			}
-			Game game = new Game( gameName );
-			game.LoadAllData( dataDir );
-			string saveFile = $"{saveDir}/{gameName}.json";
-			game.WriteJson( saveFile );
-			foreach ( Game.Version version in game.Versions ) {
-				string filename = $"{saveDir}/roster-{version.Name}.csv";
-				using ( StreamWriter file = new StreamWriter( filename ) ) {
-					version.Components["Roster"].WriteCSV( file );
-				}
+			DirectoryInfo dataDir = new DirectoryInfo( dataDirName );
+			Game = new Game( GameName );
+			Game.LoadAll( dataDir.FullName );
+		}
+		/// <summary>
+		/// Outputs all loaded <see cref="Game"/> data
+		/// </summary>
+		/// <remarks>
+		/// <see cref="WriteAll()"/> saves all data that has been loaded into the
+		/// <see cref="Program.Game"/> static property into the output directory
+		/// available from the <see cref="Arguments"/><c>["outputdir"]</c> value.
+		/// If no data has been loaded prior to calling <see cref="WriteAll()"/>,
+		/// <see cref="LoadAll()"/> will be run first.
+		/// </remarks>
+		static void WriteAll() {
+			string saveDirName = null;
+			if ( Arguments is null ) {
+				GetArguments();
 			}
-			return 0;
+			if ( Arguments.ContainsKey( "outputdir" ) ) {
+				saveDirName = Arguments["outputdir"];
+			} else {
+				System.Console.WriteLine( "You must provide the name of an output directory." );
+			}
+			Game.ToJsonFiles( saveDirName );
 		}
 	}
 }

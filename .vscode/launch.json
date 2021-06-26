@@ -8,9 +8,9 @@
 			"name": ".NET Core Launch (console)",
 			"type": "coreclr",
 			"request": "launch",
-			"preLaunchTask": "build",
+			"preLaunchTask": "${defaultBuildTask}",
 			// If you have changed target frameworks, make sure to update the program path.
-			"program": "${workspaceFolder}/bin/Debug/netcoreapp3.1/mffer.dll",
+			"program": "${workspaceFolder}/bin/Debug/net5/mffer.dll",
 			"args": [
 				"--datadir",
 				"${workspaceFolder}/data",
