@@ -1,30 +1,33 @@
-# mffer: Marvel Future Fight Extraction & Reporting
+# `mffer`: Marvel Future Fight Extraction & Reporting
 
-This project develops software that creates and updates the [mffer webapp](https://mffer.org). It is not necessary to review any of this to [use the webapp](https://mffer.org).
+This project develops software that creates and updates the [`mffer` webapp](https://mffer.org). It is not necessary to review any of this to [use the webapp](https://mffer.org).
 
-This is a _comprehensive_ overview of the [mffer](https://github.com/therealchjones/mffer) project with references to all other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
+This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project with references to other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
+
+## Contents
 
 - [Marvel Future Fight](#marvel-future-fight)
-- [About mffer](#about-mffer)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [Marvel Future Fight](#marvel-future-fight-1)
 - [This Project](#this-project)
-	- [Versioning](#versioning)
+- [Versioning](#versioning)
 - [Requirements](#requirements)
-- [Usage](#usage-1)
+- [Usage](#usage)
 	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
 	- [Exploring the Data](#exploring-the-data)
 	- [Exploring the Code](#exploring-the-code)
 		- [Il2CppDumper](#il2cppdumper)
 		- [Ghidra](#ghidra)
 	- [Using and Presenting the Data](#using-and-presenting-the-data)
+- [Contributing](#contributing)
 
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is (or appears to be) made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
 
-## About mffer
+[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [NetMarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to collect and modify with dozens of different resources, and enough game modes to make mastering all of them nigh impossible.
+
+As such, the game has a large amount of data about the characters, resources, stores, game modes and levels, and actions, even before taking into account the variations between individual players. Although there is information available from those who have significant experience playing the game, objective quantitative data is rarely documented well and is of uncertain provenance.
+
+## This Project
 
 This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [NetMarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
 
@@ -33,6 +36,20 @@ The project currently includes multiple components:
 -   a [shell script](docs/autoextract.md) to obtain the Marvel Future Fight data files
 -   a [.NET console app](docs/mffer.md) to parse the data files into an open and usable format
 -   a [Google Sheet and web app](docs/webapp.md) to present and use the game data
+-   The objectives of this umbrella project are:
+
+-   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
+-   make the data easily usable for decision making necessary to play the game effectively and efficiently
+-   compare changes in the data between different releases/versions of the game
+-   easily track important player-specific data to evaluate progress and plan modifications
+
+As this project includes evaluation of the binary distributions of the game, which may be prohibited by the company's terms of service, this is a private project not to be concurrently shared with the public. Where data and methods can be shared safely without compromising the future of the project, they should be.
+
+## Versioning
+
+`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version numbers. While no formal release (and thus stable API) has been made, the major version will remain 0. The minor version will continue to be incremented for any changes to what is _expected to be_ the API. The patch version will change with any other "releases". The first (unstable) release (without a stable API) will be version 0.1.0.
+
+## Requirements
 
 ## Usage
 
@@ -44,53 +61,6 @@ $ dotnet run -- --datadir data_directory --outputdir output_directory
 ```
 
 Then import the resulting CSV file(s) to a Google Sheet for further work.
-
-## Contributing
-
-I welcome outside contributions, comments, questions, concerns, pull requests, and so forth. At least, I would if this were a public project in a public repository, but because I prefer not to be booted from my favorite game, you'll likely never hear about it. However, in the hypothetical case you'd like to contribute to a project you've never heard of, you can hypothetically learn about the best way to do so by hypothetically reading [CONTRIBUTING](docs/CONTRIBUTING.md), to which you also don't have access. You can also hypothetically email me at <chjones@aleph0.com>.
-
-## Table of Contents
-
-- [Marvel Future Fight](#marvel-future-fight)
-- [About mffer](#about-mffer)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [Marvel Future Fight](#marvel-future-fight-1)
-- [This Project](#this-project)
-	- [Versioning](#versioning)
-- [Requirements](#requirements)
-- [Usage](#usage-1)
-	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
-	- [Exploring the Data](#exploring-the-data)
-	- [Exploring the Code](#exploring-the-code)
-		- [Il2CppDumper](#il2cppdumper)
-		- [Ghidra](#ghidra)
-	- [Using and Presenting the Data](#using-and-presenting-the-data)
-
-## Marvel Future Fight
-
-[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [NetMarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to collect and modify with dozens of different resources, and enough game modes to make mastering all of them nigh impossible.
-
-As such, the game has a large amount of data about the characters, resources, stores, game modes and levels, and actions, even before taking into account the variations between individual players. Although there is information available from those who have significant experience playing the game, objective quantitative data is rarely documented well and is of uncertain provenance.
-
-The objectives of this umbrella project are:
-
--   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
--   make the data easily usable for decision making necessary to play the game effectively and efficiently
--   compare changes in the data between different releases/versions of the game
--   easily track important player-specific data to evaluate progress and plan modifications
-
-As this project includes evaluation of the binary distributions of the game, which may be prohibited by the company's terms of service, this is a private project not to be concurrently shared with the public. Where data and methods can be shared safely without compromising the future of the project, they should be.
-
-## This Project
-
-### Versioning
-
-`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version numbers. While no formal release (and thus stable API) has been made, the major version will remain 0. The minor version will continue to be incremented for any changes to what is _expected to be_ the API. The patch version will change with any other "releases". The first (unstable) release (without a stable API) will be version 0.1.0.
-
-## Requirements
-
-## Usage
 
 A workflow for general use may be found in [USAGE](USAGE.md). Full options and further descriptions of individual commands can be found in their corresponding pages: [`autoextract`](autoextract.md), [`mffer`](mffer.md), and [the webapp](webapp.md).
 
@@ -143,3 +113,7 @@ In ghidra:
 ### Using and Presenting the Data
 
 Upload the results using the webapp.
+
+## Contributing
+
+I welcome outside contributions, comments, questions, concerns, pull requests, and so forth. At least, I would if this were a public project in a public repository, but because I prefer not to be booted from my favorite game, you'll likely never hear about it. However, in the hypothetical case you'd like to contribute to a project you've never heard of, you can hypothetically learn about the best way to do so by hypothetically reading [CONTRIBUTING](docs/CONTRIBUTING.md), to which you also don't have access. You can also hypothetically email me at <chjones@aleph0.com>.

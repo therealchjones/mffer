@@ -26,7 +26,7 @@
 	/****************************************/
 	"markdown.extension.toc.omittedFromToc": {
 		"docs/README.md": [
-			"## Table of Contents"
+			"## Contents"
 		]
 	},
 	"markdown.extension.toc.levels": "2..6",

@@ -5,13 +5,13 @@ Obtaining and extracting Marvel Future Fight data files
 ## Synopsis
 
 ```shell
-$ autoextract [-v] -o output_directory
+$ autoextract [-v] [-v] -o output_directory
 $ autoextract -h
 ```
 
 ## Description
 
-`autoextract` semi-automates the complicated process of installing the latest version of Marvel Future Fight from the Play Store, reinstalling it on a rootable emulated Android device, downloading the game-related files, and converting them into a format that can be processed by `mffer` to extract usable data.
+`autoextract` semi-automates the complicated process of installing the latest version of Marvel Future Fight from the Play Store, reinstalling it on a rootable emulated Android device, and downloading the game-related files that can be processed by `mffer` to extract usable data.
 
 ## Options
 
@@ -23,7 +23,7 @@ $ autoextract -h
 
 ## Extended Description
 
-`autoextract` semi-automatically creates a package of data files from the latest release of Marvel Future Fight. It requires user interaction at several times in the process to perform functions on Android emulators or with other software. With a minimum of pre-installed software, `autoextract` will obtain the remainder of necessary software. `autoextract` installs software into temporary directories in an attempt to minimize changes to its host system, but does not use a `chroot` jail or other mechanisms to truly isolate itself.
+`autoextract` semi-automatically creates a package of data files from the latest release of Marvel Future Fight. It requires user interaction at several times in the process to perform functions on Android emulators. With a minimum of pre-installed software, `autoextract` will obtain the remainder of necessary software. `autoextract` installs software into temporary directories in an attempt to minimize changes to its host system, but does not use a `chroot` jail or other mechanisms to truly isolate itself.
 
 By default, `autoextract` prints information only when giving instructions for user interaction. To add brief informational messages about the current step in the process, add the `-v` option. Adding the option again enables "debug" output that includes echoing all shell commands in `autoextract` and printing the default output from each individual tool called. Adding further `-v` options has no effect.
 
