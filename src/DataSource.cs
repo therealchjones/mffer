@@ -79,8 +79,8 @@ namespace Mffer {
 			if ( VersionData.ContainsKey( version ) ) {
 				throw new FileLoadException( $"Unable to load device directory '{deviceDirectory.FullName}': already loaded assets for version {version}" );
 			}
-			DataBundle assetBundle = new DataBundle( deviceDirectory );
-			VersionData.Add( version, assetBundle );
+			DataBundle dataBundle = new DataBundle( deviceDirectory );
+			VersionData.Add( version, dataBundle );
 		}
 		/// <summary>
 		/// Creates a list of the identified version names
@@ -113,7 +113,6 @@ namespace Mffer {
 	/// with a given <see cref="Version"/>.
 	/// </remarks>
 	public class DataBundle : GameObject {
-		// TODO: #105 Change AssetBundle to DataBundle to differentiate from (real) AssetBundles
 		/// <summary>
 		/// Gets or sets the <see cref="DeviceDirectory"/> from which this
 		/// <see cref="DataBundle"/> loads its data
