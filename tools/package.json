@@ -1,10 +1,10 @@
 {
 	"name": "mffer-tools",
 	"dependencies": {
-		"@google/clasp": "2.3.2"
+		"@google/clasp": "^2.3.2"
 	},
 	"devDependencies": {
-		"@types/google-apps-script": "^1.0.31",
-		"stream-json": "1.7.1"
+		"@types/google-apps-script": "1.x",
+		"stream-json": "1.x"
 	}
 }

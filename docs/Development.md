@@ -9,43 +9,43 @@
 
 ## Full contents
 
-- [Highlights](#highlights)
-- [Full contents](#full-contents)
-- [Introduction](#introduction)
-- [Setting up an environment](#setting-up-an-environment)
-	- [Requirements](#requirements)
-	- [Recommendations](#recommendations)
-	- [Setting up a useful development system](#setting-up-a-useful-development-system)
-- [Writing documentation](#writing-documentation)
-	- [Source tree](#source-tree)
-	- [README](#readme)
-		- [At-a-glance README](#at-a-glance-readme)
-		- [Comprehensive README](#comprehensive-readme)
-		- [More about READMEs](#more-about-readmes)
-	- [CONTRIBUTING](#contributing)
-- [Writing code](#writing-code)
-	- [Coding Style](#coding-style)
-		- [Whitespace](#whitespace)
-		- [Code Style](#code-style)
-		- [Comments](#comments)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Making a custom `Program.cs`](#making-a-custom-programcs)
-- [Making a custom `Component`](#making-a-custom-component)
-- [Changing `mffer` internals](#changing-mffer-internals)
-	- [`mffer` best practices](#mffer-best-practices)
-	- [Models & designs](#models--designs)
-		- [The repository directory tree](#the-repository-directory-tree)
-		- [Code structure](#code-structure)
-- [The `mffer` APIs](#the-mffer-apis)
-- [Building `mffer`](#building-mffer)
-- [Deploying & Releasing](#deploying--releasing)
-	- [Description](#description)
-	- [Requirements](#requirements-1)
-	- [Initial Setup](#initial-setup)
-- [See also](#see-also)
+-   [Highlights](#highlights)
+-   [Full contents](#full-contents)
+-   [Introduction](#introduction)
+-   [Setting up an environment](#setting-up-an-environment)
+    -   [Requirements](#requirements)
+    -   [Recommendations](#recommendations)
+    -   [Setting up a useful development system](#setting-up-a-useful-development-system)
+-   [Writing documentation](#writing-documentation)
+    -   [Source tree](#source-tree)
+    -   [README](#readme)
+        -   [At-a-glance README](#at-a-glance-readme)
+        -   [Comprehensive README](#comprehensive-readme)
+        -   [More about READMEs](#more-about-readmes)
+    -   [CONTRIBUTING](#contributing)
+-   [Writing code](#writing-code)
+    -   [Coding Style](#coding-style)
+        -   [Whitespace](#whitespace)
+        -   [Code Style](#code-style)
+        -   [Comments](#comments)
+    -   [Tools](#tools)
+        -   [Visual Studio Code](#visual-studio-code)
+        -   [Formatters](#formatters)
+        -   [Linters](#linters)
+-   [Making a custom `Program.cs`](#making-a-custom-programcs)
+-   [Making a custom `Component`](#making-a-custom-component)
+-   [Changing `mffer` internals](#changing-mffer-internals)
+    -   [`mffer` best practices](#mffer-best-practices)
+    -   [Models & designs](#models--designs)
+        -   [The repository directory tree](#the-repository-directory-tree)
+        -   [Code structure](#code-structure)
+-   [The `mffer` APIs](#the-mffer-apis)
+-   [Building `mffer`](#building-mffer)
+-   [Deploying & Releasing](#deploying--releasing)
+    -   [Description](#description)
+    -   [Requirements](#requirements-1)
+    -   [Initial Setup](#initial-setup)
+-   [See also](#see-also)
 
 ## Introduction
 
@@ -589,9 +589,8 @@ The `mffer` webapp
     ```
 5. Add the webapp files to the project:
     ```shell
-    [mffer/tools] $ node_modules/.bin/clasp push
+    [mffer/tools] $ node_modules/.bin/clasp push -f
     ```
-    Select "`y`" if prompted to overwrite the Manifest file.
 6. Open the Apps Script IDE:
     ```shell
     [mffer/tools] $ node_modules/.bin/clasp open

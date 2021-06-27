@@ -27,7 +27,7 @@ function getPermissions() {
  * @param
  * @returns {HtmlOutput} Web page appropriate to the request
  */
-function doGet(e) {
+function doGet() : GoogleAppsScript.HTML.HtmlOutput {
 	var spreadsheet = getSpreadsheet();
 	if (spreadsheet == null) {
 		return RequestNewSpreadsheet();
