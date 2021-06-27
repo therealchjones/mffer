@@ -1,44 +1,86 @@
 /**
- * Returns the spreadsheet object for the Marvel Future Fight Google Sheet where
- * data are stored.
+ * mffer: Marvel Future Fight Extraction & Reporting
+ * https://mffer.org / https://github.com/therealchjones/mffer
+ * Except where otherwise noted, all content is the sole creation of
+ * Christian Jones (chjones@aleph0.com)
+ * https://aleph0.com/~chjones / https://github.com/therealchjones
+ *
+ * No rights reserved
+ * https://norightsreserved.org
+ * CC0
+ * https://creativecommons.org/share-your-work/public-domain/cc0/
+ *
  */
-function getSpreadsheet() {
-	return SpreadsheetApp.openById(spreadsheetId);
+
+/**
+ * Dummy function, present to simplify getting permissions in the Google Scripts
+ * IDE. This should be the first method in the first file.
+ * @returns {bool} true
+ */
+function getPermissions() {
+	return true;
 }
 
 /**
- * The basic webapp enabling function responding to the HTTP GET request
+ * The basic webapp-enabling function responding to the HTTP GET request
+ * @param
+ * @returns {HtmlOutput} Web page appropriate to the request
  */
 function doGet(e) {
-	var properties = PropertiesService.getScriptProperties();
-	if (properties == null || properties.getProperty("spreadsheet") == null) {
-		return CreateNewSpreadsheet();
+	var spreadsheet = getSpreadsheet();
+	if (spreadsheet == null) {
+		return RequestNewSpreadsheet();
+	} else {
+		return DisplayPage("Page.html");
 	}
-	return HtmlService.createTemplateFromFile("Page.html")
-		.evaluate()
-		.addMetaTag(
-			"viewport",
-			"width=device-width, initial-scale=1, shrink-to-fit=no"
-		)
-		.setTitle("Marvel Future Fight Extraction & Reporting");
-}
-
-function CreateNewSpreadsheet() {
-	return HtmlService.createTemplateFromFile("mff-upload.html")
-		.evaluate()
-		.addMetaTag(
-			"viewport",
-			"width=device-width, initial-scale=1, shrink-to-fit=no"
-		)
-		.setTitle("Marvel Future Fight Extraction & Reporting");
 }
 
 /**
- * Allow inclusion of HTML from another file to allow
- * separate structure/style/script/etc.
+ * Get the Google Sheet containing mffer data
+ * @returns {Spreadsheet} The sheet (workbook) containing mffer data, or null if
+ * none exists
+ */
+function getSpreadsheet() {
+	var properties = PropertiesService.getScriptProperties();
+	if (properties == null || properties.GetProperty("spreadsheet") == null) {
+		return null;
+	}
+	return SpreadsheetApp.openById(properties.GetProperty("spreadsheet"));
+}
+
+/**
+ * Display a web page
+ * @param {string} filename Name of file containing the HTML contents or
+ * template for the page
+ * @returns {HtmlOutput} Displayable version of the page
+ */
+function DisplayPage(filename) {
+	return HtmlService.createTemplateFromFile(filename)
+		.evaluate()
+		.addMetaTag(
+			"viewport",
+			"width=device-width, initial-scale=1, shrink-to-fit=no"
+		)
+		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
+}
+
+/**
+ * Presents a web page requesting connection to a Google Sheet storing mffer
+ * data
+ * @returns {HtmlOutput} Web page prompting for an existing sheet or new data to
+ * upload
+ */
+function RequestNewSpreadsheet() {
+	return DisplayPage("mff-upload.html");
+}
+
+/**
+ * Create HTML output suitable for inclusion in another page
+ * @param {string} filename Name of file containing HTML contents or template
+ * @returns {string} Displayable HTML suitable for including within HTML output
  */
 function include(filename) {
-	return HtmlService.createHtmlOutputFromFile(filename).getContent();
+	return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }
 
 /**
