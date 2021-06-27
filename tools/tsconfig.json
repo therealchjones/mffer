@@ -3,6 +3,6 @@
 		"lib": [
 			"esnext"
 		],
-		"experimentalDecorators": true
+		"target": "ES2019"
 	}
 }

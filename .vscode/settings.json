@@ -34,5 +34,7 @@
 	"shellformat.flag": "-bn -ci -i 0",
 	"shellcheck.customArgs": [
 		"-x"
-	]
+	],
+	"typescript.referencesCodeLens.enabled": true,
+	"typescript.referencesCodeLens.showOnAllFunctions": true
 }
