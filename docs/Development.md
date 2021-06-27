@@ -41,7 +41,10 @@
 		- [Code structure](#code-structure)
 - [The `mffer` APIs](#the-mffer-apis)
 - [Building `mffer`](#building-mffer)
-- [Deploying & releasing](#deploying--releasing)
+- [Deploying & Releasing](#deploying--releasing)
+	- [Description](#description)
+	- [Requirements](#requirements-1)
+	- [Initial Setup](#initial-setup)
 - [See also](#see-also)
 
 ## Introduction
@@ -538,7 +541,7 @@ document and the [API](api/) for further detils.
 
 ## The `mffer` APIs
 
-All included types and membes are included in the API documentation, generated
+All included types and members are included in the API documentation, generated
 as part of the build process from the triple-slash XML comments describing them
 in the code itself.
 
@@ -553,12 +556,58 @@ in the code itself.
     ```shell
     $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
     ```
-4. `webapp` must be uploaded but there's nothing to build
+4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
 
-## Deploying & releasing
+## Deploying & Releasing
 
-Honestly, I've never done it. I've got some ideas, but we'll see how it goes
-before I document them.
+### Description
+
+The `mffer` webapp
+
+### Requirements
+
+-   [Google Account](https://google.com/account) with access to [Google Apps
+    Script](https://script.google.com) and Google Drive.
+-   [Node.js](Node.js & npm)
+
+### Initial Setup
+
+1. In [Google Apps Script
+   Settings](https://script.google.com/home/usersettings), enable "Google Apps
+   Script API"
+2. In the [tools directory](../tools/), install `clasp` and its dependencies:
+    ```shell
+    [mffer/tools] $ npm install
+    ```
+3. Login to Google with `clasp`:
+    ```shell
+    [mffer/tools] $ node_modules/.bin/clasp --login
+    ```
+4. Create the Google Apps project:
+    ```shell
+    [mffer/tools] $ node_modules/.bin/clasp create --type webapp --title mffer --rootDir ../src/webapp
+    ```
+5. Add the webapp files to the project:
+    ```shell
+    [mffer/tools] $ node_modules/.bin/clasp push
+    ```
+    Select "`y`" if prompted to overwrite the Manifest file.
+6. Open the Apps Script IDE:
+    ```shell
+    [mffer/tools] $ node_modules/.bin/clasp open
+    ```
+    Select "Code.gs" from the file list and press the "Run" button, which will
+    prompt you to "Review Permissions" and approve access to your Google account.
+7. Open the webapp:
+    ```shell
+    [mffer/tools] $ node_modules/.bin/clasp open --webapp
+    ```
+    If prompted for which deployment to use, press `<enter>` or `<return>`.
+8. Create the Google Sheet for storing the `mffer` data by uploading a CSV file
+   created by the `mffer` command line application.
+9.
+
+###
 
 ## See also
 
