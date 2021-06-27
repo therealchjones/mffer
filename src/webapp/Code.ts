@@ -18,6 +18,7 @@
  * @returns {bool} true
  */
 function getPermissions() {
+	Logger.log("Permissions granted.");
 	return true;
 }
 
@@ -42,10 +43,10 @@ function doGet(e) {
  */
 function getSpreadsheet() {
 	var properties = PropertiesService.getScriptProperties();
-	if (properties == null || properties.GetProperty("spreadsheet") == null) {
+	if (properties == null || properties.getProperty("spreadsheet") == null) {
 		return null;
 	}
-	return SpreadsheetApp.openById(properties.GetProperty("spreadsheet"));
+	return SpreadsheetApp.openById(properties.getProperty("spreadsheet"));
 }
 
 /**
@@ -255,9 +256,9 @@ function activateSection(name) {
 	// to define a section in a sheet, make a cell that includes the name in square brackets, like [sectionname]
 	var sheet = SpreadsheetApp.getActiveSheet();
 	var section = sheet.createTextFinder("[" + name + "]");
-	cell = section.findNext();
+	var cell = section.findNext();
 	if (!cell) {
-		ui = SpreadsheetApp.getUi();
+		var ui = SpreadsheetApp.getUi();
 		ui.alert(
 			"Error",
 			"The section " + name + " was not found.",
@@ -341,7 +342,9 @@ function copyTeam(column) {
 	var selected = calculator.getCurrentCell();
 
 	var regex = new RegExp("^" + column + "([0-9]+)$");
-	var rownum = selected.getA1Notation().replace(regex, "$1");
+	var row = selected.getA1Notation().replace(regex, "$1");
+	if (row = '') return false;
+	var rownum = Number(row);
 	if (isNaN(rownum) || rownum <= 14) {
 		return false;
 	}
@@ -401,7 +404,7 @@ function saveShadowlandRecord() {
 	var workingsheet = spreadsheet.getSheetByName("Shadowland Working Sheet");
 	var validity = workingsheet.getRange("$S$2");
 	if (validity.isBlank()) {
-		ui = SpreadsheetApp.getUi();
+		var ui = SpreadsheetApp.getUi();
 		ui.alert(
 			"Error",
 			"Select an opposing team and a winning team.",
