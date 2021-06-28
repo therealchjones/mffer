@@ -1,331 +1,139 @@
 <style>
-	<!-- @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;800&display=swap');
-	-->
-	*
-
-	{
-		font-family:
-
-	'Exo
-
-	2',
-
-	sans-serif;
+	 <!-- @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;800&display=swap'); -->
+	 * {
+	     font-family: 'Exo 2', sans-serif;
 	}
-
-	body
-
-	{
-		text-align:
-
-	center;
+	 body {
+	     text-align: center;
 	}
-
-	.content-active
-
-	{
-		display: block;
+	 .content-active {
+	     display: block;
 	}
-
-	.content-inactive
-
-	{
-		display: none;
+	 .content-inactive {
+	     display: none;
 	}
-
-	.ui-toolbar-header
-
-	h1.ui-toolbar-title
-
-	{
-		margin: 0;
-
-	width:100%;
+	 .ui-toolbar-header h1.ui-toolbar-title {
+	     margin: 0;
+	     width:100%;
 	}
-
-	h2
-
-	{
-		margin: 0;
-		line-height: 2em;
+	 h2 {
+	     margin: 0;
+	     line-height: 2em;
 	}
-
-	#content-shadowland
-
-	fieldset
-
-	{
-		width: 100%;
-
-	margin:0;
-
-	padding:0;
+	 #content-shadowland fieldset {
+	     width: 100%;
+	     margin:0;
+	     padding:0;
 	}
-
-	#content-shadowland
-
-	legend
-
-	{
-		display: none;
-		box-sizing: border-box;
-
-	width:100%;
-
-	margin:0;
+	 #content-shadowland legend {
+	     display: none;
+	     box-sizing: border-box;
+	     width:100%;
+	     margin:0;
 	}
-
-	#shadowland-floor
-
-	{
-		display: flex;
-
-	justify-content:center;
-
-	align-items:center;
-
-	width:100%;
+	 #shadowland-floor {
+	     display: flex;
+	     justify-content:center;
+	     align-items:center;
+	     width:100%;
 	}
-
-	#shadowland-floor
-
-	label
-
-	{
-		max-width: 20%;
-
-	text-align:right;
-
-	margin:0.5em;
-
-	font-size:smaller;
+	 #shadowland-floor label {
+	     max-width: 20%;
+	     text-align:right;
+	     margin:0.5em;
+	     font-size:smaller;
 	}
-
-	#shadowland-floor
-
-	.ui-selectmenu
-
-	{
-		max-width:
-
-	8em;
-
-	float:left;
-
-	display:inline-block;
+	 #shadowland-floor .ui-selectmenu {
+	     max-width: 8em;
+	     float:left;
+	     display:inline-block;
 	}
-
-	#shadowland-floor
-
-	button
-
-	{
-		display: inline;
-		max-width: 3em;
+	 #shadowland-floor button {
+	     display: inline;
+	     max-width: 3em;
 	}
-
-	#shadowland-floor
-
-	#shadowland-floortype
-
-	{
-		max-width: 20%;
-
-	text-align:left;
-
-	margin:0.5em;
-
-	font-size:larger;
-
-	font-style:italic;
+	 #shadowland-floor #shadowland-floortype {
+	     max-width: 20%;
+	     text-align:left;
+	     margin:0.5em;
+	     font-size:larger;
+	     font-style:italic;
 	}
-
-	select#shadowland-basefloor,
-
-	label[for="shadowland-basefloor"]
-
-	{
-		display: none;
+	 select#shadowland-basefloor, label[for="shadowland-basefloor"] {
+	     display: none;
 	}
-
-	#shadowland-opponents
-
-	.opponent-header,
-
-	#shadowland-opponents
-
-	.reward
-
-	{
-		display: inline;
+	 #shadowland-opponents .opponent-header, #shadowland-opponents .reward {
+	     display: inline;
 	}
-
-	#shadowland-opponents
-
-	.reward
-
-	{
-		font-size: smaller;
-
-	font-style:italic;
-
-	margin-left:1em;
+	 #shadowland-opponents .reward {
+	     font-size: smaller;
+	     font-style:italic;
+	     margin-left:1em;
 	}
-
-	#shadowland-opponents
-
-	.ui-bar
-
-	{
-		margin-top: 0.5ex;
-
-	margin-bottom:0.1ex;
+	 #shadowland-opponents .ui-bar {
+	     margin-top: 0.5ex;
+	     margin-bottom:0.1ex;
 	}
-
-	#shadowland-opponents
-
-	.ui-controlgroup
-
-	{
-		margin-top: 0;
-
-	margin-bottom:0;
-
-	width:100%;
+	 #shadowland-opponents .ui-controlgroup {
+	     margin-top: 0;
+	     margin-bottom:0;
+	     width:100%;
 	}
-
-	#shadowland-opponents
-
-	.ui-selectmenu
-
-	{
-		width: 85%;
-		display: inline-block;
-		margin: 0;
+	 #shadowland-opponents .ui-selectmenu {
+	     width: 85%;
+	     display: inline-block;
+	     margin: 0;
 	}
-
-	#shadowland-opponents
-
-	.ui-controlgroup-radio
-
-	{
-		width: 15%;
-
-	margin:0;
-
-	padding:0;
-
-	display:inline-block;
+	 #shadowland-opponents .ui-controlgroup-radio {
+	     width: 15%;
+	     margin:0;
+	     padding:0;
+	     display:inline-block;
 	}
-
-	#shadowland-opponents
-
-	.ui-checkboxradio-label
-
-	{
-		box-sizing: border-box;
-
-	width:15%;
-
-	padding-left:0;
-
-	padding-right:0;
-
-	text-align:center;
-
-	display:inline-block;
-
-	margin:0;
+	 #shadowland-opponents .ui-checkboxradio-label {
+	     box-sizing: border-box;
+	     width:15%;
+	     padding-left:0;
+	     padding-right:0;
+	     text-align:center;
+	     display:inline-block;
+	     margin:0;
 	}
-
-	#shadowland-opponents
-
-	.ui-checkboxradio-icon
-
-	{
-		display:
-
-	inline-block;
-
-	width:22px;
-
-	height:22px;
-
-	margin-top:-2px;
-
-	border:0;
+	 #shadowland-opponents .ui-checkboxradio-icon {
+	     display: inline-block;
+	     width:22px;
+	     height:22px;
+	     margin-top:-2px;
+	     border:0;
 	}
-
-	#shadowland-team
-
-	.ui-bar
-
-	{
-		margin-top: 0.5ex;
-
-	margin-bottom:0.1ex;
+	 #shadowland-team .ui-bar {
+	     margin-top: 0.5ex;
+	     margin-bottom:0.1ex;
 	}
-
-	#shadowland-team
-
-	.ui-selectmenu
-
-	{
-		margin-top: 0;
-
-	margin-bottom:0;
+	 #shadowland-team .ui-selectmenu {
+	     margin-top: 0;
+	     margin-bottom:0;
 	}
-
-	#shadowland-preferences.ui-controlgroup,
-
-	#shadowland-priors.ui-controlgroup,
-
-	#shadowland-recommendations.ui-controlgroup
-
-	{
-		margin: 0;
-		padding: 0;
+	 #shadowland-preferences.ui-controlgroup, #shadowland-priors.ui-controlgroup, #shadowland-recommendations.ui-controlgroup {
+	     margin: 0;
+	     padding: 0;
 	}
-
-	legend.ui-mini
-
-	{
-		font-size: 13px;
-
-	padding-right:0.2em;
-
-	padding-top:0.2em;
-
-	padding-bottom:0.2em;
-
-	border-width:1px;
-
-	border-style:solid;
+	 legend.ui-mini {
+	     font-size: 13px;
+	     padding-right:0.2em;
+	     padding-top:0.2em;
+	     padding-bottom:0.2em;
+	     border-width:1px;
+	     border-style:solid;
 	}
-
-	#status-bar
-
-	{
-		text-align: right;
+	 #status-bar {
+	     text-align: right;
 	}
-
-	#status-bar
-
-	#status-message
-
-	{
-		display: inline;
-
-	margin-right:0.5em;
+	 #status-bar #status-message {
+	     display: inline;
+	     margin-right:0.5em;
 	}
-
-	#status-bar
-
-	#console-button
-
-	{
-		margin: 0;
+	 #status-bar #console-button {
+	     margin: 0;
 	}
-
-
 </style>

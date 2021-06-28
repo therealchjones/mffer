@@ -1,5 +1,17 @@
 {
 	/****************************************/
+	// IDE settings
+	/****************************************/
+	"terminal.integrated.env.osx": {
+		"PATH": "${workspaceFolder}/tools/node_modules/.bin:${env:PATH}"
+	},
+	"terminal.integrated.env.linux": {
+		"PATH": "${workspaceFolder}/tools/node_modules/.bin:${env:PATH}"
+	},
+	"terminal.integrated.env.windows": {
+		"PATH": "${workspaceFolder}\\tools\\node_modules\\.bin:${env:PATH}"
+	},
+	/****************************************/
 	// File formatting
 	/****************************************/
 	// Mild (potential) conflict with EditorConfig:
@@ -34,7 +46,5 @@
 	"shellformat.flag": "-bn -ci -i 0",
 	"shellcheck.customArgs": [
 		"-x"
-	],
-	"typescript.referencesCodeLens.enabled": true,
-	"typescript.referencesCodeLens.showOnAllFunctions": true
+	]
 }

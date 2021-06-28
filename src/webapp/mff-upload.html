@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 	<head>
-		<base target="_top">
+		<base target="_top" />
 		<title>Upload mffer CSV</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<style type="text/css">
 			#textdisplay,
 			#tabledisplay {
@@ -21,20 +20,20 @@
 				border: solid black;
 				border-width: 1px 1px 0 1px;
 			}
-
 		</style>
-
 	</head>
 
 	<body>
 		<div data-role="page">
-			<p>Choose a CSV-like file from your computer to upload. The
-				file will be converted into a sheet that <strong>replaces</strong>
-				any current MffData sheet.</p>
+			<p>
+				Choose a CSV-like file from your computer to upload. The file
+				will be converted into a sheet that
+				<strong>replaces</strong> any current MffData sheet.
+			</p>
 
 			<form action="">
 				<label for="filechooser">Select a file:</label>
-				<input type="file" name="filechooser" id="filechooser">
+				<input type="file" name="filechooser" id="filechooser" />
 				<div id="textdisplay"></div>
 				<div id="tabledisplay"></div>
 			</form>
@@ -53,13 +52,19 @@
 			var totalChars = text.length;
 			while (i < maxDisplayLines) {
 				i++;
-				var nextNewLine = text.indexOf('\n', startIndex + 1);
+				var nextNewLine = text.indexOf("\n", startIndex + 1);
 				if (nextNewLine == -1) {
-					endIndex = Math.min(startIndex + maxCharsPerLine, totalChars);
+					endIndex = Math.min(
+						startIndex + maxCharsPerLine,
+						totalChars
+					);
 					returnText += text.substring(startIndex, endIndex);
 					break;
 				} else {
-					endIndex = Math.min(startIndex + maxCharsPerLine, nextNewLine);
+					endIndex = Math.min(
+						startIndex + maxCharsPerLine,
+						nextNewLine
+					);
 					returnText += text.substring(startIndex, endIndex);
 					startIndex = nextNewLine;
 				}
@@ -74,25 +79,29 @@
 				.withSuccessHandler(displayTable)
 				.withFailureHandler(displayTableError)
 				.csvToTable(text);
-			return "<p>Parsing...</p>"
+			return "<p>Parsing...</p>";
 		}
 		function displayTable(text) {
-			document.getElementById("tabledisplay").innerHTML = '<p>Sheet preview:</p>' + text;
+			document.getElementById("tabledisplay").innerHTML =
+				"<p>Sheet preview:</p>" + text;
 		}
 		function displayTableError(error) {
-			document.getElementById("tabledisplay").innerHTML = '<p>Parsing failed:</p>\n<p>' + error.message + '</p>';
+			document.getElementById("tabledisplay").innerHTML =
+				"<p>Parsing failed:</p>\n<p>" + error.message + "</p>";
 		}
-		document.getElementById("filechooser")
+		document
+			.getElementById("filechooser")
 			.addEventListener("change", function () {
 				var filereader = new FileReader();
 				filereader.onload = function () {
 					var text = filereader.result;
 					var headers = getFirstLines(text);
-					document.getElementById("textdisplay").innerHTML = '<p>File preview:</p><pre>\n' + headers + '\n</pre>';
-					document.getElementById("tabledisplay").innerHTML = csvToTable(headers);
-				}
+					document.getElementById("textdisplay").innerHTML =
+						"<p>File preview:</p><pre>\n" + headers + "\n</pre>";
+					document.getElementById("tabledisplay").innerHTML =
+						csvToTable(headers);
+				};
 				filereader.readAsText(this.files[0]);
-			})
+			});
 	</script>
-
 </html>

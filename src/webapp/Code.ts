@@ -15,9 +15,9 @@
 /**
  * Dummy function, present to simplify getting permissions in the Google Scripts
  * IDE. This should be the first method in the first file.
- * @returns {bool} true
+ * @returns {boolean} true
  */
-function getPermissions() {
+function getPermissions(): boolean {
 	Logger.log("Permissions granted.");
 	return true;
 }
@@ -27,7 +27,7 @@ function getPermissions() {
  * @param
  * @returns {HtmlOutput} Web page appropriate to the request
  */
-function doGet() : GoogleAppsScript.HTML.HtmlOutput {
+function doGet(): GoogleAppsScript.HTML.HtmlOutput {
 	var spreadsheet = getSpreadsheet();
 	if (spreadsheet == null) {
 		return RequestNewSpreadsheet();
@@ -343,7 +343,7 @@ function copyTeam(column) {
 
 	var regex = new RegExp("^" + column + "([0-9]+)$");
 	var row = selected.getA1Notation().replace(regex, "$1");
-	if (row = '') return false;
+	if ((row = "")) return false;
 	var rownum = Number(row);
 	if (isNaN(rownum) || rownum <= 14) {
 		return false;

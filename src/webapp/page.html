@@ -1,133 +1,262 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <!-- Marvel Future Fight Manager, by Christian Jones (chjones@aleph0.com). No rights reserved. -->
-    <!-- viewport tag (and other meta tags) must be created in 
-         doGet function 
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> 
+	<head>
+		<!-- Marvel Future Fight Manager, by Christian Jones (chjones@aleph0.com). No rights reserved. -->
+		<!-- viewport tag (and other meta tags) must be created in
+         doGet function
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     -->
-    <!-- title must be created in doGet function
+		<!-- title must be created in doGet function
     <title>Marvel Future Fight Manager</title>
     -->
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" 
-      integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600&display=swap" rel="stylesheet">
-    <!-- Local CSS -->
-    <?!= include('CSS.html'); ?>
-    
-  </head>
-  <body>
-    <h1 id="header" class="navbar fixed-top container-fluid bg-light text-center font-weight-bolder justify-content-center">Marvel Future Fight Manager</h1>
-    
-    <div id="content-loading" class="container text-center">
-      <h2 role="status"><span class="spinner-border" aria-hidden="true"></span>Loading</h2>
-    </div><!-- content-loading -->
-    
-    <form name="shadowland" id="content-shadowland" class="container text-center">
-      <h2>Shadowland</h2>
-      <fieldset id="shadowland-floor">
-        <legend>Floor</legend>
-        <label for="shadowland-floornumber">Floor Number</label>
-        <input type="text" list="shadowland-floornumbers" id="shadowland-floornumber" name="shadowland-floornumber">
-        <datalist id="shadowland-floornumbers">
-          <option value="1"><!-- more to be added programmatically, but can also type in a floor -->
-        </datalist>
-        <label for="shadowland-basenumber">Base Floor Number</label>
-        <input type="text" list="shadowland-basenumbers" id="shadowland-basenumber" name="shadowland-basenumber">
-        <datalist id="shadowland-basenumbers">
-          <option value="1"><!-- more to be added programmatically, but can also type in a floor -->
-        </datalist>
-        <button id="shadowland-floorbutton-down">-</button>
-        <button id="shadowland-floorbutton-up">+</button>
-      </fieldset><!-- shadowland-floor -->
-      
-      <fieldset id="shadowland-opponents">
-        <legend>Opponents</legend>
-        
-        <label for="opponent-1">Opponent 1</label>
-        <p id="reward-1"></p>
-        <select id="opponent-1" name="opponent-1"></select>
-        <label for="opponent-choice-1">Select Opponent 1</label>
-        <input name="opponent-choice" id="opponent-choice-1" type="radio" value="1">
-      
-        <label for="opponent-2">Opponent 2</label>
-        <p id="reward-2"></p>
-        <select id="opponent-2" name="opponent-2"></select>
-        <label for="opponent-choice-2">Select Opponent 2</label>
-        <input name="opponent-choice" id="opponent-choice-2" type="radio" value="2">
+		<!-- Bootstrap CSS -->
+		<link
+			rel="stylesheet"
+			href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+			integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+			crossorigin="anonymous"
+		/>
+		<!-- Google Font -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600&display=swap"
+			rel="stylesheet"
+		/>
+		<!-- Local CSS -->
+		<?!= include('CSS.html'); ?>
+	</head>
+	<body>
+		<h1
+			id="header"
+			class="
+				navbar
+				fixed-top
+				container-fluid
+				bg-light
+				text-center
+				font-weight-bolder
+				justify-content-center
+			"
+		>
+			Marvel Future Fight Manager
+		</h1>
 
-        <label for="opponent-3">Opponent 3</label>
-        <p id="reward-3"></p>
-        <select id="opponent-3" name="opponent-3"></select>
-        <label for="opponent-choice-3">Select Opponent 3</label>
-        <input name="opponent-choice" id="opponent-choice-3" type="radio" value="3">
-      </fieldset><!-- shadowland-opponents -->
-      
-      <fieldset id="shadowland-team">
-        <legend>Team</legend>
-        <label for="teammember-1">Team Leader</label>
-        <select id="teammember-1" name="teammember-1"></select>
+		<div id="content-loading" class="container text-center">
+			<h2 role="status">
+				<span class="spinner-border" aria-hidden="true"></span>Loading
+			</h2>
+		</div>
+		<!-- content-loading -->
 
-        <label for="teammember-2">Teammember 2</label>
-        <select id="teammember-2" name="teammember-2"></select>
+		<form
+			name="shadowland"
+			id="content-shadowland"
+			class="container text-center"
+		>
+			<h2>Shadowland</h2>
+			<fieldset id="shadowland-floor">
+				<legend>Floor</legend>
+				<label for="shadowland-floornumber">Floor Number</label>
+				<input
+					type="text"
+					list="shadowland-floornumbers"
+					id="shadowland-floornumber"
+					name="shadowland-floornumber"
+				/>
+				<datalist id="shadowland-floornumbers">
+					<option value="1">
+						<!-- more to be added programmatically, but can also type in a floor -->
+					</option>
+				</datalist>
 
-        <label for="teammember-2">Teammember 3</label>
-        <select id="teammember-3" name="teammember-3"></select>
-      </fieldset><!-- shadowland-team -->
+				<label for="shadowland-basenumber">Base Floor Number</label>
+				<input
+					type="text"
+					list="shadowland-basenumbers"
+					id="shadowland-basenumber"
+					name="shadowland-basenumber"
+				/>
+				<datalist id="shadowland-basenumbers">
+					<option value="1">
+						<!-- more to be added programmatically, but can also type in a floor -->
+					</option>
+				</datalist>
 
-      <fieldset id="shadowland-preferences" class="btn-group btn-group-toggle" data-toggle="buttons">
-        <legend>Preferences</legend>
-        <label for="preference-1" class="btn btn-secondary"><input type="checkbox"
-          id="preference-1" name="preference-1" value="1">allow T2 before floor 25</label>
-        <label for="preference-2" class="btn btn-secondary"><input type="checkbox"
-          id="preference-2" name="preference-2" value="2">allow 6* characters</label>
-        <label for="preference-3" class="btn btn-secondary"><input type="checkbox"
-          id="preference-3" name="preference-3" value="3">allow meta characters</label>
-        <label for="preference-4" class="btn btn-secondary"><input type="checkbox"
-          id="preference-4" name="preference-4" value="4">allow good characters</label>
-        <label for="preference-5" class="btn btn-secondary"><input type="checkbox"
-          id="preference-5" name="preference-5" value="5">allow nonmatching characters</label>
-      </fieldset><!-- shadowland-preferences -->
+				<button id="shadowland-floorbutton-down">-</button>
+				<button id="shadowland-floorbutton-up">+</button>
+			</fieldset>
+			<!-- shadowland-floor -->
 
-      <fieldset id="shadowland-recommendations">
-        <legend>Recommended Teams</legend>
-      </fieldset><!-- shadowland-recommendations -->
-      <fieldset id="shadowland-priors">
-        <legend>Prior Successes</legend>
-      </fieldset><!-- shadowland-priors -->
-      <fieldset id="shadowland-buttons">
-        <legend class="sr-only">Finish</legend>
-        <button id="shadowland-button-reload" class="btn btn-secondary">reload</button>
-        <button id="shadowland-button-resetfloor" class="btn btn-secondary">reset floor</button>
-        <input type="button" id="shadowland-button-success" value="success" class="btn btn-dark">
-      </fieldset><!-- shadowland-buttons -->
-    </form><!-- content-shadowland -->
-    
-    <div id="progress-bar" class="navbar fixed-bottom container-fluid justify-content-end bg-light">
-      <p id="progress-bar-text"></p>
-      <input type="button" id="log-button" value="Log" class="btn btn-dark btn-sm">
-    </div>
+			<fieldset id="shadowland-opponents">
+				<legend>Opponents</legend>
 
-    <div id="progress-log" class="container">
-    <ul id="progress-log-text">
-    
-    </ul>
-    </div>
+				<label for="opponent-1">Opponent 1</label>
+				<p id="reward-1"></p>
+				<select id="opponent-1" name="opponent-1"></select>
+				<label for="opponent-choice-1">Select Opponent 1</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-1"
+					type="radio"
+					value="1"
+				/>
 
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" 
-      integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" 
-      crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" 
-      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" 
-      crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" 
-      integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" 
-      crossorigin="anonymous"></script>
-    <!-- Local JavaScript -->
-    <?!= include('JS.html'); ?>
-  </body>
+				<label for="opponent-2">Opponent 2</label>
+				<p id="reward-2"></p>
+				<select id="opponent-2" name="opponent-2"></select>
+				<label for="opponent-choice-2">Select Opponent 2</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-2"
+					type="radio"
+					value="2"
+				/>
+
+				<label for="opponent-3">Opponent 3</label>
+				<p id="reward-3"></p>
+				<select id="opponent-3" name="opponent-3"></select>
+				<label for="opponent-choice-3">Select Opponent 3</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-3"
+					type="radio"
+					value="3"
+				/>
+			</fieldset>
+			<!-- shadowland-opponents -->
+
+			<fieldset id="shadowland-team">
+				<legend>Team</legend>
+				<label for="teammember-1">Team Leader</label>
+				<select id="teammember-1" name="teammember-1"></select>
+
+				<label for="teammember-2">Teammember 2</label>
+				<select id="teammember-2" name="teammember-2"></select>
+
+				<label for="teammember-2">Teammember 3</label>
+				<select id="teammember-3" name="teammember-3"></select>
+			</fieldset>
+			<!-- shadowland-team -->
+
+			<fieldset
+				id="shadowland-preferences"
+				class="btn-group btn-group-toggle"
+				data-toggle="buttons"
+			>
+				<legend>Preferences</legend>
+				<label for="preference-1" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-1"
+						name="preference-1"
+						value="1"
+					/>allow T2 before floor 25</label
+				>
+				<label for="preference-2" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-2"
+						name="preference-2"
+						value="2"
+					/>allow 6* characters</label
+				>
+				<label for="preference-3" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-3"
+						name="preference-3"
+						value="3"
+					/>allow meta characters</label
+				>
+				<label for="preference-4" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-4"
+						name="preference-4"
+						value="4"
+					/>allow good characters</label
+				>
+				<label for="preference-5" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-5"
+						name="preference-5"
+						value="5"
+					/>allow nonmatching characters</label
+				>
+			</fieldset>
+			<!-- shadowland-preferences -->
+
+			<fieldset id="shadowland-recommendations">
+				<legend>Recommended Teams</legend>
+			</fieldset>
+			<!-- shadowland-recommendations -->
+			<fieldset id="shadowland-priors">
+				<legend>Prior Successes</legend>
+			</fieldset>
+			<!-- shadowland-priors -->
+			<fieldset id="shadowland-buttons">
+				<legend class="sr-only">Finish</legend>
+				<button id="shadowland-button-reload" class="btn btn-secondary">
+					reload
+				</button>
+				<button
+					id="shadowland-button-resetfloor"
+					class="btn btn-secondary"
+				>
+					reset floor
+				</button>
+				<input
+					type="button"
+					id="shadowland-button-success"
+					value="success"
+					class="btn btn-dark"
+				/>
+			</fieldset>
+			<!-- shadowland-buttons -->
+		</form>
+		<!-- content-shadowland -->
+
+		<div
+			id="progress-bar"
+			class="
+				navbar
+				fixed-bottom
+				container-fluid
+				justify-content-end
+				bg-light
+			"
+		>
+			<p id="progress-bar-text"></p>
+			<input
+				type="button"
+				id="log-button"
+				value="Log"
+				class="btn btn-dark btn-sm"
+			/>
+		</div>
+
+		<div id="progress-log" class="container">
+			<ul id="progress-log-text"></ul>
+		</div>
+
+		<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+		<script
+			src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+			integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+			integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+			integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+			crossorigin="anonymous"
+		></script>
+		<!-- Local JavaScript -->
+		<?!= include('JS.html'); ?>
+	</body>
 </html>
