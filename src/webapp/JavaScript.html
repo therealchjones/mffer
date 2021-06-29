@@ -178,4 +178,60 @@
 			.saveFloorNumber(floorNumber);
 		return floorNumber;
 	}
+	function getFirstLines(text) {
+		var maxDisplayLines = 3;
+		var maxCharsPerLine = 140;
+		var maxCharsTotal = 420;
+		var i = 0;
+		var startIndex = 0;
+		var endIndex = 0;
+		var returnText = "";
+		var totalChars = text.length;
+		while (i < maxDisplayLines) {
+			i++;
+			var nextNewLine = text.indexOf("\n", startIndex + 1);
+			if (nextNewLine == -1) {
+				endIndex = Math.min(startIndex + maxCharsPerLine, totalChars);
+				returnText += text.substring(startIndex, endIndex);
+				break;
+			} else {
+				endIndex = Math.min(startIndex + maxCharsPerLine, nextNewLine);
+				returnText += text.substring(startIndex, endIndex);
+				startIndex = nextNewLine;
+			}
+		}
+		if (returnText.length > maxCharsTotal) {
+			returnText = returnText.substring(0, maxCharsTotal);
+		}
+		return returnText;
+	}
+	function csvToTable(text) {
+		google.script.run
+			.withSuccessHandler(displayTable)
+			.withFailureHandler(displayTableError)
+			.csvToTable(text);
+		return "<p>Parsing...</p>";
+	}
+	function displayTable(text) {
+		document.getElementById("tabledisplay").innerHTML =
+			"<p>Sheet preview:</p>" + text;
+	}
+	function displayTableError(error) {
+		document.getElementById("tabledisplay").innerHTML =
+			"<p>Parsing failed:</p>\n<p>" + error.message + "</p>";
+	}
+	document
+		.getElementById("filechooser")
+		.addEventListener("change", function () {
+			var filereader = new FileReader();
+			filereader.onload = function () {
+				var text = filereader.result;
+				var headers = getFirstLines(text);
+				document.getElementById("textdisplay").innerHTML =
+					"<p>File preview:</p><pre>\n" + headers + "\n</pre>";
+				document.getElementById("tabledisplay").innerHTML =
+					csvToTable(headers);
+			};
+			filereader.readAsText(this.files[0]);
+		});
 </script>
