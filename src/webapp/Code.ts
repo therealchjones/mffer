@@ -1,18 +1,4 @@
 /**
- * mffer: Marvel Future Fight Extraction & Reporting
- * https://mffer.org / https://github.com/therealchjones/mffer
- * Except where otherwise noted, all content is the sole creation of
- * Christian Jones (chjones@aleph0.com)
- * https://aleph0.com/~chjones / https://github.com/therealchjones
- *
- * No rights reserved
- * https://norightsreserved.org
- * CC0
- * https://creativecommons.org/share-your-work/public-domain/cc0/
- *
- */
-
-/**
  * Dummy function, present to simplify getting permissions in the Google Scripts
  * IDE. This should be the first method in the first file.
  * @returns {boolean} true
@@ -24,39 +10,11 @@ function getPermissions(): boolean {
 
 /**
  * The basic webapp-enabling function responding to the HTTP GET request
- * @param
- * @returns {HtmlOutput} Web page appropriate to the request
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} Web page appropriate to the
+ * request
  */
 function doGet(): GoogleAppsScript.HTML.HtmlOutput {
-	var spreadsheet = getSpreadsheet();
-	if (spreadsheet == null) {
-		return RequestNewSpreadsheet();
-	} else {
-		return DisplayPage("Page.html");
-	}
-}
-
-/**
- * Get the Google Sheet containing mffer data
- * @returns {Spreadsheet} The sheet (workbook) containing mffer data, or null if
- * none exists
- */
-function getSpreadsheet() {
-	var properties = PropertiesService.getScriptProperties();
-	if (properties == null || properties.getProperty("spreadsheet") == null) {
-		return null;
-	}
-	return SpreadsheetApp.openById(properties.getProperty("spreadsheet"));
-}
-
-/**
- * Display a web page
- * @param {string} filename Name of file containing the HTML contents or
- * template for the page
- * @returns {HtmlOutput} Displayable version of the page
- */
-function DisplayPage(filename) {
-	return HtmlService.createTemplateFromFile(filename)
+	return HtmlService.createTemplateFromFile("Index.html")
 		.evaluate()
 		.addMetaTag(
 			"viewport",
@@ -66,13 +24,26 @@ function DisplayPage(filename) {
 }
 
 /**
- * Presents a web page requesting connection to a Google Sheet storing mffer
- * data
- * @returns {HtmlOutput} Web page prompting for an existing sheet or new data to
- * upload
+ * Get the Google Sheet containing mffer data
+ * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet} The sheet (workbook)
+ * containing mffer data, or null if none exists
  */
-function RequestNewSpreadsheet() {
-	return DisplayPage("mff-upload.html");
+function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
+	var properties = PropertiesService.getScriptProperties();
+	if (properties == null || properties.getProperty("spreadsheet") == null) {
+		return null;
+	}
+	return SpreadsheetApp.openById(properties.getProperty("spreadsheet"));
+}
+
+/**
+ * Assigns a Google Spreadsheet to be the storage spreadsheet for the app
+ * @param {string} spreadsheetId ID of the spreadsheet to set as the storage
+ * spreadsheet
+ */
+function setSpreadsheet(spreadsheetId: string): void {
+	var properties = PropertiesService.getScriptProperties();
+	properties.setProperty("spreadsheet", spreadsheetId);
 }
 
 /**
@@ -80,7 +51,7 @@ function RequestNewSpreadsheet() {
  * @param {string} filename Name of file containing HTML contents or template
  * @returns {string} Displayable HTML suitable for including within HTML output
  */
-function include(filename) {
+function include(filename: string): string {
 	return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }
 
@@ -90,7 +61,10 @@ function include(filename) {
  * modified from an excellent Stack Overflow answer at
  * https://stackoverflow.com/a/51789725
  */
-function getSheetById(spreadsheet, gid) {
+function getSheetById(
+	spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
+	gid: number
+): GoogleAppsScript.Spreadsheet.Sheet {
 	if (!spreadsheet) {
 		spreadsheet = getSpreadsheet();
 	}
@@ -104,7 +78,8 @@ function getSheetById(spreadsheet, gid) {
 }
 
 /**
- * Allows using a single SpreadsheetApp data request to obtain
+ * @summary Retrieves the data for the webapp
+ * @description Allows using a single SpreadsheetApp data request to obtain
  * all necessary startup information for the web app. Depends upon
  * spreadsheet including an appropriate range for consolidating all
  * this information prior to starting the web app.
@@ -150,14 +125,26 @@ function getSheetById(spreadsheet, gid) {
  * 29 Sheet Opponents
  * 30 Sheet Opponent Choice
  * 31 Sheet Teammembers
- *
  */
-function getWebappDatabase() {
-	var sheet = getSheetById(getSpreadsheet(), "1514300109");
-	var rows = sheet.getDataRange().getHeight();
-	var range = sheet.getSheetValues(1, 33, rows, 32);
-	return range[0].map(function (column) {
-		return range.map(function (row) {
+function getWebappDatabase(): any[][] {
+	var spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet =
+		getSpreadsheet();
+	if (spreadsheet == null) return null;
+	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getSheetById(
+		spreadsheet,
+		1514300109
+	);
+	var rows: number = sheet.getDataRange().getHeight();
+	var range: any[][] = sheet.getSheetValues(1, 33, rows, 32);
+	// See above; range[0] is the row of column headers, so
+	// range[0].map( function ( header, column ) { } ) is equivalent to
+	// foreach ( column in columns ) {}.
+	// We then iterate over the rows and return the entry in each row for that
+	// column, so that the final result switches the columns and rows and
+	// allows us to refer to each cell as newrange[columnnumber][rownumber].
+	// TODO: #118 make a function that returns the necessary value rather than wasting the time inverting the matrix
+	return range[0].map(function (_: any, column: number) {
+		return range.map(function (row: any[]) {
 			return row[column];
 		});
 	});
@@ -175,7 +162,7 @@ function getWebappDatabase() {
  * use the working sheet.)
  */
 function saveNewPreferences(preferences) {
-	getSheetById(getSpreadsheet(), "1315797114")
+	getSheetById(getSpreadsheet(), 1315797114)
 		.getRange(15, 3, 5)
 		.setValues(preferences);
 }
@@ -189,7 +176,7 @@ function saveNewPreferences(preferences) {
 function saveShadowlandEntry(entry) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
-	getSheetById(getSpreadsheet(), "1930936724").appendRow(entry);
+	getSheetById(getSpreadsheet(), 1930936724).appendRow(entry);
 }
 
 /**
@@ -197,34 +184,9 @@ function saveShadowlandEntry(entry) {
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
 function saveFloorNumber(floorNumber) {
-	getSheetById(getSpreadsheet(), "1315797114")
+	getSheetById(getSpreadsheet(), 1315797114)
 		.getRange("A2")
 		.setValue(floorNumber);
-}
-
-function uploadNewMffData() {
-	showUploadDialog();
-	var csvString = "";
-	var csvArray = Utilities.parseCsv(csvString, "|");
-}
-
-function showSidebar() {
-	var html = HtmlService.createHtmlOutputFromFile("mff-sidebar.html")
-		.setTitle("Marvel Future Fight")
-		.setWidth(300);
-	SpreadsheetApp.getUi().showSidebar(html);
-}
-
-function showUploadDialog() {
-	var html = HtmlService.createHtmlOutputFromFile("mff-upload.html");
-	html.setTitle("Upload file");
-	SpreadsheetApp.getUi().showModalDialog(html, "Upload file");
-}
-
-function insertNow() {
-	var now = new Date();
-	var cell = SpreadsheetApp.getActiveSpreadsheet().getActiveCell();
-	cell.setValue(now);
 }
 
 function csvToTable(text) {
@@ -242,300 +204,4 @@ function csvToTable(text) {
 	returnHtml.append("</table>");
 
 	return returnHtml.getContent();
-}
-
-/***** helper functions *****/
-
-function activateSheet(tabname) {
-	var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-	var sheet = spreadsheet.getSheetByName(tabname);
-	sheet.activate();
-}
-
-function activateSection(name) {
-	// to define a section in a sheet, make a cell that includes the name in square brackets, like [sectionname]
-	var sheet = SpreadsheetApp.getActiveSheet();
-	var section = sheet.createTextFinder("[" + name + "]");
-	var cell = section.findNext();
-	if (!cell) {
-		var ui = SpreadsheetApp.getUi();
-		ui.alert(
-			"Error",
-			"The section " + name + " was not found.",
-			ui.ButtonSet.OK
-		);
-		return false;
-	} else {
-		cell.activateAsCurrentCell();
-		return true;
-	}
-}
-
-function rebuildCharacterUniformValidation() {
-	/* for each character on the Characters sheet,
-	 * set the data validation for the accompanying "Equipped Uniform"
-	 * cell to use that character's uniforms. Because cells change with sorting
-	 * and such, this will use a generated list of values rather than
-	 * a fixed range.
-	 */
-	/* consider making this an auto-updated thing with daily/weekly reset
-	 * and/or a menu item
-	 */
-
-	// Note that this relies on the "working sheet" and "character sheet"
-	// character lists to be in the same order (which currently they automatically are)
-
-	var spreadsheet = SpreadsheetApp.openById("[spreadsheet ID not specified]");
-	var characterSheet = getSheetById(spreadsheet, 1392219691); // the "Characters" sheet
-	var workingSheet = getSheetById(spreadsheet, 1291082607); // the "Characters Working Sheet" sheet
-
-	// find the range of "Equipped Uniform" cells to validate
-	var toValidateRange = characterSheet.getRange("$B$2:$B");
-	// find the range of available uniforms to use as validation
-	var validationFinder = spreadsheet
-		.createTextFinder("Uniform 1")
-		.matchCase(true)
-		.matchEntireCell(true)
-		.startFrom(workingSheet.getRange("$A$1"));
-	var validationStartColumn = validationFinder.findNext().getColumn();
-
-	var rules = toValidateRange.getDataValidations();
-	var startRow = toValidateRange.getRow();
-	var rows = toValidateRange.getHeight();
-	for (var i = startRow; i < startRow + rows; i++) {
-		var validationRange = workingSheet.getRange(
-			i,
-			validationStartColumn,
-			1,
-			13
-		);
-		var rule = SpreadsheetApp.newDataValidation()
-			.setAllowInvalid(false)
-			.requireValueInRange(validationRange)
-			.build();
-		rules[i - startRow][0] = rule;
-	}
-	toValidateRange.setDataValidations(rules);
-}
-
-/*** deprecated functions; gotten rid of these or moved them to the standalone webapp project ***/
-
-function syncFloorData(
-	floor,
-	opp1,
-	opp2,
-	opp3,
-	selected,
-	team1,
-	team2,
-	team3,
-	preferences
-) {
-	var spreadsheet = SpreadsheetApp.openById("[spreadsheet ID not specified]");
-	var calculator = getSheetById(spreadsheet, 1315797114);
-	var preferenceBoxes = calculator.getRange(15, 3, 5);
-	preferenceBoxes.setValues(preferences);
-}
-
-function copyTeam(column) {
-	var calculator = SpreadsheetApp.getActiveSheet();
-	var selected = calculator.getCurrentCell();
-
-	var regex = new RegExp("^" + column + "([0-9]+)$");
-	var row = selected.getA1Notation().replace(regex, "$1");
-	if ((row = "")) return false;
-	var rownum = Number(row);
-	if (isNaN(rownum) || rownum <= 14) {
-		return false;
-	}
-
-	var team = selected
-		.getValue()
-		.replace(/\[Floor.*$/, "")
-		.split("+")[0]
-		.trim();
-	if (team == "") {
-		return false;
-	}
-
-	var cols = ["D", "G", "J"];
-	var solos = [0, 0, 0];
-	var teammembers = team.split("/");
-	for (var i = 0; i < teammembers.length; i++) {
-		teammembers[i] = teammembers[i].trim();
-		if (teammembers[i].endsWith("(solo)")) {
-			teammembers[i] = teammembers[i].replace(/\(solo\)$/, "").trim();
-			solos[i] = 1;
-		}
-	}
-	if (solos[0] + solos[1] + solos[2] > 1) {
-		solos = [0, 0, 0];
-	}
-
-	for (var i = 0; i < 3; i++) {
-		if (teammembers[i] == null || teammembers[i] == "") {
-			calculator.getRange(cols[i] + "6").setValue(null);
-			calculator.getRange(cols[i] + "7").uncheck();
-		} else {
-			calculator.getRange(cols[i] + "6").setValue(teammembers[i]);
-			if (solos[i] == 1) {
-				calculator.getRange(cols[i] + "7").check();
-			} else {
-				calculator.getRange(cols[i] + "7").uncheck();
-			}
-		}
-	}
-	return true;
-}
-
-function copyRecommendedTeam() {
-	copyTeam("F");
-}
-
-function copyPreviousTeam() {
-	copyTeam("I");
-}
-
-function saveShadowlandRecord() {
-	/* get Shadowland Calculator range */
-	var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-
-	/* ensure data are valid based on current validators */
-	var workingsheet = spreadsheet.getSheetByName("Shadowland Working Sheet");
-	var validity = workingsheet.getRange("$S$2");
-	if (validity.isBlank()) {
-		var ui = SpreadsheetApp.getUi();
-		ui.alert(
-			"Error",
-			"Select an opposing team and a winning team.",
-			ui.ButtonSet.OK
-		);
-		return false;
-	} else if (!validity.getValue()) {
-		ui = SpreadsheetApp.getUi();
-		ui.alert(
-			"Error",
-			'Not a valid floor/opponent/team combination. If this is a new combination, check the "New Team" box.',
-			ui.ButtonSet.OK
-		);
-		return false;
-	}
-
-	var calculator = spreadsheet.getSheetByName("Shadowland Calculator");
-	var entry = calculator.getRange("$A$1:$K$9").getValues();
-
-	var timestamp = new Date();
-	var floorNum = entry[1][0];
-	var floorMode = entry[4][0];
-	var opponentTeam = entry[1][3];
-	var winningTeam = entry[8][5].replace(/ \[Floor [^\]]*\]$/, "");
-	var newentry = [
-		timestamp,
-		floorNum,
-		floorMode,
-		,
-		,
-		,
-		opponentTeam,
-		winningTeam,
-	];
-
-	spreadsheet.getSheetByName("Shadowland Record").appendRow(newentry);
-	return true;
-}
-
-function resetShadowlandFloor() {
-	// reset the information in the Shadowland calculator to redo the current floor
-	var calculator = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-		"Shadowland Calculator"
-	);
-	calculator
-		.getRangeList(["$D$2", "$G$2", "$J$2", "$D$6", "$G$6", "$J$6"])
-		.setValue(null);
-	calculator
-		.getRangeList(["$D$4", "$G$4", "$J$4", "$D$7", "$G$7", "$J$7", "$F$10"])
-		.uncheck();
-}
-
-function nextShadowlandFloor() {
-	// reset the information in the Shadowland calculator to advance to the next floor
-	var calculator = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-		"Shadowland Calculator"
-	);
-	var oldfloor = calculator.getRange("$A$2").getValue();
-	if (oldfloor >= 30) {
-		var ui = SpreadsheetApp.getUi();
-		var response = ui.alert(
-			"Congratulations!",
-			"You have completed the first 30 floors of Shadowland. Reset the season now?",
-			ui.ButtonSet.YES_NO
-		);
-		if (response == ui.Button.YES) {
-			resetShadowlandSeason();
-		} else {
-			return true;
-		}
-	} else {
-		resetShadowlandFloor();
-		calculator.getRange("$A$2").setValue(oldfloor + 1);
-		return true;
-	}
-}
-
-function lastShadowlandFloor() {
-	var calculator = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-		"Shadowland Calculator"
-	);
-	var oldfloor = calculator.getRange("$A$2").getValue();
-	if (oldfloor <= 1) {
-		SpreadsheetApp.getUi().alert("You are on the first floor.");
-		return true;
-	} else {
-		resetShadowlandFloor();
-		calculator.getRange("$A$2").setValue(oldfloor - 1);
-		return true;
-	}
-}
-
-function recordAndAdvanceShadowland() {
-	// copy the current (winning) information to the Shadowland Record and advance to the next floor
-	if (saveShadowlandRecord()) {
-		nextShadowlandFloor();
-	}
-}
-
-function resetShadowlandSeason() {
-	var calculator = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-		"Shadowland Calculator"
-	);
-	calculator.getRange("$A$2").setValue(1);
-	resetShadowlandFloor();
-}
-
-/* checkForReset() evaluates the current time and whether any data resets are due
- * based on the last reset time, running the appropriate [time]Reset() function when
- * necessary.
- */
-function checkForReset() {
-	// see if a sheet is currently being worked on, if possible
-	// maybe add an obvious but not modal alert to the sidebar, with an option to delay (updates a spreadsheet cell)
-	// then check that cell when I start this to see if it's been delayed?
-	// for the sidebar dialog, probably just modify the visibility of a hidden HTML div that warns about maintenance
-	// but may have to open the sidebar if not already open, or open a dialog box if we can't open the sidebar
-	// read appropriate times for reset from spreadsheet
-	var file = DriveApp.getFileById("[spreadsheet ID not specified]");
-	var spreadsheet = SpreadsheetApp.openById("[spreadsheet ID not specified]");
-	var workingSheet = getSheetById(spreadsheet, 1507458603);
-
-	// Unfortunately, a time-triggered script can't used getUi(), show(), etc. due to context
-
-	// check to see if any of the "next reset time"s have passed since the last Reset
-	var resetFrequencies = ["Daily", "Weekly", "Sunday"];
-	var needsRun = workingSheet
-		.getRange(2, 6, resetFrequencies.length)
-		.getValues();
-
-	var lastUpdate = file.getLastUpdated();
-	// if last updated within ***, presume that it's open and give a warning or option to delay
-	// would love to not do this and steal focus if a cell is currently being edited; or maybe that'll be okay?
 }
