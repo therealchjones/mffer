@@ -31,26 +31,18 @@
 	.content-inactive {
 		display: none;
 	}
-	.ui-toolbar-header h1.ui-toolbar-title {
+	#mffer-navbar {
 		margin: 0;
 		width: 100%;
 	}
-
-	#content-loading {
-		display: block;
-	}
-	#content-shadowland {
-		display: none;
-	}
-	#progress-log {
-		display: none;
+	#mffer-log {
 		padding-top: 0;
 		padding-bottom: 0;
 	}
 	[type="button"] {
 		border-radius: 0;
 	}
-	#progress-bar {
+	#mffer-statusbar {
 		height: 1.5rem;
 		font-size: 0.75rem;
 		padding-top: 0;
@@ -71,12 +63,12 @@
 		margin: 0;
 		line-height: 2em;
 	}
-	#content-shadowland fieldset {
+	#mffer-shadowland fieldset {
 		width: 100%;
 		margin: 0;
 		padding: 0;
 	}
-	#content-shadowland legend {
+	#mffer-shadowland legend {
 		display: none;
 		box-sizing: border-box;
 		width: 100%;
@@ -94,7 +86,7 @@
 		margin: 0.5em;
 		font-size: smaller;
 	}
-	#shadowland-floor .ui-selectmenu {
+	#shadowland-floor input {
 		max-width: 8em;
 		float: left;
 		display: block;
@@ -103,27 +95,27 @@
 		display: inline;
 		max-width: 3em;
 	}
-	#shadowland-floor #shadowland-floortype {
+	#shadowland-floortype {
 		max-width: 20%;
 		text-align: left;
 		margin: 0.5em;
 		font-size: larger;
 		font-style: italic;
 	}
-	select#shadowland-basefloor,
-	label[for="shadowland-basefloor"] {
+	input#shadowland-basefloor,
+	label[for="shadowland-basenumber"] {
 		display: none;
 	}
-	#shadowland-opponents .opponent-header,
-	#shadowland-opponents .reward {
+	#shadowland-opponents label,
+	#shadowland-opponents p {
 		display: inline;
 	}
-	#shadowland-opponents .reward {
+	#shadowland-opponents p {
 		font-size: smaller;
 		font-style: italic;
 		margin-left: 1em;
 	}
-	#shadowland-opponents .ui-bar {
+	#shadowland-opponents legend {
 		margin-top: 0.5ex;
 		margin-bottom: 0.1ex;
 	}
@@ -132,18 +124,18 @@
 		margin-bottom: 0;
 		width: 100%;
 	}
-	#shadowland-opponents .ui-selectmenu {
+	#shadowland-opponents select {
 		width: 85%;
 		display: inline-block;
 		margin: 0;
 	}
-	#shadowland-opponents .ui-controlgroup-radio {
+	#shadowland-opponents input[type="radio"] {
 		width: 15%;
 		margin: 0;
 		padding: 0;
 		display: inline-block;
 	}
-	#shadowland-opponents .ui-checkboxradio-label {
+	#shadowland-opponents label[for="opponent-choice-*"] {
 		box-sizing: border-box;
 		width: 15%;
 		padding-left: 0;
@@ -152,28 +144,28 @@
 		display: inline-block;
 		margin: 0;
 	}
-	#shadowland-opponents .ui-checkboxradio-icon {
+	#shadowland-opponents input[type="radio"] {
 		display: inline-block;
 		width: 22px;
 		height: 22px;
 		margin-top: -2px;
 		border: 0;
 	}
-	#shadowland-team .ui-bar {
+	#shadowland-team legend {
 		margin-top: 0.5ex;
 		margin-bottom: 0.1ex;
 	}
-	#shadowland-team .ui-selectmenu {
+	#shadowland-team select {
 		margin-top: 0;
 		margin-bottom: 0;
 	}
-	#shadowland-preferences.ui-controlgroup,
-	#shadowland-priors.ui-controlgroup,
-	#shadowland-recommendations.ui-controlgroup {
+	#shadowland-preferences,
+	#shadowland-priors,
+	#shadowland-recommendations {
 		margin: 0;
 		padding: 0;
 	}
-	legend.ui-mini {
+	legend {
 		font-size: 13px;
 		padding-right: 0.2em;
 		padding-top: 0.2em;
@@ -181,14 +173,14 @@
 		border-width: 1px;
 		border-style: solid;
 	}
-	#status-bar {
+	#mffer-statusbar {
 		text-align: right;
 	}
-	#status-bar #status-message {
+	#mffer-statusbar #progress-bar-text {
 		display: inline;
 		margin-right: 0.5em;
 	}
-	#status-bar #console-button {
+	#status-bar #log-button {
 		margin: 0;
 	}
 	#textdisplay,
