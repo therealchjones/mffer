@@ -23,6 +23,13 @@ function doGet(): GoogleAppsScript.HTML.HtmlOutput {
 		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
 }
 
+function isConfigured(): boolean {
+	var properties = PropertiesService.getScriptProperties();
+	if (properties == null || properties.getProperty("spreadsheet") == null) {
+		return false;
+	}
+	return true;
+}
 /**
  * Get the Google Sheet containing mffer data
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet} The sheet (workbook)

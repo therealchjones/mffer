@@ -12,6 +12,7 @@
 ></script>
 <script id="mffer-js">
 	"use strict";
+	var shadowlandDatabase;
 	class Job {
 		constructor(param) {
 			let jobNumber = Math.floor(Math.random() * 10000);
@@ -19,20 +20,36 @@
 	}
 	class JobQueue {}
 
-	// The only global variable (in this script), obtained at start time from
-	// Google Sheets and not changed (though may be reloaded from Sheets).
-	var shadowlandDatabase;
-
 	$(document).ready(function () {
-		initializePage();
+		let mfferNew = $("#mffer-new");
+		if (mfferNew.length != 0) {
+			initializeWelcome();
+		} else {
+			initializePage();
+		}
 	});
 
+	function initializeWelcome() {
+		let buttons = $("#mffer-new button");
+		buttons.click(function (event) {
+			$("#mffer-new-header").hide();
+			if (event.target.id == "button-google-sheet") {
+				connectSheet();
+			} else if (event.target.id == "button-upload-new") {
+				newSheetFromUpload();
+			} else {
+				throw "Invalid button identifier pressed.";
+			}
+		});
+	}
+
+	function connectSheet() {}
+
+	function newSheetFromUpload() {}
+
 	function initializePage() {
-		// This may also be used for re-initializing the page programmatically
-		// rather than hard-reloading; don't assume that settings are always
-		// as written in the starting HTML, and zero/reload globals.
-		$("#content-shadowland").hide();
-		$("#content-loading").show();
+		$("#mffer-shadowland").hide();
+		$("#mffer-spinner").show();
 
 		let loadDataNumber = markProgress("Loading database");
 		google.script.run
@@ -107,7 +124,7 @@
 		}
 	}
 
-	function markProgress(text, jobNumber) {
+	function markProgress(text, jobNumber = null) {
 		if (jobNumber == null) {
 			// make job number
 			// write text to log & progress bar
