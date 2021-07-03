@@ -12,27 +12,50 @@
 			visit <a href="https://mffer.org">mffer.org</a>.
 		</p>
 		<p>
-			If you want to run, build, or modify the command-line
+			If you want to run, build, modify, or test the command-line
 			<code>mffer</code> program, which is used for extracting data and
 			reporting it in a way the web app can use, you may not need to do
 			this: visit
 			<a href="https://github.com/therealchjones/mffer"
-				><code>mffer</code>on GitHub</a
+				><code>mffer</code> on GitHub</a
 			>.
 		</p>
-		<p>
-			However, if you want to modify and test the web app or deploy a
-			version yourself, then you can remove the bits requiring the above
-			tools or
-		</p>
 		<form>
+			<p>
+				However, if you want to modify and test the web app or deploy a
+				version yourself, then
+			</p>
 			<button id="button-start-new-deployment" type="button">
 				Get Started
 			</button>
 		</form>
 	</div>
-	<form id="buttons-database-source" class="start-inactive">
-		<legend>Choose a database source.</legend>
+	<div id="mffer-new-presetup" class="start-inactive">
+		<h2>Are Google Apps Script and Google Cloud Platform set up?</h2>
+		<p>
+			They're probably at least <em>partly</em> configured if you've
+			gotten this far. For the webapp to work properly, you'll need to
+			ensure those are complete by following the
+			<a
+				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
+				>"Deploying the webapp" instructions</a
+			>
+			in the
+			<a href="http://github.com/therealchjones/mffer/docs/Deployment.md"
+				>`mffer` Development Guide</a
+			>. If you haven't done that yet, close this window and restart the
+			deployment once you've completed those directions. If you already
+			have,
+		</p>
+		<form id="mffer-new-api-key">
+			<label for="input-api-key">Enter your Google Picker API Key</label>
+			<input type="text" id="input-api-key" />
+			<button type="submit" id="button-api-key" disabled>
+				Use this key
+			</button>
+		</form>
+	</div>
+	<form id="mffer-new-database-source" class="start-inactive">
 		<button id="button-google-sheet" type="button">
 			Connect to an existing Google Sheet
 		</button>
@@ -40,8 +63,6 @@
 			Upload a new <code>mffer</code> database
 		</button>
 	</form>
-	<form class="start-inactive">
-		<fieldset id="choose-google-sheet" class="start-inactive"></fieldset>
-		<fieldset id="new-from-upload" class="start-inactive"></fieldset>
-	</form>
+	<form id="mffer-new-choose-sheet" class="start-inactive"></form>
+	<form id="mffer-new-upload" class="start-inactive"></form>
 </div>

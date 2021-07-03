@@ -599,9 +599,36 @@ account is beyond the scope of this document (and may be beyond the abilities of
 this author). However, you may be able to create a basic project usable for
 `mffer` webapp deployment in a few (relatively) simple steps:
 
+(Compare this to https://developers.google.com/picker/docs#appreg; also need
+https://www.googleapis.com/auth/drive.file scope)
+
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
-   name and the other information.
-2.
+   name (and other info if desired).
+2. You'll likely then be taken to the project dashboard; if not, visit
+   https://console.cloud.google.com/home/dashboard and ensure the correct
+   project is chosen in the project drop-down. Find the project number and make
+   a note of it. Then, choose "APIs & Services" from the navigation menu or "Go
+   to APIs Overview" on the APIs card.
+3. Select "Enable APIs" and search for "Google Picker API". Select it and choose
+   "Enable".
+4. You'll likely then be taken to the API page with a note that "you may need
+   credentials". Select "Create Credentials" or visit
+   https://console.cloud.google.com/apis/credentials/wizard and again ensure
+   the correct project is shown in the project drop-down. Choose "Google Picker
+   API" for "Which API are you using?" and select "Public data" before pressing
+   "Next".
+5. Make a note of (or copy and paste) the API Key. Choose "Restrict", choose
+   "HTTP referrers (web sites)" and enter `*.google.com` and
+   `*.googleusercontent.com`.
+6. Return to https://console.cloud.google.com/apis/credentials/, choose "Create
+   Credentials", and select OAuth Client ID. Choose "Configure Consent Screen"
+   and choose the "User Type" as desired. Press "Create" and complete the "OAuth
+   consent screen" form, then press "Save and Continue".
+7. For the remaining pages, just "Save and Continue", then choose "Back to
+   Dashboard".
+8. Again choose "Create Credentials", and select "OAuth Client ID". Set
+   "Application Type" to "Web application" and enter an app name. Press
+   "Create". Make a note of the OAuth Client ID.
 
 #### Uploading and configuring the webapp
 
@@ -629,7 +656,8 @@ this author). However, you may be able to create a basic project usable for
     [mffer/tools] $ node_modules/.bin/clasp open
     ```
 7. [Switch to using a standard GCP](https://developers.google.com/apps-script/guides/cloud-platform-projects?hl=en#switching_to_a_different_standard_gcp_project)
-   and [set up the requirements to use Google Picker](https://developers.google.com/apps-script/guides/dialogs#file-open_dialogs).
+   and enter the project number you noted from step 2 of
+   [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
 8. Select "Code.gs" from the file list and press the "Run" button, which will
    prompt you to "Review Permissions" and approve access to your Google account.
 9. Open the webapp:
