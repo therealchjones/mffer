@@ -52,7 +52,7 @@ And maybe you have another idea...
 
 ## Copyright
 
-`mffer` is released into the "public domain" where such a thing exists; for the sake of formality, see [the CC0 license](../LICENSE). Further details about how this may effect your contributions are in the [Development guide](Development.md).
+`mffer` is released into the "public domain" where such a thing exists; for the sake of formality, see [the CC0 license](../LICENSE). Further details about how this may effect your contributions are in the [Copyright section of the Development guide](Development.md#copyright--licensing). Additionally, please review the [comprehensive README](README.md) for contents which are not included in the public domain release.
 
 ## Contact
 

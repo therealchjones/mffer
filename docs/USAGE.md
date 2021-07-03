@@ -22,6 +22,11 @@ proper use, that is due to limitations of the developers, not the users; please
 consider [filing an issue](https://github.com/therealchjones/mffer/issues) if
 something is unclear.
 
+Using a version of the webapp you deploy yourself (rather than the one at
+https://mffer.org) is described in the
+[Deploying the webapp](Development.md#deploying-the-webapp) section of the
+[Development guide](Development.md).
+
 Please see also the [brief `mffer` webapp manual](webapp.md)
 
 ## Using the `mffer` command line tools

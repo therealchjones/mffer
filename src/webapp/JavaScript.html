@@ -1,4 +1,3 @@
-<!-- jQuery first, then Popper.js, then Bootstrap JS -->
 <script
 	id="jquery-js"
 	src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"
@@ -34,18 +33,14 @@
 		buttons.click(function (event) {
 			$("#mffer-new-header").hide();
 			if (event.target.id == "button-google-sheet") {
-				connectSheet();
+				$("#choose-google-sheet").show();
 			} else if (event.target.id == "button-upload-new") {
-				newSheetFromUpload();
+				$("#new-from-upload").show();
 			} else {
 				throw "Invalid button identifier pressed.";
 			}
 		});
 	}
-
-	function connectSheet() {}
-
-	function newSheetFromUpload() {}
 
 	function initializePage() {
 		$("#mffer-shadowland").hide();

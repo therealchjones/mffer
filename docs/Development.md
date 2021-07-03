@@ -9,43 +9,46 @@
 
 ## Full contents
 
--   [Highlights](#highlights)
--   [Full contents](#full-contents)
--   [Introduction](#introduction)
--   [Setting up an environment](#setting-up-an-environment)
-    -   [Requirements](#requirements)
-    -   [Recommendations](#recommendations)
-    -   [Setting up a useful development system](#setting-up-a-useful-development-system)
--   [Writing documentation](#writing-documentation)
-    -   [Source tree](#source-tree)
-    -   [README](#readme)
-        -   [At-a-glance README](#at-a-glance-readme)
-        -   [Comprehensive README](#comprehensive-readme)
-        -   [More about READMEs](#more-about-readmes)
-    -   [CONTRIBUTING](#contributing)
--   [Writing code](#writing-code)
-    -   [Coding Style](#coding-style)
-        -   [Whitespace](#whitespace)
-        -   [Code Style](#code-style)
-        -   [Comments](#comments)
-    -   [Tools](#tools)
-        -   [Visual Studio Code](#visual-studio-code)
-        -   [Formatters](#formatters)
-        -   [Linters](#linters)
--   [Making a custom `Program.cs`](#making-a-custom-programcs)
--   [Making a custom `Component`](#making-a-custom-component)
--   [Changing `mffer` internals](#changing-mffer-internals)
-    -   [`mffer` best practices](#mffer-best-practices)
-    -   [Models & designs](#models--designs)
-        -   [The repository directory tree](#the-repository-directory-tree)
-        -   [Code structure](#code-structure)
--   [The `mffer` APIs](#the-mffer-apis)
--   [Building `mffer`](#building-mffer)
--   [Deploying & Releasing](#deploying--releasing)
-    -   [Description](#description)
-    -   [Requirements](#requirements-1)
-    -   [Initial Setup](#initial-setup)
--   [See also](#see-also)
+- [Highlights](#highlights)
+- [Full contents](#full-contents)
+- [Introduction](#introduction)
+- [Copyright & licensing](#copyright--licensing)
+- [Setting up an environment](#setting-up-an-environment)
+	- [Requirements](#requirements)
+	- [Recommendations](#recommendations)
+	- [Setting up a useful development system](#setting-up-a-useful-development-system)
+- [Writing documentation](#writing-documentation)
+	- [Source tree](#source-tree)
+	- [README](#readme)
+		- [At-a-glance README](#at-a-glance-readme)
+		- [Comprehensive README](#comprehensive-readme)
+		- [More about READMEs](#more-about-readmes)
+	- [CONTRIBUTING](#contributing)
+- [Writing code](#writing-code)
+	- [Coding Style](#coding-style)
+		- [Whitespace](#whitespace)
+		- [Code Style](#code-style)
+		- [Comments](#comments)
+	- [Tools](#tools)
+		- [Visual Studio Code](#visual-studio-code)
+		- [Formatters](#formatters)
+		- [Linters](#linters)
+- [Making a custom `Program.cs`](#making-a-custom-programcs)
+- [Making a custom `Component`](#making-a-custom-component)
+- [Changing `mffer` internals](#changing-mffer-internals)
+	- [`mffer` best practices](#mffer-best-practices)
+	- [Models & designs](#models--designs)
+		- [The repository directory tree](#the-repository-directory-tree)
+		- [Code structure](#code-structure)
+- [The `mffer` APIs](#the-mffer-apis)
+- [Building `mffer`](#building-mffer)
+- [The `mffer` webapp](#the-mffer-webapp)
+	- [Description](#description)
+	- [Deploying the webapp](#deploying-the-webapp)
+		- [Requirements](#requirements-1)
+		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
+		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
+- [See also](#see-also)
 
 ## Introduction
 
@@ -85,6 +88,16 @@ skill levels will benefit from their own research into topics with which they
 have less experience and more interest. In addition, please ask questions on the
 [issues list](https://github.com/therealchjones/mffer/issues) anytime; it
 doesn't have to be a "real issue" (though those are welcome as well).
+
+## Copyright & licensing
+
+Though some files adapted from other projects are released under more
+restrictive licensing, most of `mffer` is in the public domain. (See
+[LICENSE](../LICENSE).) This means that you're free to do with it what you want,
+without other copyright restrictions or requirements of your own work, unless
+you adapt one of those other files; they are clearly identified in the contents
+of the affected files themselves and are additionally
+[listed in the README](README.md).
 
 ## Setting up an environment
 
@@ -558,30 +571,50 @@ in the code itself.
     ```
 4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
 
-## Deploying & Releasing
+## The `mffer` webapp
 
 ### Description
 
-The `mffer` webapp
+The `mffer` webapp is based on Google Apps Script and uses Google Sheets and
+Google Drive, and is deployed at https://mffer.org via the [Google Cloud
+Platform](https://cloud.google.com). This method of deployment is not especially
+straightforward, and other better options may be more readily available to other
+users. These will, however, require significant code modification, as the
+`mffer` webapp code makes heavy use of Apps Script (transpiled from TypeScript)
+and its associated APIs, the Google Picker, and Google's OAuth 2.0 authentication.
 
-### Requirements
+### Deploying the webapp
 
--   [Google Account](https://google.com/account) with access to [Google Apps
-    Script](https://script.google.com) and Google Drive.
--   [Node.js](Node.js & npm)
+#### Requirements
 
-### Initial Setup
+-   [Google Account](https://google.com/account) with access to
+    [Google Apps Script](https://script.google.com), Google Drive, and Google
+    Cloud Platform (the free tiers are all acceptable).
+-   [Node.js](Node.js) & npm
 
-1. In [Google Apps Script
-   Settings](https://script.google.com/home/usersettings), enable "Google Apps
-   Script API"
+#### Setting Up Google Cloud Platform
+
+GCP is somewhat complex to configure, and configuration within an existing GCP
+account is beyond the scope of this document (and may be beyond the abilities of
+this author). However, you may be able to create a basic project usable for
+`mffer` webapp deployment in a few (relatively) simple steps:
+
+1. Login to https://console.cloud.google.com/projectcreate and enter a project
+   name and the other information.
+2.
+
+#### Uploading and configuring the webapp
+
+1. In
+   [Google Apps Script Settings](https://script.google.com/home/usersettings),
+   enable "Google Apps Script API"
 2. In the [tools directory](../tools/), install `clasp` and its dependencies:
     ```shell
     [mffer/tools] $ npm install
     ```
 3. Login to Google with `clasp`:
     ```shell
-    [mffer/tools] $ node_modules/.bin/clasp --login
+    [mffer/tools] $ node_modules/.bin/clasp login
     ```
 4. Create the Google Apps project:
     ```shell
@@ -595,18 +628,18 @@ The `mffer` webapp
     ```shell
     [mffer/tools] $ node_modules/.bin/clasp open
     ```
-    Select "Code.gs" from the file list and press the "Run" button, which will
-    prompt you to "Review Permissions" and approve access to your Google account.
-7. Open the webapp:
+7. [Switch to using a standard GCP](https://developers.google.com/apps-script/guides/cloud-platform-projects?hl=en#switching_to_a_different_standard_gcp_project)
+   and [set up the requirements to use Google Picker](https://developers.google.com/apps-script/guides/dialogs#file-open_dialogs).
+8. Select "Code.gs" from the file list and press the "Run" button, which will
+   prompt you to "Review Permissions" and approve access to your Google account.
+9. Open the webapp:
     ```shell
     [mffer/tools] $ node_modules/.bin/clasp open --webapp
     ```
     If prompted for which deployment to use, press `<enter>` or `<return>`.
-8. Create the Google Sheet for storing the `mffer` data by uploading a CSV file
-   created by the `mffer` command line application.
-9.
-
-###
+10. Create the Google Sheet for storing the `mffer` data by uploading a CSV file
+    created by the `mffer` command line application.
+11.
 
 ## See also
 
