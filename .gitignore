@@ -2,9 +2,9 @@
 /.jython_cache/
 /bin/
 /data/
-/docs/api/*
 /obj/
 /output/
+/release/
 /tools/.nuget/*
 /tools/node_modules/*
 /tools/package-lock.json

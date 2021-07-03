@@ -50,7 +50,7 @@
 			"args": [
 				"xmldocmd",
 				"${workspaceFolder}/bin/Debug/net5/mffer.dll",
-				"${workspaceFolder}/docs/api",
+				"${workspaceFolder}/release/libmffer/docs/api",
 				"--visibility",
 				"private",
 				"--source",
