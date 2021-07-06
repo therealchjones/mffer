@@ -11,7 +11,11 @@
 ></script>
 <script id="mffer-js">
 	"use strict";
-	var shadowlandDatabase;
+	var shadowlandDatabase = null;
+	var googleApisLoaded = false;
+	var googleOauthToken = null;
+	var googleApisXhr = null;
+
 	class Job {
 		constructor(param) {
 			let jobNumber = Math.floor(Math.random() * 10000);
@@ -20,6 +24,7 @@
 	class JobQueue {}
 
 	$(document).ready(function () {
+		loadGoogleApis();
 		let mfferNew = $("#mffer-new");
 		if (mfferNew.length != 0) {
 			initializeWelcome();
@@ -28,18 +33,71 @@
 		}
 	});
 
+	function loadGoogleApis() {
+		if (googleApisXhr != null) return;
+		if (!googleApisLoaded) {
+			googleApisXhr = $.getScript("https://apis.google.com/js/api.js")
+				.done(function () {
+					googleApisLoaded = true;
+				})
+				.fail(function () {
+					throw "Unable to load Google APIs";
+				})
+				.always(function () {
+					googleApisXhr = null;
+				});
+		}
+	}
+
+	function showLoading(message = null) {
+		if (message != null) {
+			$("#loading-notes").text(message);
+			$("#mffer-spinner").show();
+		}
+	}
+	function hideLoading() {
+		$("#mffer-spinner").hide();
+		$("#loading-notes").text(null);
+	}
+
 	function initializeWelcome() {
 		let buttons = $("#mffer-new button");
 		buttons.click(function (event) {
-			$("#mffer-new-header").hide();
-			if (event.target.id == "button-google-sheet") {
-				$("#choose-google-sheet").show();
-			} else if (event.target.id == "button-upload-new") {
-				$("#new-from-upload").show();
-			} else {
-				throw "Invalid button identifier pressed.";
+			$("#mffer-new").children().hide();
+			switch (event.target.id) {
+				case "button-start-new-deployment":
+					$("#mffer-new-presetup").show();
+					break;
+				case "button-api-key":
+					showLoading("Getting authorizations");
+					google.script.run
+						.withSuccessHandler(function (token) {
+							googleOauthToken = token;
+						})
+						.withFailureHandler(function () {
+							throw "Unable to get Oauth token";
+						})
+						.getOauthToken();
+					while (googleApisLoaded === false) {
+						showLoading("Loading APIs");
+						loadGoogleApis();
+					}
+					hideLoading();
+					$("mffer-new-database-source").show();
+					break;
+				case "button-google-sheet":
+					$("#choose-google-sheet").show();
+					break;
+				case "button-upload-new":
+					$("#new-from-upload").show();
+					break;
+				default:
+					throw "Invalid button pressed identifier.";
+					break;
 			}
 		});
+		hideLoading();
+		$("#mffer-new").show();
 	}
 
 	function initializePage() {
@@ -227,18 +285,20 @@
 		document.getElementById("tabledisplay").innerHTML =
 			"<p>Parsing failed:</p>\n<p>" + error.message + "</p>";
 	}
-	document
-		.getElementById("filechooser")
-		.addEventListener("change", function () {
-			var filereader = new FileReader();
-			filereader.onload = function () {
-				var text = filereader.result;
-				var headers = getFirstLines(text);
-				document.getElementById("textdisplay").innerHTML =
-					"<p>File preview:</p><pre>\n" + headers + "\n</pre>";
-				document.getElementById("tabledisplay").innerHTML =
-					csvToTable(headers);
-			};
-			filereader.readAsText(this.files[0]);
-		});
+	function doLater() {
+		document
+			.getElementById("filechooser")
+			.addEventListener("change", function () {
+				var filereader = new FileReader();
+				filereader.onload = function () {
+					var text = filereader.result;
+					var headers = getFirstLines(text);
+					document.getElementById("textdisplay").innerHTML =
+						"<p>File preview:</p><pre>\n" + headers + "\n</pre>";
+					document.getElementById("tabledisplay").innerHTML =
+						csvToTable(headers);
+				};
+				filereader.readAsText(this.files[0]);
+			});
+	}
 </script>

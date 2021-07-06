@@ -599,8 +599,8 @@ account is beyond the scope of this document (and may be beyond the abilities of
 this author). However, you may be able to create a basic project usable for
 `mffer` webapp deployment in a few (relatively) simple steps:
 
-(Compare this to https://developers.google.com/picker/docs#appreg; also need
-https://www.googleapis.com/auth/drive.file scope)
+(Compare this to https://developers.google.com/picker/docs#appreg and https://cloud.google.com/resource-manager/docs/creating-managing-projects; also need
+https://www.googleapis.com/auth/drive.file scope?)
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
    name (and other info if desired).
