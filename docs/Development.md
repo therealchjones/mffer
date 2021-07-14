@@ -104,18 +104,20 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 
 ### Requirements
 
--   POSIX-compatible development environment (and some near-ubiquitous
+-   a vaguely POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
     `mktemp`)
--   .NET Core 3.1 SDK
+-   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (with the
+    `dotnet` command in your path)
+-   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
+-   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
+-   [git](https://git-scm.com)
+-   a vaguely modern computer with an undetermined minimum quantity of RAM that
+    is probably several gigabytes
 
 ### Recommendations
 
--   Visual Studio Code
--   Node.js with npm
--   Google account with access to Google Apps Script
--   git
--   at least a few gigabytes of RAM
+-   [Visual Studio Code](https://code.visualstudio.com)
 
 ### Setting up a useful development system
 
@@ -123,8 +125,8 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
     ```shell
     $ git clone https://github.com/therealchjones/mffer.git
     ```
-2. Open the new `mffer` directory in Visual Studio Code. If you have installed
-   the `code` command line tool, use:
+2. If you choose to use Visual Studio Code, open the new `mffer` directory in
+   Visual Studio Code. If you have installed the `code` command line tool, use:
 
     ```shell
     $ code mffer
@@ -133,19 +135,22 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
     Otherwise, you can open it using Visual Studio Code's Explorer
     panel's "Open Folder" button.
 
-    Either should also prompt you to install the recommended Visual Studio Code
+    Either way should prompt you to install the recommended Visual Studio Code
     extensions. If not (or if you say no the first time), open the Command
     Palette to run "Extensions: Show Recommended Extensions" and install those
     listed under "Workspace Recommendations".
 
-3. Open the `tools` directory and install the recommended Node.js modules:
+    VS Code will likely also prompt you to "restore" the C# project. Restore
+    when prompted or use the `dotnet restore` command as noted in the next step.
+
+3. If you're not using Visual Studio Code, or you didn't use a Visual Studio
+   Code prompt to restore the project, open the `mffer` directory and run:
     ```shell
-    $ cd mffer/tools && npm install
+    $ dotnet restore
     ```
-4. From the same `tools` directory, install the recommended .NET tools:
-    ```shell
-    $ dotnet tool restore
-    ```
+    In addition to ensuring the needed NuGet packages are installed for the
+    project (within the project directory hierarchy), this will also locally
+    install the necessary Node.js packages and tools.
 
 ## Writing documentation
 
