@@ -23,13 +23,20 @@ $ autoextract -h
 
 ## Extended Description
 
-`autoextract` semi-automatically creates a package of data files from the latest release of Marvel Future Fight. It requires user interaction at several times in the process to perform functions on Android emulators. With a minimum of pre-installed software, `autoextract` will obtain the remainder of necessary software. `autoextract` installs software into temporary directories in an attempt to minimize changes to its host system, but does not use a `chroot` jail or other mechanisms to truly isolate itself.
+`autoextract` semi-automatically creates a package of data files from the latest
+release of Marvel Future Fight. It requires user interaction at some points in
+the process to perform functions on Android emulators. With a minimum of
+pre-installed software, `autoextract` will obtain the remainder of necessary
+software. `autoextract` installs software into temporary directories in an
+attempt to minimize changes to its host system, but does not use a `chroot` jail
+or other mechanisms to truly isolate itself.
 
 By default, `autoextract` prints information only when giving instructions for user interaction. To add brief informational messages about the current step in the process, add the `-v` option. Adding the option again enables "debug" output that includes echoing all shell commands in `autoextract` and printing the default output from each individual tool called. Adding further `-v` options has no effect.
 
-The final product created by `autoextract` is a directory named `MFF-data-`_`version`_ within the directory _`output_directory`_, where _`version`_ is determined from the version of Marvel Future Fight downloaded, i.e., the latest available version. Within `MFF-data-`_`version`_ are uncompressed copies of the extracted Unity asset bundles as well as an `assets` directory containing JSON-formatted versions of the individual assets extracted from the asset bundles. This allows _`output_directory`_ to be passed unchanged as the argument to the `--datadir` option in `mffer` for further processing.
-
-_`output_directory`_ also includes the directory `MFF-device-files-`_`version`_, a copy of all Marvel Future Fight files installed by the game on Android, in a directory hierarchy copied directly from the Android emulator's filesystem.
+The final product created by `autoextract` is a directory named
+`MFF-device-files-`_`version`_, a copy of all Marvel Future Fight files
+installed by the game on Android, in a directory hierarchy copied directly from
+the Android emulator's filesystem.
 
 ## Requirements
 
@@ -46,7 +53,6 @@ _`output_directory`_ also includes the directory `MFF-device-files-`_`version`_,
 -   A Google account (to log into the Play store)
 -   A Facebook or Google account to which your Marvel Future Fight game
     is synchronized (to download personal game data)
--   UABE
 -   A reasonable machine upon which to run these; the emulators require
     a few GB of RAM just by themselves, for instance
 
