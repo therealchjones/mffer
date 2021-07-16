@@ -12,10 +12,13 @@
 - [Highlights](#highlights)
 - [Full contents](#full-contents)
 - [Introduction](#introduction)
-- [Setting up an environment](#setting-up-an-environment)
+- [Setting up a development environment](#setting-up-a-development-environment)
 	- [Requirements](#requirements)
 	- [Recommendations](#recommendations)
-	- [Setting up a useful development system](#setting-up-a-useful-development-system)
+	- [Setup](#setup)
+		- [In Visual Studio Code](#in-visual-studio-code)
+		- [At the command line](#at-the-command-line)
+	- [Included tools](#included-tools)
 - [Writing documentation](#writing-documentation)
 	- [Source tree](#source-tree)
 	- [README](#readme)
@@ -83,7 +86,7 @@ have less experience and more interest. In addition, please ask questions on the
 [issues list](https://github.com/therealchjones/mffer/issues) anytime; it
 doesn't have to be a "real issue" (though those are welcome as well).
 
-## Setting up an environment
+## Setting up a development environment
 
 Using exactly the same development tools as other developers is neither
 appropriate nor desired. Some overlap when working on the same project is
@@ -104,48 +107,85 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 
 ### Requirements
 
--   POSIX-compatible development environment (and some near-ubiquitous
+-   a vaguely POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
     `mktemp`)
--   .NET Core 3.1 SDK
+-   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
+-   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
+-   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
+-   [git](https://git-scm.com)
+-   a vaguely modern computer with an undetermined minimum quantity of RAM that
+    is probably several gigabytes
 
 ### Recommendations
 
--   Visual Studio Code
--   Node.js with npm
--   Google account with access to Google Apps Script
--   git
--   at least a few gigabytes of RAM
+-   [Visual Studio Code](https://code.visualstudio.com)
 
-### Setting up a useful development system
+### Setup
+
+#### In Visual Studio Code
+
+If you choose to use Visual Studio Code, open the Source Control (SCM) panel and
+choose "Clone Repository" and enter https://github.com/therealchjones/mffer.git.
+Choose a folder to place the new `mffer` directory within it. Open it when
+prompted, read the warning and choose the option to enable all features.
+
+When prompted to "execute the restore command to continue", press "Restore". (If
+no such prompt appears, open the terminal and run `dotnet restore`.)
+
+When prompted to install recommended extensions, choose "Install" or "Show
+Recommendations". (If no such prompt appears, you can open the Command Palette
+to run "Extensions: Show Recommended Extensions" and install those listed under
+"Workspace Recommendations".) In contrast to the rest of the tools installed in
+this process, VS Code extensions will be installed globally, not within the
+`mffer` directory hierarchy.
+
+#### At the command line
+
+If you choose not to use Visual Studio Code, setting up the environment can be
+done at the command line. This will have the same results as
+[above](#in-visual-studio-code) with the exception of the installation of Visual
+Studio Code extensions and settings. All new tools will be installed within the
+`mffer` directory hierarchy (but may still have effects like including settings
+outside this).
 
 1. Clone the `mffer` repository into a new directory:
     ```shell
     $ git clone https://github.com/therealchjones/mffer.git
     ```
-2. Open the new `mffer` directory in Visual Studio Code. If you have installed
-   the `code` command line tool, use:
-
+2. Enter the directory and restore extensions and packages that come from other
+   sources:
     ```shell
-    $ code mffer
+    $ cd mffer
+    $ dotnet restore
+    ```
+3. Optionally, add the following directories to your `PATH`:
+    ```shell
+    mffer/src
+    mffer/tools
+    mffer/tools/node_modules/.bin
     ```
 
-    Otherwise, you can open it using Visual Studio Code's Explorer
-    panel's "Open Folder" button.
+### Included tools
 
-    Either should also prompt you to install the recommended Visual Studio Code
-    extensions. If not (or if you say no the first time), open the Command
-    Palette to run "Extensions: Show Recommended Extensions" and install those
-    listed under "Workspace Recommendations".
+The setup process installs several tools not included within the `mffer` project
+itself. In addition to the VS Code extensions installed in the
+[VS Code setup process](#in-visual-studio-code), some of the items added by
+"restore" are:
 
-3. Open the `tools` directory and install the recommended Node.js modules:
-    ```shell
-    $ cd mffer/tools && npm install
-    ```
-4. From the same `tools` directory, install the recommended .NET tools:
-    ```shell
-    $ dotnet tool restore
-    ```
+-   xmldocmd
+-   clasp
+-   MessagePack
+-   AssetsTools
+-   @types/google-apps-script
+-   stream-json
+
+All of these tools can be removed (along with their installed dependencies and the
+`mffer/bin`, `mffer/obj`, and `mffer/release` directories) by running:
+
+```shell
+$ dotnet clean
+```
 
 ## Writing documentation
 
@@ -344,7 +384,7 @@ required to begin contributing to the project, but may be exceedingly helpful to
 those doing so with any frequency. As such, certain files and settings are
 included in the project to ease the consistent use of these tools by all
 contributors. These are also covered in
-[Setting up an environment](#setting-up-an-environment).
+[Setting up a development environment](#setting-up-a-development-environment).
 
 #### Visual Studio Code
 

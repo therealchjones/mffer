@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>NET5</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
@@ -10,4 +10,33 @@
     <PackageReference Include="AssetsTools" Version="0.1.2" />
   </ItemGroup>
 
+  <PropertyGroup>
+	<ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
+	<NpmPath Condition="'$(NpmPath)' == ''">$(NPM)</NpmPath>
+	<NpmPath Condition="'$(NpmPath)' == ''">npm</NpmPath>
+  </PropertyGroup>
+  <Target Name="CheckDotnetPath" BeforeTargets="RestoreTools">
+    <Error
+	  Condition="'$(DOTNET_HOST_PATH)' == ''"
+	  Text="Unable to identify dotnet executable. Run as 'dotnet &lt;command&gt;'."/>
+  </Target>
+  <Target Name="CheckNpm" BeforeTargets="RestoreTools">
+	<Exec
+	  Command="$(NpmPath) -v &gt; /dev/null"
+	  WorkingDirectory="$(ToolsDirectory)"
+	  ContinueOnError="false" />
+  </Target>
+  <Target Name="RestoreTools" AfterTargets="Restore">
+	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)"/>
+	<Exec Command="echo Node.js tools were restored."/>
+	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore' WorkingDirectory="$(ToolsDirectory)"/>
+  </Target>
+  <Target Name="Cleaning tools/" AfterTargets="Clean">
+    <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
+	<Delete Files="$(ToolsDirectory)/package-lock.json;$(ToolsDirectory)/.clasp.json"/>
+  </Target>
+  <Target Name="Deep cleaning" AfterTargets="Clean">
+    <RemoveDir
+      Directories="$(MSBuildProjectDirectory)/bin;$(MSBuildProjectDirectory)/obj;$(MSBuildProjectDirectory)/release"/>
+  </Target>
 </Project>
