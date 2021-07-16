@@ -107,8 +107,7 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 -   a vaguely POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
     `mktemp`)
--   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (with the
-    `dotnet` command in your path)
+-   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)

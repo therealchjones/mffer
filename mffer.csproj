@@ -13,18 +13,34 @@
   <PropertyGroup>
 	<ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
   </PropertyGroup>
-
+  <Target Name="CheckDotnetPath" BeforeTargets="RestoreTools">
+    <Error
+	  Condition="'$(DOTNET_HOST_PATH)' == ''"
+	  Text="Unable to identify dotnet executable. Run as 'dotnet &lt;command&gt;'."/>
+  </Target>
+  <Target Name="CheckNpm" BeforeTargets="RestoreTools">
+    <Message Text="Checking npm version..."/>
+	<Exec
+	  Command="npm -v"
+	  WorkingDirectory="$(ToolsDirectory)"
+	  Condition="'$(NPM)' == ''"
+	  ContinueOnError="false" />
+	<Exec
+	  Command='"$(NPM)" -v'
+	  WorkingDirectory="$(ToolsDirectory)"
+	  Condition="'$(NPM)' != ''"
+	  ContinueOnError="false" />
+  </Target>
   <Target Name="RestoreTools" AfterTargets="Restore">
-	<Exec Command="dotnet tool restore" WorkingDirectory="$(ToolsDirectory)"/>
+	<Exec Command="$(DOTNET_HOST_PATH) tool restore" WorkingDirectory="$(ToolsDirectory)"/>
 	<Exec Command="npm install" WorkingDirectory="$(ToolsDirectory)"/>
   </Target>
-
   <Target Name="CleanTools" AfterTargets="Clean">
     <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
 	<Delete Files="$(ToolsDirectory)/package-lock.json"/>
   </Target>
   <Target Name="BetterClean" AfterTargets="Clean">
     <RemoveDir
-    Directories="$(MSBuildProjectDirectory)/bin;$(MSBuildProjectDirectory)/obj;$(MSBuildProjectDirectory)/release"/>
+      Directories="$(MSBuildProjectDirectory)/bin;$(MSBuildProjectDirectory)/obj;$(MSBuildProjectDirectory)/release"/>
   </Target>
 </Project>
