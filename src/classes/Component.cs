@@ -63,15 +63,26 @@ namespace Mffer {
 		/// for this <see cref="Component"/>
 		/// </summary>
 		/// <remarks>
-		/// No validation or checking of the <paramref name="assetName"/>
+		/// <para><see cref="Asset"/>s containing the data to be loaded into the
+		/// <see cref="Component"/> are included in the <see cref="BackingData"/>
+		/// property. To specify an asset to be included, add its name via
+		/// <see cref="AddBackingData(string)"/>. If multiple alternatives are
+		/// acceptable, separate their names with '||'.</para>
+		/// <para>No validation or checking of the <paramref name="assetName"/>
 		/// parameter is performed at the time of adding the <see
-		/// cref="AssetFile"/> name to the <see cref="BackingData"/> list. This
+		/// cref="Asset"/> name to the <see cref="BackingData"/> list. This
 		/// is deferred until attempting to load data into the <see
 		/// cref="Component"/> as the <see cref="BackingData"/> list may be
-		/// created before all <see cref="AssetFile"/>s are loaded.
+		/// created before all <see cref="AssetFile"/>s are loaded.</para>
 		/// </remarks>
-		/// <param name="assetName">The name of the <see cref="AssetFile"/> to
-		/// add</param>
+		/// <param name="assetName">The name of the <see cref="Asset"/> to
+		/// add, or multiple alternatives separated by '||'</param>
+		/// <example>
+		/// // this requires the data in newAsset
+		/// this.AddBackingData("newAsset");
+		/// // this can take more data from either oldAsset or otherAsset
+		/// this.AddBackingData("oldAsset||otherAsset");
+		/// </example>
 		public virtual void AddBackingData( string assetName ) {
 			if ( !BackingData.ContainsKey( assetName ) ) {
 				BackingData.Add( assetName, null );
