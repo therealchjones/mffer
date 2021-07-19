@@ -22,6 +22,20 @@ getdir() {
 	dirname "$PWD/."
 }
 
+getexec() {
+	if [ "$#" = 0 ]; then
+		echo 'Usage: getexec filename [altfile... ]' >&2
+		return 1
+	fi
+	for filename in "$@"; do
+		if type "$filename" >/dev/null 2>&1; then
+			echo "$filename"
+			return 0
+		fi
+	done
+	return 1
+}
+
 throwfatal() {
 	if [ "$#" -gt 0 ]; then
 		echo "$0": "$@" >&2
