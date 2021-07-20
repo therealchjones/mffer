@@ -161,7 +161,7 @@ ANDROID_PREFS_ROOT="$MFFTEMPDIR"
 ANDROID_AVD_HOME="$MFFTEMPDIR/avd"
 export ANDROID_SDK_ROOT ANDROID_HOME ANDROID_EMULATOR_HOME
 export ANDROID_SDK_HOME ANDROID_PREFS_ROOT ANDROID_AVD_HOME
-mkdir -p -- "$ANDROID_AVD_HOME" || throwfatal "Unable to creat Android virtual device directory."
+mkdir -p -- "$ANDROID_AVD_HOME" || throwfatal "Unable to create Android virtual device directory."
 
 echo 'Accepting Android command-line tool licenses' >"$VERBOSEOUT"
 i=0

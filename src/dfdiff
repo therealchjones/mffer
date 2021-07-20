@@ -73,7 +73,6 @@ for dir in "$DFDDIR1" "$DFDDIR2"; do
 	find "$dir" -type f \
 		| sed -e "s#^$dir##" \
 			-e 's#^\(/data/app/\)[^/]*\(/com.netmarble.mherosgb-\)[^/]*/#\1*\2*/#' \
-			-e '\#^/data/data/com.netmarble.mherosgb/files/nmscrash/bc_current/#d' \
 			-e '\#^/data/system/graphicsstats/#d' \
 			-e '/perfetto_trace.pb/d' \
 			-e '/.DS_Store$/d' \
