@@ -25,10 +25,23 @@ function doGet(): GoogleAppsScript.HTML.HtmlOutput {
 
 function isConfigured(): boolean {
 	var properties = PropertiesService.getScriptProperties();
-	if (properties == null || properties.getProperty("spreadsheet") == null) {
+	var requiredProperties = ["spreadsheet", "pickerApiKey"];
+	if (properties == null) {
 		return false;
 	}
+	for (var property of requiredProperties) {
+		if (properties.getProperty(property) === null) {
+			return false;
+		}
+	}
 	return true;
+}
+function getProperty(propertyName: string): string {
+	var properties = PropertiesService.getScriptProperties();
+	if (properties === null) {
+		return null;
+	}
+	return properties.getProperty(propertyName);
 }
 /**
  * Get the Google Sheet containing mffer data
@@ -36,21 +49,43 @@ function isConfigured(): boolean {
  * containing mffer data, or null if none exists
  */
 function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
-	var properties = PropertiesService.getScriptProperties();
-	if (properties == null || properties.getProperty("spreadsheet") == null) {
+	var sheetName = getProperty("spreadsheet");
+	if (sheetName == null) {
 		return null;
 	}
-	return SpreadsheetApp.openById(properties.getProperty("spreadsheet"));
+	return SpreadsheetApp.openById(sheetName);
 }
-
+function getAppId(): string {
+	var appId = ScriptApp.getScriptId();
+	return appId;
+}
+function getOauthToken(): string {
+	return ScriptApp.getOAuthToken();
+}
+function getPickerApiKey(): string {
+	return getProperty("pickerApiKey");
+}
+function setProperty(propertyName: string, propertyValue: string) {
+	var properties = PropertiesService.getScriptProperties();
+	if (properties == null) {
+		throw "Unable to access script properties";
+	}
+	properties.setProperty(propertyName, propertyValue);
+}
+function setPickerApiKey(pickerApiKey: string) {
+	setProperty("pickerApiKey", pickerApiKey);
+}
 /**
  * Assigns a Google Spreadsheet to be the storage spreadsheet for the app
  * @param {string} spreadsheetId ID of the spreadsheet to set as the storage
  * spreadsheet
  */
 function setSpreadsheet(spreadsheetId: string): void {
-	var properties = PropertiesService.getScriptProperties();
-	properties.setProperty("spreadsheet", spreadsheetId);
+	setProperty("spreadsheet", spreadsheetId);
+}
+function setAllProperties(pickerApiKey: string, spreadsheetId: string) {
+	setPickerApiKey(pickerApiKey);
+	setSpreadsheet(spreadsheetId);
 }
 
 /**

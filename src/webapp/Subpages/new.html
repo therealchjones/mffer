@@ -5,7 +5,7 @@
 			<code>mffer</code> is designed to be run as a web app on the Google
 			Cloud Platform. To deploy the application as a project of your own,
 			you must register it as an Oauth 2.0 client, add your own API key,
-			and set up a Google Sheets database.
+			and set up a Google Sheet for storage.
 		</p>
 		<p>
 			If you just want to use the web app, you don't need to do this: just
@@ -38,31 +38,45 @@
 			ensure those are complete by following the
 			<a
 				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
+				target="_blank"
 				>"Deploying the webapp" instructions</a
 			>
 			in the
-			<a href="http://github.com/therealchjones/mffer/docs/Deployment.md"
+			<a
+				href="http://github.com/therealchjones/mffer/docs/Deployment.md"
+				target="_blank"
 				><code>mffer</code> Development Guide</a
-			>. If you haven't done that yet, close this window and restart the
-			deployment once you've completed those directions. If you already
-			have,
+			>. Once you've completed that, enter the identifiers from the
+			"Credentials" section of your project below.
 		</p>
-		<form id="mffer-new-api-key">
-			<label for="input-api-key">Enter your Google Picker API Key</label>
+		<p>
+			After submitting the below keys, you *may* be asked to sign into
+			your Google account and allow appropriate access for the app. Check
+			the permissions request carefully and ensure you're using the
+			account that manages your Google Cloud Platform project.
+		</p>
+		<form id="mffer-new-keys">
+			<label for="input-api-key">Google Picker API Key</label>
 			<input type="text" id="input-api-key" />
-			<button type="submit" id="button-api-key" disabled>
-				Use this key
+			<label for="input-project-id">Google Cloud Project Number</label>
+			<input type="text" id="input-project-id" />
+			<label for="input-oauth-id">OAuth 2.0 Client ID</label>
+			<input type="text" id="input-oauth-id" />
+			<button type="submit" id="button-api-key">
+				Use these settings
 			</button>
 		</form>
 	</div>
-	<form id="mffer-new-database-source" class="start-inactive">
-		<button id="button-google-sheet" type="button">
-			Connect to an existing Google Sheet
-		</button>
-		<button id="button-upload-new" type="button">
-			Upload a new <code>mffer</code> database
-		</button>
-	</form>
+	<div id="mffer-new-database-source" class="start-inactive">
+		<form id="mffer-choose-database">
+			<button type="button" id="button-choose-sheet">
+				Choose existing sheet
+			</button>
+			<button type="button" id="button-upload-sheet">
+				Upload a new sheet
+			</button>
+		</form>
+	</div>
 	<form id="mffer-new-choose-sheet" class="start-inactive"></form>
 	<form id="mffer-new-upload" class="start-inactive"></form>
 </div>

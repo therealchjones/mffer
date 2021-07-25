@@ -1,10 +1,22 @@
 {
 	"timeZone": "America/New_York",
-	"dependencies": {},
 	"exceptionLogging": "STACKDRIVER",
 	"runtimeVersion": "V8",
+	"dependencies": {
+		"libraries": [
+			{
+				"userSymbol": "OAuth2",
+				"version": "41",
+				"libraryId": "1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF"
+			}
+		]
+	},
 	"webapp": {
 		"executeAs": "USER_DEPLOYING",
-		"access": "MYSELF"
-	}
+		"access": "ANYONE_ANONYMOUS"
+	},
+	"oauthScopes": [
+		"https://www.googleapis.com/auth/spreadsheets",
+		"https: //www.googleapis.com/auth/script.external_request"
+	]
 }

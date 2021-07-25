@@ -599,6 +599,10 @@ account is beyond the scope of this document (and may be beyond the abilities of
 this author). However, you may be able to create a basic project usable for
 `mffer` webapp deployment in a few (relatively) simple steps:
 
+https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
+
+https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
+
 (Compare this to https://developers.google.com/picker/docs#appreg and https://cloud.google.com/resource-manager/docs/creating-managing-projects; also need
 https://www.googleapis.com/auth/drive.file scope?)
 
@@ -607,8 +611,8 @@ https://www.googleapis.com/auth/drive.file scope?)
 2. You'll likely then be taken to the project dashboard; if not, visit
    https://console.cloud.google.com/home/dashboard and ensure the correct
    project is chosen in the project drop-down. Find the project number and make
-   a note of it. Then, choose "APIs & Services" from the navigation menu or "Go
-   to APIs Overview" on the APIs card.
+   a note of it. Then, choose "APIs & Services" and "Dashboard" from the
+   navigation menu or "Go to APIs Overview" on the APIs card.
 3. Select "Enable APIs" and search for "Google Picker API". Select it and choose
    "Enable".
 4. You'll likely then be taken to the API page with a note that "you may need
