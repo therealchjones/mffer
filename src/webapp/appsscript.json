@@ -6,7 +6,7 @@
 		"libraries": [
 			{
 				"userSymbol": "OAuth2",
-				"version": "41",
+				"version": "38",
 				"libraryId": "1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF"
 			}
 		]
@@ -16,7 +16,7 @@
 		"access": "ANYONE_ANONYMOUS"
 	},
 	"oauthScopes": [
-		"https://www.googleapis.com/auth/spreadsheets",
-		"https: //www.googleapis.com/auth/script.external_request"
+		"https://www.googleapis.com/auth/spreadsheets.readonly",
+		"https://www.googleapis.com/auth/script.external_request"
 	]
 }

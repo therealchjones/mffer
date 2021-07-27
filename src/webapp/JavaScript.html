@@ -12,11 +12,16 @@
 <script id="mffer-js">
 	"use strict";
 	var shadowlandDatabase = null;
+	var googlePicker = null;
 	var googleOauthToken = null;
 	var pickerApiKey = null;
-	var oauthClientId = null;
-	var googleProjectId = null;
-	var googlePicker = null;
+	var hasSettings = {
+		oauthId: false,
+		oauthSecret: false,
+		pickerKey: false,
+		authorization: false,
+		spreadsheetId: false,
+	};
 
 	class Job {
 		constructor(param) {
@@ -27,7 +32,7 @@
 
 	$(document).ready(function () {
 		if ($("#mffer-new").length != 0) {
-			initializeWelcome();
+			initializeSetup();
 		} else {
 			initializePage();
 		}
@@ -42,13 +47,19 @@
 		$("#loading-notes").text(null);
 	}
 
-	function initializeWelcome() {
+	function initializeSetup() {
+		google.script.run
+			.withFailureHandler(function () {
+				throwError("Unable to obtain existing settings.");
+			})
+			.withSuccessHandler(checkSettings)
+			.checkSettings();
 		let buttons = $("#mffer-new button");
 		buttons.click(function (event) {
-			$("#mffer-new").children().hide();
 			switch (event.target.id) {
 				case "button-start-new-deployment":
-					$("#mffer-new-presetup").show();
+					$("#mffer-new-intro").hide();
+					createNewDeployment();
 					break;
 				case "button-api-key":
 					// handled by the submit event handler
@@ -57,6 +68,7 @@
 					googlePicker.setVisible(true);
 					break;
 				case "button-upload-sheet":
+					throwError("This hasn't been implemented yet.");
 					break;
 				default:
 					throw "Invalid button pressed identifier.";
@@ -64,42 +76,157 @@
 			}
 		});
 		$("#mffer-new-keys").submit(function (event) {
-			$("#mffer-new-presetup").hide();
+			$("#mffer-new-get-keys").hide();
+			showLoading("Saving credentials");
 			event.preventDefault();
-			pickerApiKey = $("#input-api-key").val();
-			oauthClientId = $("#input-oauth-id").val();
-			googleProjectId = $("#input-project-id").val();
-			loadGoogleApis();
+			let oauthId,
+				oauthSecret,
+				pickerKey = null;
+			if (hasSettings.oauthId != true) {
+				oauthId = $("#input-oauth-id").val().trim();
+			}
+			if (hasSettings.oauthSecret != true) {
+				oauthSecret = $("#input-oauth-secret").val().trim();
+			}
+			if (hasSettings.pickerKey != true) {
+				pickerKey = $("#input-picker-key").val().trim();
+			}
+			google.script.run
+				.withSuccessHandler(checkAuth)
+				.withFailureHandler(function () {
+					throw "Unable to set key properties";
+				})
+				.setKeyProperties(pickerKey, oauthId, oauthSecret);
 		});
-		hideLoading();
-		$("#mffer-new").show();
+		$("#mffer-script-origin").html(google.script.host.origin);
 	}
-
-	function loadGoogleApis() {
-		showLoading("Loading APIs");
+	function throwError(error) {
+		$("#mffer-spinner h2").html("Error");
+		let errorMessage =
+			"<p>" +
+			error +
+			"</p><p>More information may be available in your browser's JavaScript console or in Google Scripts execution logs.</p>";
+		$("#loading-notes").html(errorMessage);
+		throw error;
+	}
+	function checkSettings(settings) {
+		if (settings == null) throwError("Unable to get existing settings");
+		hasSettings = settings;
+		for (let setting in settings) {
+			markSetting(setting, settings[setting]);
+		}
+		if (settings.authorization == true) getAuth(true);
+		else if (
+			settings.oauthId == true &&
+			settings.oauthSecret == true &&
+			settings.pickerKey == true
+		)
+			getAuth(false);
+		else if (
+			settings.oauthId == true ||
+			settings.oauthSecret == true ||
+			settings.pickerKey == true
+		)
+			createNewDeployment();
+		else {
+			$("#mffer-new-check-progress").hide();
+			hideLoading();
+			$("#mffer-new-intro").show();
+		}
+	}
+	function markSetting(settingName, setting) {
+		let checkBox = $("#mffer-new-progress-" + settingName);
+		if (checkBox.length != 0) {
+			if (setting == null || setting == false) {
+				checkBox.html("&#10060;");
+			} else {
+				checkBox.html("&#x2714;&#xfe0f;");
+			}
+		}
+	}
+	function createNewDeployment() {
+		$("#mffer-new-check-progress").hide();
+		showLoading("Checking existing configuration");
+		let pickerKey = hasSettings.pickerKey;
+		if (pickerKey == null || pickerKey == false) {
+			$("#input-picker-key").removeAttr("disabled").val("");
+		} else {
+			$("#input-picker-key").attr("disabled", "disabled").val("stored");
+		}
+		let oauthClientId = hasSettings.oauthId;
+		if (oauthClientId == null || oauthClientId == false) {
+			$("#input-oauth-id").removeAttr("disabled").val("");
+		} else {
+			$("#input-oauth-id").attr("disabled", "disabled").val("stored");
+		}
+		let oauthSecret = hasSettings.oauthSecret;
+		if (oauthSecret == null || oauthSecret == false) {
+			$("#input-oauth-secret").removeAttr("disabled").val("");
+		} else {
+			$("#input-oauth-secret").attr("disabled", "disabled").val("stored");
+		}
+		$("#mffer-new-get-keys").show();
+	}
+	function checkAuth() {
+		showLoading("Checking authorizations");
+		google.script.run
+			.withSuccessHandler(getAuth)
+			.withFailureHandler(function () {
+				throwError(
+					"Unable to get the status of current authorizations."
+				);
+			})
+			.hasAdminAuthorization();
+	}
+	function getAuth(hasAccess) {
+		$("#mffer-new-check-progress").hide();
+		if (hasAccess == true) {
+			showLoading("Getting current authorization");
+			google.script.run
+				.withSuccessHandler(loadPickerApi)
+				.withFailureHandler(function () {
+					throw "Unable to obtain current authorization";
+				})
+				.getAdminAuthToken();
+		} else {
+			showLoading("Getting new authorization");
+			google.script.run
+				.withSuccessHandler(presentAuth)
+				.withFailureHandler(function () {
+					throw "Unable to establish authentication service";
+				})
+				.getAuthUrl();
+		}
+	}
+	function loadPickerApi(token) {
+		if (token == null) throwError("Unable to obtain authorization.");
+		googleOauthToken = token;
+		showLoading("Loading Google Picker");
 		$.getScript("https://apis.google.com/js/api.js")
 			.done(function () {
-				gapi.load("auth", getAuth);
+				gapi.load("picker", accessGooglePicker);
 			})
 			.fail(function () {
-				throw "Unable to load Google APIs";
+				throw "Unable to load Google API";
 			});
 	}
-	function getAuth() {
-		showLoading("Getting authorizations");
-		let scope = ["https://www.googleapis.com/auth/drive.file"];
-		window.gapi.auth.authorize(
-			{
-				client_id: oauthClientId,
-				scope: scope,
-				immediate: false,
-			},
-			createGooglePicker
-		);
+	function presentAuth(authUrl) {
+		if (authUrl == null) throw "No authorization link available";
+		$("#mffer-auth-link").attr("href", authUrl);
+		hideLoading();
+		$("#mffer-new-get-authorization").show();
 	}
-	function createGooglePicker(authResult) {
-		if (authResult != null && authResult.error == null) {
-			googleOauthToken = authResult.access_token;
+	function accessGooglePicker() {
+		google.script.run
+			.withSuccessHandler(createGooglePicker)
+			.withFailureHandler(function () {
+				throwError("Unable to obtain Google Picker API Key");
+			})
+			.getPickerApiKey();
+	}
+	function createGooglePicker(apiKey) {
+		if (apiKey != null) {
+			pickerApiKey = apiKey;
 		}
 		googlePicker = new google.picker.PickerBuilder()
 			.addView(google.picker.ViewId.SPREADSHEETS)
@@ -108,9 +235,12 @@
 			.setOrigin(google.script.host.origin)
 			.setCallback(pickerCallback)
 			.build();
+		hideLoading();
+		$("#mffer-new-get-database").show();
 	}
-	function pickerCallback(data) {}
-
+	function pickerCallback(data) {
+		throwError("This hasn't been implemented yet.");
+	}
 	function initializePage() {
 		$("#mffer-shadowland").hide();
 		$("#mffer-spinner").show();

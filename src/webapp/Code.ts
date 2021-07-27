@@ -8,29 +8,49 @@ function getPermissions(): boolean {
 	return true;
 }
 
+function resetProperties(): void {
+	let properties = PropertiesService.getDocumentProperties();
+	if (properties != null) properties.deleteAllProperties();
+	properties = PropertiesService.getUserProperties();
+	if (properties != null) properties.deleteAllProperties();
+	properties = PropertiesService.getScriptProperties();
+	if (properties != null) properties.deleteAllProperties();
+}
+
 /**
  * The basic webapp-enabling function responding to the HTTP GET request
  * @returns {GoogleAppsScript.HTML.HtmlOutput} Web page appropriate to the
  * request
  */
 function doGet(): GoogleAppsScript.HTML.HtmlOutput {
-	return HtmlService.createTemplateFromFile("Index.html")
+	return buildPage();
+}
+
+function buildPage(): GoogleAppsScript.HTML.HtmlOutput {
+	let properties = PropertiesService.getScriptProperties();
+	let page = HtmlService.createTemplateFromFile("Index.html")
 		.evaluate()
 		.addMetaTag(
 			"viewport",
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
 		)
 		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
+	if (properties != null && properties.getProperty("hostUri") != null) {
+		page.setXFrameOptionsMode(
+			GoogleAppsScript.HTML.XFrameOptionsMode.ALLOWALL
+		);
+	}
+	return page;
 }
 
 function isConfigured(): boolean {
 	var properties = PropertiesService.getScriptProperties();
-	var requiredProperties = ["spreadsheet", "pickerApiKey"];
+	var requiredProperties = ["spreadsheetId"];
 	if (properties == null) {
 		return false;
 	}
 	for (var property of requiredProperties) {
-		if (properties.getProperty(property) === null) {
+		if (properties.getProperty(property) == null) {
 			return false;
 		}
 	}
@@ -49,21 +69,66 @@ function getProperty(propertyName: string): string {
  * containing mffer data, or null if none exists
  */
 function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
-	var sheetName = getProperty("spreadsheet");
+	var sheetName = getProperty("spreadsheetId");
 	if (sheetName == null) {
 		return null;
 	}
 	return SpreadsheetApp.openById(sheetName);
 }
-function getAppId(): string {
-	var appId = ScriptApp.getScriptId();
-	return appId;
+function getScriptId(): string {
+	return ScriptApp.getScriptId();
 }
-function getOauthToken(): string {
-	return ScriptApp.getOAuthToken();
+function getSpreadsheetId(): string {
+	return getProperty("spreadsheetId");
+}
+function getOauthId(): string {
+	return getProperty("oauthId");
+}
+function getOauthSecret(): string {
+	return getProperty("oauthSecret");
 }
 function getPickerApiKey(): string {
 	return getProperty("pickerApiKey");
+}
+function getAuthorized(): string {
+	return getProperty("authorized");
+}
+function hasScriptId(): boolean {
+	return getScriptId() != null;
+}
+function hasOauthId(): boolean {
+	return getOauthId() != null;
+}
+function hasOauthSecret(): boolean {
+	return getOauthSecret() != null;
+}
+function hasPickerKey(): boolean {
+	return getPickerApiKey() != null;
+}
+function hasAuthorization(): boolean {
+	return getAuthorized() != null;
+}
+function hasSpreadsheetId(): boolean {
+	return getSpreadsheetId() != null;
+}
+function getSettings() {
+	return {
+		scriptId: getScriptId(),
+		oauthId: getOauthId(),
+		oauthSecret: getOauthSecret(),
+		pickerKey: getPickerApiKey(),
+		spreadsheetId: getSpreadsheetId(),
+		authorized: getAuthorized(),
+	};
+}
+function checkSettings() {
+	return {
+		oauthId: hasOauthId(),
+		oauthSecret: hasOauthSecret(),
+		pickerKey: hasPickerKey(),
+		authorization: hasAuthorization(),
+		spreadsheetId: hasSpreadsheetId(),
+	};
 }
 function setProperty(propertyName: string, propertyValue: string) {
 	var properties = PropertiesService.getScriptProperties();
@@ -71,6 +136,12 @@ function setProperty(propertyName: string, propertyValue: string) {
 		throw "Unable to access script properties";
 	}
 	properties.setProperty(propertyName, propertyValue);
+}
+function setOauthId(oauthId: string) {
+	setProperty("oauthId", oauthId);
+}
+function setOauthSecret(oauthSecret: string) {
+	setProperty("oauthSecret", oauthSecret);
 }
 function setPickerApiKey(pickerApiKey: string) {
 	setProperty("pickerApiKey", pickerApiKey);
@@ -83,11 +154,68 @@ function setPickerApiKey(pickerApiKey: string) {
 function setSpreadsheet(spreadsheetId: string): void {
 	setProperty("spreadsheet", spreadsheetId);
 }
+function setAuthorized() {
+	setProperty("authorized", "true");
+}
+function setKeyProperties(
+	pickerApiKey: string,
+	oauthId: string,
+	oauthSecret: string
+) {
+	if (pickerApiKey != null) setPickerApiKey(pickerApiKey);
+	if (oauthId != null) setOauthId(oauthId);
+	if (oauthSecret != null) setOauthSecret(oauthSecret);
+}
 function setAllProperties(pickerApiKey: string, spreadsheetId: string) {
 	setPickerApiKey(pickerApiKey);
 	setSpreadsheet(spreadsheetId);
 }
 
+function getAdminPickerService() {
+	if (getOauthId() == null) throw "OAuth 2.0 Client ID is not set";
+	if (getOauthSecret() == null) throw "OAuth 2.0 Secret is not set";
+	return OAuth2.createService("adminPicker")
+		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
+		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
+		.setClientId(getOauthId())
+		.setClientSecret(getOauthSecret())
+		.setCallbackFunction("adminAuthComplete")
+		.setPropertyStore(PropertiesService.getUserProperties())
+		.setScope("https://www.googleapis.com/auth/drive.file")
+		.setParam("access_type", "offline")
+		.setParam("prompt", "consent");
+}
+function getAuthUrl() {
+	let service = getAdminPickerService();
+	if (!service.hasAccess()) {
+		let authUrl = service.getAuthorizationUrl();
+		return authUrl;
+	}
+	return null;
+}
+function hasAdminAuthorization(): boolean {
+	let service = getAdminPickerService();
+	if (service.hasAccess()) return true;
+	else return false;
+}
+function getAdminAuthToken(): string | null {
+	let service = getAdminPickerService();
+	if (!service.hasAccess()) {
+		return null;
+	} else {
+		return service.getAccessToken();
+	}
+}
+function adminAuthComplete(request) {
+	let service = getAdminPickerService();
+	let isAuthorized = service.handleCallback(request);
+	if (isAuthorized) {
+		setAuthorized();
+		return buildPage();
+	} else {
+		return HtmlService.createHtmlOutput("Authorization denied.");
+	}
+}
 /**
  * Create HTML output suitable for inclusion in another page
  * @param {string} filename Name of file containing HTML contents or template

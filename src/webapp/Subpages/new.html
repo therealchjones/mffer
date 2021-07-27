@@ -1,10 +1,20 @@
-<div id="mffer-new" class="start-inactive">
-	<div id="mffer-new-intro">
+<div id="mffer-new">
+	<div id="mffer-new-check-progress">
+		<h2>Checking existing configuration</h2>
+		<p>
+			<code>mffer</code> configuration doesn't appear to be complete.
+			Please wait while we see what needs to be done. Thank you for your
+			patience.
+		</p>
+		<p class="spinner"></p>
+	</div>
+	<div id="mffer-new-intro" class="start-inactive">
 		<h2>Welcome.</h2>
+		<p>No existing <code>mffer</code> configuration was found.</p>
 		<p>
 			<code>mffer</code> is designed to be run as a web app on the Google
 			Cloud Platform. To deploy the application as a project of your own,
-			you must register it as an Oauth 2.0 client, add your own API key,
+			you must register it as an OAuth 2.0 client, add your own API key,
 			and set up a Google Sheet for storage.
 		</p>
 		<p>
@@ -30,25 +40,27 @@
 			</button>
 		</form>
 	</div>
-	<div id="mffer-new-presetup" class="start-inactive">
-		<h2>Are Google Apps Script and Google Cloud Platform set up?</h2>
+	<div id="mffer-new-get-keys" class="start-inactive">
+		<h2>Set up Google Apps Script and Google Cloud Platform</h2>
 		<p>
 			They're probably at least <em>partly</em> configured if you've
 			gotten this far. For the webapp to work properly, you'll need to
-			ensure those are complete by following the
+			ensure those are complete by following the development guide's
 			<a
 				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
 				target="_blank"
 				>"Deploying the webapp" instructions</a
 			>
-			in the
-			<a
-				href="http://github.com/therealchjones/mffer/docs/Deployment.md"
-				target="_blank"
-				><code>mffer</code> Development Guide</a
-			>. Once you've completed that, enter the identifiers from the
-			"Credentials" section of your project below.
 		</p>
+		<ul>
+			<li>
+				OAuth redirect URI:
+				<code
+					>https://script.google.com/macros/d/<?= getScriptId() ?>/usercallback</code
+				>
+			</li>
+			<li>Script origin: <code id="mffer-script-origin"></code></li>
+		</ul>
 		<p>
 			After submitting the below keys, you *may* be asked to sign into
 			your Google account and allow appropriate access for the app. Check
@@ -56,27 +68,56 @@
 			account that manages your Google Cloud Platform project.
 		</p>
 		<form id="mffer-new-keys">
-			<label for="input-api-key">Google Picker API Key</label>
-			<input type="text" id="input-api-key" />
-			<label for="input-project-id">Google Cloud Project Number</label>
-			<input type="text" id="input-project-id" />
+			<label for="input-picker-key">Google Picker API Key</label>
+			<input type="text" id="input-picker-key" />
 			<label for="input-oauth-id">OAuth 2.0 Client ID</label>
 			<input type="text" id="input-oauth-id" />
+			<label for="input-oauth-secret">OAuth 2.0 Secret</label>
+			<input type="text" id="input-oauth-secret" />
 			<button type="submit" id="button-api-key">
 				Use these settings
 			</button>
 		</form>
 	</div>
-	<div id="mffer-new-database-source" class="start-inactive">
+	<div id="mffer-new-get-authorization" class="start-inactive">
+		<p>Grant authorization to browse your Google Drive.</p>
+		<p><a id="mffer-auth-link" href="">Authorize</a></p>
+	</div>
+	<div id="mffer-new-get-database" class="start-inactive">
+		<h2>Load the <code>mffer</code> data</h2>
 		<form id="mffer-choose-database">
 			<button type="button" id="button-choose-sheet">
-				Choose existing sheet
+				Choose existing Google Sheet
 			</button>
 			<button type="button" id="button-upload-sheet">
-				Upload a new sheet
+				Upload <code>mffer</code> output
 			</button>
 		</form>
 	</div>
-	<form id="mffer-new-choose-sheet" class="start-inactive"></form>
+	<form id="mffer-new-choosesheet" class="start-inactive"></form>
 	<form id="mffer-new-upload" class="start-inactive"></form>
+	<div id="mffer-new-progress-table">
+		<table>
+			<tr>
+				<td>Google OAuth2 ID stored</td>
+				<td id="mffer-new-progress-oauthSecret"></td>
+			</tr>
+			<tr>
+				<td>Google OAuth2 secret stored</td>
+				<td id="mffer-new-progress-oauthId"></td>
+			</tr>
+			<tr>
+				<td>Google Picker API connected</td>
+				<td id="mffer-new-progress-pickerKey"></td>
+			</tr>
+			<tr>
+				<td>Google Drive authorized</td>
+				<td id="mffer-new-progress-authorization"></td>
+			</tr>
+			<tr>
+				<td>Google Sheet connected</td>
+				<td id="mffer-new-progress-spreadsheetId"></td>
+			</tr>
+		</table>
+	</div>
 </div>
