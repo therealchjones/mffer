@@ -21,6 +21,7 @@
 		pickerKey: false,
 		authorization: false,
 		spreadsheetId: false,
+		deploymentUrl: null,
 	};
 
 	class Job {
@@ -67,8 +68,8 @@
 				case "button-choose-sheet":
 					googlePicker.setVisible(true);
 					break;
-				case "button-upload-sheet":
-					throwError("This hasn't been implemented yet.");
+				case "button-upload-data":
+					getNewData();
 					break;
 				default:
 					throw "Invalid button pressed identifier.";
@@ -228,8 +229,22 @@
 		if (apiKey != null) {
 			pickerApiKey = apiKey;
 		}
+		let spreadsheetView = new google.picker.DocsView(
+			google.picker.ViewId.SPREADSHEETS
+		);
+		spreadsheetView
+			.setIncludeFolders(true)
+			.setMode(google.picker.DocsView.LIST);
+		let allFilesView = new google.picker.DocsView(
+			google.picker.ViewId.DOCS
+		);
+		allFilesView
+			.setIncludeFolders(true)
+			.setMode(google.picker.DocsView.LIST);
 		googlePicker = new google.picker.PickerBuilder()
-			.addView(google.picker.ViewId.SPREADSHEETS)
+			.addView(spreadsheetView)
+			.addView(allFilesView)
+			.hideTitleBar()
 			.setOAuthToken(googleOauthToken)
 			.setDeveloperKey(pickerApiKey)
 			.setOrigin(google.script.host.origin)
@@ -239,7 +254,52 @@
 		$("#mffer-new-get-database").show();
 	}
 	function pickerCallback(data) {
-		throwError("This hasn't been implemented yet.");
+		if (
+			data[google.picker.Response.ACTION] == google.picker.Action.PICKED
+		) {
+			if (
+				data[google.picker.Response.DOCUMENTS] != null &&
+				data[google.picker.Response.DOCUMENTS][0] != null
+			) {
+				$("#mffer-new-get-database").hide();
+				showLoading("Checking file");
+				google.host.run
+					.withSuccessHandler(configComplete)
+					.withFailureHandler(function () {
+						throwError("Unable to use this file.");
+					})
+					.linkGoogleSheet(
+						data[google.picker.Response.DOCUMENTS][0].ID
+					);
+			}
+		}
+	}
+	function getNewData() {
+		if ($("#mffer-filechooser").length == 1) {
+			$("#input-filechooser").change(function () {
+				let fileReader = new FileReader();
+				fileReader.onload = function () {
+					let text = fileReader.result;
+					let headers = getFirstLines(text);
+					$("#mffer-filechooser-textdisplay").html(
+						"<p>File preview:</p><pre>\n" + headers + "\n</pre>"
+					);
+					$("#mffer-filechooser-tabledisplay").html(
+						csvToTable(headers)
+					);
+				};
+				fileReader.readAsText($("input-filechooser").val());
+			});
+		} else throwError("Unable to open the new file selector.");
+	}
+	function configComplete() {
+		if (hasSettings.deploymentUrl != null)
+			$("#mffer-new-url").attr("href", hasSettings.deploymentUrl);
+		else $("#mffer-new-url").hide();
+		$("#mffer-new").children().hide();
+		$("#mffer-filechooser").hide();
+		hideLoading();
+		$("#mffer-new-done").show();
 	}
 	function initializePage() {
 		$("#mffer-shadowland").hide();
@@ -419,27 +479,11 @@
 		return "<p>Parsing...</p>";
 	}
 	function displayTable(text) {
-		document.getElementById("tabledisplay").innerHTML =
+		document.getElementById("#mffer-filechooser-tabledisplay").innerHTML =
 			"<p>Sheet preview:</p>" + text;
 	}
 	function displayTableError(error) {
-		document.getElementById("tabledisplay").innerHTML =
+		document.getElementById("#mffer-filechooser-tabledisplay").innerHTML =
 			"<p>Parsing failed:</p>\n<p>" + error.message + "</p>";
-	}
-	function doLater() {
-		document
-			.getElementById("filechooser")
-			.addEventListener("change", function () {
-				var filereader = new FileReader();
-				filereader.onload = function () {
-					var text = filereader.result;
-					var headers = getFirstLines(text);
-					document.getElementById("textdisplay").innerHTML =
-						"<p>File preview:</p><pre>\n" + headers + "\n</pre>";
-					document.getElementById("tabledisplay").innerHTML =
-						csvToTable(headers);
-				};
-				filereader.readAsText(this.files[0]);
-			});
 	}
 </script>
