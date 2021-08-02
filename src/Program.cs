@@ -89,6 +89,7 @@ namespace Mffer {
 				System.Console.WriteLine( "You must provide the name of an output directory." );
 			}
 			Game.ToJsonFiles( saveDirName );
+			Game.WriteCSVs( saveDirName );
 		}
 	}
 }

@@ -1,40 +1,51 @@
 class Database {
 	readonly Spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 	readonly id: string;
-	readonly sheetNames: string[] = ["Main", "mffer"];
-	readonly databaseFile: GoogleAppsScript.Drive.File;
-	constructor(
-		spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet = null,
-		database: GoogleAppsScript.Drive.File = null
-	) {
-		if (database == null) {
-			this.databaseFile = null;
-		} else {
-			this.databaseFile = database;
-		}
+	static readonly sheetNames: string[] = ["Main", "mffer"];
+	constructor(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet = null) {
 		if (spreadsheet == null) {
 			this.Spreadsheet = SpreadsheetApp.create("mffer Database");
 		} else {
+			if (!Database.isValid(spreadsheet)) {
+				throw `Spreadsheet with ID ${spreadsheet.getId()} is not a valid mffer database.`;
+			}
 			this.Spreadsheet = spreadsheet;
 		}
 		this.makeSheets();
 		this.id = this.Spreadsheet.getId();
+	}
+	public static isValid(
+		spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet
+	): boolean {
+		let metadata = spreadsheet.getDeveloperMetadata();
+		if (metadata == null || metadata.length == 0) {
+			return false;
+		}
+		for (let entry in metadata) {
+			if (metadata[entry].getKey() == "mffer") {
+				let value = metadata[entry].getValue();
+				if (value != null && value != "") {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 	/**
 	 * makeSheets creates the required sheets within the Spreadsheet if they
 	 * don't exist, and does some limited validation if they do
 	 */
 	public makeSheets(): void {
-		for (let sheetIndex in this.sheetNames) {
+		for (let sheetIndex in Database.sheetNames) {
 			let sheet = this.Spreadsheet.getSheetByName(
-				this.sheetNames[sheetIndex]
+				Database.sheetNames[sheetIndex]
 			);
 			if (sheet == null) {
 				sheet = this.Spreadsheet.insertSheet(
-					this.sheetNames[sheetIndex],
+					Database.sheetNames[sheetIndex],
 					0
 				);
-				this.makeSheet(this.sheetNames[sheetIndex]);
+				this.makeSheet(Database.sheetNames[sheetIndex]);
 			}
 			this.Spreadsheet.setActiveSheet(sheet);
 			this.Spreadsheet.moveActiveSheet(Number(sheetIndex));

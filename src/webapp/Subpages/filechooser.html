@@ -7,21 +7,13 @@
 	<form>
 		<label for="input-filechooser">Select a file:</label>
 		<input type="file" name="input-filechooser" id="input-filechooser" />
-		<div id="mffer-filechooser-textdisplay"></div>
-		<div id="mffer-filechooser-tabledisplay"></div>
-		<button
-			type="button"
-			id="button-filechooser-confirm"
-			class="start-inactive"
-		>
-			Confirm
-		</button>
-		<button
-			type="button"
-			id="button-filechooser-cancel"
-			class="start-inactive"
-		>
-			Cancel
-		</button>
+		<div id="mffer-filechooser-pending" class="start-inactive">
+			<div id="mffer-filechooser-textdisplay"></div>
+			<div id="mffer-filechooser-tabledisplay"></div>
+			<button type="button" id="button-filechooser-confirm">
+				Confirm
+			</button>
+			<button type="button" id="button-filechooser-cancel">Cancel</button>
+		</div>
 	</form>
 </div>
