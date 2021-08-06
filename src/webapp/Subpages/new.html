@@ -51,21 +51,7 @@
 				target="_blank"
 				>"Deploying the webapp" instructions</a
 			>
-		</p>
-		<ul>
-			<li>
-				OAuth redirect URI:
-				<code
-					>https://script.google.com/macros/d/<?= getScriptId() ?>/usercallback</code
-				>
-			</li>
-			<li>Script origin: <code id="mffer-script-origin"></code></li>
-		</ul>
-		<p>
-			After submitting the below keys, you *may* be asked to sign into
-			your Google account and allow appropriate access for the app. Check
-			the permissions request carefully and ensure you're using the
-			account that manages your Google Cloud Platform project.
+			then entering the below credentials.
 		</p>
 		<form id="mffer-new-keys">
 			<label for="input-picker-key">Google Picker API Key</label>
@@ -80,7 +66,22 @@
 		</form>
 	</div>
 	<div id="mffer-new-get-authorization" class="start-inactive">
-		<p>Grant authorization to browse your Google Drive.</p>
+		<p>
+			To allow OAuth 2.0 authentication, the OAuth process requires a
+			destination to follow the authentication process. Open the <a
+			target="_blank" id="mffer-new-oauth-link">OAuth 2.0 Client Settings</a> and enter the script's
+			redirect URI in the "Authorized redirect URIs" section:</p>
+		<dl>
+			<dt>
+				OAuth redirect URI:
+				<dd>
+					https://script.google.com/macros/d/<?= getScriptId()
+					?>/usercallback</dd>
+			</dt>
+		</dl>
+		</p>
+
+		<p>Once that is complete, grant authorization to browse your Google Drive.</p>
 		<p><a id="mffer-auth-link" href="">Authorize</a></p>
 	</div>
 	<div id="mffer-new-get-database" class="start-inactive">

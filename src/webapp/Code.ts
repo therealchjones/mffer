@@ -111,21 +111,12 @@ function hasAuthorization(): boolean {
 function hasSpreadsheetId(): boolean {
 	return getSpreadsheetId() != null;
 }
-function getSettings() {
+function checkSettings() {
 	return {
 		scriptId: getScriptId(),
 		oauthId: getOauthId(),
-		oauthSecret: getOauthSecret(),
-		pickerKey: getPickerApiKey(),
-		spreadsheetId: getSpreadsheetId(),
-		authorized: getAuthorized(),
-	};
-}
-function checkSettings() {
-	return {
-		oauthId: hasOauthId(),
 		oauthSecret: hasOauthSecret(),
-		pickerKey: hasPickerKey(),
+		pickerKey: getPickerApiKey(),
 		authorization: hasAuthorization(),
 		spreadsheetId: hasSpreadsheetId(),
 	};

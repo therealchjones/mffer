@@ -15,7 +15,7 @@
 	var googlePicker = null;
 	var googleOauthToken = null;
 	var pickerApiKey = null;
-	var hasSettings = {
+	var settings = {
 		oauthId: false,
 		oauthSecret: false,
 		pickerKey: false,
@@ -38,7 +38,16 @@
 			initializePage();
 		}
 	});
-
+	function hasSetting(setting) {
+		if (
+			settings == null ||
+			settings[setting] == null ||
+			settings[setting] == false ||
+			settings[setting].trim() == ""
+		)
+			return false;
+		else return true;
+	}
 	function showLoading(message = null) {
 		$("#loading-notes").text(message);
 		$("#mffer-spinner").show();
@@ -83,15 +92,20 @@
 			let oauthId,
 				oauthSecret,
 				pickerKey = null;
-			if (hasSettings.oauthId != true) {
+			if (settings.oauthId == null || settings.oauthId == "") {
 				oauthId = $("#input-oauth-id").val().trim();
 			}
-			if (hasSettings.oauthSecret != true) {
+			if (settings.oauthSecret != true) {
 				oauthSecret = $("#input-oauth-secret").val().trim();
 			}
-			if (hasSettings.pickerKey != true) {
+			if (settings.pickerKey != true) {
 				pickerKey = $("#input-picker-key").val().trim();
 			}
+			$("#mffer-new-oauth-link").attr(
+				"href",
+				"https://console.cloud.google.com/apis/credentials/oauthclient/" +
+					oauthId
+			);
 			google.script.run
 				.withSuccessHandler(checkAuth)
 				.withFailureHandler(function () {
@@ -110,23 +124,24 @@
 		$("#loading-notes").html(errorMessage);
 		throw error;
 	}
-	function checkSettings(settings) {
-		if (settings == null) throwError("Unable to get existing settings");
-		hasSettings = settings;
+	function checkSettings(currentSettings) {
+		if (currentSettings == null)
+			throwError("Unable to get existing settings");
+		settings = currentSettings;
 		for (let setting in settings) {
 			markSetting(setting, settings[setting]);
 		}
-		if (settings.authorization == true) getAuth(true);
+		if (hasSetting("authorization") == true) getAuth(true);
 		else if (
-			settings.oauthId == true &&
-			settings.oauthSecret == true &&
-			settings.pickerKey == true
+			hasSetting("oauthId") == true &&
+			hasSetting("oauthSecret") == true &&
+			hasSetting("pickerKey") == true
 		)
 			getAuth(false);
 		else if (
-			settings.oauthId == true ||
-			settings.oauthSecret == true ||
-			settings.pickerKey == true
+			hasSetting("oauthId") == true ||
+			hasSetting("oauthSecret") == true ||
+			hasSetting("pickerKey") == true
 		)
 			createNewDeployment();
 		else {
@@ -138,7 +153,7 @@
 	function markSetting(settingName, setting) {
 		let checkBox = $("#mffer-new-progress-" + settingName);
 		if (checkBox.length != 0) {
-			if (setting == null || setting == false) {
+			if (setting == null || setting == false || setting.trim() == "") {
 				checkBox.html("&#10060;");
 			} else {
 				checkBox.html("&#x2714;&#xfe0f;");
@@ -148,20 +163,20 @@
 	function createNewDeployment() {
 		$("#mffer-new-check-progress").hide();
 		showLoading("Checking existing configuration");
-		let pickerKey = hasSettings.pickerKey;
-		if (pickerKey == null || pickerKey == false) {
+		let pickerKey = settings.pickerKey;
+		if (!hasSetting("pickerKey")) {
 			$("#input-picker-key").removeAttr("disabled").val("");
 		} else {
 			$("#input-picker-key").attr("disabled", "disabled").val("stored");
 		}
-		let oauthClientId = hasSettings.oauthId;
-		if (oauthClientId == null || oauthClientId == false) {
+		let oauthClientId = settings.oauthId;
+		if (!hasSetting("oauthId")) {
 			$("#input-oauth-id").removeAttr("disabled").val("");
 		} else {
 			$("#input-oauth-id").attr("disabled", "disabled").val("stored");
 		}
-		let oauthSecret = hasSettings.oauthSecret;
-		if (oauthSecret == null || oauthSecret == false) {
+		let oauthSecret = settings.oauthSecret;
+		if (!hasSetting(oauthSecret)) {
 			$("#input-oauth-secret").removeAttr("disabled").val("");
 		} else {
 			$("#input-oauth-secret").attr("disabled", "disabled").val("stored");
