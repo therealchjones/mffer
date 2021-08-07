@@ -80,7 +80,7 @@ if [ -d "$MFFTEMPDIR" ]; then
 	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
 		throwfatal "Temporary directory '$MFFTEMPDIR' is not empty. Exiting."
 	fi
-	trap 'rm -rf "$MFFTEMPDIR"; kill -- -$$' EXIT HUP INT QUIT TERM
+	trapforcleanup
 else
 	throwfatal "Unable to create temporary directory. Exiting."
 fi
