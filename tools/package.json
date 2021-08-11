@@ -1,9 +1,7 @@
 {
 	"name": "mffer-tools",
-	"dependencies": {
-		"forked-clasp": "2.11.2"
-	},
 	"devDependencies": {
+		"forked-clasp": "2.11.2",
 		"@types/google-apps-script": "^1.0.31",
 		"stream-json": "1.7.1"
 	}

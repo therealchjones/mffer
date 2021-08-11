@@ -25,8 +25,8 @@
 			"args": [
 				"publish",
 				"${workspaceFolder}/mffer.csproj",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
+				"-c",
+				"Release"
 			],
 			"problemMatcher": "$msCompile"
 		},
@@ -42,32 +42,6 @@
 				"/consoleloggerparameters:NoSummary"
 			],
 			"problemMatcher": "$msCompile"
-		},
-		{
-			"label": "build API documentation",
-			"command": "dotnet",
-			"type": "process",
-			"args": [
-				"xmldocmd",
-				"${workspaceFolder}/bin/Debug/net5/mffer.dll",
-				"${workspaceFolder}/release/libmffer/docs/api",
-				"--visibility",
-				"private",
-				"--source",
-				"https://github.com/therealchjones/mffer",
-				"--clean",
-				"--permalink",
-				"pretty",
-				"--namespace-pages"
-			],
-			"detail": "generates Markdown-formatted API documentation from the XML comments",
-			"options": {
-				"cwd": "${workspaceFolder}/tools"
-			},
-			"promptOnClose": true,
-			"runOptions": {
-				"instanceLimit": 1
-			}
 		},
 		{
 			"label": "push webapp",
