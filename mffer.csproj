@@ -13,11 +13,13 @@
   <PropertyGroup>
     <ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
 	<ReleaseDirectory>$(MSBuildProjectDirectory)/release</ReleaseDirectory>
+	<ScriptDirectory>$(MSBuildProjectDirectory)/src/scripts</ScriptDirectory>
   </PropertyGroup>
   <ItemGroup>
     <DeletableDirectory Include="$(ReleaseDirectory)"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/bin"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/obj"/>
+	<ReleaseableScripts Include="$(ScriptDirectory)/*" CopyToPublishDirectory="PreseveNewest"/>
   </ItemGroup>
 
   <!-- dotnet clean -->
@@ -69,7 +71,6 @@
 	<DebugType>None</DebugType>
 	<RuntimeIdentifiers>osx-x64;win-x64;linux-x64</RuntimeIdentifiers>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<ReleaseDirectory>$(MSBuildProjectDirectory)/release</ReleaseDirectory>
   </PropertyGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
 	<ReleasePlatform Include="$(RuntimeIdentifiers)" />
@@ -133,7 +134,10 @@
 		Command="'$(DOTNET_HOST_PATH)' '$(XmlDocMdPath)' '$(PublishDir)/mffer.dll' '$(DeployablesDirectory)/docs/api' --visibility private --source 'https://github.com/therealchjones/mffer' --clean --quiet --permalink pretty --namespace-pages"
 		WorkingDirectory="$(ToolsDirectory)" />
   </Target>
-  <Target Name="ZipRelease" AfterTargets="Publish">
+  <Target Name="CopyScripts" AfterTargets="Publish" DependsOnTargets="Publish">
+	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
+  </Target>
+  <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts">
     <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" />
 	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
