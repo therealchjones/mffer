@@ -11,8 +11,23 @@
 
   <!-- custom project properties -->
   <PropertyGroup>
-	<ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
+    <ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
+	<ReleaseDirectory>$(MSBuildProjectDirectory)/release</ReleaseDirectory>
   </PropertyGroup>
+  <ItemGroup>
+    <DeletableDirectory Include="$(ReleaseDirectory)"/>
+	<DeletableDirectory Include="$(MSBuildProjectDirectory)/bin"/>
+	<DeletableDirectory Include="$(MSBuildProjectDirectory)/obj"/>
+  </ItemGroup>
+
+  <!-- dotnet clean -->
+  <Target Name="Cleaning tools/" AfterTargets="Clean">
+    <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
+	<Delete Files="$(ToolsDirectory)/package-lock.json;$(ToolsDirectory)/.clasp.json"/>
+  </Target>
+  <Target Name="Deep cleaning" AfterTargets="Clean">
+    <RemoveDir Directories="@(DeletableDirectory)"/>
+  </Target>
 
   <!-- dotnet restore -->
   <Target Name="CheckDotnetPath">
@@ -30,28 +45,12 @@
 	  WorkingDirectory="$(ToolsDirectory)"
 	  ContinueOnError="false" />
   </Target>
-  <Target Name="CheckXmlDocMd" DependsOnTargets="RestoreDotnetTools">
-  	<PropertyGroup>
-	  <XmlDocMdPath Condition="'$(XmlDocMdPath)' == ''">$(ToolsDirectory)/.nuget/packages/xmldocmd/2.5.2/tools/$(TargetFramework)/any/xmldocmd.dll</XmlDocMdPath>
-	</PropertyGroup>
-	<Error Condition="!Exists('$(XmlDocMdPath)')" Text="Unable to locate XmlDocMd at '$(XmlDocMdPath)'" />
-  </Target>
   <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
 	<Exec Command="'$(DOTNET_HOST_PATH)' tool restore -v quiet" WorkingDirectory="$(ToolsDirectory)"/>
   </Target>
   <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpm" AfterTargets="Restore">
 	<Exec Command="'$(NpmPath)' install --loglevel silent" WorkingDirectory="$(ToolsDirectory)"/>
 	<Message Text="Restored Node.js tools."/>
-  </Target>
-
-  <!-- dotnet clean -->
-  <Target Name="Cleaning tools/" AfterTargets="Clean">
-    <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
-	<Delete Files="$(ToolsDirectory)/package-lock.json;$(ToolsDirectory)/.clasp.json"/>
-  </Target>
-  <Target Name="Deep cleaning" AfterTargets="Clean">
-    <RemoveDir
-      Directories="$(MSBuildProjectDirectory)/bin;$(MSBuildProjectDirectory)/obj;$(MSBuildProjectDirectory)/release"/>
   </Target>
 
   <!-- dotnet publish -->
@@ -62,24 +61,51 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <!--
 		include these properties for all "Release" configurations, but requires
-	    that we explicitly set the configuration when publishing (e.g.,
-		dotnet publish -c Release )
+	    that we explicitly set the configuration early in the MSBuild process
+		(e.g., dotnet publish -c Release )
 	-->
 	<Optimize>true</Optimize>
 	<DebugSymbols>false</DebugSymbols>
 	<DebugType>None</DebugType>
 	<RuntimeIdentifiers>osx-x64;win-x64;linux-x64</RuntimeIdentifiers>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<ReleaseString>$(MSBuildProjectName)</ReleaseString>
-	<ReleaseString Condition="'$(VersionString)' != ''">$(ReleaseString)-$(VersionString)</ReleaseString>
-	<ReleaseString Condition="'$(RuntimeIdentifier)' == ''">$(ReleaseString)-$(TargetFramework)</ReleaseString>
-	<ReleaseString Condition="'$(RuntimeIdentifier)' != ''">$(ReleaseString)-$(RuntimeIdentifier)</ReleaseString>
 	<ReleaseDirectory>$(MSBuildProjectDirectory)/release</ReleaseDirectory>
-	<PublishDir>$(ReleaseDirectory)/$(ReleaseString)</PublishDir>
   </PropertyGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
 	<ReleasePlatform Include="$(RuntimeIdentifiers)" />
   </ItemGroup>
+  <Target Name="CheckGit">
+	<PropertyGroup>
+      <GitPath Condition="'$(GitPath)' == ''">git</GitPath>
+	</PropertyGroup>
+	<Exec
+	  Command="'$(GitPath)' --version &gt; /dev/null"
+	  ContinueOnError="false" />
+  </Target>
+  <Target Name="GetVersion" DependsOnTargets="CheckGit" Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'">
+	<Exec Command="$(GitPath) tag --list --contains HEAD" ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
+	  <Output TaskParameter="ConsoleOutput" PropertyName="GitTagName" />
+	</Exec>
+	<PropertyGroup Condition="'$(GitTagName)' != '' and ( $(GitTagName.StartsWith(`v`)) == 'true' or $(GitTagName.StartsWith(`V`)) == 'true' )" >
+	  <VersionString>$(GitTagName)</VersionString>
+	</PropertyGroup>
+	<Error Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'" Text="No version tag is associated with the git branch HEAD." />
+  </Target>
+  <Target Name="GetReleaseString" BeforeTargets="Build" DependsOnTargets="GetVersion" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+  	  <ReleaseString>$(MSBuildProjectName)</ReleaseString>
+  	  <ReleaseString Condition="'$(VersionString)' != ''">$(ReleaseString)-$(VersionString)</ReleaseString>
+	  <ReleaseString Condition="'$(RuntimeIdentifier)' == ''">$(ReleaseString)-$(TargetFramework)</ReleaseString>
+	  <ReleaseString Condition="'$(RuntimeIdentifier)' != ''">$(ReleaseString)-$(RuntimeIdentifier)</ReleaseString>
+	</PropertyGroup>
+  </Target>
+  <Target Name="GetPublishProperties" AfterTargets="Build" DependsOnTargets="GetReleaseString" Condition="'$(Configuration)' == 'Release'">
+    <!-- While this should really only affect the "Publish" target, Publish depends on targets that use this, so setting BeforeTargets="Publish"
+	     doesn't work as expected. Instead, we set the properties after Build -->
+  	<PropertyGroup>
+	  <PublishDir>$(ReleaseDirectory)/$(ReleaseString)</PublishDir>
+	</PropertyGroup>
+  </Target>
   <Target Name="PublishPlatforms" AfterTargets="Publish" Condition=" '$(RuntimeIdentifier)' == ''">
     <MsBuild Projects="$(MsBuildProjectFile)" Targets="Publish"
 		Properties="RuntimeIdentifier=%(ReleasePlatform.Identity);
@@ -88,10 +114,16 @@
 			PublishTrimmed=true;
 			IncludeAllContentForSelfExtract=true;" />
   </Target>
+  <Target Name="CheckXmlDocMd" DependsOnTargets="RestoreDotnetTools">
+    <PropertyGroup>
+	  <XmlDocMdPath Condition="'$(XmlDocMdPath)' == ''">$(ToolsDirectory)/.nuget/packages/xmldocmd/2.5.2/tools/$(TargetFramework)/any/xmldocmd.dll</XmlDocMdPath>
+	</PropertyGroup>
+	<Error Condition="!Exists('$(XmlDocMdPath)')" Text="Unable to locate XmlDocMd at '$(XmlDocMdPath)'" />
+  </Target>
   <Target Name="BuildDocs"
 	AfterTargets="Publish"
 	BeforeTargets="ZipRelease"
-	DependsOnTargets="CheckXmlDocMd;CheckDotnetPath;Publish"
+	DependsOnTargets="CheckXmlDocMd;CheckDotnetPath;Publish;GetVersion"
 	Condition=" '$(RuntimeIdentifier)' == ''">
 	<PropertyGroup>
 	  <DeployablesDirectory>$(ReleaseDirectory)/deployables</DeployablesDirectory>
