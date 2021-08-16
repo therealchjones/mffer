@@ -43,7 +43,7 @@
 			settings == null ||
 			settings[setting] == null ||
 			settings[setting] == false ||
-			settings[setting].trim() == ""
+			new String(settings[setting]).trim() == ""
 		)
 			return false;
 		else return true;
@@ -129,7 +129,8 @@
 			throwError("Unable to get existing settings");
 		settings = currentSettings;
 		for (let setting in settings) {
-			markSetting(setting, settings[setting]);
+			let settingString = new String(settings[setting]);
+			markSetting(setting, settingString);
 		}
 		if (hasSetting("authorization") == true) getAuth(true);
 		else if (

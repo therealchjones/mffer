@@ -575,13 +575,14 @@ in the code itself.
 
 ### Description
 
-The `mffer` webapp is based on Google Apps Script and uses Google Sheets and
-Google Drive, and is deployed at https://mffer.org via the
-[Google Cloud Platform](https://cloud.google.com). This method of deployment is not especially
-straightforward, and other better options may be more readily available to other
-users. These will, however, require significant code modification, as the
-`mffer` webapp code makes heavy use of Apps Script (transpiled from TypeScript)
-and its associated APIs, the Google Picker, and Google's OAuth 2.0 authentication.
+The `mffer` webapp is based on Google Apps Script, uses Google Sheets/Google
+Drive, and is deployed at https://mffer.org via the
+[Google Cloud Platform](https://cloud.google.com). This method of deployment is
+not especially straightforward, and other better options may be more readily
+available to other users. These will, however, require significant code
+modification, as the `mffer` webapp code makes heavy use of Apps Script
+(transpiled from TypeScript) and its associated APIs, the Google Picker, and
+Google's OAuth 2.0 authentication.
 
 ### Deploying the webapp
 
@@ -607,9 +608,9 @@ https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
 https://www.googleapis.com/auth/drive.file scope?)
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
-   name (and other info if desired).
+   name (and other info if desired). Press "Create".
 2. You'll likely then be taken to the project dashboard; if not, visit
-   https://console.cloud.google.com/home/dashboard and ensure the correct
+   https://console.cloud.google.com/home/dashboard. Ensure the correct
    project is chosen in the project drop-down. Find the project number on the
    "Project Info" card and make a note of it. Then, choose "APIs & Services" and
    "Dashboard" from the navigation menu or "Go to APIs Overview" on the APIs
@@ -622,8 +623,8 @@ https://www.googleapis.com/auth/drive.file scope?)
    the correct project is shown in the project drop-down. Choose "Google Picker
    API" for "Which API are you using?" and select "Public data" before pressing
    "Next".
-5. Make a note of (or copy and paste) the API Key. Choose "Restrict", choose
-   "HTTP referrers (web sites)" and enter `*.google.com` and
+5. Make a note of the API Key. Choose "Restrict", name the key as desired,
+   choose "HTTP referrers (web sites)" and enter `*.google.com` and
    `*.googleusercontent.com`. Click "Save".
 6. Return to https://console.cloud.google.com/apis/credentials/, choose "Create
    Credentials", and select OAuth Client ID. Choose "Configure Consent Screen"
@@ -655,40 +656,45 @@ https://www.googleapis.com/auth/drive.file scope?)
     ```
 5. Add the webapp files to the project:
     ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp push -f
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
     ```
 6. Open the Apps Script IDE:
     ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp open
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
     ```
 7. Switch to using a standard Google Cloud Project by opening "Project Settings"
    (the gear icon), pressing the "Change project" button,
    and entering the project number you noted from step 2 of
-   [Setting up Google Cloud Platform](#setting-up-google-cloud-platform).
-8. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and press the "Run" button, which will
-   prompt you to "Review Permissions" and approve access to your Google account.
-   If prompted that "Google hasn't verified this app", select "Continue".
+   [Setting up Google Cloud Platform](#setting-up-google-cloud-platform) (or
+   visit the [GCP Dashboard](https://console.cloud.google.com/home/dashboard)
+   again if you need to copy it).
+8. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
+   press the "Run" button, which will prompt you to "Review Permissions" and
+   approve access to your Google account. If prompted that "Google hasn't
+   verified this app", select "Continue".
 9. Open the webapp:
     ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp open --webapp
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
     If prompted for which deployment to use, press `<enter>` or `<return>`.
 10. Choose "Get Started", then enter the strings you made a note of in the
     [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
     section (or obtain them again from
-    https://console.cloud.google.com/apis/credentials).
+    https://console.cloud.google.com/apis/credentials; obtain the OAuth secret
+    by clicking on the edit (pencil) icon for the OAuth key).
 11. Visit
-    https://console.cloud.google.com/apis/credentials/oauthclient/<oauthId>, and
+    the OAuth client ID page as prompted, and
     in the "Authorized redirect URIs" section, add the URI
-    https://script.google.com/macros/d/<scriptId>/usercallback, and press "Save".
-12. When prompted, grant authorization to access Google Drive, again, from the
-    same account.
-13. Create the Google Sheet for storing the `mffer` data by uploading a CSV file
-    created by the `mffer` command line application.
+    given in the webapp; press "Save".
+12. Back on the webapp, press the "Authorize" link and when prompted, grant
+    authorization to access Google Drive, again, from the same account.
+13. Choose "Upload `mffer` data" to create a new Google Sheet for storing the `mffer` data by uploading a CSV file
+    created by the `mffer` command line application, or choose "Load existing
+    database" if you're importing data from a prior deployment.
 14. After reaching the "`mffer` Configuration Complete" screen, re-enter the
     webapp with
     ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp open --webapp
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
 
 ## See also
