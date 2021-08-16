@@ -591,6 +591,7 @@ Google's OAuth 2.0 authentication.
 -   [Google Account](https://google.com/account) with access to
     [Google Apps Script](https://script.google.com), Google Drive, and Google
     Cloud Platform (the free tiers are all acceptable).
+-   POSIX-like development system (such as macOS, Linux, or Windows with Cygwin)
 -   [Node.js](Node.js) & npm
 
 #### Setting Up Google Cloud Platform
@@ -642,11 +643,14 @@ https://www.googleapis.com/auth/drive.file scope?)
 1. In
    [Google Apps Script Settings](https://script.google.com/home/usersettings),
    enable "Google Apps Script API"
-2. In the [tools directory](../tools/), install `clasp` and its dependencies:
+2. In the `mffer` repository's `tools` directory, install `clasp` and its
+   dependencies:
     ```shell
+    [mffer] $ cd tools
     [mffer/tools] $ npm install
     ```
-3. Login to Google with `clasp`:
+3. Using the same Google account you used for your Google Cloud Platform
+   project above, login to Google with `clasp`:
     ```shell
     [mffer/tools] $ ./node_modules/.bin/clasp login
     ```
@@ -658,7 +662,7 @@ https://www.googleapis.com/auth/drive.file scope?)
     ```shell
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
     ```
-6. Open the Apps Script IDE:
+6. Open the Google Apps Script IDE:
     ```shell
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
     ```
