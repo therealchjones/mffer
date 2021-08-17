@@ -1,4 +1,4 @@
-<h1
+<div
 	id="mffer-navbar"
 	class="
 		navbar
@@ -8,8 +8,25 @@
 		text-center
 		font-weight-bolder
 		justify-content-center
+		always-active
 	"
 >
-	<code>mffer</code>
-</h1>
-<noscript>The <code>mffer</code> webapp requires JavaScript.</noscript>
+	<h1><code>mffer</code></h1>
+	<noscript
+		><p>The <code>mffer</code> webapp requires JavaScript.</p></noscript
+	>
+	<p style="display: none">The <code>mffer</code> webapp requires CSS.</p>
+	<div id="mffer-navbar-menu">
+		<ul>
+			<li><a id="menu-button-home">Home</a></li>
+			<li id="menu-item-admin" class="content-inactive">
+				<a id="menu-button-admin">Admin</a>
+			</li>
+			<li><a id="menu-button-dev">Development</a></li>
+			<li><a id="menu-button-about">About</a></li>
+		</ul>
+	</div>
+	<div id="mffer-navbar-signin">
+		<a id="button-signin">Sign In</a>
+	</div>
+</div>

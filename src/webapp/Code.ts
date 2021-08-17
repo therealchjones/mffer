@@ -44,18 +44,9 @@ function buildPage(): GoogleAppsScript.HTML.HtmlOutput {
 }
 
 function isConfigured(): boolean {
-	var properties = PropertiesService.getScriptProperties();
-	var requiredProperties = ["spreadsheetId"];
-	if (properties == null) {
-		return false;
-	}
-	for (var property of requiredProperties) {
-		if (properties.getProperty(property) == null) {
-			return false;
-		}
-	}
-	return true;
+	return hasSpreadsheet();
 }
+
 function getProperty(propertyName: string): string {
 	var properties = PropertiesService.getScriptProperties();
 	if (properties === null) {
@@ -74,6 +65,25 @@ function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 		return null;
 	}
 	return SpreadsheetApp.openById(sheetName);
+}
+/**
+ * Determines whether an accessible spreadsheet has been linked to the
+ * deployment. Does not validate that the spreadsheet is in the proper
+ * mffer format.
+ * @returns true if a spreadsheet has been linked to the deployment and is
+ * able to be accessed; false otherwise
+ */
+function hasSpreadsheet(): boolean {
+	let sheetName = getProperty("spreadsheetid");
+	let spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet = null;
+	if (sheetName == null || sheetName.trim() == "") return false;
+	try {
+		spreadsheet = SpreadsheetApp.openById(sheetName);
+	} catch (exception) {
+		return false;
+	}
+	if (spreadsheet == null) return false;
+	return true;
 }
 function getScriptId(): string {
 	return ScriptApp.getScriptId();
@@ -398,13 +408,8 @@ function getSheetById(
  * 31 Sheet Teammembers
  */
 function getWebappDatabase(): any[][] {
-	var spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet =
-		getSpreadsheet();
-	if (spreadsheet == null) return null;
-	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getSheetById(
-		spreadsheet,
-		1514300109
-	);
+	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getDataSheet();
+	if (sheet == null) return null;
 	var rows: number = sheet.getDataRange().getHeight();
 	var range: any[][] = sheet.getSheetValues(1, 33, rows, 32);
 	// See above; range[0] is the row of column headers, so
@@ -419,6 +424,34 @@ function getWebappDatabase(): any[][] {
 			return row[column];
 		});
 	});
+}
+function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+	let spreadsheet = getSpreadsheet();
+	if (spreadsheet == null) return null;
+	let metadata = spreadsheet
+		.createDeveloperMetadataFinder()
+		.withLocationType(
+			SpreadsheetApp.DeveloperMetadataLocationType.SPREADSHEET
+		)
+		.withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT)
+		.withKey("mffer-data-sheet")
+		.find();
+	if (
+		metadata == null ||
+		metadata.length == 0 ||
+		metadata[0] == null ||
+		metadata[0].getValue() == null ||
+		metadata[0].getValue().trim() == ""
+	)
+		return null;
+	let sheet: GoogleAppsScript.Spreadsheet.Sheet = null;
+	try {
+		sheet = getSheetById(spreadsheet, Number(metadata[0].getValue()));
+	} catch (exception) {
+		return null;
+	}
+	if (sheet == null) return null;
+	return sheet;
 }
 
 /**

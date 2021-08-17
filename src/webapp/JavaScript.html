@@ -32,6 +32,9 @@
 	class JobQueue {}
 
 	$(document).ready(function () {
+		if ($("#mffer-spinner").length != 0) {
+			$("#mffer-spinner").show();
+		}
 		if ($("#mffer-new").length != 0) {
 			initializeSetup();
 		} else {
@@ -113,7 +116,7 @@
 				})
 				.setKeyProperties(pickerKey, oauthId, oauthSecret);
 		});
-		$("#mffer-script-origin").html(google.script.host.origin);
+		$("#mffer-new").show();
 	}
 	function throwError(error) {
 		$("#mffer-spinner h2").html("Error");
