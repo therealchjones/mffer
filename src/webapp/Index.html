@@ -7,13 +7,14 @@
 	<body>
 		<?!= include('Subpages/navbar.html'); ?>
 		<?!= include('Subpages/spinner.html'); ?>
+		<?!= include('Subpages/alert.html'); ?>
 
-		<?!= include('Subpages/contents.html'); ?>
-		<?!= include('Subpages/shadowland.html'); ?>
 		<? if ( ! isConfigured() ) { ?>
 		<?!= include('Subpages/new.html'); ?>
 		<? } ?>
+		<?!= include('Subpages/contents.html'); ?>
 		<?!= include('Subpages/filechooser.html'); ?>
+		<?!= include('Subpages/shadowland.html'); ?>
 
 		<?!= include('Subpages/statusbar.html'); ?>
 		<?!= include('Subpages/log.html'); ?>

@@ -24,13 +24,6 @@
 	};
 	var importText = null;
 
-	class Job {
-		constructor(param) {
-			let jobNumber = Math.floor(Math.random() * 10000);
-		}
-	}
-	class JobQueue {}
-
 	$(document).ready(function () {
 		if ($("#mffer-spinner").length != 0) {
 			$("#mffer-spinner").show();
@@ -354,29 +347,16 @@
 		$("#mffer-new").show();
 	}
 	function initializePage() {
-		$("#mffer-shadowland").hide();
-		$("#mffer-spinner").show();
-
-		let loadDataNumber = markProgress("Loading database");
+		showLoading("getting data");
 		google.script.run
 			.withFailureHandler(alertLoadFailure)
 			.withSuccessHandler(loadData)
-			.withUserObject(loadDataNumber)
 			.getWebappDatabase();
-
-		// event handlers
 	}
-
-	function loadData(database, loadDataNumber) {
-		markProgress("Done", loadDataNumber);
-		let parseDataNumber = markProgress("Parsing database");
-		// any necessary validation or modification of database
-		markProgress("Done", parseDataNumber);
-		let prepareInterfaceNumber = markProgress("Preparing interface");
-		resetPage("database");
-		$("#content-loading").hide();
-		$("#content-shadowland").show();
-		markProgress("Done", prepareInterfaceNumber);
+	function loadData(database) {
+		if (database == null) alertLoadFailure();
+		hideLoading();
+		$("#mffer-contents").show();
 	}
 
 	// reset the page settings and info for a given floor number, on the current
@@ -448,7 +428,7 @@
 
 	// for issues that require user intervention
 	function alertError(text) {
-		window.alert(text);
+		$("#mffer-alert").show();
 	}
 
 	// for issues that are unrecoverable
@@ -457,20 +437,17 @@
 		throw new Error("Unrecoverable: " + text);
 	}
 
-	function logWarn(jobNumber) {
-		alertWarn(
-			"Job number " +
-				jobNumber +
-				" (" +
-				getJobText(jobNumber) +
-				") failed."
-		);
-	}
-
-	function alertLoadFailure(error, userObj) {
-		alertError(
-			"Error loading the database: " + error.name + ": " + error.message
-		);
+	function alertLoadFailure(error) {
+		if (error == null) {
+			alertError("Unable to load the database.");
+		} else {
+			alertError(
+				"Error loading the database: " +
+					error.name +
+					": " +
+					error.message
+			);
+		}
 	}
 
 	function alertSaveFailure(error, userObj) {
