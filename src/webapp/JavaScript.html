@@ -9,107 +9,303 @@
 	integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj"
 	crossorigin="anonymous"
 ></script>
+<div id="mffer-storage" class="start-inactive">
+	<?!= mfferStorage ?>
+</div>
 <script id="mffer-js">
 	"use strict";
 	var shadowlandDatabase = null;
 	var googlePicker = null;
 	var googleOauthToken = null;
-	var pickerApiKey = null;
-	var settings = {
-		oauthId: false,
-		oauthSecret: false,
-		pickerKey: false,
-		authorization: false,
-		spreadsheetId: false,
+	var googleOauthUrl = null;
+	var mfferSettings = {
+		oauthid: "",
+		oauthsecret: "",
+		pickerapikey: "",
+	};
+	var loginSettings = {
+		oauthid: "",
+		oauthsecret: "",
 	};
 	var importText = null;
 
 	$(document).ready(function () {
-		if ($("#mffer-spinner").length != 0) {
-			$("#mffer-spinner").show();
-		}
+		bootstrapify();
 		if ($("#mffer-new").length != 0) {
 			initializeSetup();
 		} else {
 			initializePage();
 		}
 	});
-	function hasSetting(setting) {
-		if (
-			settings == null ||
-			settings[setting] == null ||
-			settings[setting] == false ||
-			new String(settings[setting]).trim() == ""
-		)
-			return false;
-		else return true;
+
+	function testLocalStorage() {
+		try {
+			let storage = window.localStorage;
+			let foo = "bar";
+			storage.setItem("foo", foo);
+			storage.removeItem("foo");
+			console.log("Success!");
+		} catch (error) {
+			console.log(error);
+			throw "Ooops.";
+		}
 	}
+	/**
+	 * Apply some standard Bootstrap classes rather than including them in all
+	 * the different HTML sources. Note that for best experience, the initially
+	 * displayed pages (such as .always-active) should not depend on this.
+	 */
+	function bootstrapify() {
+		let pages = $('body > [id^="mffer-"]').filter(':not(".always-active")');
+		pages.addClass("container");
+		pages.find("ul").add("ol").addClass("list-group list-group-flush");
+		pages.find("li").addClass("list-group-item");
+		pages.find("label").addClass("form-label");
+		let boxarrow =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><title>Open in new window</title><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>';
+		pages.find("a[target='_blank']").append(boxarrow);
+		bootstrapifyAdmin();
+	}
+	function bootstrapifyAdmin() {
+		let lis = $("#mffer-admin li");
+		let spinner = $(
+			'<span class="spinner-border spinner-border-sm p-0"></span>'
+		);
+		lis.append(spinner);
+		lis.children(".spinner-border").hide();
+		lis.find("input")
+			.filter(':not([type="checkbox"])')
+			.addClass("form-control");
+		lis.find("input[type='text']")
+			.addClass("pe-5")
+			.each(function (index, elem) {
+				let parent = $(elem).parent();
+				let label = parent.children("label");
+				if (
+					label.length == 1 &&
+					label.attr("for") == elem.id &&
+					parent.children("input").length == 1
+				) {
+					parent.addClass("form-floating");
+					label
+						.remove()
+						.appendTo(parent)
+						.css({
+							top:
+								"calc( " +
+								parent.css("padding-top") +
+								" + " +
+								label.siblings("p").css("height") +
+								")",
+							left: parent.css("padding-left"),
+						});
+					if (
+						$(elem).attr("placeholder") == null ||
+						$(elem).attr("placeholder") == ""
+					)
+						$(elem).attr("placeholder", "...");
+				}
+			});
+	}
+	function isAdmin() {}
+	function isLoggedIn() {}
 	function showLoading(message = null) {
 		$("#loading-notes").text(message);
+		hidePages();
 		$("#mffer-spinner").show();
 	}
 	function hideLoading() {
 		$("#mffer-spinner").hide();
 		$("#loading-notes").text(null);
 	}
-
+	function hidePages() {
+		$("body")
+			.children('[id^="mffer-"]')
+			.filter(':not(".always-active")')
+			.filter(':not("#mffer-alert")')
+			.hide();
+	}
+	function showAlert(messageOrTitle, message = null) {
+		let title = "Alert";
+		if (message == null) {
+			message = messageOrTitle;
+		} else {
+			title = messageOrTitle;
+		}
+		$("#mffer-alert-title").html(title);
+		$("#mffer-alert-text").html(message);
+		$("#mffer-alert").show();
+	}
+	function showSpinner(element) {
+		getSpinner(element).show();
+	}
+	function hideSpinner(element) {
+		getSpinner(element).hide();
+	}
+	function getSpinner(element) {
+		let spinner = $(element).siblings(".spinner-border");
+		if (spinner.length == 0 && $(element).parent("li").length == 0) {
+			spinner = $(element).parent().siblings(".spinner-border");
+		}
+		return spinner;
+	}
 	function initializeSetup() {
+		startSetupMode();
+		$("#mffer-new-button-setup").click(openAdmin).show();
+	}
+	/**
+	 * Enables "setup mode" which makes the webapp behave as though
+	 * authentication is not needed to manage the deployment. Does
+	 * not itself forgo authentication; that must be done on the
+	 * Apps Script side and is checked separately.
+	 */
+	function startSetupMode() {
+		showAlert(
+			"Warning: Setup Mode",
+			"<code>mffer</code> is currently in setup mode. Changes can be " +
+				"made to the deployment without authentication. This will " +
+				'stop when you <a href="#" id="mffer-alert-a-openadmin">complete setup</a>.'
+		);
+		$("#mffer-admin")
+			.find("li[id^='mffer-admin-listitem-']")
+			.first()
+			.removeClass("disabled");
+		$("#mffer-alert-a-openadmin").click(function (e) {
+			e.preventDefault();
+			openAdmin();
+		});
+	}
+	function openAdmin() {
+		hidePages();
+		let lis = $("#mffer-admin li");
+		for (let property in mfferSettings) {
+			let input = $("#mffer-admin-input-" + property.toLowerCase());
+			if (input.length != 0) {
+				showSpinner(input);
+			}
+		}
 		google.script.run
-			.withFailureHandler(function () {
-				throwError("Unable to obtain existing settings.");
-			})
 			.withSuccessHandler(checkSettings)
-			.checkSettings();
-		let buttons = $("#mffer-new button");
-		buttons.click(function (event) {
-			switch (event.currentTarget.id) {
-				case "button-start-new-deployment":
-					$("#mffer-new-intro").hide();
-					createNewDeployment();
+			.withFailureHandler(function () {
+				throwError("Unable to get the current configuration");
+			})
+			.getConfig();
+		checkAdminAuthUrl();
+		$("#mffer-admin")
+			.find("input")
+			.change(function (event) {
+				let text = $(this).val();
+				if (text == null || text.toString().trim() == "") return;
+				showSpinner(this);
+				let inputName = event.currentTarget.id;
+				let shortName = inputName.replace(/^mffer-admin-input-/, "");
+				mfferSettings[shortName] = text.toString().trim();
+				let next = $(this)
+					.parents("#mffer-admin-listitem-" + shortName)
+					.next();
+				if (next.length != 0) {
+					if (shortName == "oauthid") {
+						checkAdminAuthUrl();
+						$("#mffer-admin-instructions-oauthsecret")
+							.add("#mffer-admin-instructions-oauthredirecturi")
+							.find("a")
+							.attr(
+								"href",
+								"https://console.cloud.google.com/apis/credentials/oauthclient/" +
+									mfferSettings.oauthid
+							);
+					}
+					if (shortName == "oauthsecret") {
+						checkAdminAuthUrl();
+						next.next().removeClass("disabled");
+					}
+					next.removeClass("disabled");
+				}
+				hideSpinner(this);
+			});
+		$("#mffer-admin-input-fileupload").change(function () {
+			if (this.files != null && this.files.length != 0) {
+				if (this.files.length > 1) {
+					throwError("Selection of multiple files is not supported.");
+				}
+				$("#mffer-filechooser-pending").show();
+				let file = this.files[0];
+				let fileReader = new FileReader();
+				fileReader.onload = function () {
+					importText = fileReader.result;
+					let headers = getFirstLines(importText);
+					$("#mffer-filechooser-textdisplay").html(
+						"<p>File preview:</p><pre>\n" + headers + "\n</pre>"
+					);
+					$("#mffer-filechooser-tabledisplay").html(
+						csvToTable(headers)
+					);
+				};
+				fileReader.onerror = function () {
+					throwError("Unable to read file");
+				};
+				fileReader.readAsText(file);
+			}
+		});
+		$("#mffer-filechooser-pending button").click(function (event) {
+			$("#mffer-filechooser-pending").hide();
+			switch (event.target.id) {
+				case "button-filechooser-confirm":
+					google.script.run
+						.withSuccessHandler(uploadComplete)
+						.withFailureHandler(function () {
+							throwError("Unable to import new data");
+						})
+						.importNewData(importText);
 					break;
-				case "button-api-key":
-					// handled by the submit event handler
-					break;
-				case "button-choose-sheet":
-					googlePicker.setVisible(true);
-					break;
-				case "button-upload-data":
-					getNewData();
+				case "button-filechooser-cancel":
+					$("#mffer-filechooser-pending").hide();
+					$("#mffer-admin-input-fileupload").val(null);
+					$("#mffer-admin-input-fileupload").change();
+					$("#mffer-admin").show();
 					break;
 				default:
-					throw "Invalid button pressed identifier";
-					break;
+					throwError("Unable to identify button clicked");
 			}
 		});
-		$("#mffer-new-keys").submit(function (event) {
-			$("#mffer-new-get-keys").hide();
-			showLoading("Saving credentials");
-			event.preventDefault();
-			let oauthId,
-				oauthSecret,
-				pickerKey = null;
-			if (settings.oauthId == null || settings.oauthId == "") {
-				oauthId = $("#input-oauth-id").val().trim();
-			}
-			if (settings.oauthSecret != true) {
-				oauthSecret = $("#input-oauth-secret").val().trim();
-			}
-			if (settings.pickerKey != true) {
-				pickerKey = $("#input-picker-key").val().trim();
-			}
-			$("#mffer-new-oauth-link").attr(
-				"href",
-				"https://console.cloud.google.com/apis/credentials/oauthclient/" +
-					oauthId
-			);
-			google.script.run
-				.withSuccessHandler(checkAuth)
-				.withFailureHandler(function () {
-					throw "Unable to set key properties";
-				})
-				.setKeyProperties(pickerKey, oauthId, oauthSecret);
-		});
-		$("#mffer-new").show();
+
+		$("#mffer-admin").show();
+	}
+	function isFalseOrEmpty(check) {
+		let checkString = check.toString().trim();
+		if (check == null || check === false || checkString === "") return true;
+		return false;
+	}
+	function checkAdminAuthUrl() {
+		if (!isFalseOrEmpty(googleOauthUrl)) setAdminAuthUrl(googleOauthUrl);
+		if (
+			isFalseOrEmpty(mfferSettings.oauthid) ||
+			mfferSettings.oauthid === true ||
+			isFalseOrEmpty(mfferSettings.oauthsecret) ||
+			mfferSettings.oauthsecret === true
+		)
+			return;
+		google.script.run
+			.withSuccessHandler(setAdminAuthUrl)
+			.getAdminAuthUrl(mfferSettings.oauthid, mfferSettings.oauthsecret);
+	}
+	function setAdminAuthUrl(url) {
+		if (isFalseOrEmpty(url)) return;
+		googleOauthUrl = url.toString().trim();
+		$("#mffer-admin-input-fileupload").removeAttr("disabled");
+		$("#mffer-admin-listitem-fileupload").removeClass("disabled");
+		$("#button-filechooser-confirm").removeAttr("disabled");
+	}
+	function setKey(keyName, keyValue) {
+		google.script.run
+			.withSuccessHandler(function (keyConfirmed) {
+				$("#mffer-admin-input-" + keyConfirmed)
+					.siblings(".spinner-border")
+					.hide();
+			})
+			.withFailureHandler()
+			.withUserObject(keyName)
+			.setKey(keyName, keyValue);
 	}
 	function throwError(error) {
 		$("#mffer-spinner h2").html("Error");
@@ -120,95 +316,26 @@
 		$("#loading-notes").html(errorMessage);
 		throw error;
 	}
-	function checkSettings(currentSettings) {
-		if (currentSettings == null)
-			throwError("Unable to get existing settings");
-		settings = currentSettings;
-		for (let setting in settings) {
-			let settingString = new String(settings[setting]);
-			markSetting(setting, settingString);
-		}
-		if (hasSetting("authorization") == true) getAuth(true);
-		else if (
-			hasSetting("oauthId") == true &&
-			hasSetting("oauthSecret") == true &&
-			hasSetting("pickerKey") == true
-		)
-			getAuth(false);
-		else if (
-			hasSetting("oauthId") == true ||
-			hasSetting("oauthSecret") == true ||
-			hasSetting("pickerKey") == true
-		)
-			createNewDeployment();
-		else {
-			$("#mffer-new-check-progress").hide();
-			hideLoading();
-			$("#mffer-new-intro").show();
-		}
-	}
-	function markSetting(settingName, setting) {
-		let checkBox = $("#mffer-new-progress-" + settingName);
-		if (checkBox.length != 0) {
-			if (setting == null || setting == false || setting.trim() == "") {
-				checkBox.html("&#10060;");
-			} else {
-				checkBox.html("&#x2714;&#xfe0f;");
+	function checkSettings(
+		currentSettings = { oauthid: "", oauthsecret: "", pickerapikey: "" }
+	) {
+		mfferSettings = currentSettings;
+		for (let property in mfferSettings) {
+			let input = $("#mffer-admin-input-" + property.toLowerCase());
+			if (input.length != 0) {
+				if (
+					mfferSettings[property] == null ||
+					mfferSettings[property] == false ||
+					mfferSettings[property].toString().trim() == ""
+				) {
+					input.removeAttr("disabled");
+				} else {
+					let text = mfferSettings[property];
+					if (mfferSettings[property] == true) text = "[set]";
+					input.val(text);
+				}
+				hideSpinner(input);
 			}
-		}
-	}
-	function createNewDeployment() {
-		$("#mffer-new-check-progress").hide();
-		showLoading("Checking existing configuration");
-		let pickerKey = settings.pickerKey;
-		if (!hasSetting("pickerKey")) {
-			$("#input-picker-key").removeAttr("disabled").val("");
-		} else {
-			$("#input-picker-key").attr("disabled", "disabled").val("stored");
-		}
-		let oauthClientId = settings.oauthId;
-		if (!hasSetting("oauthId")) {
-			$("#input-oauth-id").removeAttr("disabled").val("");
-		} else {
-			$("#input-oauth-id").attr("disabled", "disabled").val("stored");
-		}
-		let oauthSecret = settings.oauthSecret;
-		if (!hasSetting(oauthSecret)) {
-			$("#input-oauth-secret").removeAttr("disabled").val("");
-		} else {
-			$("#input-oauth-secret").attr("disabled", "disabled").val("stored");
-		}
-		$("#mffer-new-get-keys").show();
-	}
-	function checkAuth() {
-		showLoading("Checking authorizations");
-		google.script.run
-			.withSuccessHandler(getAuth)
-			.withFailureHandler(function () {
-				throwError(
-					"Unable to get the status of current authorizations."
-				);
-			})
-			.hasAdminAuthorization();
-	}
-	function getAuth(hasAccess) {
-		$("#mffer-new-check-progress").hide();
-		if (hasAccess == true) {
-			showLoading("Getting current authorization");
-			google.script.run
-				.withSuccessHandler(loadPickerApi)
-				.withFailureHandler(function () {
-					throw "Unable to obtain current authorization";
-				})
-				.getAdminAuthToken();
-		} else {
-			showLoading("Getting new authorization");
-			google.script.run
-				.withSuccessHandler(presentAuth)
-				.withFailureHandler(function () {
-					throw "Unable to establish authentication service";
-				})
-				.getAuthUrl();
 		}
 	}
 	function loadPickerApi(token) {
@@ -247,15 +374,8 @@
 		spreadsheetView
 			.setIncludeFolders(true)
 			.setMode(google.picker.DocsView.LIST);
-		let allFilesView = new google.picker.DocsView(
-			google.picker.ViewId.DOCS
-		);
-		allFilesView
-			.setIncludeFolders(true)
-			.setMode(google.picker.DocsView.LIST);
 		googlePicker = new google.picker.PickerBuilder()
 			.addView(spreadsheetView)
-			.addView(allFilesView)
 			.hideTitleBar()
 			.setOAuthToken(googleOauthToken)
 			.setDeveloperKey(pickerApiKey)
@@ -263,7 +383,7 @@
 			.setCallback(pickerCallback)
 			.build();
 		hideLoading();
-		$("#mffer-new-get-database").show();
+		googlePicker.setVisible(true);
 	}
 	function pickerCallback(data) {
 		if (
@@ -276,82 +396,35 @@
 				$("#mffer-new-get-database").hide();
 				showLoading("Checking file");
 				google.host.run
-					.withSuccessHandler(configComplete)
+					.withSuccessHandler(null)
 					.withFailureHandler(function () {
 						throwError("Unable to use this file.");
-					})
-					.linkGoogleSheet(
-						data[google.picker.Response.DOCUMENTS][0].ID
-					);
+					});
 			}
 		}
 	}
-	function getNewData() {
-		if ($("#mffer-filechooser").length == 1) {
-			$("#mffer-filechooser button").click(function (event) {
-				switch (event.target.id) {
-					case "button-filechooser-confirm":
-						$("#mffer-filechooser").hide();
-						showLoading("Importing new data");
-						google.script.run
-							.withSuccessHandler(configComplete)
-							.withFailureHandler(function () {
-								throwError("Unable to import new data");
-							})
-							.importNewData(importText);
-						break;
-					case "button-filechooser-cancel":
-						$("#input-filechooser").val(null);
-						$("#input-filechooser").change();
-						break;
-					default:
-						throwError("Unable to identify button clicked");
-				}
-			});
-			$("#input-filechooser").change(function () {
-				if (this.files != null && this.files.length != 0) {
-					if (this.files.length > 1) {
-						throwError(
-							"Selection of multiple files is not supported."
-						);
-					}
-					let file = this.files[0];
-					let fileReader = new FileReader();
-					fileReader.onload = function () {
-						importText = fileReader.result;
-						let headers = getFirstLines(importText);
-						$("#mffer-filechooser-textdisplay").html(
-							"<p>File preview:</p><pre>\n" + headers + "\n</pre>"
-						);
-						$("#mffer-filechooser-tabledisplay").html(
-							csvToTable(headers)
-						);
-						$("#mffer-filechooser-pending").show();
-					};
-					fileReader.onerror = function () {
-						throwError("Unable to read file");
-					};
-					fileReader.readAsText(file);
-				} else $("#mffer-filechooser-pending").hide();
-			});
-			$("#mffer-new").hide();
-			$("#mffer-filechooser").show();
-		} else throwError("Unable to open the new file selector.");
+	function uploadComplete() {
+		initializePage();
 	}
-	function configComplete() {
-		$("#mffer-new-url").hide();
-		$("#mffer-new").children().hide();
-		$("#mffer-filechooser").hide();
-		hideLoading();
-		$("#mffer-new-done").show();
-		$("#mffer-new").show();
+	function getAdminOauthToken() {
+		let token = $("#mffer-script-parameter").html();
+		if (token == null || token.trim() == "") {
+			return null;
+		}
+		return token;
 	}
 	function initializePage() {
-		showLoading("getting data");
-		google.script.run
-			.withFailureHandler(alertLoadFailure)
-			.withSuccessHandler(loadData)
-			.getWebappDatabase();
+		$("#mffer-admin-setup").hide();
+		$("#mffer-admin-loggedin").show();
+		if (getAdminOauthToken() == null) {
+			showLoading("getting data");
+			google.script.run
+				.withFailureHandler(alertLoadFailure)
+				.withSuccessHandler(loadData)
+				.getWebappDatabase();
+		} else {
+			openAdmin();
+		}
 	}
 	function loadData(database) {
 		if (database == null) alertLoadFailure();
@@ -437,7 +510,7 @@
 		throw new Error("Unrecoverable: " + text);
 	}
 
-	function alertLoadFailure(error) {
+	function alertLoadFailure(error = null) {
 		if (error == null) {
 			alertError("Unable to load the database.");
 		} else {
@@ -449,7 +522,6 @@
 			);
 		}
 	}
-
 	function alertSaveFailure(error, userObj) {
 		alertError(
 			"Error saving the battle record: " +
@@ -508,9 +580,7 @@
 		return "<p>Parsing...</p>";
 	}
 	function displayTable(text) {
-		$("#mffer-filechooser-tabledisplay").html(
-			"<p>Sheet preview:</p>" + text
-		);
+		$("#mffer-filechooser-tabledisplay").html(text);
 	}
 	function displayTableError(error) {
 		$("#mffer-filechooser-tabledisplay").html(

@@ -8,3 +8,5 @@
 /tools/node_modules/*
 /tools/package-lock.json
 .clasp.json
+.clasprc.json
+creds.json

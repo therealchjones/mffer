@@ -1,0 +1,102 @@
+<div id="mffer-admin" class="start-inactive container">
+	<h2><code>mffer</code> settings</h2>
+	<div id="mffer-admin-deploymentinstructions">
+		<p>
+			<a
+				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
+				target="_blank"
+				>"Deploying the webapp" instructions</a
+			>
+		</p>
+	</div>
+	<form id="mffer-admin-setup" class="container">
+		<ol>
+			<li id="mffer-admin-listitem-oauthid" class="disabled">
+				<p id="mffer-admin-instructions-oauthid">
+					<a
+						href="https://console.cloud.google.com/apis/credentials"
+						target="_blank"
+						>GCP credentials</a
+					>
+				</p>
+				<label for="mffer-admin-input-oauthid">OAuth 2.0 ID</label>
+				<input type="text" id="mffer-admin-input-oauthid" disabled />
+			</li>
+			<li id="mffer-admin-listitem-oauthsecret" class="disabled">
+				<p id="mffer-admin-instructions-oauthsecret">
+					<a
+						href="https://console.cloud.google.com/apis/credentials"
+						target="_blank"
+						>OAuth details</a
+					>
+				</p>
+				<label for="mffer-admin-input-oauthsecret"
+					>OAuth 2.0 Secret</label
+				>
+				<input
+					type="text"
+					id="mffer-admin-input-oauthsecret"
+					disabled
+				/>
+			</li>
+			<li
+				id="mffer-admin-listitem-oauthredirecturi"
+				class="readonly disabled"
+			>
+				<p id="mffer-admin-instructions-oauthredirecturi">
+					<a
+						href="https://console.cloud.google.com/apis/credentials"
+						target="_blank"
+						>OAuth details</a
+					>
+				</p>
+				<label for="mffer-admin-input-oauthredirecturi"
+					>OAuth redirect URI</label
+				>
+				<input
+					type="text"
+					id="mffer-admin-input-oauthredirecturi"
+					readonly
+					value="<?!= getRedirectUri(); ?>"
+				/>
+			</li>
+			<li id="mffer-admin-listitem-pickerapikey" class="disabled">
+				<p id="mffer-admin-instructions-oauthsecret">
+					<a
+						href="https://console.cloud.google.com/apis/credentials"
+						target="_blank"
+						>Obtain from GCP credentials</a
+					>
+				</p>
+				<label for="mffer-admin-input-pickerapikey"
+					>Google Picker API Key</label
+				>
+				<input
+					type="text"
+					id="mffer-admin-input-pickerapikey"
+					disabled
+				/>
+			</li>
+			<li id="mffer-admin-listitem-fileupload" class="disabled">
+				<label for="mffer-admin-input-fileupload"
+					>Upload new <code>mffer</code> data</label
+				>
+				<button type="button" id="mffer-admin-button-login" disabled>
+					Login
+				</button>
+				<input type="file" id="mffer-admin-input-fileupload" disabled />
+			</li>
+		</ol>
+		<div id="mffer-filechooser-pending" class="start-inactive">
+			<p>File preview:</p>
+			<div id="mffer-filechooser-textdisplay"></div>
+			<p>Spreadsheet preview:</p>
+			<div id="mffer-filechooser-tabledisplay"></div>
+			<p>"Confirm" may prompt for Google re-authorization</p>
+			<button type="button" id="button-filechooser-confirm" disabled>
+				Confirm
+			</button>
+			<button type="button" id="button-filechooser-cancel">Cancel</button>
+		</div>
+	</form>
+</div>

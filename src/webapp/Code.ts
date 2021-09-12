@@ -7,8 +7,16 @@ function getPermissions(): boolean {
 	Logger.log("Permissions granted.");
 	return true;
 }
-
-function resetProperties(): void {
+/**
+ * Remove all properties from the PropertiesService stores associated with this
+ * script, effectively resetting the deployment. Private function specified with
+ * the trailing _ cannot be run from the client side or easily selected in the
+ * Apps Script IDE. To run (and reset all properties), open in the Apps Script
+ * IDE, uncomment the below line starting with "function", press "Save", select
+ * "RESET_DEPLOYMENT_YES_REALLY" from the function drop-down, and press "Run".
+ */
+// function RESET_DEPLOYMENT_YES_REALLY() { resetAllProperties_(); }
+function resetAllProperties_(): void {
 	let properties = PropertiesService.getDocumentProperties();
 	if (properties != null) properties.deleteAllProperties();
 	properties = PropertiesService.getUserProperties();
@@ -16,39 +24,63 @@ function resetProperties(): void {
 	properties = PropertiesService.getScriptProperties();
 	if (properties != null) properties.deleteAllProperties();
 }
-
+/**
+ * Get the properties store. Though likely not necessary to separate
+ * user/script/document stores, having a single function will allow
+ * standardization. We choose 'user' as it is the most restrictive.
+ * @returns {GoogleAppsScript.Properties.Properties} user properties
+ */
+function getProperties_(): GoogleAppsScript.Properties.Properties {
+	return PropertiesService.getUserProperties();
+}
 /**
  * The basic webapp-enabling function responding to the HTTP GET request
- * @returns {GoogleAppsScript.HTML.HtmlOutput} Web page appropriate to the
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} web page appropriate to the
  * request
  */
 function doGet(): GoogleAppsScript.HTML.HtmlOutput {
 	return buildPage();
 }
-
-function buildPage(): GoogleAppsScript.HTML.HtmlOutput {
-	let properties = PropertiesService.getScriptProperties();
-	let page = HtmlService.createTemplateFromFile("Index.html")
-		.evaluate()
+/**
+ * Construct the web page from the Index.html template
+ * @returns Apps Script-compatible web page
+ */
+function buildPage(
+	storage: VolatileProperties = null
+): GoogleAppsScript.HTML.HtmlOutput {
+	let properties = getProperties_();
+	let contents = include("Index.html", storage);
+	let page = HtmlService.createHtmlOutput(contents)
 		.addMetaTag(
 			"viewport",
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
 		)
 		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
 	if (properties != null && properties.getProperty("hostUri") != null) {
-		page.setXFrameOptionsMode(
-			GoogleAppsScript.HTML.XFrameOptionsMode.ALLOWALL
-		);
+		page.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 	}
 	return page;
 }
-
-function isConfigured(): boolean {
-	return hasSpreadsheet();
+function getConfig() {
+	return {
+		oauthId: getOauthId(),
+		oauthSecret: hasOauthSecret(),
+		pickerApiKey: getPickerApiKey(),
+	};
 }
-
+function isConfigured(): boolean {
+	let setupComplete = getProperty("setupComplete");
+	if (
+		setupComplete == null ||
+		setupComplete.trim() == "" ||
+		setupComplete == "false"
+	) {
+		return false;
+	}
+	return true;
+}
 function getProperty(propertyName: string): string {
-	var properties = PropertiesService.getScriptProperties();
+	var properties = getProperties_();
 	if (properties === null) {
 		return null;
 	}
@@ -60,36 +92,15 @@ function getProperty(propertyName: string): string {
  * containing mffer data, or null if none exists
  */
 function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
-	var sheetName = getProperty("spreadsheetId");
-	if (sheetName == null) {
-		return null;
-	}
-	return SpreadsheetApp.openById(sheetName);
-}
-/**
- * Determines whether an accessible spreadsheet has been linked to the
- * deployment. Does not validate that the spreadsheet is in the proper
- * mffer format.
- * @returns true if a spreadsheet has been linked to the deployment and is
- * able to be accessed; false otherwise
- */
-function hasSpreadsheet(): boolean {
-	let sheetName = getProperty("spreadsheetid");
-	let spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet = null;
-	if (sheetName == null || sheetName.trim() == "") return false;
-	try {
-		spreadsheet = SpreadsheetApp.openById(sheetName);
-	} catch (exception) {
-		return false;
-	}
-	if (spreadsheet == null) return false;
-	return true;
+	return SpreadsheetApp.getActiveSpreadsheet();
 }
 function getScriptId(): string {
 	return ScriptApp.getScriptId();
 }
 function getSpreadsheetId(): string {
-	return getProperty("spreadsheetId");
+	let spreadsheet = getSpreadsheet();
+	if (spreadsheet == null) return null;
+	return spreadsheet.getId();
 }
 function getOauthId(): string {
 	return getProperty("oauthId");
@@ -99,9 +110,6 @@ function getOauthSecret(): string {
 }
 function getPickerApiKey(): string {
 	return getProperty("pickerApiKey");
-}
-function getAuthorized(): string {
-	return getProperty("authorized");
 }
 function hasScriptId(): boolean {
 	return getScriptId() != null;
@@ -115,104 +123,65 @@ function hasOauthSecret(): boolean {
 function hasPickerKey(): boolean {
 	return getPickerApiKey() != null;
 }
-function hasAuthorization(): boolean {
-	return getAuthorized() != null;
-}
 function hasSpreadsheetId(): boolean {
 	return getSpreadsheetId() != null;
 }
-function checkSettings() {
-	return {
-		scriptId: getScriptId(),
-		oauthId: getOauthId(),
-		oauthSecret: hasOauthSecret(),
-		pickerKey: getPickerApiKey(),
-		authorization: hasAuthorization(),
-		spreadsheetId: hasSpreadsheetId(),
-	};
-}
-function setProperty(propertyName: string, propertyValue: string) {
-	var properties = PropertiesService.getScriptProperties();
+function setProperty_(propertyName: string, propertyValue: string) {
+	var properties = getProperties_();
 	if (properties == null) {
 		throw "Unable to access script properties";
 	}
 	properties.setProperty(propertyName, propertyValue);
 }
 function setOauthId(oauthId: string) {
-	setProperty("oauthId", oauthId);
+	setProperty_("oauthId", oauthId);
 }
 function setOauthSecret(oauthSecret: string) {
-	setProperty("oauthSecret", oauthSecret);
+	setProperty_("oauthSecret", oauthSecret);
 }
 function setPickerApiKey(pickerApiKey: string) {
-	setProperty("pickerApiKey", pickerApiKey);
+	setProperty_("pickerApiKey", pickerApiKey);
 }
-/**
- * Assigns a Google Spreadsheet to be the storage spreadsheet for the app
- * @param {string} spreadsheetId ID of the spreadsheet to set as the storage
- * spreadsheet
- */
-function setSpreadsheet(spreadsheetId: string): void {
-	setProperty("spreadsheetId", spreadsheetId);
-}
-function setAuthorized() {
-	setProperty("authorized", "true");
-}
-function setKeyProperties(
-	pickerApiKey: string,
-	oauthId: string,
-	oauthSecret: string
-) {
-	if (pickerApiKey != null) setPickerApiKey(pickerApiKey);
-	if (oauthId != null) setOauthId(oauthId);
-	if (oauthSecret != null) setOauthSecret(oauthSecret);
-}
-function setAllProperties(pickerApiKey: string, spreadsheetId: string) {
-	setPickerApiKey(pickerApiKey);
-	setSpreadsheet(spreadsheetId);
-}
-
-function getAdminPickerService() {
+function getAdminAuthService_(storage: VolatileProperties = null) {
 	if (getOauthId() == null) throw "OAuth 2.0 Client ID is not set";
 	if (getOauthSecret() == null) throw "OAuth 2.0 Secret is not set";
-	return OAuth2.createService("adminPicker")
+	return OAuth2.createService("adminLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
 		.setClientId(getOauthId())
 		.setClientSecret(getOauthSecret())
 		.setCallbackFunction("adminAuthComplete")
-		.setPropertyStore(PropertiesService.getUserProperties())
+		.setPropertyStore(storage)
 		.setScope("https://www.googleapis.com/auth/drive.file")
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-function getAuthUrl() {
-	let service = getAdminPickerService();
-	if (!service.hasAccess()) {
-		let authUrl = service.getAuthorizationUrl();
-		return authUrl;
-	}
-	return null;
+function isFalseOrEmpty(check: string | boolean | null): boolean {
+	let checkString = check.toString().trim();
+	if (check == null || check === false || checkString === "") return true;
+	return false;
 }
-function hasAdminAuthorization(): boolean {
-	let service = getAdminPickerService();
-	if (service.hasAccess()) return true;
-	else return false;
+function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
+	if (isFalseOrEmpty(oauthId)) oauthId = getProperty("oauthId");
+	if (isFalseOrEmpty(oauthSecret)) oauthSecret = getProperty("oauthSecret");
+	setOauthId(oauthId);
+	setOauthSecret(oauthSecret);
+	let service = getAdminAuthService_();
+	return service.getAuthorizationUrl();
 }
-function getAdminAuthToken(): string | null {
-	let service = getAdminPickerService();
-	if (!service.hasAccess()) {
-		return null;
-	} else {
-		return service.getAccessToken();
-	}
+function getRedirectUri(): string {
+	return (
+		"https://script.google.com/macros/d/" +
+		ScriptApp.getScriptId() +
+		"/usercallback"
+	);
 }
 function adminAuthComplete(request) {
-	let service = getAdminPickerService();
-	let isAuthorized = service.handleCallback(request);
-	if (isAuthorized) {
-		setAuthorized();
-		return buildPage();
+	let storage = new VolatileProperties();
+	let service = getAdminAuthService_(storage);
+	if (service.handleCallback(request)) {
+		setProperty_("setupComplete", "true");
+		return buildPage(storage);
 	} else {
 		return HtmlService.createHtmlOutput("Authorization denied.");
 	}
@@ -222,8 +191,11 @@ function adminAuthComplete(request) {
  * @param {string} filename Name of file containing HTML contents or template
  * @returns {string} Displayable HTML suitable for including within HTML output
  */
-function include(filename: string): string {
-	return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
+function include(filename: string, storage: VolatileProperties = null): string {
+	let template = HtmlService.createTemplateFromFile(filename);
+	if (storage != null)
+		template.storage = JSON.stringify(storage.getProperties());
+	return template.evaluate().getContent();
 }
 function getDateString(): string {
 	let today = new Date();
@@ -234,18 +206,12 @@ function getDateString(): string {
 	if (date.length == 1) date = "0" + date;
 	return year + month + date;
 }
-function createNewSpreadsheet(
-	fileName: string = null
-): GoogleAppsScript.Spreadsheet.Spreadsheet {
-	let dateString = getDateString();
-	if (fileName == null || fileName.trim() == "") {
-		fileName = "mffer - " + dateString;
-	}
-	let spreadsheet = SpreadsheetApp.create(fileName);
+function createNewSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
+	let spreadsheet = getSpreadsheet();
 	let coverSheet = spreadsheet.insertSheet("Cover", 0);
 	coverSheet
 		.getRange(1, 1)
-		.setValue("This sheet was generated by mffer. Do not edit it.");
+		.setValue("This file is used by mffer.Do not edit or delete it.");
 	for (let sheet of spreadsheet.getSheets()) {
 		if (sheet.getSheetId() != coverSheet.getSheetId()) {
 			spreadsheet.deleteSheet(sheet);
@@ -261,66 +227,12 @@ function createNewSpreadsheet(
 		coverSheet.getSheetId().toString(),
 		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 	);
-	linkGoogleSheet(spreadsheet.getId());
 	return spreadsheet;
-}
-function isValidSpreadsheet(spreadsheetId: string): boolean {
-	let file = SpreadsheetApp.openById(spreadsheetId);
-	if (file == null) {
-		Logger.log("Unable to open spreadsheet with ID " + spreadsheetId);
-		throw "Unable to open spreadsheet with ID " + spreadsheetId;
-	}
-	let metadataFinder = file
-		.createDeveloperMetadataFinder()
-		.withLocationType(
-			SpreadsheetApp.DeveloperMetadataLocationType.SPREADSHEET
-		)
-		.withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
-	if (metadataFinder.withKey("mffer-version").find().length != 1)
-		return false;
-	let coverSheetIds = metadataFinder.withKey("mffer-cover-sheet").find();
-	if (
-		coverSheetIds.length != 1 ||
-		Number(coverSheetIds[0].getValue()) == null ||
-		getSheetById(file, Number(coverSheetIds[0].getValue())) == null
-	) {
-		return false;
-	}
-	let dataSheetIds = metadataFinder.withKey("mffer-data-sheet").find();
-	if (
-		dataSheetIds.length != 1 ||
-		Number(dataSheetIds[0].getValue()) == null ||
-		getSheetById(file, Number(coverSheetIds[0].getValue())) == null
-	) {
-		return false;
-	}
-	return true;
-}
-function linkGoogleSheet(spreadsheetId: string): void {
-	if (isValidSpreadsheet(spreadsheetId)) {
-		setSpreadsheet(spreadsheetId);
-	} else {
-		throw (
-			"Spreadsheet ID " +
-			spreadsheetId +
-			" is not a valid mffer spreadsheet."
-		);
-	}
 }
 function importNewData(newText: string): void {
 	let spreadsheet = getSpreadsheet();
-	if (spreadsheet == null) spreadsheet = createNewSpreadsheet();
-	let metadataFinder = spreadsheet
-		.createDeveloperMetadataFinder()
-		.withLocationType(
-			SpreadsheetApp.DeveloperMetadataLocationType.SPREADSHEET
-		)
-		.withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
-	let dataSheets = metadataFinder.withKey("mffer-data-sheet").find();
-	let dataSheet: GoogleAppsScript.Spreadsheet.Sheet = null;
-	if (dataSheets != null && dataSheets.length > 0) {
-		let dataSheetId = Number(dataSheets[0].getValue());
-		dataSheet = getSheetById(spreadsheet, dataSheetId);
+	let dataSheet = getDataSheet();
+	if (dataSheet != null) {
 		dataSheet.copyTo(spreadsheet);
 		dataSheet.clear();
 	} else {

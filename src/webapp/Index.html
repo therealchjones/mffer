@@ -5,15 +5,21 @@
 		<?!= include('StyleSheet.html'); ?>
 	</head>
 	<body>
+		<p style="display: none" role="none">
+			The <code>mffer</code> webapp requires CSS.
+		</p>
+		<noscript
+			><p>The <code>mffer</code> webapp requires JavaScript.</p></noscript
+		>
 		<?!= include('Subpages/navbar.html'); ?>
-		<?!= include('Subpages/spinner.html'); ?>
 		<?!= include('Subpages/alert.html'); ?>
+		<?!= include('Subpages/spinner.html'); ?>
 
 		<? if ( ! isConfigured() ) { ?>
 		<?!= include('Subpages/new.html'); ?>
 		<? } ?>
 		<?!= include('Subpages/contents.html'); ?>
-		<?!= include('Subpages/filechooser.html'); ?>
+		<?!= include('Subpages/admin.html'); ?>
 		<?!= include('Subpages/shadowland.html'); ?>
 
 		<?!= include('Subpages/statusbar.html'); ?>

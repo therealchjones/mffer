@@ -15,6 +15,7 @@
 		font-family: "Exo 2", sans-serif;
 		text-align: center;
 		padding-top: 4rem;
+		padding-bottom: 2rem;
 	}
 	.start-inactive {
 		display: none;
@@ -22,25 +23,31 @@
 	#mffer-navbar-brand {
 		margin: 0;
 	}
-	#mffer-navbar-menu {
+	#mffer-navbar-toggle {
+		margin-right: 7px;
+	}
+	#mffer-admin form {
 		text-align: left;
 	}
-	#mffer-statusbar {
-		height: 1.5rem;
-		font-size: 0.75rem;
-		padding-top: 0;
-		padding-bottom: 0;
+	[id^="mffer-admin-instructions-"] {
+		text-align: right;
+		font-size: 75%;
+		margin: 0;
+		height: calc(1em * var(--bs-body-line-height));
 	}
-	#progress-bar-text {
-		display: inline;
-		margin-top: 0;
-		margin-bottom: 0;
-		margin-left: 0;
-		margin-right: 0.5em;
+	.form-floating .spinner-border {
+		position: absolute;
+		bottom: calc(1.5em + 5px);
+		right: 1.5em;
 	}
-	#log-button {
-		font-size: 87.5%;
-		line-height: 1;
+	#mffer-admin-listitem-login {
+		padding-left: calc(1.75rem + 1px);
+	}
+	[id^="mffer-admin-input-"] {
+		text-overflow: ellipsis;
+	}
+	.disabled * {
+		color: inherit;
 	}
 	#mffer-shadowland fieldset {
 		width: 100%;
@@ -153,13 +160,22 @@
 		border-style: solid;
 	}
 	#mffer-statusbar {
+		height: 1.5rem;
+		font-size: 0.75rem;
+		padding-top: 0;
+		padding-bottom: 0;
 		text-align: right;
 	}
-	#mffer-statusbar #progress-bar-text {
+	#progress-bar-text {
 		display: inline;
+		margin-top: 0;
+		margin-bottom: 0;
+		margin-left: 0;
 		margin-right: 0.5em;
 	}
-	#status-bar #log-button {
+	#log-button {
+		font-size: 87.5%;
+		line-height: 1;
 		margin: 0;
 	}
 	#textdisplay,
