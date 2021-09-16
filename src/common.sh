@@ -60,7 +60,11 @@ cleanup() {
 	echo "Cleaning up" >"$VERBOSEOUT"
 	# Temp directories may still be in use by child processes
 	trap '' EXIT HUP INT QUIT TERM
-	kill -s "$1" 0
+	if [ -n "$1" ]; then
+		kill -s "$1" 0
+	else
+		kill 0
+	fi
 	# Allow cancelling further if, e.g., someone hits Ctrl-C while cleanup is
 	# happening
 	trap - EXIT HUP INT QUIT TERM
