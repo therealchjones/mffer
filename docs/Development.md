@@ -599,18 +599,20 @@ Google's OAuth 2.0 authentication.
 GCP is somewhat complex to configure, and configuration within an existing GCP
 account is beyond the scope of this document (and may be beyond the abilities of
 this author). However, you may be able to create a basic project usable for
-`mffer` webapp deployment in a few (relatively) simple steps:
+`mffer` webapp deployment in a few (relatively) simple steps. More in-depth
+resources for setting up Apps Script in a Google Cloud Platform account include:
 
-https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
+-   https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
+-   https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
+-   https://developers.google.com/picker/docs#appreg
+-   https://cloud.google.com/resource-manager/docs/creating-managing-projects
 
-https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
-
-(Compare this to https://developers.google.com/picker/docs#appreg and https://cloud.google.com/resource-manager/docs/creating-managing-projects; also need
-https://www.googleapis.com/auth/drive.file scope?)
+In an effort to consolidate the above into a simple(r) set of instructions,
+follow the below set of instructions to set up a project for `mffer`.
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
    name (and other info if desired). Press "Create".
-2. You'll likely then be taken to the project dashboard; if not, visit
+2. Visit
    https://console.cloud.google.com/home/dashboard. Ensure the correct
    project is chosen in the project drop-down. Find the project number on the
    "Project Info" card and make a note of it.
@@ -619,14 +621,22 @@ https://www.googleapis.com/auth/drive.file scope?)
    pressing the "Enable" button:
     - [Apps Script API](https://console.cloud.google.com/apis/library/script.googleapis.com)
     - [Picker API](https://console.cloud.google.com/apis/library/picker.googleapis.com?)
-4. Visit https://console.cloud.google.com/apis/credentials/wizard and again
+4. Create an OAuth Consent Screen by visiting
+   https://console.cloud.google.com/apis/credentials/consent, choosing
+   "External" user type, and pressing "Create". Enter the required information
+   for the "App information" and "Developer contact information", and press
+   "Save and continue". Choose "Add or remove scopes" and enter
+   "https://www.googleapis.com/auth/drive.file" under "Manually add scopes".
+   Again press "Update" and "Save and continue". Add your own account as a "Test
+   user", then press "Save and continue" one more time.
+5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
    ensure the correct project is shown in the project drop-down. First choose
    "Apps Script API" for "Which API are you using?" and select "User data"
-   before pressing "Next". Don't change anything in the "Scopes" section, but
-   press "Save and continue". For the "OAuth Client ID" section's "Application
+   before pressing "Next". Don't add anything in "Scopes", just "Save and
+   continue". For the "OAuth Client ID" section's "Application
    type", choose "Web application", and enter a name like "mffer". Press
    "Create" and make a note of the Client ID before pressing "Done".
-5. Return to https://console.cloud.google.com/apis/credentials/wizard and again
+6. Return to https://console.cloud.google.com/apis/credentials/wizard and again
    ensure the correct project is shown in the project drop-down. Choose
    "Google Picker API" for "Which API are you using?" and select "Public data"
    before pressing "Next". Make a note of the API Key and press "Done".
@@ -682,9 +692,9 @@ https://www.googleapis.com/auth/drive.file scope?)
     links).
 11. Visit the OAuth client ID page as prompted, and in the "Authorized redirect
     URIs" section, add the URI given in the webapp; press "Save".
-12. Back on the webapp, use the "Google authorization" link and if prompted, grant
-    authorization to access Google Drive, again, from the same account you're
-    using to deploy the webapp.
+12. Back on the webapp, use the "Login" button to authenticate with Google once
+    more; this will additionally lock the above settings and take the app out of
+    "setup mode".
 13. When the app reloads, choose "Upload new `mffer` data" and select a CSV file
     created by the `mffer` command line application.
 14. To allow users to keep personalized logs and customization for the `mffer`
@@ -693,6 +703,16 @@ https://www.googleapis.com/auth/drive.file scope?)
     section (or obtain it again from
     https://console.cloud.google.com/apis/credentials using the provided
     link).
+15. To visit the deployed test version of the web app, use `clasp` at the
+    command line:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+    ```
+
+The webapp is now set up for access but
+[available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment).
+To deploy widely, first ensure privacy, restrictions, and access are secured in the
+GCP project, then submit your app for [verification](https://developers.google.com/apps-script/guides/client-verification) by Google.
 
 ## See also
 

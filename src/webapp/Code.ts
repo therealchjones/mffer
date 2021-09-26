@@ -69,15 +69,9 @@ function getConfig() {
 	};
 }
 function isConfigured(): boolean {
-	let setupComplete = getProperty("setupComplete");
-	if (
-		setupComplete == null ||
-		setupComplete.trim() == "" ||
-		setupComplete == "false"
-	) {
+	if (isFalseOrEmpty(getOauthId()) || isFalseOrEmpty(getOauthSecret())) {
 		return false;
-	}
-	return true;
+	} else return true;
 }
 function getProperty(propertyName: string): string {
 	var properties = getProperties_();
@@ -143,32 +137,57 @@ function setPickerApiKey(pickerApiKey: string) {
 	setProperty_("pickerApiKey", pickerApiKey);
 }
 function getAdminAuthService_(storage: VolatileProperties = null) {
-	if (getOauthId() == null) throw "OAuth 2.0 Client ID is not set";
-	if (getOauthSecret() == null) throw "OAuth 2.0 Secret is not set";
+	let oauthId: string = getOauthId();
+	let callbackFunction: string = "processAdminAuthResponse";
+	if (isFalseOrEmpty(oauthId) && storage != null) {
+		oauthId = storage.getProperty("oauthId");
+		callbackFunction = "processNewAdminAuthResponse";
+	}
+	if (isFalseOrEmpty(oauthId))
+		throw new Error("OAuth 2.0 Client ID is not set");
+	let oauthSecret: string = getOauthSecret();
+	if (isFalseOrEmpty(oauthSecret) && storage != null) {
+		oauthSecret = storage.getProperty("oauthSecret");
+		callbackFunction = "processNewAdminAuthResponse";
+	}
+	if (isFalseOrEmpty(oauthSecret))
+		throw new Error("OAuth 2.0 Client secret is not set");
+
 	return OAuth2.createService("adminLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
-		.setClientId(getOauthId())
-		.setClientSecret(getOauthSecret())
-		.setCallbackFunction("adminAuthComplete")
+		.setClientId(oauthId)
+		.setClientSecret(oauthSecret)
+		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
 		.setScope("https://www.googleapis.com/auth/drive.file")
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
 function isFalseOrEmpty(check: string | boolean | null): boolean {
+	if (check == null) return true;
 	let checkString = check.toString().trim();
-	if (check == null || check === false || checkString === "") return true;
+	if (check === false || checkString === "") return true;
 	return false;
 }
 function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
+	if (isFalseOrEmpty(oauthId) && isFalseOrEmpty(oauthSecret))
+		return getAdminAuthService_().getAuthorizationUrl();
 	if (isFalseOrEmpty(oauthId)) oauthId = getProperty("oauthId");
 	if (isFalseOrEmpty(oauthSecret)) oauthSecret = getProperty("oauthSecret");
-	setOauthId(oauthId);
-	setOauthSecret(oauthSecret);
-	let service = getAdminAuthService_();
-	return service.getAuthorizationUrl();
+	let storage = new VolatileProperties();
+	storage.setProperties(
+		{
+			oauthId: oauthId,
+			oauthSecret: oauthSecret,
+		},
+		false
+	);
+	return getAdminAuthService_(storage).getAuthorizationUrl(
+		storage.getProperties()
+	);
 }
+
 function getRedirectUri(): string {
 	return (
 		"https://script.google.com/macros/d/" +
@@ -176,7 +195,39 @@ function getRedirectUri(): string {
 		"/usercallback"
 	);
 }
-function adminAuthComplete(request) {
+function processNewAdminAuthResponse(request) {
+	let noOauthMessage: string =
+		"Admin authorization response did not include OAuth 2.0 client information.";
+	if (request.parameter == null) throw new Error(noOauthMessage);
+	let oauthId: string = request.parameter.oauthId;
+	let oauthSecret: string = request.parameter.oauthSecret;
+	if (oauthId == null || oauthSecret == null) throw new Error(noOauthMessage);
+
+	let storage = new VolatileProperties();
+	storage.setProperties(
+		{
+			oauthId: oauthId,
+			oauthSecret: oauthSecret,
+		},
+		false
+	);
+	let service = getAdminAuthService_(storage);
+	if (service.handleCallback(request)) {
+		setProperty_("oauthSecret", oauthSecret);
+		setProperty_("oauthId", oauthId);
+		storage.deleteProperty("oauthId").deleteProperty("oauthSecret");
+		return buildPage(storage);
+	} else {
+		let errorMessage: string = request.parameter.error;
+		if (errorMessage == null || errorMessage.toString().trim() === "")
+			errorMessage = "Unknown error";
+		let adminAuthError: string =
+			"Unable to authorize administrative access: " + errorMessage;
+		storage.setProperty("adminAuthError", adminAuthError);
+		return buildPage(storage);
+	}
+}
+function processAdminAuthResponse(request) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
@@ -193,8 +244,8 @@ function adminAuthComplete(request) {
  */
 function include(filename: string, storage: VolatileProperties = null): string {
 	let template = HtmlService.createTemplateFromFile(filename);
-	if (storage != null)
-		template.storage = JSON.stringify(storage.getProperties());
+	if (storage == null) storage = new VolatileProperties();
+	template.storage = storage;
 	return template.evaluate().getContent();
 }
 function getDateString(): string {

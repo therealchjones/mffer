@@ -1,17 +1,19 @@
-<div id="mffer-admin" class="start-inactive container">
+<div id="mffer-admin" class="start-inactive">
 	<h2><code>mffer</code> settings</h2>
 	<div id="mffer-admin-deploymentinstructions">
 		<p>
+			See the
 			<a
 				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
 				target="_blank"
 				>"Deploying the webapp" instructions</a
 			>
+			for details.
 		</p>
 	</div>
-	<form id="mffer-admin-setup" class="container">
+	<form id="mffer-admin-setup">
 		<ol>
-			<li id="mffer-admin-listitem-oauthid" class="disabled">
+			<li id="mffer-admin-listitem-oauthid">
 				<p id="mffer-admin-instructions-oauthid">
 					<a
 						href="https://console.cloud.google.com/apis/credentials"
@@ -20,9 +22,9 @@
 					>
 				</p>
 				<label for="mffer-admin-input-oauthid">OAuth 2.0 ID</label>
-				<input type="text" id="mffer-admin-input-oauthid" disabled />
+				<input type="text" id="mffer-admin-input-oauthid" />
 			</li>
-			<li id="mffer-admin-listitem-oauthsecret" class="disabled">
+			<li id="mffer-admin-listitem-oauthsecret">
 				<p id="mffer-admin-instructions-oauthsecret">
 					<a
 						href="https://console.cloud.google.com/apis/credentials"
@@ -33,16 +35,9 @@
 				<label for="mffer-admin-input-oauthsecret"
 					>OAuth 2.0 Secret</label
 				>
-				<input
-					type="text"
-					id="mffer-admin-input-oauthsecret"
-					disabled
-				/>
+				<input type="text" id="mffer-admin-input-oauthsecret" />
 			</li>
-			<li
-				id="mffer-admin-listitem-oauthredirecturi"
-				class="readonly disabled"
-			>
+			<li id="mffer-admin-listitem-oauthredirecturi" class="readonly">
 				<p id="mffer-admin-instructions-oauthredirecturi">
 					<a
 						href="https://console.cloud.google.com/apis/credentials"
@@ -59,6 +54,11 @@
 					readonly
 					value="<?!= getRedirectUri(); ?>"
 				/>
+			</li>
+			<li id="mffer-admin-listitem-authorize" class="disabled">
+				<a id="mffer-admin-a-authorize" class="btn btn-primary">
+					Authorize Google and save these settings
+				</a>
 			</li>
 			<li id="mffer-admin-listitem-pickerapikey" class="disabled">
 				<p id="mffer-admin-instructions-oauthsecret">

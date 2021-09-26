@@ -10,7 +10,7 @@
 	crossorigin="anonymous"
 ></script>
 <div id="mffer-storage" class="start-inactive">
-	<?!= mfferStorage ?>
+	<?!= JSON.stringify(storage.getProperties()); ?>
 </div>
 <script id="mffer-js">
 	"use strict";
@@ -23,10 +23,7 @@
 		oauthsecret: "",
 		pickerapikey: "",
 	};
-	var loginSettings = {
-		oauthid: "",
-		oauthsecret: "",
-	};
+	var pageStorage = null;
 	var importText = null;
 
 	$(document).ready(function () {
@@ -67,6 +64,7 @@
 		bootstrapifyAdmin();
 	}
 	function bootstrapifyAdmin() {
+		$("#mffer-admin-setup").addClass("container");
 		let lis = $("#mffer-admin li");
 		let spinner = $(
 			'<span class="spinner-border spinner-border-sm p-0"></span>'
@@ -149,31 +147,58 @@
 		}
 		return spinner;
 	}
-	function initializeSetup() {
-		startSetupMode();
-		$("#mffer-new-button-setup").click(openAdmin).show();
+	function disable(block) {
+		if (block == null) return;
+		$(block)
+			.addClass(disable)
+			.attr("disabled", "true")
+			.attr("tabindex", -1);
 	}
-	/**
-	 * Enables "setup mode" which makes the webapp behave as though
-	 * authentication is not needed to manage the deployment. Does
-	 * not itself forgo authentication; that must be done on the
-	 * Apps Script side and is checked separately.
-	 */
-	function startSetupMode() {
+	function initializeSetup() {
 		showAlert(
 			"Warning: Setup Mode",
 			"<code>mffer</code> is currently in setup mode. Changes can be " +
 				"made to the deployment without authentication. This will " +
-				'stop when you <a href="#" id="mffer-alert-a-openadmin">complete setup</a>.'
+				"stop when you complete setup."
 		);
-		$("#mffer-admin")
-			.find("li[id^='mffer-admin-listitem-']")
-			.first()
-			.removeClass("disabled");
-		$("#mffer-alert-a-openadmin").click(function (e) {
-			e.preventDefault();
-			openAdmin();
-		});
+		let storageElement = $("#mffer-storage");
+		if (storageElement.length > 0) {
+			try {
+				pageStorage = JSON.parse(storageElement.html().trim());
+			} catch (error) {
+				pageStorage = null;
+			}
+		}
+		if (pageStorage == null) {
+			$("#mffer-new-button-setup").click(openAdmin);
+			$("#mffer-new-spinner").hide();
+			$("#mffer-new-intro").show();
+		} else {
+			let authErrorMessage = pageStorage.adminAuthError;
+			if (!isFalseOrEmpty(authErrorMessage)) {
+				$("#mffer-admin-listitem-oauthid").removeClass("disabled");
+				$("#mffer-admin-input-oauthid")
+					.val(pageStorage.oauthId)
+					.removeAttr("disabled");
+				$("#mffer-admin-listitem-oauthsecret").removeClass("disabled");
+				$("#mffer-admin-input-oauthsecret")
+					.val(pageStorage.oauthSecret)
+					.removeAttr("disabled");
+				$("#mffer-admin-listitem-authorize").removeClass("disabled");
+				$("#mffer-admin-listitem-authorize p")
+					.addClass("text-danger")
+					.html(
+						"Unable to authenticate with Google: " +
+							authErrorMessage
+					);
+				checkAdminAuthUrl();
+				openAdmin();
+			} else {
+				throwError(
+					"Setup is not complete but there's no apparent Google error. I don't know what's up with that."
+				);
+			}
+		}
 	}
 	function openAdmin() {
 		hidePages();
@@ -185,7 +210,7 @@
 			}
 		}
 		google.script.run
-			.withSuccessHandler(checkSettings)
+			.withSuccessHandler(loadSettings)
 			.withFailureHandler(function () {
 				throwError("Unable to get the current configuration");
 			})
@@ -200,26 +225,23 @@
 				let inputName = event.currentTarget.id;
 				let shortName = inputName.replace(/^mffer-admin-input-/, "");
 				mfferSettings[shortName] = text.toString().trim();
+				if (shortName == "oauthid") {
+					$("#mffer-admin-instructions-oauthsecret")
+						.add("#mffer-admin-instructions-oauthredirecturi")
+						.find("a")
+						.attr(
+							"href",
+							"https://console.cloud.google.com/apis/credentials/oauthclient/" +
+								mfferSettings.oauthid
+						);
+				}
+				checkAdminAuthUrl();
 				let next = $(this)
 					.parents("#mffer-admin-listitem-" + shortName)
 					.next();
 				if (next.length != 0) {
-					if (shortName == "oauthid") {
-						checkAdminAuthUrl();
-						$("#mffer-admin-instructions-oauthsecret")
-							.add("#mffer-admin-instructions-oauthredirecturi")
-							.find("a")
-							.attr(
-								"href",
-								"https://console.cloud.google.com/apis/credentials/oauthclient/" +
-									mfferSettings.oauthid
-							);
-					}
-					if (shortName == "oauthsecret") {
-						checkAdminAuthUrl();
-						next.next().removeClass("disabled");
-					}
 					next.removeClass("disabled");
+					next.find("input").removeAttr("disabled");
 				}
 				hideSpinner(this);
 			});
@@ -268,33 +290,32 @@
 					throwError("Unable to identify button clicked");
 			}
 		});
-
 		$("#mffer-admin").show();
 	}
 	function isFalseOrEmpty(check) {
-		let checkString = check.toString().trim();
-		if (check == null || check === false || checkString === "") return true;
+		if (check == null || check === false || check.toString().trim() === "")
+			return true;
 		return false;
 	}
 	function checkAdminAuthUrl() {
 		if (!isFalseOrEmpty(googleOauthUrl)) setAdminAuthUrl(googleOauthUrl);
 		if (
-			isFalseOrEmpty(mfferSettings.oauthid) ||
-			mfferSettings.oauthid === true ||
-			isFalseOrEmpty(mfferSettings.oauthsecret) ||
-			mfferSettings.oauthsecret === true
-		)
-			return;
-		google.script.run
-			.withSuccessHandler(setAdminAuthUrl)
-			.getAdminAuthUrl(mfferSettings.oauthid, mfferSettings.oauthsecret);
+			!isFalseOrEmpty(mfferSettings.oauthid) &&
+			!isFalseOrEmpty(mfferSettings.oauthsecret)
+		) {
+			google.script.run
+				.withSuccessHandler(setAdminAuthUrl)
+				.getAdminAuthUrl(
+					mfferSettings.oauthid,
+					mfferSettings.oauthsecret
+				);
+		}
 	}
 	function setAdminAuthUrl(url) {
 		if (isFalseOrEmpty(url)) return;
 		googleOauthUrl = url.toString().trim();
-		$("#mffer-admin-input-fileupload").removeAttr("disabled");
-		$("#mffer-admin-listitem-fileupload").removeClass("disabled");
-		$("#button-filechooser-confirm").removeAttr("disabled");
+		$("#mffer-admin-a-authorize").attr("href", googleOauthUrl);
+		$("#mffer-admin-listitem-authorize").removeClass("disabled");
 	}
 	function setKey(keyName, keyValue) {
 		google.script.run
@@ -316,27 +337,22 @@
 		$("#loading-notes").html(errorMessage);
 		throw error;
 	}
-	function checkSettings(
+	function loadSettings(
 		currentSettings = { oauthid: "", oauthsecret: "", pickerapikey: "" }
 	) {
 		mfferSettings = currentSettings;
 		for (let property in mfferSettings) {
 			let input = $("#mffer-admin-input-" + property.toLowerCase());
 			if (input.length != 0) {
-				if (
-					mfferSettings[property] == null ||
-					mfferSettings[property] == false ||
-					mfferSettings[property].toString().trim() == ""
-				) {
-					input.removeAttr("disabled");
-				} else {
+				if (!isFalseOrEmpty(mfferSettings[property])) {
 					let text = mfferSettings[property];
-					if (mfferSettings[property] == true) text = "[set]";
+					if (mfferSettings[property] === true) text = "[set]";
 					input.val(text);
 				}
 				hideSpinner(input);
 			}
 		}
+		checkAdminAuthUrl();
 	}
 	function loadPickerApi(token) {
 		if (token == null) throwError("Unable to obtain authorization.");
