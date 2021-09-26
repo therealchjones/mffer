@@ -1,7 +1,7 @@
 <div id="mffer-admin" class="start-inactive">
 	<h2><code>mffer</code> settings</h2>
-	<div id="mffer-admin-deploymentinstructions">
-		<p>
+	<form id="mffer-admin-setup" class="start-inactive">
+		<p id="mffer-admin-deploymentinstructions">
 			See the
 			<a
 				href="http://github.com/therealchjones/mffer/docs/Deployment.md#deploying-the-webapp"
@@ -10,9 +10,7 @@
 			>
 			for details.
 		</p>
-	</div>
-	<form id="mffer-admin-setup">
-		<ol>
+		<ul>
 			<li id="mffer-admin-listitem-oauthid">
 				<p id="mffer-admin-instructions-oauthid">
 					<a
@@ -52,14 +50,19 @@
 					type="text"
 					id="mffer-admin-input-oauthredirecturi"
 					readonly
-					value="<?!= getRedirectUri(); ?>"
+					value=""
 				/>
 			</li>
 			<li id="mffer-admin-listitem-authorize" class="disabled">
+				<p class="text-danger" id="mffer-admin-authorizationerror"></p>
 				<a id="mffer-admin-a-authorize" class="btn btn-primary">
-					Authorize Google and save these settings
+					Authorize Google &amp; save these settings
 				</a>
 			</li>
+		</ul>
+	</form>
+	<form id="mffer-admin-maintenance">
+		<ul>
 			<li id="mffer-admin-listitem-pickerapikey" class="disabled">
 				<p id="mffer-admin-instructions-oauthsecret">
 					<a
@@ -86,7 +89,7 @@
 				</button>
 				<input type="file" id="mffer-admin-input-fileupload" disabled />
 			</li>
-		</ol>
+		</ul>
 		<div id="mffer-filechooser-pending" class="start-inactive">
 			<p>File preview:</p>
 			<div id="mffer-filechooser-textdisplay"></div>

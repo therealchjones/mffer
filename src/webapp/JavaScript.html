@@ -64,7 +64,9 @@
 		bootstrapifyAdmin();
 	}
 	function bootstrapifyAdmin() {
-		$("#mffer-admin-setup").addClass("container");
+		$("#mffer-admin-setup")
+			.add("#mffer-admin-maintenance")
+			.addClass("container");
 		let lis = $("#mffer-admin li");
 		let spinner = $(
 			'<span class="spinner-border spinner-border-sm p-0"></span>'
@@ -161,6 +163,16 @@
 				"made to the deployment without authentication. This will " +
 				"stop when you complete setup."
 		);
+		showSpinner($("#mffer-admin-input-oauthredirecturi"));
+		google.script.run
+			.withSuccessHandler(function (uri) {
+				hideSpinner($("#mffer-admin-input-oauthredirecturi"));
+				$("#mffer-admin-input-oauthredirecturi").val(uri);
+			})
+			.withFailureHandler(function () {
+				throwError("Unable to get redirect URI");
+			})
+			.getRedirectUri();
 		let storageElement = $("#mffer-storage");
 		if (storageElement.length > 0) {
 			try {
@@ -169,6 +181,8 @@
 				pageStorage = null;
 			}
 		}
+		$("#mffer-admin-setup").show();
+		$("#mffer-admin-maintenance").hide();
 		if (pageStorage == null) {
 			$("#mffer-new-button-setup").click(openAdmin);
 			$("#mffer-new-spinner").hide();
