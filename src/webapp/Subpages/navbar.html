@@ -3,28 +3,35 @@
 	role="navigation"
 	class="navbar fixed-top navbar-light bg-light always-active"
 >
-	<button
-		id="mffer-navbar-toggle"
-		class="navbar-toggler btn btn-outline-primary"
-		type="button"
-		data-bs-toggle="collapse"
-		data-bs-target="#mffer-navbar-menu"
-		aria-controls="mffer-navbar-menu"
-		aria-expanded="false"
-		aria-label="Toggle navigation menu"
+	<div
+		id="mffer-navbar-toggle-frame"
+		class="d-flex justify-content-start w-25"
 	>
-		<span class="navbar-toggler-icon"></span>
-	</button>
+		<button
+			id="mffer-navbar-toggle"
+			class="navbar-toggler btn btn-outline-primary"
+			type="button"
+			data-bs-toggle="collapse"
+			data-bs-target="#mffer-navbar-menu"
+			aria-controls="mffer-navbar-menu"
+			aria-expanded="false"
+			aria-label="Toggle navigation menu"
+		>
+			<span class="navbar-toggler-icon"></span>
+		</button>
+	</div>
 	<h1 id="mffer-navbar-brand" class="navbar-brand">
 		<a href="https://mffer.org"><code>mffer</code></a>
 	</h1>
-	<button
-		type="button"
-		id="button-signin"
-		class="hidden btn btn-outline-primary"
-	>
-		login
-	</button>
+	<div id="mffer-navbar-login-frame" class="d-flex justify-content-end w-25">
+		<button
+			type="button"
+			id="mffer-navbar-button-login"
+			class="start-inactive btn btn-primary"
+		>
+			login
+		</button>
+	</div>
 	<div id="mffer-navbar-menu" class="collapse navbar-collapse">
 		<ul class="navbar-nav">
 			<li class="nav-item">

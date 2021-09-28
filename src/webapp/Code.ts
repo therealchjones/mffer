@@ -63,17 +63,17 @@ function buildPage(
 }
 function getConfig() {
 	return {
-		oauthId: getOauthId(),
-		oauthSecret: hasOauthSecret(),
-		pickerApiKey: getPickerApiKey(),
+		oauthId: getOauthId_(),
+		oauthSecret: hasOauthSecret_(),
+		pickerApiKey: getPickerApiKey_(),
 	};
 }
 function isConfigured(): boolean {
-	if (isFalseOrEmpty(getOauthId()) || isFalseOrEmpty(getOauthSecret())) {
+	if (isFalseOrEmpty(getOauthId_()) || isFalseOrEmpty(getOauthSecret_())) {
 		return false;
 	} else return true;
 }
-function getProperty(propertyName: string): string {
+function getProperty_(propertyName: string): string {
 	var properties = getProperties_();
 	if (properties === null) {
 		return null;
@@ -85,40 +85,20 @@ function getProperty(propertyName: string): string {
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet} The sheet (workbook)
  * containing mffer data, or null if none exists
  */
-function getSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
+function getSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	return SpreadsheetApp.getActiveSpreadsheet();
 }
-function getScriptId(): string {
-	return ScriptApp.getScriptId();
+function getOauthId_(): string {
+	return getProperty_("oauthId");
 }
-function getSpreadsheetId(): string {
-	let spreadsheet = getSpreadsheet();
-	if (spreadsheet == null) return null;
-	return spreadsheet.getId();
+function getOauthSecret_(): string {
+	return getProperty_("oauthSecret");
 }
-function getOauthId(): string {
-	return getProperty("oauthId");
+function getPickerApiKey_(): string {
+	return getProperty_("pickerApiKey");
 }
-function getOauthSecret(): string {
-	return getProperty("oauthSecret");
-}
-function getPickerApiKey(): string {
-	return getProperty("pickerApiKey");
-}
-function hasScriptId(): boolean {
-	return getScriptId() != null;
-}
-function hasOauthId(): boolean {
-	return getOauthId() != null;
-}
-function hasOauthSecret(): boolean {
-	return getOauthSecret() != null;
-}
-function hasPickerKey(): boolean {
-	return getPickerApiKey() != null;
-}
-function hasSpreadsheetId(): boolean {
-	return getSpreadsheetId() != null;
+function hasOauthSecret_(): boolean {
+	return getOauthSecret_() != null;
 }
 function setProperty_(propertyName: string, propertyValue: string) {
 	var properties = getProperties_();
@@ -127,17 +107,8 @@ function setProperty_(propertyName: string, propertyValue: string) {
 	}
 	properties.setProperty(propertyName, propertyValue);
 }
-function setOauthId(oauthId: string) {
-	setProperty_("oauthId", oauthId);
-}
-function setOauthSecret(oauthSecret: string) {
-	setProperty_("oauthSecret", oauthSecret);
-}
-function setPickerApiKey(pickerApiKey: string) {
-	setProperty_("pickerApiKey", pickerApiKey);
-}
 function getAdminAuthService_(storage: VolatileProperties = null) {
-	let oauthId: string = getOauthId();
+	let oauthId: string = getOauthId_();
 	let callbackFunction: string = "processAdminAuthResponse";
 	if (isFalseOrEmpty(oauthId) && storage != null) {
 		oauthId = storage.getProperty("oauthId");
@@ -145,7 +116,7 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 	}
 	if (isFalseOrEmpty(oauthId))
 		throw new Error("OAuth 2.0 Client ID is not set");
-	let oauthSecret: string = getOauthSecret();
+	let oauthSecret: string = getOauthSecret_();
 	if (isFalseOrEmpty(oauthSecret) && storage != null) {
 		oauthSecret = storage.getProperty("oauthSecret");
 		callbackFunction = "processNewAdminAuthResponse";
@@ -165,16 +136,14 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setParam("prompt", "consent");
 }
 function isFalseOrEmpty(check: string | boolean | null): boolean {
-	if (check == null) return true;
-	let checkString = check.toString().trim();
-	if (check === false || checkString === "") return true;
+	if (!check || check.toString().trim() === "") return true;
 	return false;
 }
 function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
 	if (isFalseOrEmpty(oauthId) && isFalseOrEmpty(oauthSecret))
 		return getAdminAuthService_().getAuthorizationUrl();
-	if (isFalseOrEmpty(oauthId)) oauthId = getProperty("oauthId");
-	if (isFalseOrEmpty(oauthSecret)) oauthSecret = getProperty("oauthSecret");
+	if (isFalseOrEmpty(oauthId)) oauthId = getProperty_("oauthId");
+	if (isFalseOrEmpty(oauthSecret)) oauthSecret = getProperty_("oauthSecret");
 	let storage = new VolatileProperties();
 	storage.setProperties(
 		{
@@ -187,7 +156,6 @@ function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
 		storage.getProperties()
 	);
 }
-
 function getRedirectUri(): string {
 	return (
 		"https://script.google.com/macros/d/" +
@@ -231,10 +199,50 @@ function processAdminAuthResponse(request) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
-		setProperty_("setupComplete", "true");
 		return buildPage(storage);
 	} else {
 		return HtmlService.createHtmlOutput("Authorization denied.");
+	}
+}
+function getUserAuthService_(storage: VolatileProperties = null) {
+	let oauthId: string = getOauthId_();
+	let callbackFunction: string = "processUserAuthResponse";
+	if (isFalseOrEmpty(oauthId))
+		throw new Error("OAuth 2.0 Client ID is not set");
+	let oauthSecret: string = getOauthSecret_();
+	if (isFalseOrEmpty(oauthSecret))
+		throw new Error("OAuth 2.0 Client secret is not set");
+	return OAuth2.createService("userLogin")
+		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
+		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
+		.setClientId(oauthId)
+		.setClientSecret(oauthSecret)
+		.setCallbackFunction(callbackFunction)
+		.setPropertyStore(storage)
+		.setScope("https://www.googleapis.com/auth/drive.file")
+		.setParam("access_type", "offline")
+		.setParam("prompt", "consent");
+}
+function getUserAuthUrl(pageStorage: { [key: string]: string }): string {
+	let storage = new VolatileProperties(pageStorage);
+	return getUserAuthService_(storage).getAuthorizationUrl();
+}
+function processUserAuthResponse(request) {
+	let storage = new VolatileProperties();
+	let service = getUserAuthService_(storage);
+	if (service.handleCallback(request)) {
+		return buildPage(storage);
+	} else {
+		return HtmlService.createHtmlOutput("Authorization denied.");
+	}
+}
+function getUserLoginStatus(pageStorageJson: string): string {
+	let pageStorage: { [key: string]: string } = JSON.parse(pageStorageJson);
+	let storage = new VolatileProperties(pageStorage);
+	if (getUserAuthService_(storage).hasAccess())
+		return JSON.stringify(storage.getProperties());
+	else {
+		return null;
 	}
 }
 /**
@@ -258,7 +266,7 @@ function getDateString(): string {
 	return year + month + date;
 }
 function createNewSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
-	let spreadsheet = getSpreadsheet();
+	let spreadsheet = getSpreadsheet_();
 	let coverSheet = spreadsheet.insertSheet("Cover", 0);
 	coverSheet
 		.getRange(1, 1)
@@ -281,7 +289,7 @@ function createNewSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	return spreadsheet;
 }
 function importNewData(newText: string): void {
-	let spreadsheet = getSpreadsheet();
+	let spreadsheet = getSpreadsheet_();
 	let dataSheet = getDataSheet();
 	if (dataSheet != null) {
 		dataSheet.copyTo(spreadsheet);
@@ -311,7 +319,7 @@ function getSheetById(
 	gid: number
 ): GoogleAppsScript.Spreadsheet.Sheet {
 	if (!spreadsheet) {
-		spreadsheet = getSpreadsheet();
+		spreadsheet = getSpreadsheet_();
 	}
 	for (var sheet of spreadsheet.getSheets()) {
 		if (sheet.getSheetId() == gid) {
@@ -389,7 +397,7 @@ function getWebappDatabase(): any[][] {
 	});
 }
 function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
-	let spreadsheet = getSpreadsheet();
+	let spreadsheet = getSpreadsheet_();
 	if (spreadsheet == null) return null;
 	let metadata = spreadsheet
 		.createDeveloperMetadataFinder()
@@ -429,7 +437,7 @@ function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
  * use the working sheet.)
  */
 function saveNewPreferences(preferences) {
-	getSheetById(getSpreadsheet(), 1315797114)
+	getSheetById(getSpreadsheet_(), 1315797114)
 		.getRange(15, 3, 5)
 		.setValues(preferences);
 }
@@ -443,7 +451,7 @@ function saveNewPreferences(preferences) {
 function saveShadowlandEntry(entry) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
-	getSheetById(getSpreadsheet(), 1930936724).appendRow(entry);
+	getSheetById(getSpreadsheet_(), 1930936724).appendRow(entry);
 }
 
 /**
@@ -451,7 +459,7 @@ function saveShadowlandEntry(entry) {
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
 function saveFloorNumber(floorNumber) {
-	getSheetById(getSpreadsheet(), 1315797114)
+	getSheetById(getSpreadsheet_(), 1315797114)
 		.getRange("A2")
 		.setValue(floorNumber);
 }

@@ -23,7 +23,7 @@
 		oauthsecret: "",
 		pickerapikey: "",
 	};
-	var pageStorage = null;
+	var pageStorage = {};
 	var importText = null;
 
 	$(document).ready(function () {
@@ -34,18 +34,20 @@
 			initializePage();
 		}
 	});
-
-	function testLocalStorage() {
+	/**
+	 * Check for local window.localStorage capabilities
+	 */
+	function hasLocalStorage() {
 		try {
 			let storage = window.localStorage;
 			let foo = "bar";
 			storage.setItem("foo", foo);
+			if (storage.getItem("foo") != "bar") return false;
 			storage.removeItem("foo");
-			console.log("Success!");
 		} catch (error) {
-			console.log(error);
-			throw "Ooops.";
+			return false;
 		}
+		return true;
 	}
 	/**
 	 * Apply some standard Bootstrap classes rather than including them in all
@@ -61,7 +63,6 @@
 		let boxarrow =
 			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><title>Open in new window</title><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>';
 		pages.find("a[target='_blank']").append(boxarrow);
-		bootstrapifyAdmin();
 	}
 	function bootstrapifyAdmin() {
 		$("#mffer-admin-setup")
@@ -163,6 +164,7 @@
 				"made to the deployment without authentication. This will " +
 				"stop when you complete setup."
 		);
+		bootstrapifyAdmin();
 		showSpinner($("#mffer-admin-input-oauthredirecturi"));
 		google.script.run
 			.withSuccessHandler(function (uri) {
@@ -307,8 +309,7 @@
 		$("#mffer-admin").show();
 	}
 	function isFalseOrEmpty(check) {
-		if (check == null || check === false || check.toString().trim() === "")
-			return true;
+		if (!check || check.toString().trim() === "") return true;
 		return false;
 	}
 	function checkAdminAuthUrl() {
@@ -437,24 +438,127 @@
 		initializePage();
 	}
 	function getAdminOauthToken() {
-		let token = $("#mffer-script-parameter").html();
-		if (token == null || token.trim() == "") {
-			return null;
+		if (pageStorage == null) loadPageStorage();
+		if (pageStorage == null) return null;
+	}
+	function loadPageStorage() {
+		$("#mffer-navbar-button-login")
+			.html('<span class="spinner-border spinner-border-sm p-0"></span>')
+			.show();
+		if (pageStorage == null) pageStorage = {};
+		let newStorage = null;
+		let newStorageText = $("#mffer-storage").html().trim();
+		if (hasLocalStorage()) {
+			for (let i = 0; i < window.localStorage.length; i++) {
+				let key = window.localStorage.key(i);
+				pageStorage[key] = window.localStorage.getItem(key);
+			}
 		}
-		return token;
+		if (!isFalseOrEmpty(newStorageText))
+			newStorage = JSON.parse(newStorageText);
+		// we just got a response from the server; for now, this should
+		// only be the adminLogin or userLogin oauth2 info (this is not
+		// necessarily the case if setup hasn't yet been completed
+		if (newStorage.length > 1) {
+			let error = new Error(
+				"Unrecognized type of response from server; text is: " +
+					newStorageText
+			);
+			throw error;
+		}
+		for (let key in newStorage) {
+			pageStorage[key] = newStorage[key];
+			switch (key) {
+				case "oauth2.userLogin":
+					// a user just logged in
+					setLoginStatus(JSON.stringify(newStorage));
+					return;
+				case "oauth2.adminLogin":
+					// an admin just logged in, and setup is complete
+					bootstrapifyAdmin();
+					openAdmin();
+					return;
+				default:
+					let error = new Error(
+						"Unrecognized type of response from server; text is: " +
+							newStorageText
+					);
+					throw error;
+			}
+		}
+		// there is no new data for storage from the server
+		if (pageStorage["oauth2.userLogin"] == null) {
+			// there is no user data for this client
+			resetLogin();
+		} else {
+			// there is user login data, but it may be outdated
+			// need to check hasAccess() which will also renew token if
+			// possible
+			google.script.run
+				.withSuccessHandler(setLoginStatus)
+				.withFailureHandler(function () {
+					throwError("Unable to get login status");
+				})
+				.getUserLoginStatus(JSON.stringify(pageStorage));
+		}
+	}
+
+	function savePageStorage() {
+		if (hasLocalStorage()) {
+			if (pageStorage["oauth2.userLogin"] != null)
+				window.localStorage.setItem(
+					"oauth2.userLogin",
+					pageStorage["oauth2.userLogin"]
+				);
+		}
+	}
+	function resetLogin() {
+		$("#mffer-navbar-button-login").html("login").click(userLogin).show();
+	}
+	function setLoginStatus(storage) {
+		if (isFalseOrEmpty(storage)) {
+			// user does not (currently) have access
+			if (hasLocalStorage()) window.localStorage.clear();
+			resetLogin();
+		} else {
+			$("#mffer-navbar-button-login")
+				.html("logout")
+				.click(userLogout)
+				.show();
+			let newStorage = JSON.parse(storage);
+			if (pageStorage == null) pageStorage = {};
+			for (let key in newStorage) {
+				pageStorage[key] = newStorage[key];
+			}
+			savePageStorage();
+		}
+	}
+	function userLogin() {
+		$("#mffer-navbar-button-login")
+			.html('<span class="spinner-border spinner-border-sm p-0"></span>')
+			.click(null);
+		savePageStorage();
+		google.script.run
+			.withFailureHandler(function () {
+				throwError("Unable to get user login URL");
+			})
+			.withSuccessHandler(function (url) {
+				$(document.createElement("a")).attr("href", url)[0].click();
+			})
+			.getUserAuthUrl(pageStorage);
+	}
+	function userLogout() {
+		pageStorage = null;
+		$("#mffer-storage").html(null);
+		setLoginStatus(null);
 	}
 	function initializePage() {
-		$("#mffer-admin-setup").hide();
-		$("#mffer-admin-loggedin").show();
-		if (getAdminOauthToken() == null) {
-			showLoading("getting data");
-			google.script.run
-				.withFailureHandler(alertLoadFailure)
-				.withSuccessHandler(loadData)
-				.getWebappDatabase();
-		} else {
-			openAdmin();
-		}
+		showLoading("getting data");
+		google.script.run
+			.withFailureHandler(alertLoadFailure)
+			.withSuccessHandler(loadData)
+			.getWebappDatabase();
+		loadPageStorage();
 	}
 	function loadData(database) {
 		if (database == null) alertLoadFailure();

@@ -1,10 +1,11 @@
 class VolatileProperties {
 	constructor(properties: { [key: string]: string } = null) {
+		if (properties == null) properties = {};
 		this.properties_ = properties;
 	}
 	private properties_: { [key: string]: string };
 	public deleteAllProperties(): VolatileProperties {
-		this.properties_ = null;
+		this.properties_ = {};
 		return this;
 	}
 	public deleteProperty(key: string): VolatileProperties {
@@ -24,6 +25,7 @@ class VolatileProperties {
 		properties: { [key: string]: string },
 		deleteAllOthers: boolean = false
 	): VolatileProperties {
+		if (properties == null) properties = {};
 		if (deleteAllOthers === true) {
 			this.properties_ = properties;
 		} else {
