@@ -39,13 +39,13 @@ function getProperties_(): GoogleAppsScript.Properties.Properties {
  * request
  */
 function doGet(): GoogleAppsScript.HTML.HtmlOutput {
-	return buildPage();
+	return buildPage_();
 }
 /**
  * Construct the web page from the Index.html template
  * @returns Apps Script-compatible web page
  */
-function buildPage(
+function buildPage_(
 	storage: VolatileProperties = null
 ): GoogleAppsScript.HTML.HtmlOutput {
 	let properties = getProperties_();
@@ -69,7 +69,7 @@ function getConfig() {
 	};
 }
 function isConfigured(): boolean {
-	if (isFalseOrEmpty(getOauthId_()) || isFalseOrEmpty(getOauthSecret_())) {
+	if (isFalseOrEmpty_(getOauthId_()) || isFalseOrEmpty_(getOauthSecret_())) {
 		return false;
 	} else return true;
 }
@@ -109,19 +109,19 @@ function setProperty_(propertyName: string, propertyValue: string) {
 }
 function getAdminAuthService_(storage: VolatileProperties = null) {
 	let oauthId: string = getOauthId_();
-	let callbackFunction: string = "processAdminAuthResponse";
-	if (isFalseOrEmpty(oauthId) && storage != null) {
+	let callbackFunction: string = "processAdminAuthResponse_";
+	if (isFalseOrEmpty_(oauthId) && storage != null) {
 		oauthId = storage.getProperty("oauthId");
-		callbackFunction = "processNewAdminAuthResponse";
+		callbackFunction = "processNewAdminAuthResponse_";
 	}
-	if (isFalseOrEmpty(oauthId))
+	if (isFalseOrEmpty_(oauthId))
 		throw new Error("OAuth 2.0 Client ID is not set");
 	let oauthSecret: string = getOauthSecret_();
-	if (isFalseOrEmpty(oauthSecret) && storage != null) {
+	if (isFalseOrEmpty_(oauthSecret) && storage != null) {
 		oauthSecret = storage.getProperty("oauthSecret");
 		callbackFunction = "processNewAdminAuthResponse";
 	}
-	if (isFalseOrEmpty(oauthSecret))
+	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
 
 	return OAuth2.createService("adminLogin")
@@ -135,15 +135,15 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-function isFalseOrEmpty(check: string | boolean | null): boolean {
+function isFalseOrEmpty_(check: string | boolean | null): boolean {
 	if (!check || check.toString().trim() === "") return true;
 	return false;
 }
 function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
-	if (isFalseOrEmpty(oauthId) && isFalseOrEmpty(oauthSecret))
+	if (isFalseOrEmpty_(oauthId) && isFalseOrEmpty_(oauthSecret))
 		return getAdminAuthService_().getAuthorizationUrl();
-	if (isFalseOrEmpty(oauthId)) oauthId = getProperty_("oauthId");
-	if (isFalseOrEmpty(oauthSecret)) oauthSecret = getProperty_("oauthSecret");
+	if (isFalseOrEmpty_(oauthId)) oauthId = getProperty_("oauthId");
+	if (isFalseOrEmpty_(oauthSecret)) oauthSecret = getProperty_("oauthSecret");
 	let storage = new VolatileProperties();
 	storage.setProperties(
 		{
@@ -163,7 +163,7 @@ function getRedirectUri(): string {
 		"/usercallback"
 	);
 }
-function processNewAdminAuthResponse(request) {
+function processNewAdminAuthResponse_(request) {
 	let noOauthMessage: string =
 		"Admin authorization response did not include OAuth 2.0 client information.";
 	if (request.parameter == null) throw new Error(noOauthMessage);
@@ -184,7 +184,7 @@ function processNewAdminAuthResponse(request) {
 		setProperty_("oauthSecret", oauthSecret);
 		setProperty_("oauthId", oauthId);
 		storage.deleteProperty("oauthId").deleteProperty("oauthSecret");
-		return buildPage(storage);
+		return buildPage_(storage);
 	} else {
 		let errorMessage: string = request.parameter.error;
 		if (errorMessage == null || errorMessage.toString().trim() === "")
@@ -192,25 +192,25 @@ function processNewAdminAuthResponse(request) {
 		let adminAuthError: string =
 			"Unable to authorize administrative access: " + errorMessage;
 		storage.setProperty("adminAuthError", adminAuthError);
-		return buildPage(storage);
+		return buildPage_(storage);
 	}
 }
-function processAdminAuthResponse(request) {
+function processAdminAuthResponse_(request) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
-		return buildPage(storage);
+		return buildPage_(storage);
 	} else {
 		return HtmlService.createHtmlOutput("Authorization denied.");
 	}
 }
 function getUserAuthService_(storage: VolatileProperties = null) {
 	let oauthId: string = getOauthId_();
-	let callbackFunction: string = "processUserAuthResponse";
-	if (isFalseOrEmpty(oauthId))
+	let callbackFunction: string = "processUserAuthResponse_";
+	if (isFalseOrEmpty_(oauthId))
 		throw new Error("OAuth 2.0 Client ID is not set");
 	let oauthSecret: string = getOauthSecret_();
-	if (isFalseOrEmpty(oauthSecret))
+	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
 	return OAuth2.createService("userLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
@@ -227,11 +227,11 @@ function getUserAuthUrl(pageStorage: { [key: string]: string }): string {
 	let storage = new VolatileProperties(pageStorage);
 	return getUserAuthService_(storage).getAuthorizationUrl();
 }
-function processUserAuthResponse(request) {
+function processUserAuthResponse_(request) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
 	if (service.handleCallback(request)) {
-		return buildPage(storage);
+		return buildPage_(storage);
 	} else {
 		return HtmlService.createHtmlOutput("Authorization denied.");
 	}
@@ -256,7 +256,7 @@ function include(filename: string, storage: VolatileProperties = null): string {
 	template.storage = storage;
 	return template.evaluate().getContent();
 }
-function getDateString(): string {
+function getDateString_(): string {
 	let today = new Date();
 	let year = today.getFullYear().toString();
 	let month = today.getMonth().toString();
@@ -265,7 +265,7 @@ function getDateString(): string {
 	if (date.length == 1) date = "0" + date;
 	return year + month + date;
 }
-function createNewSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
+function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	let spreadsheet = getSpreadsheet_();
 	let coverSheet = spreadsheet.insertSheet("Cover", 0);
 	coverSheet
@@ -290,7 +290,7 @@ function createNewSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 }
 function importNewData(newText: string): void {
 	let spreadsheet = getSpreadsheet_();
-	let dataSheet = getDataSheet();
+	let dataSheet = getDataSheet_();
 	if (dataSheet != null) {
 		dataSheet.copyTo(spreadsheet);
 		dataSheet.clear();
@@ -302,7 +302,7 @@ function importNewData(newText: string): void {
 			SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 		);
 	}
-	dataSheet.setName("mffer - " + getDateString());
+	dataSheet.setName("mffer - " + getDateString_());
 	let newData = Utilities.parseCsv(newText, "|");
 	if (newData.length == 0) return;
 	let dataRange = dataSheet.getRange(1, 1, newData.length, newData[0].length);
@@ -314,7 +314,7 @@ function importNewData(newText: string): void {
  * modified from an excellent Stack Overflow answer at
  * https://stackoverflow.com/a/51789725
  */
-function getSheetById(
+function getSheetById_(
 	spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
 	gid: number
 ): GoogleAppsScript.Spreadsheet.Sheet {
@@ -379,7 +379,7 @@ function getSheetById(
  * 31 Sheet Teammembers
  */
 function getWebappDatabase(): any[][] {
-	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getDataSheet();
+	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getDataSheet_();
 	if (sheet == null) return null;
 	var rows: number = sheet.getDataRange().getHeight();
 	var range: any[][] = sheet.getSheetValues(1, 33, rows, 32);
@@ -396,7 +396,7 @@ function getWebappDatabase(): any[][] {
 		});
 	});
 }
-function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
+function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
 	let spreadsheet = getSpreadsheet_();
 	if (spreadsheet == null) return null;
 	let metadata = spreadsheet
@@ -417,7 +417,7 @@ function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
 		return null;
 	let sheet: GoogleAppsScript.Spreadsheet.Sheet = null;
 	try {
-		sheet = getSheetById(spreadsheet, Number(metadata[0].getValue()));
+		sheet = getSheetById_(spreadsheet, Number(metadata[0].getValue()));
 	} catch (exception) {
 		return null;
 	}
@@ -437,7 +437,7 @@ function getDataSheet(): GoogleAppsScript.Spreadsheet.Sheet {
  * use the working sheet.)
  */
 function saveNewPreferences(preferences) {
-	getSheetById(getSpreadsheet_(), 1315797114)
+	getSheetById_(getSpreadsheet_(), 1315797114)
 		.getRange(15, 3, 5)
 		.setValues(preferences);
 }
@@ -451,7 +451,7 @@ function saveNewPreferences(preferences) {
 function saveShadowlandEntry(entry) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
-	getSheetById(getSpreadsheet_(), 1930936724).appendRow(entry);
+	getSheetById_(getSpreadsheet_(), 1930936724).appendRow(entry);
 }
 
 /**
@@ -459,7 +459,7 @@ function saveShadowlandEntry(entry) {
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
 function saveFloorNumber(floorNumber) {
-	getSheetById(getSpreadsheet_(), 1315797114)
+	getSheetById_(getSpreadsheet_(), 1315797114)
 		.getRange("A2")
 		.setValue(floorNumber);
 }
