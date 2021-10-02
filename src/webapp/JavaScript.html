@@ -505,7 +505,7 @@
 
 	function savePageStorage() {
 		if (hasLocalStorage()) {
-			if (pageStorage["oauth2.userLogin"] != null)
+			if (pageStorage != null && pageStorage["oauth2.userLogin"] != null)
 				window.localStorage.setItem(
 					"oauth2.userLogin",
 					pageStorage["oauth2.userLogin"]

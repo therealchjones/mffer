@@ -123,7 +123,6 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 	}
 	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
-
 	return OAuth2.createService("adminLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
@@ -131,7 +130,7 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setClientSecret(oauthSecret)
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
-		.setScope("https://www.googleapis.com/auth/drive.file")
+		.setScope("openid https://www.googleapis.com/auth/drive.file")
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
@@ -169,26 +168,23 @@ function processNewAdminAuthResponse_(request) {
 	if (request.parameter == null) throw new Error(noOauthMessage);
 	let oauthId: string = request.parameter.oauthId;
 	let oauthSecret: string = request.parameter.oauthSecret;
-	if (oauthId == null || oauthSecret == null) throw new Error(noOauthMessage);
-
+	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
+		throw new Error(noOauthMessage);
 	let storage = new VolatileProperties();
-	storage.setProperties(
-		{
-			oauthId: oauthId,
-			oauthSecret: oauthSecret,
-		},
-		false
-	);
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
+		let adminId: string = getUserId_(service.getIdToken());
+		if (isFalseOrEmpty_(adminId)) {
+			throw new Error("Unable to determine administrator ID");
+		} else {
+			setProperty_("adminId", adminId);
+		}
 		setProperty_("oauthSecret", oauthSecret);
 		setProperty_("oauthId", oauthId);
-		storage.deleteProperty("oauthId").deleteProperty("oauthSecret");
 		return buildPage_(storage);
 	} else {
 		let errorMessage: string = request.parameter.error;
-		if (errorMessage == null || errorMessage.toString().trim() === "")
-			errorMessage = "Unknown error";
+		if (isFalseOrEmpty_(errorMessage)) errorMessage = "Unknown error";
 		let adminAuthError: string =
 			"Unable to authorize administrative access: " + errorMessage;
 		storage.setProperty("adminAuthError", adminAuthError);
@@ -201,7 +197,11 @@ function processAdminAuthResponse_(request) {
 	if (service.handleCallback(request)) {
 		return buildPage_(storage);
 	} else {
-		return HtmlService.createHtmlOutput("Authorization denied.");
+		storage.setProperty(
+			"adminAuthError",
+			"Unable to authorize administrative access: access_denied"
+		);
+		return buildPage_(storage);
 	}
 }
 function getUserAuthService_(storage: VolatileProperties = null) {
@@ -219,11 +219,11 @@ function getUserAuthService_(storage: VolatileProperties = null) {
 		.setClientSecret(oauthSecret)
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
-		.setScope("https://www.googleapis.com/auth/drive.file")
+		.setScope("openid https://www.googleapis.com/auth/drive.file")
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-function getUserAuthUrl(pageStorage: { [key: string]: string }): string {
+function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 	let storage = new VolatileProperties(pageStorage);
 	return getUserAuthService_(storage).getAuthorizationUrl();
 }
@@ -231,10 +231,37 @@ function processUserAuthResponse_(request) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
 	if (service.handleCallback(request)) {
+		let userId: string = getUserId_(service.getIdToken());
+		service.getStorage().setValue("userId", userId);
 		return buildPage_(storage);
 	} else {
-		return HtmlService.createHtmlOutput("Authorization denied.");
+		storage.setProperty(
+			"userAuthError",
+			"Unable to authorize user access: access_denied"
+		);
+		return buildPage_(storage);
 	}
+}
+function getUserId_(id_token: string): string {
+	if (id_token == null || id_token.match(/\./g).length != 2)
+		throw new Error("Invalid ID token: " + id_token);
+	let id_body = id_token.split(/\./)[1];
+	let id = JSON.parse(
+		Utilities.newBlob(Utilities.base64Decode(id_body)).getDataAsString()
+	);
+	if (id.aud != getOauthId_())
+		throw new Error("Invalid ID token: audience does not match");
+	if (
+		id.iss != "https://accounts.google.com" &&
+		id.iss != "accounts.google.com"
+	)
+		throw new Error("Invalid ID token: issuer is not Google");
+	let date = new Date();
+	if (id.exp < Math.floor(date.getTime() / 1000))
+		throw new Error("ID token has expired");
+	// we don't separately validate the signature since the JWT "came
+	// directly from Google"
+	return id.sub;
 }
 function getUserLoginStatus(pageStorageJson: string): string {
 	let pageStorage: { [key: string]: string } = JSON.parse(pageStorageJson);

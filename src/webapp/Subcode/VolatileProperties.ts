@@ -1,5 +1,5 @@
 class VolatileProperties {
-	constructor(properties: { [key: string]: string } = null) {
+	constructor(properties: { [key: string]: string } | null = null) {
 		if (properties == null) properties = {};
 		this.properties_ = properties;
 	}
