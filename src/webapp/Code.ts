@@ -259,8 +259,7 @@ function getUserId_(id_token: string): string {
 	let date = new Date();
 	if (id.exp < Math.floor(date.getTime() / 1000))
 		throw new Error("ID token has expired");
-	// we don't separately validate the signature since the JWT "came
-	// directly from Google"
+	// TODO #146: validate signature of id_token
 	return id.sub;
 }
 function getUserLoginStatus(pageStorageJson: string): string {

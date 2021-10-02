@@ -456,9 +456,6 @@
 		}
 		if (!isFalseOrEmpty(newStorageText))
 			newStorage = JSON.parse(newStorageText);
-		// we just got a response from the server; for now, this should
-		// only be the adminLogin or userLogin oauth2 info (this is not
-		// necessarily the case if setup hasn't yet been completed
 		if (newStorage.length > 1) {
 			let error = new Error(
 				"Unrecognized type of response from server; text is: " +
@@ -477,6 +474,16 @@
 					// an admin just logged in, and setup is complete
 					bootstrapifyAdmin();
 					openAdmin();
+					return;
+				case "adminAuthError":
+					showAlert(
+						"Administrator authentication error",
+						pageStorage[key]
+					);
+					return;
+				case "userAuthError":
+					showAlert("User authentication error", pageStorage[key]);
+					userLogout();
 					return;
 				default:
 					let error = new Error(
