@@ -626,9 +626,9 @@ follow the below set of instructions to set up a project for `mffer`.
    "External" user type, and pressing "Create". Enter the required information
    for the "App information" and "Developer contact information", and press
    "Save and continue". Choose "Add or remove scopes" and enter
-   "https://www.googleapis.com/auth/drive.file" under "Manually add scopes".
-   Again press "Update" and "Save and continue". Add your own account as a "Test
-   user", then press "Save and continue" one more time.
+   "https://www.googleapis.com/auth/drive.file" and "openid" under "Manually add
+   scopes". Again press "Update" and "Save and continue". Add your own account
+   as a "Test user", then press "Save and continue" one more time.
 5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
    ensure the correct project is shown in the project drop-down. First choose
    "Apps Script API" for "Which API are you using?" and select "User data"

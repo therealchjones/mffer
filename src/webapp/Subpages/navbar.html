@@ -13,6 +13,7 @@
 			type="button"
 			data-bs-toggle="collapse"
 			data-bs-target="#mffer-navbar-menu"
+			data-bs-auto-close="true"
 			aria-controls="mffer-navbar-menu"
 			aria-expanded="false"
 			aria-label="Toggle navigation menu"
@@ -37,13 +38,20 @@
 			<li class="nav-item">
 				<a
 					id="menu-button-home"
+					target="_top"
+					href="<?!= ScriptApp.getService().getUrl(); ?>"
 					class="nav-link active"
 					aria-current="page"
 					>Home</a
 				>
 			</li>
 			<li id="menu-item-admin" class="nav-item start-inactive">
-				<a id="menu-button-admin" class="nav-link">Admin</a>
+				<a
+					id="menu-button-admin"
+					href="javascript:openAdmin();"
+					class="nav-link"
+					>Admin</a
+				>
 			</li>
 			<li class="nav-item">
 				<a id="menu-button-dev" class="nav-link">Development</a>

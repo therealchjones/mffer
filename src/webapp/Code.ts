@@ -33,6 +33,19 @@ function resetAllProperties_(): void {
 function getProperties_(): GoogleAppsScript.Properties.Properties {
 	return PropertiesService.getUserProperties();
 }
+function setProperties_(properties: { [index: string]: string } = null): void {
+	if (properties == null) properties = {};
+	if (!isFalseOrEmpty_(properties.oauthId))
+		setProperty_("oauthId", properties.oauthId);
+	if (!isFalseOrEmpty_(properties.oauthSecret))
+		setProperty_("oauthSecret", properties.oauthSecret);
+	if (!isFalseOrEmpty_(properties.pickerApiKey))
+		setProperty_("pickerApiKey", properties.pickerApiKey);
+	if (!isFalseOrEmpty_(properties.adminId))
+		setProperty_("adminId", properties.adminId);
+	if (!isFalseOrEmpty_(properties.hostUri))
+		setProperty_("hostUri", properties.hostUri);
+}
 /**
  * The basic webapp-enabling function responding to the HTTP GET request
  * @returns {GoogleAppsScript.HTML.HtmlOutput} web page appropriate to the
@@ -100,6 +113,12 @@ function getPickerApiKey_(): string {
 function hasOauthSecret_(): boolean {
 	return getOauthSecret_() != null;
 }
+function getAdminId_(): string {
+	return getProperty_("adminId");
+}
+function getHostUri_(): string {
+	return getProperty_("hostUri");
+}
 function setProperty_(propertyName: string, propertyValue: string) {
 	var properties = getProperties_();
 	if (properties == null) {
@@ -108,21 +127,24 @@ function setProperty_(propertyName: string, propertyValue: string) {
 	properties.setProperty(propertyName, propertyValue);
 }
 function getAdminAuthService_(storage: VolatileProperties = null) {
-	let oauthId: string = getOauthId_();
-	let callbackFunction: string = "processAdminAuthResponse_";
-	if (isFalseOrEmpty_(oauthId) && storage != null) {
-		oauthId = storage.getProperty("oauthId");
+	let callbackFunction: string,
+		oauthId: string,
+		oauthSecret: string = null;
+	if (storage == null) storage = new VolatileProperties();
+	oauthId = storage.getProperty("oauthId");
+	oauthSecret = storage.getProperty("oauthSecret");
+	if (isConfigured()) {
+		callbackFunction = "processAdminAuthResponse_";
+		if (isFalseOrEmpty_(oauthId)) oauthId = getOauthId_();
+		if (isFalseOrEmpty_(oauthSecret)) oauthSecret = getOauthSecret_();
+	} else {
 		callbackFunction = "processNewAdminAuthResponse_";
 	}
-	if (isFalseOrEmpty_(oauthId))
-		throw new Error("OAuth 2.0 Client ID is not set");
-	let oauthSecret: string = getOauthSecret_();
-	if (isFalseOrEmpty_(oauthSecret) && storage != null) {
-		oauthSecret = storage.getProperty("oauthSecret");
-		callbackFunction = "processNewAdminAuthResponse";
+	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret)) {
+		throw new Error(
+			"Unable to create admin service: OAuth ID and OAuth secret are required."
+		);
 	}
-	if (isFalseOrEmpty_(oauthSecret))
-		throw new Error("OAuth 2.0 Client secret is not set");
 	return OAuth2.createService("adminLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
@@ -138,22 +160,36 @@ function isFalseOrEmpty_(check: string | boolean | null): boolean {
 	if (!check || check.toString().trim() === "") return true;
 	return false;
 }
-function getAdminAuthUrl(oauthId: string = null, oauthSecret: string = null) {
-	if (isFalseOrEmpty_(oauthId) && isFalseOrEmpty_(oauthSecret))
-		return getAdminAuthService_().getAuthorizationUrl();
-	if (isFalseOrEmpty_(oauthId)) oauthId = getProperty_("oauthId");
-	if (isFalseOrEmpty_(oauthSecret)) oauthSecret = getProperty_("oauthSecret");
-	let storage = new VolatileProperties();
-	storage.setProperties(
-		{
-			oauthId: oauthId,
-			oauthSecret: oauthSecret,
-		},
-		false
-	);
-	return getAdminAuthService_(storage).getAuthorizationUrl(
-		storage.getProperties()
-	);
+function getAdminAuthUrl(propertiesJson: string = null) {
+	let properties: { [index: string]: string } = JSON.parse(propertiesJson);
+	if (properties == null) properties = {};
+	if (!isConfigured()) {
+		if (
+			isFalseOrEmpty_(properties.oauthId) ||
+			isFalseOrEmpty_(properties.oauthSecret)
+		)
+			throw new Error("OAuth ID and OAuth secret are not set.");
+		// discard all other settings; new config will set only these
+		let loginProperties = {
+			oauthId: properties.oauthId,
+			oauthSecret: properties.oauthSecret,
+		};
+		let storage = new VolatileProperties(loginProperties);
+		return getAdminAuthService_(storage).getAuthorizationUrl(
+			loginProperties
+		);
+	}
+	let newProperties: { [index: string]: string } = {};
+	if (!isFalseOrEmpty_(properties.oauthId))
+		newProperties.oauthId = properties.oauthId;
+	if (!isFalseOrEmpty_(properties.oauthSecret))
+		newProperties.oauthSecret = properties.oauthSecret;
+	if (!isFalseOrEmpty_(properties.pickerApiKey))
+		newProperties.pickerApiKey = properties.pickerApiKey;
+	if (!isFalseOrEmpty_(properties.hostUri))
+		newProperties.hostUri = properties.hostUri;
+	let storage = new VolatileProperties(newProperties);
+	return getAdminAuthService_(storage).getAuthorizationUrl(newProperties);
 }
 function getRedirectUri(): string {
 	return (
@@ -171,16 +207,25 @@ function processNewAdminAuthResponse_(request) {
 	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
 		throw new Error(noOauthMessage);
 	let storage = new VolatileProperties();
+	storage.setProperties(
+		{
+			oauthId: oauthId,
+			oauthSecret: oauthSecret,
+		},
+		false
+	);
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
+		setProperty_("oauthSecret", oauthSecret);
+		setProperty_("oauthId", oauthId);
 		let adminId: string = getUserId_(service.getIdToken());
 		if (isFalseOrEmpty_(adminId)) {
 			throw new Error("Unable to determine administrator ID");
 		} else {
 			setProperty_("adminId", adminId);
 		}
-		setProperty_("oauthSecret", oauthSecret);
-		setProperty_("oauthId", oauthId);
+		storage.deleteProperty("oauthId");
+		storage.deleteProperty("oauthSecret");
 		return buildPage_(storage);
 	} else {
 		let errorMessage: string = request.parameter.error;
@@ -195,6 +240,31 @@ function processAdminAuthResponse_(request) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(request)) {
+		if (
+			getUserId_(service.getIdToken()) == null ||
+			getUserId_(service.getIdToken()) != getAdminId_()
+		) {
+			storage.setProperties(
+				{ adminAuthError: "Logged in user is not an administrator." },
+				true
+			);
+			return buildPage_(storage);
+		}
+		if (request.parameter != null) {
+			let newProperties: { [index: string]: string } = {};
+			for (let property in request.parameter) {
+				switch (property) {
+					case "oauthId":
+					case "oauthSecret":
+					case "pickerApiKey":
+					case "hostUri":
+						newProperties[property] = request.parameter[property];
+						break;
+					default:
+				}
+			}
+			setProperties_(newProperties);
+		}
 		return buildPage_(storage);
 	} else {
 		storage.setProperty(
@@ -212,6 +282,7 @@ function getUserAuthService_(storage: VolatileProperties = null) {
 	let oauthSecret: string = getOauthSecret_();
 	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
+	if (storage == null) storage = new VolatileProperties();
 	return OAuth2.createService("userLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
@@ -232,7 +303,9 @@ function processUserAuthResponse_(request) {
 	let service = getUserAuthService_(storage);
 	if (service.handleCallback(request)) {
 		let userId: string = getUserId_(service.getIdToken());
-		service.getStorage().setValue("userId", userId);
+		storage.setProperty("userId", userId);
+		if (userId != null && userId == getAdminId_())
+			storage.setProperty("adminUser", "true");
 		return buildPage_(storage);
 	} else {
 		storage.setProperty(

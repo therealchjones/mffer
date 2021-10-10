@@ -17,23 +17,31 @@
 	var shadowlandDatabase = null;
 	var googlePicker = null;
 	var googleOauthToken = null;
-	var googleOauthUrl = null;
 	var mfferSettings = {
-		oauthid: "",
-		oauthsecret: "",
-		pickerapikey: "",
+		oauthId: "",
+		oauthSecret: "",
+		pickerApiKey: "",
 	};
 	var pageStorage = {};
 	var importText = null;
+	var bootstrap = {
+		boxarrow:
+			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><title>Open in new window</title><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>',
+		spinner:
+			'<span class="spinner-border spinner-border-sm p-0" title="Loading..."></span>',
+	};
 
 	$(document).ready(function () {
 		bootstrapify();
-		if ($("#mffer-new").length != 0) {
+		if (!isConfigured()) {
 			initializeSetup();
 		} else {
 			initializePage();
 		}
 	});
+	function isConfigured() {
+		return $("#mffer-new").length == 0;
+	}
 	/**
 	 * Check for local window.localStorage capabilities
 	 */
@@ -60,18 +68,13 @@
 		pages.find("ul").add("ol").addClass("list-group list-group-flush");
 		pages.find("li").addClass("list-group-item");
 		pages.find("label").addClass("form-label");
-		let boxarrow =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><title>Open in new window</title><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>';
+		let boxarrow = bootstrap.boxarrow;
 		pages.find("a[target='_blank']").append(boxarrow);
+		bootstrapifyAdmin();
 	}
 	function bootstrapifyAdmin() {
-		$("#mffer-admin-setup")
-			.add("#mffer-admin-maintenance")
-			.addClass("container");
 		let lis = $("#mffer-admin li");
-		let spinner = $(
-			'<span class="spinner-border spinner-border-sm p-0"></span>'
-		);
+		let spinner = bootstrap.spinner;
 		lis.append(spinner);
 		lis.children(".spinner-border").hide();
 		lis.find("input")
@@ -108,8 +111,6 @@
 				}
 			});
 	}
-	function isAdmin() {}
-	function isLoggedIn() {}
 	function showLoading(message = null) {
 		$("#loading-notes").text(message);
 		hidePages();
@@ -150,31 +151,16 @@
 		}
 		return spinner;
 	}
-	function disable(block) {
-		if (block == null) return;
-		$(block)
-			.addClass(disable)
-			.attr("disabled", "true")
-			.attr("tabindex", -1);
-	}
 	function initializeSetup() {
 		showAlert(
 			"Warning: Setup Mode",
 			"<code>mffer</code> is currently in setup mode. Changes can be " +
 				"made to the deployment without authentication. This will " +
-				"stop when you complete setup."
+				"end when you complete setup."
 		);
-		bootstrapifyAdmin();
-		showSpinner($("#mffer-admin-input-oauthredirecturi"));
-		google.script.run
-			.withSuccessHandler(function (uri) {
-				hideSpinner($("#mffer-admin-input-oauthredirecturi"));
-				$("#mffer-admin-input-oauthredirecturi").val(uri);
-			})
-			.withFailureHandler(function () {
-				throwError("Unable to get redirect URI");
-			})
-			.getRedirectUri();
+		$("#mffer-admin-listitem-pickerapikey")
+			.add("#mffer-admin-listitem-fileupload")
+			.hide();
 		let storageElement = $("#mffer-storage");
 		if (storageElement.length > 0) {
 			try {
@@ -183,31 +169,20 @@
 				pageStorage = null;
 			}
 		}
-		$("#mffer-admin-setup").show();
-		$("#mffer-admin-maintenance").hide();
-		if (pageStorage == null) {
+		if (isFalseOrEmpty(pageStorage)) {
 			$("#mffer-new-button-setup").click(openAdmin);
 			$("#mffer-new-spinner").hide();
 			$("#mffer-new-intro").show();
 		} else {
 			let authErrorMessage = pageStorage.adminAuthError;
 			if (!isFalseOrEmpty(authErrorMessage)) {
-				$("#mffer-admin-listitem-oauthid").removeClass("disabled");
-				$("#mffer-admin-input-oauthid")
-					.val(pageStorage.oauthId)
-					.removeAttr("disabled");
-				$("#mffer-admin-listitem-oauthsecret").removeClass("disabled");
-				$("#mffer-admin-input-oauthsecret")
-					.val(pageStorage.oauthSecret)
-					.removeAttr("disabled");
-				$("#mffer-admin-listitem-authorize").removeClass("disabled");
-				$("#mffer-admin-listitem-authorize p")
-					.addClass("text-danger")
-					.html(
-						"Unable to authenticate with Google: " +
-							authErrorMessage
-					);
-				checkAdminAuthUrl();
+				$("#mffer-admin-input-oauthid").val(pageStorage.oauthId);
+				$("#mffer-admin-input-oauthsecret").val(
+					pageStorage.oauthSecret
+				);
+				$("#mffer-admin-authorizationerror").html(
+					"Unable to authenticate with Google: " + authErrorMessage
+				);
 				openAdmin();
 			} else {
 				throwError(
@@ -225,42 +200,56 @@
 				showSpinner(input);
 			}
 		}
+		showSpinner($("#mffer-admin-input-oauthredirecturi"));
+		google.script.run
+			.withSuccessHandler(function (uri) {
+				$("#mffer-admin-input-oauthredirecturi").val(uri);
+				hideSpinner($("#mffer-admin-input-oauthredirecturi"));
+			})
+			.withFailureHandler(function () {
+				throwError("Unable to get redirect URI");
+			})
+			.getRedirectUri();
+		$("#mffer-admin")
+			.find("input[type='text']")
+			.change(function (event) {
+				showSpinner(this);
+				let text = $(this).val().toString().trim();
+				let inputName = event.currentTarget.id;
+				let shortName = inputName.replace(/^mffer-admin-input-/, "");
+				for (let property in mfferSettings) {
+					if (property.toLowerCase() == shortName)
+						mfferSettings[property] = text;
+				}
+				switch (shortName) {
+					case "oauthid":
+						let link =
+							"https://console.cloud.google.com/apis/credentials";
+						let html = "GCP credentials";
+						if (!isFalseOrEmpty(text)) {
+							link =
+								"https://console.cloud.google.com/apis/credentials/oauthclient/" +
+								mfferSettings.oauthId;
+							html = "OAuth ID settings";
+						}
+						$("#mffer-admin-instructions-oauthsecret")
+							.add("#mffer-admin-instructions-oauthredirecturi")
+							.find("a")
+							.attr("href", link)
+							.html(html)
+							.append(bootstrap.boxarrow);
+						break;
+					default:
+						break;
+				}
+				hideSpinner(this);
+			});
 		google.script.run
 			.withSuccessHandler(loadSettings)
 			.withFailureHandler(function () {
 				throwError("Unable to get the current configuration");
 			})
 			.getConfig();
-		checkAdminAuthUrl();
-		$("#mffer-admin")
-			.find("input")
-			.change(function (event) {
-				let text = $(this).val();
-				if (text == null || text.toString().trim() == "") return;
-				showSpinner(this);
-				let inputName = event.currentTarget.id;
-				let shortName = inputName.replace(/^mffer-admin-input-/, "");
-				mfferSettings[shortName] = text.toString().trim();
-				if (shortName == "oauthid") {
-					$("#mffer-admin-instructions-oauthsecret")
-						.add("#mffer-admin-instructions-oauthredirecturi")
-						.find("a")
-						.attr(
-							"href",
-							"https://console.cloud.google.com/apis/credentials/oauthclient/" +
-								mfferSettings.oauthid
-						);
-				}
-				checkAdminAuthUrl();
-				let next = $(this)
-					.parents("#mffer-admin-listitem-" + shortName)
-					.next();
-				if (next.length != 0) {
-					next.removeClass("disabled");
-					next.find("input").removeAttr("disabled");
-				}
-				hideSpinner(this);
-			});
 		$("#mffer-admin-input-fileupload").change(function () {
 			if (this.files != null && this.files.length != 0) {
 				if (this.files.length > 1) {
@@ -273,7 +262,7 @@
 					importText = fileReader.result;
 					let headers = getFirstLines(importText);
 					$("#mffer-filechooser-textdisplay").html(
-						"<p>File preview:</p><pre>\n" + headers + "\n</pre>"
+						"<pre>\n" + headers + "\n</pre>"
 					);
 					$("#mffer-filechooser-tabledisplay").html(
 						csvToTable(headers)
@@ -306,42 +295,48 @@
 					throwError("Unable to identify button clicked");
 			}
 		});
+		$("#mffer-admin-button-authorize").click(adminAuthAndSave);
 		$("#mffer-admin").show();
 	}
 	function isFalseOrEmpty(check) {
-		if (!check || check.toString().trim() === "") return true;
+		if (
+			!check ||
+			check.toString().trim() === "" ||
+			JSON.stringify(check) == "{}"
+		)
+			return true;
 		return false;
 	}
-	function checkAdminAuthUrl() {
-		if (!isFalseOrEmpty(googleOauthUrl)) setAdminAuthUrl(googleOauthUrl);
-		if (
-			!isFalseOrEmpty(mfferSettings.oauthid) &&
-			!isFalseOrEmpty(mfferSettings.oauthsecret)
-		) {
-			google.script.run
-				.withSuccessHandler(setAdminAuthUrl)
-				.getAdminAuthUrl(
-					mfferSettings.oauthid,
-					mfferSettings.oauthsecret
+	function adminAuthAndSave() {
+		if (!isConfigured()) {
+			if (
+				isFalseOrEmpty(mfferSettings.oauthId) ||
+				isFalseOrEmpty(mfferSettings.oauthSecret)
+			) {
+				$("#mffer-admin-authorizationerror").html(
+					"OAuth ID and OAuth secret are required"
 				);
+			}
 		}
-	}
-	function setAdminAuthUrl(url) {
-		if (isFalseOrEmpty(url)) return;
-		googleOauthUrl = url.toString().trim();
-		$("#mffer-admin-a-authorize").attr("href", googleOauthUrl);
-		$("#mffer-admin-listitem-authorize").removeClass("disabled");
-	}
-	function setKey(keyName, keyValue) {
+		$("#mffer-admin-authorizationerror").html(null);
+		$("#mffer-admin-button-authorize").click(null);
+		$("#mffer-admin-button-authorize").html(bootstrap.spinner);
+		let properties = {
+			oauthId: mfferSettings.oauthId,
+			oauthSecret: mfferSettings.oauthSecret,
+			pickerApiKey: mfferSettings.pickerApiKey,
+		};
+		let propertiesJson = JSON.stringify(properties);
 		google.script.run
-			.withSuccessHandler(function (keyConfirmed) {
-				$("#mffer-admin-input-" + keyConfirmed)
-					.siblings(".spinner-border")
-					.hide();
+			.withFailureHandler(function (error) {
+				throwError("Unable to obtain admin login URL: " + error);
 			})
-			.withFailureHandler()
-			.withUserObject(keyName)
-			.setKey(keyName, keyValue);
+			.withSuccessHandler(function (url) {
+				if (isFalseOrEmpty(url))
+					throw new Error("Unable to obtain admin login url");
+				$(document.createElement("a")).attr("href", url)[0].click();
+			})
+			.getAdminAuthUrl(propertiesJson);
 	}
 	function throwError(error) {
 		$("#mffer-spinner h2").html("Error");
@@ -353,21 +348,23 @@
 		throw error;
 	}
 	function loadSettings(
-		currentSettings = { oauthid: "", oauthsecret: "", pickerapikey: "" }
+		currentSettings = { oauthId: "", oauthSecret: "", pickerApiKey: "" }
 	) {
 		mfferSettings = currentSettings;
 		for (let property in mfferSettings) {
 			let input = $("#mffer-admin-input-" + property.toLowerCase());
 			if (input.length != 0) {
+				let text = null;
 				if (!isFalseOrEmpty(mfferSettings[property])) {
-					let text = mfferSettings[property];
+					text = mfferSettings[property];
 					if (mfferSettings[property] === true) text = "[set]";
-					input.val(text);
 				}
+				if (isFalseOrEmpty(input.val())) input.val(text);
+				else mfferSettings[property] = input.val();
 				hideSpinner(input);
+				input.change();
 			}
 		}
-		checkAdminAuthUrl();
 	}
 	function loadPickerApi(token) {
 		if (token == null) throwError("Unable to obtain authorization.");
@@ -380,12 +377,6 @@
 			.fail(function () {
 				throw "Unable to load Google API";
 			});
-	}
-	function presentAuth(authUrl) {
-		if (authUrl == null) throw "No authorization link available";
-		$("#mffer-auth-link").attr("href", authUrl);
-		hideLoading();
-		$("#mffer-new-get-authorization").show();
 	}
 	function accessGooglePicker() {
 		google.script.run
@@ -437,79 +428,86 @@
 	function uploadComplete() {
 		initializePage();
 	}
-	function getAdminOauthToken() {
-		if (pageStorage == null) loadPageStorage();
-		if (pageStorage == null) return null;
+	function showLoginSpinner() {
+		$("#mffer-navbar-button-login").html(bootstrap.spinner).show();
 	}
 	function loadPageStorage() {
-		$("#mffer-navbar-button-login")
-			.html('<span class="spinner-border spinner-border-sm p-0"></span>')
-			.show();
+		showLoginSpinner();
 		if (pageStorage == null) pageStorage = {};
-		let newStorage = null;
-		let newStorageText = $("#mffer-storage").html().trim();
 		if (hasLocalStorage()) {
 			for (let i = 0; i < window.localStorage.length; i++) {
 				let key = window.localStorage.key(i);
 				pageStorage[key] = window.localStorage.getItem(key);
 			}
 		}
-		if (!isFalseOrEmpty(newStorageText))
+		let newStorage = null;
+		let newStorageText = $("#mffer-storage").html().trim();
+		if (!isFalseOrEmpty(newStorageText)) {
 			newStorage = JSON.parse(newStorageText);
-		if (newStorage.length > 1) {
-			let error = new Error(
-				"Unrecognized type of response from server; text is: " +
-					newStorageText
-			);
-			throw error;
-		}
-		for (let key in newStorage) {
-			pageStorage[key] = newStorage[key];
-			switch (key) {
-				case "oauth2.userLogin":
-					// a user just logged in
-					setLoginStatus(JSON.stringify(newStorage));
-					return;
-				case "oauth2.adminLogin":
-					// an admin just logged in, and setup is complete
-					bootstrapifyAdmin();
-					openAdmin();
-					return;
-				case "adminAuthError":
-					showAlert(
-						"Administrator authentication error",
-						pageStorage[key]
-					);
-					return;
-				case "userAuthError":
-					showAlert("User authentication error", pageStorage[key]);
-					userLogout();
-					return;
-				default:
-					let error = new Error(
-						"Unrecognized type of response from server; text is: " +
-							newStorageText
-					);
-					throw error;
+			for (let key in newStorage) {
+				pageStorage[key] = newStorage[key];
+				switch (key) {
+					case "oauth2.userLogin":
+						// a user just logged in
+						setLoginStatus(JSON.stringify(newStorage));
+						$("#mffer-contents").show();
+						break;
+					case "oauth2.adminLogin":
+						// an admin just changed settings
+						setLoginStatus(JSON.stringify(newStorage));
+						openAdmin();
+						break;
+					case "adminUser":
+						if (pageStorage[key] == "true") {
+							$("#mffer-contents-li-admin")
+								.add("#menu-item-admin")
+								.show();
+						}
+						break;
+					case "adminAuthError":
+						showAlert(
+							"Administrator authentication error",
+							pageStorage[key]
+						);
+						userLogout();
+						openAdmin();
+						break;
+					case "userAuthError":
+						showAlert(
+							"User authentication error",
+							pageStorage[key]
+						);
+						userLogout();
+						$("#mffer-contents").show();
+						break;
+					case "userId":
+						break;
+					default:
+						throw new Error(
+							"Unrecognized type of response from server; text is: " +
+								newStorageText
+						);
+				}
 			}
-		}
-		// there is no new data for storage from the server
-		if (pageStorage["oauth2.userLogin"] == null) {
-			// there is no user data for this client
-			resetLogin();
 		} else {
-			// there is user login data, but it may be outdated
-			// need to check hasAccess() which will also renew token if
-			// possible
-			google.script.run
-				.withSuccessHandler(setLoginStatus)
-				.withFailureHandler(function () {
-					throwError("Unable to get login status");
-				})
-				.getUserLoginStatus(JSON.stringify(pageStorage));
+			// otherwise, there is no new data for storage from the server
+			if (pageStorage["oauth2.userLogin"] == null) {
+				// there is no user data for this client
+				resetLogin();
+			} else {
+				// there is user login data, but it may be outdated
+				// need to check hasAccess() which will also renew token if
+				// possible
+				google.script.run
+					.withSuccessHandler(setLoginStatus)
+					.withFailureHandler(function () {
+						throwError("Unable to get login status");
+					})
+					.getUserLoginStatus(JSON.stringify(pageStorage));
+			}
+			$("#mffer-contents").show();
 		}
 	}
-
 	function savePageStorage() {
 		if (hasLocalStorage()) {
 			if (pageStorage != null && pageStorage["oauth2.userLogin"] != null)
@@ -541,9 +539,7 @@
 		}
 	}
 	function userLogin() {
-		$("#mffer-navbar-button-login")
-			.html('<span class="spinner-border spinner-border-sm p-0"></span>')
-			.click(null);
+		showLoginSpinner();
 		savePageStorage();
 		google.script.run
 			.withFailureHandler(function () {
@@ -555,6 +551,11 @@
 			.getUserAuthUrl(pageStorage);
 	}
 	function userLogout() {
+		if ($("#mffer-admin").is(":visible")) {
+			$("#mffer-admin").hide();
+			$("#mffer-contents").show();
+		}
+		$("#mffer-contents-li-admin").add("#menu-item-admin").hide();
 		pageStorage = null;
 		$("#mffer-storage").html(null);
 		setLoginStatus(null);
@@ -565,12 +566,14 @@
 			.withFailureHandler(alertLoadFailure)
 			.withSuccessHandler(loadData)
 			.getWebappDatabase();
+		$("#mffer-admin-input-oauthid")
+			.add("#mffer-admin-input-oauthsecret")
+			.attr("disabled", "disabled");
 		loadPageStorage();
 	}
 	function loadData(database) {
 		if (database == null) alertLoadFailure();
 		hideLoading();
-		$("#mffer-contents").show();
 	}
 
 	// reset the page settings and info for a given floor number, on the current
