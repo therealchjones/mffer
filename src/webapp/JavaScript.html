@@ -442,7 +442,10 @@
 		}
 		let newStorage = null;
 		let newStorageText = $("#mffer-storage").html().trim();
-		if (!isFalseOrEmpty(newStorageText)) {
+		if (
+			!isFalseOrEmpty(newStorageText) &&
+			!isFalseOrEmpty(JSON.parse(newStorageText))
+		) {
 			newStorage = JSON.parse(newStorageText);
 			for (let key in newStorage) {
 				pageStorage[key] = newStorage[key];
