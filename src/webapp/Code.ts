@@ -9,10 +9,11 @@ function getPermissions(): boolean {
 }
 /**
  * Remove all properties from the PropertiesService stores associated with this
- * script, effectively resetting the deployment. Private function specified with
- * the trailing _ cannot be run from the client side or easily selected in the
- * Apps Script IDE. To run (and reset all properties), open in the Apps Script
- * IDE, uncomment the below line starting with "function", press "Save", select
+ * script, effectively resetting the deployment. It also erases the entire
+ * associated spreadsheet. Private function specified with the trailing _ cannot
+ * be run from the client side or easily selected in the Apps Script IDE. To run
+ * (and remove all this data), open in the Apps Script IDE, uncomment the below
+ * line starting with "function", press "Save", select
  * "RESET_DEPLOYMENT_YES_REALLY" from the function drop-down, and press "Run".
  */
 // function RESET_DEPLOYMENT_YES_REALLY() { resetAllProperties_(); }
@@ -23,6 +24,7 @@ function resetAllProperties_(): void {
 	if (properties != null) properties.deleteAllProperties();
 	properties = PropertiesService.getScriptProperties();
 	if (properties != null) properties.deleteAllProperties();
+	eraseSpreadsheet_();
 }
 /**
  * Get the properties store. Though likely not necessary to separate
@@ -82,9 +84,20 @@ function getConfig() {
 	};
 }
 function isConfigured(): boolean {
-	if (isFalseOrEmpty_(getOauthId_()) || isFalseOrEmpty_(getOauthSecret_())) {
+	if (
+		isFalseOrEmpty_(getOauthId_()) ||
+		isFalseOrEmpty_(getOauthSecret_()) ||
+		isFalseOrEmpty_(getAdminId_())
+	) {
 		return false;
 	} else return true;
+}
+function spreadsheetConfigured_(): boolean {
+	try {
+		return getUsersSheet_().getSheetName() == "Users";
+	} catch {
+		return false;
+	}
 }
 function getProperty_(propertyName: string): string {
 	var properties = getProperties_();
@@ -156,8 +169,14 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-function isFalseOrEmpty_(check: string | boolean | null): boolean {
-	if (!check || check.toString().trim() === "") return true;
+// TODO: #148 Consider deprecating isFalseOrEmpty to simply use falsey check and code around other possibilities (e.g., using for...in loop to avoid empty objects)
+function isFalseOrEmpty_(check: string | boolean): boolean {
+	if (
+		!check ||
+		check.toString().trim() === "" ||
+		JSON.stringify(check) == "{}"
+	)
+		return true;
 	return false;
 }
 function getAdminAuthUrl(propertiesJson: string = null) {
@@ -218,14 +237,15 @@ function processNewAdminAuthResponse_(request) {
 	if (service.handleCallback(request)) {
 		setProperty_("oauthSecret", oauthSecret);
 		setProperty_("oauthId", oauthId);
+		storage.deleteProperty("oauthId");
+		storage.deleteProperty("oauthSecret");
 		let adminId: string = getUserId_(service.getIdToken());
 		if (isFalseOrEmpty_(adminId)) {
 			throw new Error("Unable to determine administrator ID");
 		} else {
 			setProperty_("adminId", adminId);
 		}
-		storage.deleteProperty("oauthId");
-		storage.deleteProperty("oauthSecret");
+		createNewSpreadsheet_();
 		return buildPage_(storage);
 	} else {
 		let errorMessage: string = request.parameter.error;
@@ -303,17 +323,39 @@ function processUserAuthResponse_(request) {
 	let service = getUserAuthService_(storage);
 	if (service.handleCallback(request)) {
 		let userId: string = getUserId_(service.getIdToken());
-		storage.setProperty("userId", userId);
-		if (userId != null && userId == getAdminId_())
-			storage.setProperty("adminUser", "true");
-		return buildPage_(storage);
+		if (userId == null) throw new Error("Unable to obtain user ID");
+		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
+		if (!isFalseOrEmpty_(getUserSpreadsheetId_(userId)))
+			storage.setProperty("hasUserSpreadsheet", "true");
 	} else {
 		storage.setProperty(
 			"userAuthError",
 			"Unable to authorize user access: access_denied"
 		);
-		return buildPage_(storage);
 	}
+	return buildPage_(storage);
+}
+function getUserSpreadsheetId_(userId: string): string {
+	if (userId == null)
+		throw new Error("Unable to obtain spreadsheet for a null user ID");
+	let userResult = getUsersSheet_()
+		.createTextFinder(userId)
+		.matchEntireCell(true)
+		.matchCase(true)
+		.findAll();
+	if (
+		userResult == null ||
+		userResult.length == 0 ||
+		userResult[0].getNumRows() == 0
+	)
+		return null;
+	if (
+		userResult.length > 1 ||
+		userResult[0].getNumRows() > 1 ||
+		userResult[0].getNumColumns() > 1
+	)
+		throw new Error("Multiple users found with the same ID");
+	return userResult[0].offset(0, 1).getValue().toString();
 }
 function getUserId_(id_token: string): string {
 	if (id_token == null || id_token.match(/\./g).length != 2)
@@ -338,9 +380,15 @@ function getUserId_(id_token: string): string {
 function getUserLoginStatus(pageStorageJson: string): string {
 	let pageStorage: { [key: string]: string } = JSON.parse(pageStorageJson);
 	let storage = new VolatileProperties(pageStorage);
-	if (getUserAuthService_(storage).hasAccess())
+	let service = getUserAuthService_(storage);
+	if (service.hasAccess()) {
+		let userId: string = getUserId_(service.getIdToken());
+		if (userId == null) throw new Error("Unable to obtain user ID");
+		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
+		if (!isFalseOrEmpty_(getUserSpreadsheetId_(userId)))
+			storage.setProperty("hasUserSpreadsheet", "true");
 		return JSON.stringify(storage.getProperties());
-	else {
+	} else {
 		return null;
 	}
 }
@@ -364,12 +412,26 @@ function getDateString_(): string {
 	if (date.length == 1) date = "0" + date;
 	return year + month + date;
 }
+function eraseSpreadsheet_(): void {
+	let spreadsheet = getSpreadsheet_();
+	let oldSheets = spreadsheet.getSheets();
+	spreadsheet.insertSheet(0);
+	for (let i = 0; i < oldSheets.length; i++) {
+		spreadsheet.deleteSheet(oldSheets[i]);
+	}
+}
 function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	let spreadsheet = getSpreadsheet_();
-	let coverSheet = spreadsheet.insertSheet("Cover", 0);
+	if (
+		spreadsheet.getSheets().length > 1 ||
+		spreadsheet.getSheetByName("Cover")
+	)
+		throw new Error("The mffer spreadsheet already exists.");
+	let coverSheet = spreadsheet.getSheets()[0];
 	coverSheet
+		.setName("Cover")
 		.getRange(1, 1)
-		.setValue("This file is used by mffer.Do not edit or delete it.");
+		.setValue("This file is used by mffer. Do not edit or delete it.");
 	for (let sheet of spreadsheet.getSheets()) {
 		if (sheet.getSheetId() != coverSheet.getSheetId()) {
 			spreadsheet.deleteSheet(sheet);
@@ -385,6 +447,7 @@ function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 		coverSheet.getSheetId().toString(),
 		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 	);
+	createUsersSheet_();
 	return spreadsheet;
 }
 function importNewData(newText: string): void {
@@ -406,6 +469,20 @@ function importNewData(newText: string): void {
 	if (newData.length == 0) return;
 	let dataRange = dataSheet.getRange(1, 1, newData.length, newData[0].length);
 	dataRange.setValues(newData);
+}
+function createUsersSheet_(): void {
+	let spreadsheet = getSpreadsheet_();
+	let usersSheet = getUsersSheet_();
+	if (usersSheet != null) return;
+	usersSheet = spreadsheet.insertSheet(1);
+	spreadsheet.addDeveloperMetadata(
+		"mffer-users-sheet",
+		usersSheet.getSheetId().toString(),
+		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
+	);
+	usersSheet.setName("Users");
+	let dataRange = usersSheet.getRange(1, 1, 1, 2);
+	dataRange.setValues([["User ID", "Spreadsheet ID"]]);
 }
 /**
  * Allow referring to an individual sheet by ID rather than name (which
@@ -495,7 +572,7 @@ function getWebappDatabase(): any[][] {
 		});
 	});
 }
-function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
+function getSheet_(mfferSheet: string): GoogleAppsScript.Spreadsheet.Sheet {
 	let spreadsheet = getSpreadsheet_();
 	if (spreadsheet == null) return null;
 	let metadata = spreadsheet
@@ -504,7 +581,7 @@ function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
 			SpreadsheetApp.DeveloperMetadataLocationType.SPREADSHEET
 		)
 		.withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT)
-		.withKey("mffer-data-sheet")
+		.withKey(mfferSheet)
 		.find();
 	if (
 		metadata == null ||
@@ -522,6 +599,12 @@ function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
 	}
 	if (sheet == null) return null;
 	return sheet;
+}
+function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
+	return getSheet_("mffer-data-sheet");
+}
+function getUsersSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
+	return getSheet_("mffer-users-sheet");
 }
 
 /**

@@ -22,7 +22,7 @@
 		oauthSecret: "",
 		pickerApiKey: "",
 	};
-	var pageStorage = {};
+	var mfferStorage = {};
 	var importText = null;
 	var bootstrap = {
 		boxarrow:
@@ -164,21 +164,21 @@
 		let storageElement = $("#mffer-storage");
 		if (storageElement.length > 0) {
 			try {
-				pageStorage = JSON.parse(storageElement.html().trim());
+				mfferStorage = JSON.parse(storageElement.html().trim());
 			} catch (error) {
-				pageStorage = null;
+				mfferStorage = null;
 			}
 		}
-		if (isFalseOrEmpty(pageStorage)) {
+		if (isFalseOrEmpty(mfferStorage)) {
 			$("#mffer-new-button-setup").click(openAdmin);
 			$("#mffer-new-spinner").hide();
 			$("#mffer-new-intro").show();
 		} else {
-			let authErrorMessage = pageStorage.adminAuthError;
+			let authErrorMessage = mfferStorage.adminAuthError;
 			if (!isFalseOrEmpty(authErrorMessage)) {
-				$("#mffer-admin-input-oauthid").val(pageStorage.oauthId);
+				$("#mffer-admin-input-oauthid").val(mfferStorage.oauthId);
 				$("#mffer-admin-input-oauthsecret").val(
-					pageStorage.oauthSecret
+					mfferStorage.oauthSecret
 				);
 				$("#mffer-admin-authorizationerror").html(
 					"Unable to authenticate with Google: " + authErrorMessage
@@ -431,115 +431,121 @@
 	function showLoginSpinner() {
 		$("#mffer-navbar-button-login").html(bootstrap.spinner).show();
 	}
-	function loadPageStorage() {
-		showLoginSpinner();
-		if (pageStorage == null) pageStorage = {};
+	function checkLocalStorage() {
+		if (!mfferStorage) mfferStorage = {};
 		if (hasLocalStorage()) {
-			for (let i = 0; i < window.localStorage.length; i++) {
-				let key = window.localStorage.key(i);
-				pageStorage[key] = window.localStorage.getItem(key);
-			}
+			if (window.localStorage.getItem("oauth2.userLogin"))
+				mfferStorage["oauth2.userLogin"] =
+					window.localStorage.getItem("oauth2.userLogin");
 		}
-		let newStorage = null;
-		let newStorageText = $("#mffer-storage").html().trim();
-		if (
-			!isFalseOrEmpty(newStorageText) &&
-			!isFalseOrEmpty(JSON.parse(newStorageText))
-		) {
-			newStorage = JSON.parse(newStorageText);
-			for (let key in newStorage) {
-				pageStorage[key] = newStorage[key];
-				switch (key) {
-					case "oauth2.userLogin":
-						// a user just logged in
-						setLoginStatus(JSON.stringify(newStorage));
-						$("#mffer-contents").show();
-						break;
-					case "oauth2.adminLogin":
-						// an admin just changed settings
-						setLoginStatus(JSON.stringify(newStorage));
-						openAdmin();
-						break;
-					case "adminUser":
-						if (pageStorage[key] == "true") {
-							$("#mffer-contents-li-admin")
-								.add("#menu-item-admin")
-								.show();
-						}
-						break;
-					case "adminAuthError":
-						showAlert(
-							"Administrator authentication error",
-							pageStorage[key]
-						);
-						userLogout();
-						openAdmin();
-						break;
-					case "userAuthError":
-						showAlert(
-							"User authentication error",
-							pageStorage[key]
-						);
-						userLogout();
-						$("#mffer-contents").show();
-						break;
-					case "userId":
-						break;
-					default:
-						throw new Error(
-							"Unrecognized type of response from server; text is: " +
-								newStorageText
-						);
-				}
-			}
-		} else {
-			// otherwise, there is no new data for storage from the server
-			if (pageStorage["oauth2.userLogin"] == null) {
-				// there is no user data for this client
+	}
+	function checkUserLogin() {
+		showLoginSpinner();
+		checkPageStorage();
+		if (!mfferStorage["oauth2.userLogin"]) {
+			$("#mffer-contents").show();
+			// in-page storage did not include new user data; check for
+			// persistent old user data
+			checkLocalStorage();
+			if (!mfferStorage["oauth2.userLogin"]) {
+				// there's no user data at all
 				resetLogin();
 			} else {
-				// there is user login data, but it may be outdated
-				// need to check hasAccess() which will also renew token if
-				// possible
-				google.script.run
-					.withSuccessHandler(setLoginStatus)
-					.withFailureHandler(function () {
-						throwError("Unable to get login status");
-					})
-					.getUserLoginStatus(JSON.stringify(pageStorage));
+				// there was persistent old user data, but it needs to be
+				// updated and/or checked
+				updateLogin(JSON.stringify(mfferStorage));
 			}
+		}
+	}
+	function checkPageStorage() {
+		let pageStorageText = $("#mffer-storage").html().trim();
+		let pageStorage = {};
+		mfferStorage = {};
+		if (pageStorageText) pageStorage = JSON.parse(pageStorageText);
+		if (pageStorage.adminAuthError) {
+			// failed admin login when trying to change settings
+			// TODO: #147 consider whether admin auth error should return
+			// attempted auth settings
+			userLogout();
+			showAlert("Administrator authentication error");
+			$("#mffer-contents").show();
+		} else if (pageStorage["oauth2.adminLogin"]) {
+			// logged in to change settings; will go back to admin page but
+			// also login as "regular" user
+			mfferStorage["oauth2.userLogin"] = pageStorage["oauth2.adminLogin"];
+			updateLogin(JSON.stringify(mfferStorage));
+			showAdminContent();
+			openAdmin();
+		} else if (pageStorage.userAuthError) {
+			// failed standard user login
+			userLogout();
+			showAlert("User authentication error");
+			$("#mffer-contents").show();
+		} else if (pageStorage["oauth2.userLogin"]) {
+			// logged in as standard user
+			setLoginStatus(pageStorageText);
 			$("#mffer-contents").show();
 		}
 	}
+	function updateLogin(storageText) {
+		google.script.run
+			.withSuccessHandler(setLoginStatus)
+			.withFailureHandler(function () {
+				throwError("Unable to get login status");
+			})
+			.getUserLoginStatus(storageText);
+	}
 	function savePageStorage() {
 		if (hasLocalStorage()) {
-			if (pageStorage != null && pageStorage["oauth2.userLogin"] != null)
+			if (
+				mfferStorage != null &&
+				mfferStorage["oauth2.userLogin"] != null
+			)
 				window.localStorage.setItem(
 					"oauth2.userLogin",
-					pageStorage["oauth2.userLogin"]
+					mfferStorage["oauth2.userLogin"]
 				);
 		}
 	}
 	function resetLogin() {
 		$("#mffer-navbar-button-login").html("login").click(userLogin).show();
 	}
-	function setLoginStatus(storage) {
-		if (isFalseOrEmpty(storage)) {
+	function setLoginStatus(storageText) {
+		if (!storageText) {
 			// user does not (currently) have access
 			if (hasLocalStorage()) window.localStorage.clear();
 			resetLogin();
 		} else {
+			let newStorage = JSON.parse(storageText);
+			mfferStorage = {};
+			mfferStorage["oauth2.userLogin"] = newStorage["oauth2.userLogin"];
+			if (newStorage.adminUser) {
+				mfferStorage.adminUser = true;
+				showAdminContent();
+			} else hideAdminContent();
+			if (newStorage.hasUserSpreadsheet)
+				mfferStorage.hasUserSpreadsheet = true;
+			else
+				showAlert(
+					"Spreadsheet not found",
+					"Please select or create a Google Spreadsheet to save your individual data"
+				);
+			savePageStorage();
 			$("#mffer-navbar-button-login")
 				.html("logout")
 				.click(userLogout)
 				.show();
-			let newStorage = JSON.parse(storage);
-			if (pageStorage == null) pageStorage = {};
-			for (let key in newStorage) {
-				pageStorage[key] = newStorage[key];
-			}
-			savePageStorage();
 		}
+	}
+	function showAdminContent() {
+		$("#mffer-contents-li-admin").add("#menu-item-admin").show();
+	}
+	function hideAdminContent() {
+		if ($("#mffer-admin").is(":visible")) {
+			$("#mffer-admin").hide();
+			$("#mffer-contents").show();
+		}
+		$("#mffer-contents-li-admin").add("#menu-item-admin").hide();
 	}
 	function userLogin() {
 		showLoginSpinner();
@@ -551,15 +557,11 @@
 			.withSuccessHandler(function (url) {
 				$(document.createElement("a")).attr("href", url)[0].click();
 			})
-			.getUserAuthUrl(pageStorage);
+			.getUserAuthUrl(mfferStorage);
 	}
 	function userLogout() {
-		if ($("#mffer-admin").is(":visible")) {
-			$("#mffer-admin").hide();
-			$("#mffer-contents").show();
-		}
-		$("#mffer-contents-li-admin").add("#menu-item-admin").hide();
-		pageStorage = null;
+		hideAdminContent();
+		mfferStorage = null;
 		$("#mffer-storage").html(null);
 		setLoginStatus(null);
 	}
@@ -572,7 +574,7 @@
 		$("#mffer-admin-input-oauthid")
 			.add("#mffer-admin-input-oauthsecret")
 			.attr("disabled", "disabled");
-		loadPageStorage();
+		checkUserLogin();
 	}
 	function loadData(database) {
 		if (database == null) alertLoadFailure();
