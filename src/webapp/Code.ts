@@ -338,7 +338,9 @@ function processUserAuthResponse_(request) {
 function getUserSpreadsheetId_(userId: string): string {
 	if (userId == null)
 		throw new Error("Unable to obtain spreadsheet for a null user ID");
-	let userResult = getUsersSheet_()
+	let usersSheet = getUsersSheet_();
+	if (usersSheet == null) return null;
+	let userResult = usersSheet
 		.createTextFinder(userId)
 		.matchEntireCell(true)
 		.matchCase(true)
@@ -414,6 +416,8 @@ function getDateString_(): string {
 }
 function eraseSpreadsheet_(): void {
 	let spreadsheet = getSpreadsheet_();
+	for (let metadata of spreadsheet.createDeveloperMetadataFinder().find())
+		metadata.remove();
 	let oldSheets = spreadsheet.getSheets();
 	spreadsheet.insertSheet(0);
 	for (let i = 0; i < oldSheets.length; i++) {
@@ -472,15 +476,12 @@ function importNewData(newText: string): void {
 }
 function createUsersSheet_(): void {
 	let spreadsheet = getSpreadsheet_();
-	let usersSheet = getUsersSheet_();
-	if (usersSheet != null) return;
-	usersSheet = spreadsheet.insertSheet(1);
+	let usersSheet = spreadsheet.insertSheet("Users", 1);
 	spreadsheet.addDeveloperMetadata(
 		"mffer-users-sheet",
 		usersSheet.getSheetId().toString(),
 		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 	);
-	usersSheet.setName("Users");
 	let dataRange = usersSheet.getRange(1, 1, 1, 2);
 	dataRange.setValues([["User ID", "Spreadsheet ID"]]);
 }
@@ -597,7 +598,6 @@ function getSheet_(mfferSheet: string): GoogleAppsScript.Spreadsheet.Sheet {
 	} catch (exception) {
 		return null;
 	}
-	if (sheet == null) return null;
 	return sheet;
 }
 function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
@@ -646,19 +646,34 @@ function saveFloorNumber(floorNumber) {
 		.setValue(floorNumber);
 }
 
-function csvToTable(text) {
-	var csvArray = Utilities.parseCsv(text, "|");
-	var returnHtml = HtmlService.createHtmlOutput("<table>");
-	for (var row of csvArray) {
-		returnHtml.append("<tr>");
-		for (var cell of row) {
-			returnHtml.append("<td>");
-			returnHtml.appendUntrusted(cell);
-			returnHtml.append("</td>");
-		}
-		returnHtml.append("</tr>");
+function csvToTable(text: string, storageJson: string) {
+	let storage = new VolatileProperties(JSON.parse(storageJson));
+	if (storage.getProperty("oauth2.adminLogin") == null)
+		if (storage.getProperty("oauth2.userLogin") != null)
+			storage.setProperty(
+				"oauth2.adminLogin",
+				storage.getProperty("oauth2.userLogin")
+			);
+	let adminService = getAdminAuthService_(storage);
+	if (!adminService.hasAccess()) {
+		storage = new VolatileProperties({ adminAuthError: "not logged in" });
 	}
-	returnHtml.append("</table>");
+	var csvArray = Utilities.parseCsv(text, "|");
+	var returnTable = HtmlService.createHtmlOutput("<table>");
+	for (var row of csvArray) {
+		returnTable.append("<tr>");
+		for (var cell of row) {
+			returnTable.append("<td>");
+			returnTable.appendUntrusted(cell);
+			returnTable.append("</td>");
+		}
+		returnTable.append("</tr>");
+	}
+	returnTable.append("</table>");
+	let returnStorage: string =
+		'<div id="mffer-admin-filechooser-pending-storage" class="start-inactive">' +
+		JSON.stringify(storage.getProperties()) +
+		"</div>";
 
-	return returnHtml.getContent();
+	return returnTable.getContent() + returnStorage;
 }

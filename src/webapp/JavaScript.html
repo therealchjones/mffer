@@ -250,6 +250,35 @@
 				throwError("Unable to get the current configuration");
 			})
 			.getConfig();
+		$("#mffer-filechooser-pending button").click(function (event) {
+			$("#mffer-filechooser-pending").hide();
+			switch (event.target.id) {
+				case "button-filechooser-confirm":
+					showSpinner($("#mffer-admin-input-fileupload"));
+					google.script.run
+						.withSuccessHandler(uploadComplete)
+						.withFailureHandler(function () {
+							throwError("Unable to import new data");
+						})
+						.importNewData(
+							importText,
+							JSON.stringify(mfferStorage)
+						);
+					break;
+				case "button-filechooser-cancel":
+					$("#mffer-filechooser-pending").hide();
+					$("#button-filechooser-confirm").attr(
+						"disabled",
+						"disabled"
+					);
+					$("#mffer-admin-input-fileupload").val(null);
+					$("#mffer-admin-input-fileupload").change();
+					$("#mffer-admin").show();
+					break;
+				default:
+					throwError("Unable to identify button clicked");
+			}
+		});
 		$("#mffer-admin-input-fileupload").change(function () {
 			if (this.files != null && this.files.length != 0) {
 				if (this.files.length > 1) {
@@ -265,34 +294,13 @@
 						"<pre>\n" + headers + "\n</pre>"
 					);
 					$("#mffer-filechooser-tabledisplay").html(
-						csvToTable(headers)
+						csvToTable(headers, JSON.stringify(mfferStorage))
 					);
 				};
 				fileReader.onerror = function () {
 					throwError("Unable to read file");
 				};
 				fileReader.readAsText(file);
-			}
-		});
-		$("#mffer-filechooser-pending button").click(function (event) {
-			$("#mffer-filechooser-pending").hide();
-			switch (event.target.id) {
-				case "button-filechooser-confirm":
-					google.script.run
-						.withSuccessHandler(uploadComplete)
-						.withFailureHandler(function () {
-							throwError("Unable to import new data");
-						})
-						.importNewData(importText);
-					break;
-				case "button-filechooser-cancel":
-					$("#mffer-filechooser-pending").hide();
-					$("#mffer-admin-input-fileupload").val(null);
-					$("#mffer-admin-input-fileupload").change();
-					$("#mffer-admin").show();
-					break;
-				default:
-					throwError("Unable to identify button clicked");
 			}
 		});
 		$("#mffer-admin-button-authorize").click(adminAuthAndSave);
@@ -426,6 +434,7 @@
 		}
 	}
 	function uploadComplete() {
+		hideSpinner($("#mffer-admin-input-fileupload"));
 		initializePage();
 	}
 	function showLoginSpinner() {
@@ -650,6 +659,7 @@
 
 	// for issues that require user intervention
 	function alertError(text) {
+		$("#mffer-alert").html(text);
 		$("#mffer-alert").show();
 	}
 
@@ -670,6 +680,7 @@
 					error.message
 			);
 		}
+		hideLoading();
 	}
 	function alertSaveFailure(error, userObj) {
 		alertError(
@@ -725,11 +736,31 @@
 		google.script.run
 			.withSuccessHandler(displayTable)
 			.withFailureHandler(displayTableError)
-			.csvToTable(text);
-		return "<p>Parsing...</p>";
+			.csvToTable(text, JSON.stringify(mfferStorage));
+		return "<p>" + bootstrap.spinner + "</p>";
 	}
 	function displayTable(text) {
-		$("#mffer-filechooser-tabledisplay").html(text);
+		let result = $("<div>" + text + "</div>");
+		let storage = {};
+		if (
+			result.find("#mffer-admin-filechooser-pending-storage").length > 0
+		) {
+			storage = JSON.parse(
+				result
+					.find("#mffer-admin-filechooser-pending-storage")
+					.html()
+					.trim()
+			);
+			if (storage.adminAuthError) {
+				result.append(
+					'<div id="mffer-admin-filechooser-pending-warning" class="text-danger">' +
+						"Warning: no administrator is logged in. Data will not be imported. Login as administrator first, then try again." +
+						"</div>"
+				);
+			}
+		}
+		$("#button-filechooser-confirm").removeAttr("disabled");
+		$("#mffer-filechooser-tabledisplay").html(result.html());
 	}
 	function displayTableError(error) {
 		$("#mffer-filechooser-tabledisplay").html(
