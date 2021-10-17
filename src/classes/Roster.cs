@@ -129,7 +129,11 @@ namespace Mffer {
 							character.BaseName = LocalDictionary.GetString( $"HERO_{baseId}" );
 						}
 					}
-					newLevel.Instinct = LocalDictionary.GetString( "SPECIAL_TYPE_" + entry.specialType.ToString() );
+					try {
+						newLevel.Instinct = LocalDictionary.GetString( "SPECIAL_TYPE_" + entry.specialType.ToString() );
+					} catch ( Microsoft.CSharp.RuntimeBinder.RuntimeBinderException ) {
+						newLevel.Instinct = "";
+					}
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );
 					character.StartGrade = Int32.Parse( entry.startGrade.ToString() );
 					character.GrowType = Int32.Parse( entry.growType.ToString() );
@@ -302,7 +306,6 @@ namespace Mffer {
 					if ( instinct == null ) instinct = uniform.Instinct;
 					else if ( instinct != uniform.Instinct ) throw new Exception( "Not all character level instincts are the same." );
 				}
-				if ( instinct == null ) throw new Exception( "Could not find instinct" );
 				return instinct;
 			}
 		}
@@ -380,7 +383,6 @@ namespace Mffer {
 					if ( instinct == null ) instinct = level.Instinct;
 					else if ( instinct != level.Instinct ) throw new Exception( "Not all character level instincts are the same." );
 				}
-				if ( instinct == null ) throw new Exception( "Could not find instinct" );
 				return instinct;
 			}
 		}
