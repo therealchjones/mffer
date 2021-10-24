@@ -408,7 +408,7 @@ function include(filename: string, storage: VolatileProperties = null): string {
 function getDateString_(): string {
 	let today = new Date();
 	let year = today.getFullYear().toString();
-	let month = today.getMonth().toString();
+	let month = (today.getMonth() + 1).toString();
 	if (month.length == 1) month = "0" + month;
 	let date = today.getDate().toString();
 	if (date.length == 1) date = "0" + date;
@@ -454,21 +454,109 @@ function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	createUsersSheet_();
 	return spreadsheet;
 }
-function importNewData(newText: string): void {
+/**
+ * Make changes to the requested spreadsheet. Requires drive or spreadsheets
+ * scope, or may use drive.file if the spreadsheet was "selected or created" by
+ * this app.
+ * @param spreadsheetId ID of the spreadsheet to change
+ * @param accessToken authorizing changes to the spreadsheet
+ * @param ValueRange object describing the range to replace and the values to
+ * use
+ * @returns the server response as a string
+ */
+function updateRemoteSpreadsheet(
+	spreadsheetId: string,
+	accessToken: string,
+	ValueRange: any
+): string {
+	let url: string =
+		"https://sheets.googleapis.com/v4/spreadsheets/" +
+		spreadsheetId +
+		"/values:batchUpdate";
+	let request: GoogleAppsScript.URL_Fetch.Payload = {
+		valueInputOption: "RAW",
+		data: [ValueRange],
+		includeValuesInResponse: false,
+	};
+	let params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+		method: "post",
+		contentType: "application/json",
+		headers: {
+			Authorization: "Bearer " + accessToken,
+		},
+		payload: JSON.stringify(request),
+		muteHttpExceptions: true,
+	};
+	let response = UrlFetchApp.fetch(url, params);
+	return response.getContentText();
+}
+/**
+ * Set the authenticated user to be the authenticated administrator to avoid
+ * the need for multiple logins.
+ * @param storage persistent storage object containing authentication
+ * information
+ */
+function setAdminToUser_(storage: VolatileProperties): void {
+	if (storage.getProperty("adminAuthError")) return;
+	if (
+		storage.getProperty("oauth2.adminLogin") == null &&
+		storage.getProperty("oauth2.userLogin") != null
+	) {
+		storage.setProperty(
+			"oauth2.adminLogin",
+			storage.getProperty("oauth2.userLogin")
+		);
+		let service = getAdminAuthService_(storage);
+		if (service.hasAccess()) {
+			if (getUserId_(service.getIdToken()) == getAdminId_()) return;
+		}
+	}
+	storage
+		.deleteAllProperties()
+		.setProperty("adminAuthError", "No administrator is logged in.");
+}
+/**
+ * Converts a column number to an A1-formatted column label
+ * @param colNum The number of the column in a spreadsheet; the first column is
+ * number 1
+ * @returns the A1-formatted column label; the first column is A, the 28th is AB
+ */
+function numToCol_(colNum: number): string {
+	let colName: string = null;
+	let colBaseLabels: string = "ABFCDEFGHIJKLMNOPQRSTUVWXYZ";
+	let colGroup = Math.floor(colNum / colBaseLabels.length);
+	if (colGroup > 0) {
+		colName = numToCol_(colGroup);
+	}
+	colName += colBaseLabels[colNum % colBaseLabels.length];
+	return colName;
+}
+function importNewData(newText: string, storageJson: string): void {
+	let storage = new VolatileProperties(JSON.parse(storageJson));
+	setAdminToUser_(storage);
+	if (storage.getProperty("adminAuthError"))
+		throw new Error(
+			"Authorization error: " + storage.getProperty("adminAuthError")
+		);
+	let authService = getAdminAuthService_(storage);
+	if (!authService.hasAccess()) {
+		throw new Error("Access is not available");
+	}
 	let spreadsheet = getSpreadsheet_();
 	let dataSheet = getDataSheet_();
 	if (dataSheet != null) {
 		dataSheet.copyTo(spreadsheet);
 		dataSheet.clear();
 	} else {
-		dataSheet = spreadsheet.insertSheet(1);
+		let dataSheet = spreadsheet.insertSheet(1);
 		spreadsheet.addDeveloperMetadata(
 			"mffer-data-sheet",
 			dataSheet.getSheetId().toString(),
 			SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 		);
 	}
-	dataSheet.setName("mffer - " + getDateString_());
+	let dataSheetName: string = "mffer - " + getDateString_();
+	dataSheet.setName(dataSheetName);
 	let newData = Utilities.parseCsv(newText, "|");
 	if (newData.length == 0) return;
 	let dataRange = dataSheet.getRange(1, 1, newData.length, newData[0].length);
@@ -648,16 +736,10 @@ function saveFloorNumber(floorNumber) {
 
 function csvToTable(text: string, storageJson: string) {
 	let storage = new VolatileProperties(JSON.parse(storageJson));
-	if (storage.getProperty("oauth2.adminLogin") == null)
-		if (storage.getProperty("oauth2.userLogin") != null)
-			storage.setProperty(
-				"oauth2.adminLogin",
-				storage.getProperty("oauth2.userLogin")
-			);
+	let returnContent: string = null;
+	setAdminToUser_(storage);
 	let adminService = getAdminAuthService_(storage);
-	if (!adminService.hasAccess()) {
-		storage = new VolatileProperties({ adminAuthError: "not logged in" });
-	}
+
 	var csvArray = Utilities.parseCsv(text, "|");
 	var returnTable = HtmlService.createHtmlOutput("<table>");
 	for (var row of csvArray) {
