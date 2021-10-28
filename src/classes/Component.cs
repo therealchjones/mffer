@@ -190,7 +190,7 @@ namespace Mffer {
 		/// <returns><c>true</c> if the <see cref="Component"/> contains
 		/// loaded data, <c>false</c> otherwise</returns>
 		public virtual bool IsLoaded() {
-			return true;
+			return false;
 		}
 	}
 }

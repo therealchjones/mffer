@@ -28,7 +28,10 @@ namespace Mffer {
 			/// cref="Item"/>s and exchange or pricing data
 			/// </summary>
 			class ShopEntry : GameObject {
-				List<ItemBundle> Items;
+				List<ItemBundle> Items { get; set; }
+				ShopEntry() : base() {
+					Items = new List<ItemBundle>();
+				}
 				/// <summary>
 				/// An object representing a defined quantity of a specific <see
 				/// cref="Item"/>
