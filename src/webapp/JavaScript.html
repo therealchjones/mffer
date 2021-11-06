@@ -65,11 +65,11 @@
 	function bootstrapify() {
 		let pages = $('body > [id^="mffer-"]').filter(':not(".always-active")');
 		pages.addClass("container");
-		pages.find("ul").add("ol").addClass("list-group list-group-flush");
+		pages.find("ul").addClass("list-group list-group-flush");
+		pages.find("ol").addClass("list-group list-group-flush");
 		pages.find("li").addClass("list-group-item");
 		pages.find("label").addClass("form-label");
-		let boxarrow = bootstrap.boxarrow;
-		pages.find("a[target='_blank']").append(boxarrow);
+		pages.find("a[target='_blank']").append(bootstrap.boxarrow);
 		bootstrapifyAdmin();
 	}
 	function bootstrapifyAdmin() {
@@ -155,9 +155,11 @@
 		showAlert(
 			"Warning: Setup Mode",
 			"<code>mffer</code> is currently in setup mode. Changes can be " +
-				"made to the deployment without authentication. This will " +
+				"made to the deployment by anyone accessing this page. This will " +
 				"end when you complete setup."
 		);
+		showAdminContent();
+		$("#menu-button-home").attr("href", "javascript:openWelcome();");
 		$("#mffer-admin-listitem-pickerapikey")
 			.add("#mffer-admin-listitem-fileupload")
 			.hide();
@@ -190,6 +192,14 @@
 				);
 			}
 		}
+	}
+	function openWelcome() {
+		hidePages();
+		$("#mffer-new").show();
+	}
+	function openContents() {
+		hidePages();
+		$("#mffer-contents").show();
 	}
 	function openAdmin() {
 		hidePages();
@@ -458,7 +468,7 @@
 		showLoginSpinner();
 		checkPageStorage();
 		if (!mfferStorage["oauth2.userLogin"]) {
-			$("#mffer-contents").show();
+			openContents();
 			// in-page storage did not include new user data; check for
 			// persistent old user data
 			checkLocalStorage();
@@ -483,7 +493,7 @@
 			// attempted auth settings
 			userLogout();
 			showAlert("Administrator authentication error");
-			$("#mffer-contents").show();
+			openContents();
 		} else if (pageStorage["oauth2.adminLogin"]) {
 			// logged in to change settings; will go back to admin page but
 			// also login as "regular" user
@@ -495,11 +505,11 @@
 			// failed standard user login
 			userLogout();
 			showAlert("User authentication error");
-			$("#mffer-contents").show();
+			openContents();
 		} else if (pageStorage["oauth2.userLogin"]) {
 			// logged in as standard user
 			setLoginStatus(pageStorageText);
-			$("#mffer-contents").show();
+			openContents();
 		}
 	}
 	function updateLogin(storageText) {
@@ -557,8 +567,7 @@
 	}
 	function hideAdminContent() {
 		if ($("#mffer-admin").is(":visible")) {
-			$("#mffer-admin").hide();
-			$("#mffer-contents").show();
+			openContents();
 		}
 		$("#mffer-contents-li-admin").add("#menu-item-admin").hide();
 	}

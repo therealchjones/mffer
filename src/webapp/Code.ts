@@ -72,9 +72,7 @@ function buildPage_(
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
 		)
 		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
-	if (properties != null && properties.getProperty("hostUri") != null) {
-		page.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-	}
+	page.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 	return page;
 }
 function getConfig() {
