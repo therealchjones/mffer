@@ -627,8 +627,8 @@ follow the below set of instructions to set up a project for `mffer`.
    https://console.cloud.google.com/apis/credentials/consent, choosing
    "External" user type, and pressing "Create". Enter the required information
    for the "App information" and "Developer contact information", and press
-   "Save and continue". Choose "Add or remove scopes" and enter
-   "https://www.googleapis.com/auth/drive.file" and "openid" under "Manually add
+   "Save and continue". Choose "Add or remove scopes" and enter "https://www.googleapis.com/auth/drive.appdata",
+   "https://www.googleapis.com/auth/drive.file", and "openid" under "Manually add
    scopes". Again press "Update" and "Save and continue". Add your own account
    as a "Test user", then press "Save and continue" one more time.
 5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
@@ -692,27 +692,22 @@ follow the below set of instructions to set up a project for `mffer`.
     section (or obtain them again from
     https://console.cloud.google.com/apis/credentials using the provided
     links).
-11. Visit the OAuth client ID page as prompted, and in the "Authorized redirect
+11. Visit the OAuth client ID page, and in the "Authorized redirect
     URIs" section, add the URI given in the webapp; press "Save".
-12. Back on the webapp, use the "Login" button to authenticate with Google once
+12. Back on the webapp, use the "Authorize Google & save these settings" button to authenticate with Google once
     more; this will additionally lock the above settings and take the app out of
     "setup mode".
-13. When the app reloads, choose "Upload new `mffer` data" and select a CSV file
-    created by the `mffer` command line application.
-14. To allow users to keep personalized logs and customization for the `mffer`
-    webapp, enter the Google Picker API key you made a note of in the
-    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
-    section (or obtain it again from
-    https://console.cloud.google.com/apis/credentials using the provided
-    link).
-15. To visit the deployed test version of the web app, use `clasp` at the
+13. When the app reloads, under "Upload new `mffer` data" select a CSV file
+    created by the `mffer` command line application and then "Confirm" it for upload.
+14. To visit the deployed test version of the web app, use `clasp` at the
     command line:
     ```shell
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
 
 The webapp is now set up for access but
-[available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment).
+[available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment),
+and will therefore work only for the test users you designated.
 To deploy widely, first ensure privacy, restrictions, and access are secured in the
 GCP project, then submit your app for [verification](https://developers.google.com/apps-script/guides/client-verification) by Google.
 
