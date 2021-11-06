@@ -620,8 +620,9 @@ follow the below set of instructions to set up a project for `mffer`.
    ensuring the correct project is selected in the project drop-down, and
    pressing the "Enable" button:
     - [Apps Script API](https://console.cloud.google.com/apis/library/script.googleapis.com)
-    - [Sheets API](https://console.developers.google.com/apis/library/sheets.googleapis.com)
+    - [Drive API](https://console.developers.google.com/apis/library/drive.googleapis.com)
     - [Picker API](https://console.cloud.google.com/apis/library/picker.googleapis.com)
+    - [Sheets API](https://console.developers.google.com/apis/library/sheets.googleapis.com)
 4. Create an OAuth Consent Screen by visiting
    https://console.cloud.google.com/apis/credentials/consent, choosing
    "External" user type, and pressing "Create". Enter the required information

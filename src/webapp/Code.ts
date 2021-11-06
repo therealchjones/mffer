@@ -25,6 +25,7 @@ function resetAllProperties_(): void {
 	properties = PropertiesService.getScriptProperties();
 	if (properties != null) properties.deleteAllProperties();
 	eraseSpreadsheet_();
+	removeAppData_();
 }
 /**
  * Get the properties store. Though likely not necessary to separate
@@ -77,27 +78,20 @@ function buildPage_(
 	return page;
 }
 function getConfig() {
-	return {
+	let config = {
 		oauthId: getOauthId_(),
 		oauthSecret: hasOauthSecret_(),
 		pickerApiKey: getPickerApiKey_(),
 	};
+	return JSON.stringify(config);
 }
 function isConfigured(): boolean {
-	if (
-		isFalseOrEmpty_(getOauthId_()) ||
-		isFalseOrEmpty_(getOauthSecret_()) ||
-		isFalseOrEmpty_(getAdminId_())
-	) {
-		return false;
-	} else return true;
-}
-function spreadsheetConfigured_(): boolean {
-	try {
-		return getUsersSheet_().getSheetName() == "Users";
-	} catch {
-		return false;
-	}
+	return (
+		!isFalseOrEmpty_(getOauthId_()) &&
+		!isFalseOrEmpty_(getOauthSecret_()) &&
+		!isFalseOrEmpty_(getAdminId_()) &&
+		!isFalseOrEmpty_(getUsersFileId_())
+	);
 }
 function getProperty_(propertyName: string): string {
 	var properties = getProperties_();
@@ -165,11 +159,12 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setClientSecret(oauthSecret)
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
-		.setScope("openid https://www.googleapis.com/auth/drive.file")
+		.setScope(
+			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
+		)
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-// TODO: #148 Consider deprecating isFalseOrEmpty to simply use falsey check and code around other possibilities (e.g., using for...in loop to avoid empty objects)
 function isFalseOrEmpty_(check: string | boolean): boolean {
 	if (
 		!check ||
@@ -217,12 +212,12 @@ function getRedirectUri(): string {
 		"/usercallback"
 	);
 }
-function processNewAdminAuthResponse_(request) {
+function processNewAdminAuthResponse_(response) {
 	let noOauthMessage: string =
 		"Admin authorization response did not include OAuth 2.0 client information.";
-	if (request.parameter == null) throw new Error(noOauthMessage);
-	let oauthId: string = request.parameter.oauthId;
-	let oauthSecret: string = request.parameter.oauthSecret;
+	if (response.parameter == null) throw new Error(noOauthMessage);
+	let oauthId: string = response.parameter.oauthId;
+	let oauthSecret: string = response.parameter.oauthSecret;
 	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
 		throw new Error(noOauthMessage);
 	let storage = new VolatileProperties();
@@ -234,7 +229,7 @@ function processNewAdminAuthResponse_(request) {
 		false
 	);
 	let service = getAdminAuthService_(storage);
-	if (service.handleCallback(request)) {
+	if (service.handleCallback(response)) {
 		setProperty_("oauthSecret", oauthSecret);
 		setProperty_("oauthId", oauthId);
 		storage.deleteProperty("oauthId");
@@ -248,7 +243,7 @@ function processNewAdminAuthResponse_(request) {
 		createNewSpreadsheet_();
 		return buildPage_(storage);
 	} else {
-		let errorMessage: string = request.parameter.error;
+		let errorMessage: string = response.parameter.error;
 		if (isFalseOrEmpty_(errorMessage)) errorMessage = "Unknown error";
 		let adminAuthError: string =
 			"Unable to authorize administrative access: " + errorMessage;
@@ -256,10 +251,10 @@ function processNewAdminAuthResponse_(request) {
 		return buildPage_(storage);
 	}
 }
-function processAdminAuthResponse_(request) {
+function processAdminAuthResponse_(response) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
-	if (service.handleCallback(request)) {
+	if (service.handleCallback(response)) {
 		if (
 			getUserId_(service.getIdToken()) == null ||
 			getUserId_(service.getIdToken()) != getAdminId_()
@@ -270,15 +265,15 @@ function processAdminAuthResponse_(request) {
 			);
 			return buildPage_(storage);
 		}
-		if (request.parameter != null) {
+		if (response.parameter != null) {
 			let newProperties: { [index: string]: string } = {};
-			for (let property in request.parameter) {
+			for (let property in response.parameter) {
 				switch (property) {
 					case "oauthId":
 					case "oauthSecret":
 					case "pickerApiKey":
 					case "hostUri":
-						newProperties[property] = request.parameter[property];
+						newProperties[property] = response.parameter[property];
 						break;
 					default:
 				}
@@ -310,7 +305,9 @@ function getUserAuthService_(storage: VolatileProperties = null) {
 		.setClientSecret(oauthSecret)
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
-		.setScope("openid https://www.googleapis.com/auth/drive.file")
+		.setScope(
+			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
+		)
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
@@ -318,15 +315,15 @@ function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 	let storage = new VolatileProperties(pageStorage);
 	return getUserAuthService_(storage).getAuthorizationUrl();
 }
-function processUserAuthResponse_(request) {
+function processUserAuthResponse_(response) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
-	if (service.handleCallback(request)) {
+	if (service.handleCallback(response)) {
 		let userId: string = getUserId_(service.getIdToken());
 		if (userId == null) throw new Error("Unable to obtain user ID");
 		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
-		if (!isFalseOrEmpty_(getUserSpreadsheetId_(userId)))
-			storage.setProperty("hasUserSpreadsheet", "true");
+		createUserFile_(userId, storage);
+		storage.setProperty("hasUserSpreadsheet", "true");
 	} else {
 		storage.setProperty(
 			"userAuthError",
@@ -338,26 +335,17 @@ function processUserAuthResponse_(request) {
 function getUserSpreadsheetId_(userId: string): string {
 	if (userId == null)
 		throw new Error("Unable to obtain spreadsheet for a null user ID");
-	let usersSheet = getUsersSheet_();
-	if (usersSheet == null) return null;
-	let userResult = usersSheet
-		.createTextFinder(userId)
-		.matchEntireCell(true)
-		.matchCase(true)
-		.findAll();
-	if (
-		userResult == null ||
-		userResult.length == 0 ||
-		userResult[0].getNumRows() == 0
-	)
-		return null;
-	if (
-		userResult.length > 1 ||
-		userResult[0].getNumRows() > 1 ||
-		userResult[0].getNumColumns() > 1
-	)
+	let users: { userId: string; userFileId: string }[] = getUsers_();
+	if (users == null || users.length == 0) return null;
+	let userEntries: { userId: string; userFileId: string }[] = users.filter(
+		function (entry) {
+			return entry.userId == userId;
+		}
+	);
+	if (userEntries == null || userEntries.length == 0) return null;
+	if (userEntries.length > 1)
 		throw new Error("Multiple users found with the same ID");
-	return userResult[0].offset(0, 1).getValue().toString();
+	return userEntries[0].userFileId;
 }
 function getUserId_(id_token: string): string {
 	if (id_token == null || id_token.match(/\./g).length != 2)
@@ -387,8 +375,8 @@ function getUserLoginStatus(pageStorageJson: string): string {
 		let userId: string = getUserId_(service.getIdToken());
 		if (userId == null) throw new Error("Unable to obtain user ID");
 		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
-		if (!isFalseOrEmpty_(getUserSpreadsheetId_(userId)))
-			storage.setProperty("hasUserSpreadsheet", "true");
+		createUserFile_(userId, storage);
+		storage.setProperty("hasUserSpreadsheet", "true");
 		return JSON.stringify(storage.getProperties());
 	} else {
 		return null;
@@ -451,13 +439,14 @@ function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 		coverSheet.getSheetId().toString(),
 		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 	);
-	createUsersSheet_();
+	createUsersFile_();
 	return spreadsheet;
 }
 /**
  * Make changes to the requested spreadsheet. Requires drive or spreadsheets
  * scope, or may use drive.file if the spreadsheet was "selected or created" by
- * this app.
+ * this app, or drive.appdata if the file is "hidden" in the /appDataFolder
+ * folder.
  * @param spreadsheetId ID of the spreadsheet to change
  * @param accessToken authorizing changes to the spreadsheet
  * @param ValueRange object describing the range to replace and the values to
@@ -562,16 +551,202 @@ function importNewData(newText: string, storageJson: string): void {
 	let dataRange = dataSheet.getRange(1, 1, newData.length, newData[0].length);
 	dataRange.setValues(newData);
 }
-function createUsersSheet_(): void {
-	let spreadsheet = getSpreadsheet_();
-	let usersSheet = spreadsheet.insertSheet("Users", 1);
-	spreadsheet.addDeveloperMetadata(
+function removeAppData_(): void {
+	let response = UrlFetchApp.fetch(
+		"https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1000",
+		{
+			method: "get",
+			muteHttpExceptions: true,
+			contentType: "application/json",
+			headers: {
+				Authorization: "Bearer " + ScriptApp.getOAuthToken(),
+			},
+		}
+	);
+	if (response.getResponseCode() != 200) {
+		let message = "Response:\n";
+		message += `${JSON.stringify(response.getAllHeaders())}\n`;
+		message += `${JSON.stringify(response.getContentText())}\n`;
+		throw new Error("Unable to access drive:\n" + message);
+	}
+	let files: any[] = JSON.parse(response.getContentText()).files;
+	let fileUrls: GoogleAppsScript.URL_Fetch.URLFetchRequest[] = [];
+	if (files.length > 0) {
+		for (let file of files) {
+			if (file.id) {
+				fileUrls.push({
+					url: "https://www.googleapis.com/drive/v3/files/" + file.id,
+					method: "delete",
+					muteHttpExceptions: true,
+					headers: {
+						Authentication: "Bearer " + ScriptApp.getOAuthToken(),
+					},
+				});
+			}
+		}
+	}
+	if (fileUrls.length > 0) {
+		let deleteResponses = UrlFetchApp.fetchAll(fileUrls);
+		for (let deleteResponseIndex in deleteResponses) {
+			if (deleteResponses[deleteResponseIndex].getResponseCode() != 200) {
+				let errorMessage =
+					"Unable to delete file:\n" +
+					`${JSON.stringify(
+						deleteResponses[deleteResponseIndex].getAllHeaders()
+					)}\n` +
+					`${JSON.stringify(
+						deleteResponses[deleteResponseIndex].getContentText()
+					)}`;
+			}
+		}
+	}
+}
+function createUsersFile_(): void {
+	let uploadUrl =
+		"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+	let fileInfo = {
+		name: "mffer.json",
+		parents: ["appDataFolder"],
+		description: "mffer application data",
+	};
+	let fileData: string = JSON.stringify({
+		userData: [],
+	});
+	let mimeBoundary = "ThisIsTheBoundary";
+	let uploadRequest: string =
+		`--${mimeBoundary}\n` +
+		`Content-Type: application/json\n\n` +
+		`${JSON.stringify(fileInfo)}\n` +
+		`--${mimeBoundary}\n` +
+		`Content-Type: application/json\n\n` +
+		`${fileData}\n` +
+		`--${mimeBoundary}--\n`;
+	let uploadParams: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+		method: "post",
+		muteHttpExceptions: true,
+		contentType: "multipart/related; boundary=" + mimeBoundary,
+		headers: {
+			Authorization: "Bearer " + ScriptApp.getOAuthToken(),
+		},
+		payload: uploadRequest,
+	};
+	let uploadResponse = UrlFetchApp.fetch(uploadUrl, uploadParams);
+	if (uploadResponse.getResponseCode() != 200) {
+		let errorData =
+			"Headers:\n" +
+			JSON.stringify(uploadResponse.getAllHeaders()) +
+			"\n" +
+			"Content:\n" +
+			uploadResponse.getContentText();
+		throw new Error("Unable to create users file:\n" + errorData);
+	}
+	let usersFileId: string = JSON.parse(uploadResponse.getContentText()).id;
+	getSpreadsheet_().addDeveloperMetadata(
 		"mffer-users-sheet",
-		usersSheet.getSheetId().toString(),
+		usersFileId,
 		SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT
 	);
-	let dataRange = usersSheet.getRange(1, 1, 1, 2);
-	dataRange.setValues([["User ID", "Spreadsheet ID"]]);
+	setProperty_("usersFileId", usersFileId);
+}
+function addUserFile_(userId: string, userFileId: string) {
+	let usersFileId = getUsersFileId_();
+	let userData: { userId: string; userFileId: string }[] = getUsers_();
+	let existingUsers = userData.filter(function (entry) {
+		return entry.userId == userId;
+	});
+	if (existingUsers.length > 1)
+		throw new Error(
+			"Multiple users already found with the same user ID " + userId
+		);
+	if (existingUsers.length == 1) {
+		existingUsers[0].userFileId = userFileId;
+	} else {
+		userData.push({ userId, userFileId });
+	}
+	let fileData = JSON.stringify({
+		userData: userData,
+	});
+	let uploadResponse = UrlFetchApp.fetch(
+		`https://www.googleapis.com/upload/drive/v3/files/${usersFileId}?uploadType=media`,
+		{
+			method: "patch",
+			muteHttpExceptions: true,
+			contentType: "application/json",
+			headers: {
+				Authorization: "Bearer " + ScriptApp.getOAuthToken(),
+			},
+			payload: fileData,
+		}
+	);
+	if (uploadResponse.getResponseCode() != 200) {
+		let errorData =
+			"Headers:\n" +
+			JSON.stringify(uploadResponse.getAllHeaders()) +
+			"\n" +
+			"Content:\n" +
+			uploadResponse.getContentText();
+		throw new Error("Unable to update users file:\n" + errorData);
+	}
+}
+function createUserFile_(userId: string, storage: VolatileProperties): string {
+	let auth = getUserAuthService_(storage);
+	if (
+		auth.hasAccess() &&
+		getScopes_(storage).includes(
+			"https://www.googleapis.com/auth/drive.appdata"
+		)
+	) {
+		let userFileId = getUserSpreadsheetId_(userId);
+		if (!isFalseOrEmpty_(userFileId)) return userFileId;
+		let uploadUrl =
+			"https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+		let fileInfo = {
+			name: "mffer.json",
+			parents: ["appDataFolder"],
+			description: "mffer user data",
+		};
+		let fileData: string = JSON.stringify({
+			userData: [],
+		});
+		let mimeBoundary = "ThisIsTheBoundary";
+		let uploadRequest: string =
+			`--${mimeBoundary}\n` +
+			`Content-Type: application/json\n\n` +
+			`${JSON.stringify(fileInfo)}\n` +
+			`--${mimeBoundary}\n` +
+			`Content-Type: application/json\n\n` +
+			`${fileData}\n` +
+			`--${mimeBoundary}--\n`;
+		let uploadParams: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+			method: "post",
+			muteHttpExceptions: true,
+			contentType: "multipart/related; boundary=" + mimeBoundary,
+			headers: {
+				Authorization: "Bearer " + ScriptApp.getOAuthToken(),
+			},
+			payload: uploadRequest,
+		};
+		let uploadResponse = UrlFetchApp.fetch(uploadUrl, uploadParams);
+		if (uploadResponse.getResponseCode() != 200) {
+			let errorData =
+				"Headers:\n" +
+				JSON.stringify(uploadResponse.getAllHeaders()) +
+				"\n" +
+				"Content:\n" +
+				uploadResponse.getContentText();
+			throw new Error("Unable to create user file:\n" + errorData);
+		}
+		userFileId = JSON.parse(uploadResponse.getContentText()).id;
+		addUserFile_(userId, userFileId);
+		return userFileId;
+	} else {
+		throw new Error("No permission to create user file.");
+	}
+}
+function getScopes_(storage: VolatileProperties): string[] {
+	getUserAuthService_(storage);
+	let scopeString = JSON.parse(storage.getProperty("oauth2.userLogin")).scope;
+	return scopeString.split(" ");
 }
 /**
  * Allow referring to an individual sheet by ID rather than name (which
@@ -694,7 +869,25 @@ function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
 function getUsersSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
 	return getSheet_("mffer-users-sheet");
 }
-
+function getUsersFileId_(): string {
+	return getProperty_("usersFileId");
+}
+function getUsers_(): { userId: string; userFileId: string }[] {
+	let usersFileId = getUsersFileId_();
+	if (!usersFileId) return null;
+	let response = UrlFetchApp.fetch(
+		"https://www.googleapis.com/drive/v3/files/" +
+			usersFileId +
+			"?alt=media",
+		{
+			method: "get",
+			headers: {
+				Authorization: "Bearer " + ScriptApp.getOAuthToken(),
+			},
+		}
+	);
+	return JSON.parse(response.getContentText()).userData;
+}
 /**
  * Sets preferences from the webapp to the spreadsheet version
  * of the calculator. Takes array of booleans matching the

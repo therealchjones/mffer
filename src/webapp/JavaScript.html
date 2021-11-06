@@ -329,11 +329,16 @@
 		$("#mffer-admin-authorizationerror").html(null);
 		$("#mffer-admin-button-authorize").click(null);
 		$("#mffer-admin-button-authorize").html(bootstrap.spinner);
-		let properties = {
-			oauthId: mfferSettings.oauthId,
-			oauthSecret: mfferSettings.oauthSecret,
-			pickerApiKey: mfferSettings.pickerApiKey,
-		};
+		let properties = {};
+		for (let property in mfferSettings) {
+			if (
+				!$("#mffer-admin-input-" + property.toLowerCase()).attr(
+					"disabled"
+				)
+			) {
+				properties[property] = mfferSettings[property];
+			}
+		}
 		let propertiesJson = JSON.stringify(properties);
 		google.script.run
 			.withFailureHandler(function (error) {
@@ -355,10 +360,11 @@
 		$("#loading-notes").html(errorMessage);
 		throw error;
 	}
-	function loadSettings(
-		currentSettings = { oauthId: "", oauthSecret: "", pickerApiKey: "" }
-	) {
-		mfferSettings = currentSettings;
+	function loadSettings(settingString = null) {
+		let currentSettings = JSON.parse(settingString);
+		for (let property in currentSettings) {
+			mfferSettings[property] = currentSettings[property];
+		}
 		for (let property in mfferSettings) {
 			let input = $("#mffer-admin-input-" + property.toLowerCase());
 			if (input.length != 0) {
