@@ -1,0 +1,66 @@
+<nav
+	id="mffer-navbar"
+	role="navigation"
+	class="navbar fixed-top navbar-light bg-light always-active"
+>
+	<div
+		id="mffer-navbar-toggle-frame"
+		class="d-flex justify-content-start w-25"
+	>
+		<button
+			id="mffer-navbar-toggle"
+			class="navbar-toggler btn btn-outline-primary"
+			type="button"
+			data-bs-toggle="collapse"
+			data-bs-target="#mffer-navbar-menu"
+			data-bs-auto-close="true"
+			aria-controls="mffer-navbar-menu"
+			aria-expanded="false"
+			aria-label="Toggle navigation menu"
+		>
+			<span class="navbar-toggler-icon"></span>
+		</button>
+	</div>
+	<h1 id="mffer-navbar-brand" class="navbar-brand">
+		<a href="https://mffer.org"><code>mffer</code></a>
+	</h1>
+	<div id="mffer-navbar-login-frame" class="d-flex justify-content-end w-25">
+		<button
+			type="button"
+			id="mffer-navbar-button-login"
+			class="start-inactive btn btn-primary"
+		>
+			login
+		</button>
+	</div>
+	<div id="mffer-navbar-menu" class="collapse navbar-collapse">
+		<ul class="navbar-nav">
+			<li class="nav-item">
+				<a
+					id="menu-button-home"
+					target="_top"
+					href="javascript:openContents();"
+					class="nav-link active"
+					aria-current="page"
+					>Home</a
+				>
+			</li>
+			<li id="menu-item-admin" class="nav-item start-inactive">
+				<a
+					id="menu-button-admin"
+					href="javascript:openAdmin();"
+					class="nav-link"
+					>Admin</a
+				>
+			</li>
+			<li class="nav-item">
+				<a
+					id="menu-button-dev"
+					class="nav-link"
+					href="https://github.com/therealchjones/mffer"
+					>Development</a
+				>
+			</li>
+		</ul>
+	</div>
+</nav>

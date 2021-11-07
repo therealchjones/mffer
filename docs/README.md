@@ -17,6 +17,7 @@ This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones
 		- [Il2CppDumper](#il2cppdumper)
 		- [Ghidra](#ghidra)
 	- [Using and Presenting the Data](#using-and-presenting-the-data)
+- [Copyright](#copyright)
 - [Contributing](#contributing)
 - [Problems & possible workarounds](#problems--possible-workarounds)
 	- [Android emulator does not recognize internet connection](#android-emulator-does-not-recognize-internet-connection)
@@ -115,6 +116,15 @@ In ghidra:
 ### Using and Presenting the Data
 
 Upload the results using the webapp.
+
+## Copyright
+
+Wherever possible, code from `mffer` is in the public domain; see [the CC0 License](../LICENSE) for details. However, there are a few files that are adapted from projects with more restrictive licenses. These files contain the appropriate license notifications within the files themselves, and are also listed below with links to the license requirements.
+
+| file                                              | original project                                                                     | license                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| [picker.html](../src/webapp/Subpages/picker.html) | [Google Apps Script Samples](https://github.com/googleworkspace/apps-script-samples) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)             |
+| all others                                        | [`mffer`](../)                                                                       | [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) |
 
 ## Contributing
 

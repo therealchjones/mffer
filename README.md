@@ -4,7 +4,7 @@ Marvel Future Fight extraction & reporting
 
 This project develops software that creates and updates the [mffer webapp](https://mffer.org). It is not necessary to review any of this to [use the webapp](https://mffer.org).
 
-This is a _brief_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project. A more [comprehensive README document](docs/README.md) is available in the [docs directory](docs/).
+This is a _brief_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project. A more [comprehensive README document](docs/README.md) is available in the [docs directory](docs/). This includes discussion of, among other topics, copyright and licensing.
 
 ## Marvel Future Fight
 

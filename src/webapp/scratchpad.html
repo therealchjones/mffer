@@ -1,4 +1,108 @@
 <!--
+	/**********************************************************************
+	program flow:
+	  initialization:
+	  - display loading message
+	  - download prearranged data from Google Spreadsheet
+	  - attach handlers to basic structures governing choices
+		and actions (select,radio,checkbox)
+	  - build additional temporary database for adding info to
+		downloaded data
+	  reset page (including initially)
+	  - remove existing floor-specific data, hide & disable structures that may not
+		be needed
+	  - parse downloaded data into existing structures
+		- current floor, type, and rewards
+		- possible opponent teams for current floor into dropdowns
+		- enable and show used structures
+	  - when reasonable, choose a default opponent team
+	  responding to actions
+		dropdown list selections
+		- update later lists to remove the selection, resetting them if needed
+		  opponent lists
+		  - update recommended/prior teams to select (if one opponent selected)
+			- find n prior teams for given opponent selection and floor,
+			  filling based on preferences and around current floor (above & below)
+		  teammember lists
+		  - unset selected recommended/prior lists
+		buttons/checkboxes
+		  opponent team choice (if one opponent selected)
+		  - update recommended/prior teams to select
+		  team choices
+		  - update teammember selections to match
+		  preferences
+		  - update teammember selections to match
+		control buttons
+		  success
+		  - submit to sheet/save, reset to next floor
+		  reset floor
+		  - reset to same floor
+		  reset season
+		  - reset to floor 1
+		  reload from database
+		  - re-download database and start over (equivalent to reload of page)
+		  - note possible loss of data
+		  - erase additional database, reset current floor (forced)
+		floor change
+		- reset floor to selected floor
+
+	***********************************************************************/
+
+
+		/**********************************************************************
+	TODO
+	Needs
+	- next/success on floor 30 doesn't work (prompt?)
+	- reloading after completing 30 gives an error
+
+	Wants
+	- move to standalone script/library/webapp
+	- keep stuff up-to-date in additionalDatabase and use as needed:
+	  completed floors this week (done)
+	  sheet floor/current floor (near beginning of reset page)
+	  Used characters (done)
+	  Preference values (already synchronizing back, can update
+	  additionaldatabase at the same time)
+	  current floor stuff (team members?, opponent selections) along with
+	  synchronizing to sheet
+	- Record for this week to fill in read-only floors or keep them blank when filling
+		in prior floors (need to add this to the shadowlanddatabase and keep
+		in additionaldatabase as well
+	- MFF theme/colors
+	- notes section to save when appropriate with successes
+	- incorporate uniform variations
+	- better console/messaging system
+	- could be necessary under some circumstances for server requests
+	  to arrive out of order, e.g., when setting multiple preferences.
+	  Do we need some sort of messaging queue?
+	- having disabled drop downs is annoying. Just enable all from the start.
+	- make progress notes/messages nice in the footer bar and available "console"
+	- would it save time and/or make it more intuitive to transpose() the
+	  shadowlandDatabase prior to sending from server?
+	- change 'halt's/'return false's to proper error handling
+	- when some things are changed (floor, enemies, teammembers, preferences),
+	  sync changes back to server; maybe just always do this in resetPage
+	  and/or updateRecommendations?) (anything saved to additionalDatabase,
+	  if not calculated elsewhere, as well as visible things on sheet if not calculated elsewhere)
+	- figure out when to best update stuff in additionalDatabase; anytime
+	  sending stuff back to server, others? resetPage vs getCurrentFloor?
+	  remember to set things only when actually true---e.g., if I set the floor
+	  to 14, that doesn't necessarily mean I've completed 13, so shouldn't set
+	  "last completed" to 13. Rather, set last completed to 13 when I submit
+	  success for 13.
+	- make mobile responsive, viewable/usable on phone
+	  - maybe options button on header bar instead of separate section? Or is
+		it too frequently needed?
+	- disable up/down buttons for floor 1/30 as appropriate
+	- consider adding uniform information to record/save
+	- review previous floors by visiting those floors, but make form un-editable/savable
+	- how do i do field focus? (https://medium.theuxblog.com/10-best-practices-for-designing-user-friendly-forms-fa0ba7c3e01f, point 4)
+	- if I put something outside the <form> (like in the toolbar), use the form= attribute
+	- check and update/erase/retry progress messages the right way
+	- start recording the floors after 30; will need a new field, "base floor" upon which the floor > 30 is based
+
+	***********************************************************************/
+
 
 
     TODO

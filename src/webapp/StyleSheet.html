@@ -1,0 +1,198 @@
+<link
+	id="bootstrap-css"
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+	rel="stylesheet"
+	integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We"
+	crossorigin="anonymous"
+/>
+<link
+	id="google-font-exo-2"
+	href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600&display=swap"
+	rel="stylesheet"
+/>
+<style id="mffer-css">
+	body {
+		font-family: "Exo 2", sans-serif;
+		text-align: center;
+		padding-top: 4rem;
+		padding-bottom: 2rem;
+	}
+	.start-inactive {
+		display: none;
+	}
+	#mffer-navbar-brand {
+		margin: 0;
+	}
+	#mffer-admin form {
+		text-align: left;
+	}
+	[id^="mffer-admin-instructions-"] {
+		text-align: right;
+		font-size: 75%;
+		margin: 0;
+		height: calc(1em * var(--bs-body-line-height));
+	}
+	.form-floating .spinner-border {
+		position: absolute;
+		bottom: calc(1.5em + 5px);
+		right: 1.5em;
+	}
+	#mffer-admin-listitem-login {
+		padding-left: calc(1.75rem + 1px);
+	}
+	[id^="mffer-admin-input-"] {
+		text-overflow: ellipsis;
+	}
+	#mffer-admin-button-authorize {
+		width: 100%;
+	}
+	.disabled {
+		color: gray;
+	}
+	.disabled * {
+		color: inherit;
+	}
+	#mffer-shadowland fieldset {
+		width: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	#mffer-shadowland legend {
+		display: none;
+		box-sizing: border-box;
+		width: 100%;
+		margin: 0;
+	}
+	#shadowland-floor {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+	}
+	#shadowland-floor label {
+		max-width: 20%;
+		text-align: right;
+		margin: 0.5em;
+		font-size: smaller;
+	}
+	#shadowland-floor input {
+		max-width: 8em;
+		float: left;
+		display: block;
+	}
+	#shadowland-floor button {
+		display: inline;
+		max-width: 3em;
+	}
+	#shadowland-floortype {
+		max-width: 20%;
+		text-align: left;
+		margin: 0.5em;
+		font-size: larger;
+		font-style: italic;
+	}
+	input#shadowland-basefloor,
+	label[for="shadowland-basenumber"] {
+		display: none;
+	}
+	#shadowland-opponents label,
+	#shadowland-opponents p {
+		display: inline;
+	}
+	#shadowland-opponents p {
+		font-size: smaller;
+		font-style: italic;
+		margin-left: 1em;
+	}
+	#shadowland-opponents legend {
+		margin-top: 0.5ex;
+		margin-bottom: 0.1ex;
+	}
+	#shadowland-opponents .ui-controlgroup {
+		margin-top: 0;
+		margin-bottom: 0;
+		width: 100%;
+	}
+	#shadowland-opponents select {
+		width: 85%;
+		display: inline-block;
+		margin: 0;
+	}
+	#shadowland-opponents input[type="radio"] {
+		width: 15%;
+		margin: 0;
+		padding: 0;
+		display: inline-block;
+	}
+	#shadowland-opponents label[for="opponent-choice-*"] {
+		box-sizing: border-box;
+		width: 15%;
+		padding-left: 0;
+		padding-right: 0;
+		text-align: center;
+		display: inline-block;
+		margin: 0;
+	}
+	#shadowland-opponents input[type="radio"] {
+		display: inline-block;
+		width: 22px;
+		height: 22px;
+		margin-top: -2px;
+		border: 0;
+	}
+	#shadowland-team legend {
+		margin-top: 0.5ex;
+		margin-bottom: 0.1ex;
+	}
+	#shadowland-team select {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+	#shadowland-preferences,
+	#shadowland-priors,
+	#shadowland-recommendations {
+		margin: 0;
+		padding: 0;
+	}
+	legend {
+		font-size: 13px;
+		padding-right: 0.2em;
+		padding-top: 0.2em;
+		padding-bottom: 0.2em;
+		border-width: 1px;
+		border-style: solid;
+	}
+	#mffer-statusbar {
+		height: 1.5rem;
+		font-size: 0.75rem;
+		padding-top: 0;
+		padding-bottom: 0;
+		text-align: right;
+	}
+	#progress-bar-text {
+		display: inline;
+		margin-top: 0;
+		margin-bottom: 0;
+		margin-left: 0;
+		margin-right: 0.5em;
+	}
+	#log-button {
+		font-size: 87.5%;
+		line-height: 1;
+		margin: 0;
+	}
+	#textdisplay,
+	#tabledisplay {
+		width: 80%;
+		margin-left: 10%;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		font-size: smaller;
+	}
+	#textdisplay * {
+		padding: 1em;
+		border: solid black;
+		border-width: 1px 1px 0 1px;
+	}
+</style>

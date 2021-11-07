@@ -12,6 +12,7 @@
 - [Highlights](#highlights)
 - [Full contents](#full-contents)
 - [Introduction](#introduction)
+- [Copyright & licensing](#copyright--licensing)
 - [Setting up a development environment](#setting-up-a-development-environment)
 	- [Requirements](#requirements)
 	- [Recommendations](#recommendations)
@@ -44,7 +45,12 @@
 		- [Code structure](#code-structure)
 - [The `mffer` APIs](#the-mffer-apis)
 - [Building `mffer`](#building-mffer)
-- [Deploying & releasing](#deploying--releasing)
+- [The `mffer` webapp](#the-mffer-webapp)
+	- [Description](#description)
+	- [Deploying the webapp](#deploying-the-webapp)
+		- [Requirements](#requirements-1)
+		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
+		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
 - [See also](#see-also)
 
 ## Introduction
@@ -85,6 +91,16 @@ skill levels will benefit from their own research into topics with which they
 have less experience and more interest. In addition, please ask questions on the
 [issues list](https://github.com/therealchjones/mffer/issues) anytime; it
 doesn't have to be a "real issue" (though those are welcome as well).
+
+## Copyright & licensing
+
+Though some files adapted from other projects are released under more
+restrictive licensing, most of `mffer` is in the public domain. (See
+[LICENSE](../LICENSE).) This means that you're free to do with it what you want,
+without other copyright restrictions or requirements of your own work, unless
+you adapt one of those other files; they are clearly identified in the contents
+of the affected files themselves and are additionally
+[listed in the README](README.md).
 
 ## Setting up a development environment
 
@@ -578,7 +594,7 @@ document and the [API](api/) for further detils.
 
 ## The `mffer` APIs
 
-All included types and membes are included in the API documentation, generated
+All included types and members are included in the API documentation, generated
 as part of the build process from the triple-slash XML comments describing them
 in the code itself.
 
@@ -593,12 +609,147 @@ in the code itself.
     ```shell
     $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
     ```
-4. `webapp` must be uploaded but there's nothing to build
+4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
 
-## Deploying & releasing
+## The `mffer` webapp
 
-Honestly, I've never done it. I've got some ideas, but we'll see how it goes
-before I document them.
+### Description
+
+The `mffer` webapp is based on Google Apps Script, uses Google Sheets/Google
+Drive, and is deployed at https://mffer.org via the
+[Google Cloud Platform](https://cloud.google.com). This method of deployment is
+not especially straightforward, and other better options may be more readily
+available to other users. These will, however, require significant code
+modification, as the `mffer` webapp code makes heavy use of Apps Script
+(transpiled from TypeScript) and its associated APIs, the Google Picker, and
+Google's OAuth 2.0 authentication.
+
+### Deploying the webapp
+
+#### Requirements
+
+-   [Google Account](https://google.com/account) with access to
+    [Google Apps Script](https://script.google.com), Google Drive, and Google
+    Cloud Platform (the free tiers are all acceptable).
+-   POSIX-like development system (such as macOS, Linux, or Windows with Cygwin)
+-   [Node.js](Node.js) & npm
+
+#### Setting Up Google Cloud Platform
+
+GCP is somewhat complex to configure, and configuration within an existing GCP
+account is beyond the scope of this document (and may be beyond the abilities of
+this author). However, you may be able to create a basic project usable for
+`mffer` webapp deployment in a few (relatively) simple steps. More in-depth
+resources for setting up Apps Script in a Google Cloud Platform account include:
+
+-   https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
+-   https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
+-   https://developers.google.com/picker/docs#appreg
+-   https://cloud.google.com/resource-manager/docs/creating-managing-projects
+
+In an effort to consolidate the above into a simple(r) set of instructions,
+follow the below set of instructions to set up a project for `mffer`.
+
+1. Login to https://console.cloud.google.com/projectcreate and enter a project
+   name (and other info if desired). Press "Create".
+2. Visit
+   https://console.cloud.google.com/home/dashboard. Ensure the correct
+   project is chosen in the project drop-down. Find the project number on the
+   "Project Info" card and make a note of it.
+3. Enable necessary APIs for your project by visiting the following links,
+   ensuring the correct project is selected in the project drop-down, and
+   pressing the "Enable" button:
+    - [Apps Script API](https://console.cloud.google.com/apis/library/script.googleapis.com)
+    - [Drive API](https://console.developers.google.com/apis/library/drive.googleapis.com)
+    - [Picker API](https://console.cloud.google.com/apis/library/picker.googleapis.com)
+    - [Sheets API](https://console.developers.google.com/apis/library/sheets.googleapis.com)
+4. Create an OAuth Consent Screen by visiting
+   https://console.cloud.google.com/apis/credentials/consent, choosing
+   "External" user type, and pressing "Create". Enter the required information
+   for the "App information" and "Developer contact information", and press
+   "Save and continue". Choose "Add or remove scopes" and enter "https://www.googleapis.com/auth/drive.appdata",
+   "https://www.googleapis.com/auth/drive.file", and "openid" under "Manually add
+   scopes". Again press "Update" and "Save and continue". Add your own account
+   as a "Test user", then press "Save and continue" one more time.
+5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
+   ensure the correct project is shown in the project drop-down. First choose
+   "Apps Script API" for "Which API are you using?" and select "User data"
+   before pressing "Next". Don't add anything in "Scopes", just "Save and
+   continue". For the "OAuth Client ID" section's "Application
+   type", choose "Web application", and enter a name like "mffer". Press
+   "Create" and make a note of the Client ID before pressing "Done".
+6. Return to https://console.cloud.google.com/apis/credentials/wizard and again
+   ensure the correct project is shown in the project drop-down. Choose
+   "Google Picker API" for "Which API are you using?" and select "Public data"
+   before pressing "Next". Make a note of the API Key and press "Done".
+
+#### Uploading and configuring the webapp
+
+1. In
+   [Google Apps Script Settings](https://script.google.com/home/usersettings),
+   enable "Google Apps Script API"
+2. In the `mffer` repository's `tools` directory, install `clasp` and its
+   dependencies:
+    ```shell
+    [mffer] $ cd tools
+    [mffer/tools] $ npm install
+    ```
+3. Using the same Google account you used for your Google Cloud Platform
+   project above, login to Google with `clasp`:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp login
+    ```
+4. Create the Google Apps project:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp create --type sheets --title mffer
+    ```
+5. Add the webapp files to the project:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
+    ```
+6. Open the Google Apps Script IDE:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
+    ```
+7. Switch to using a standard Google Cloud Project by opening "Project Settings"
+   (the gear icon), pressing the "Change project" button,
+   and entering the project number you noted from step 2 of
+   [Setting up Google Cloud Platform](#setting-up-google-cloud-platform) (or
+   visit the [GCP Dashboard](https://console.cloud.google.com/home/dashboard)
+   again if you need to copy it).
+8. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
+   press the "Run" button, which will prompt you to "Review Permissions" and
+   approve access to your Google account. If prompted that "Google hasn't
+   verified this app", select "Continue".
+9. Open the webapp:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+    ```
+    If prompted for which deployment to use, press `<enter>` or `<return>`.
+10. Choose "Setup `mffer`", then enter the OAuth 2.0 Client ID and OAuth 2.0
+    secret you made a note of in the
+    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
+    section (or obtain them again from
+    https://console.cloud.google.com/apis/credentials using the provided
+    links).
+11. Visit the OAuth client ID page, and in the "Authorized redirect
+    URIs" section, add the URI given in the webapp; press "Save".
+12. Back on the webapp, use the "Authorize Google & save these settings" button to authenticate with Google once
+    more; this will additionally lock the above settings and take the app out of
+    "setup mode".
+13. When the app reloads, under "Upload new `mffer` data" select a CSV file
+    created by the `mffer` command line application and then "Confirm" it for upload.
+14. To visit the deployed test version of the web app, use `clasp` at the
+    command line:
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+    ```
+
+The webapp is now set up for access but
+[available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment),
+and will therefore work only for the test users you designated.
+To deploy widely, first ensure privacy, restrictions, and access are secured in the
+GCP project, then submit your app for [verification](https://developers.google.com/apps-script/guides/client-verification) by Google.
 
 ## See also
 

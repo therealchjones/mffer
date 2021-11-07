@@ -1,10 +1,13 @@
 {
 	"name": "mffer-tools",
 	"dependencies": {
-		"forked-clasp": "2.11.2"
+		"@google/clasp": "^2.4.1"
 	},
 	"devDependencies": {
-		"@types/google-apps-script": "^1.0.31",
+		"@types/gapi": "^0.0.41",
+		"@types/google-apps-script": "^1.0.35",
+		"@types/google-apps-script-oauth2": "^38.0.0",
+		"@types/google.picker": "^0.0.39",
 		"stream-json": "1.7.1"
 	}
 }

@@ -14,4 +14,6 @@ The `mffer` webapp is built on Google Apps Script and uses Google Sheets as a da
 
 ## See Also
 
-Other concepts, examples, and workflows including the `mffer` webapp are in the [Usage guide](USAGE.md).
+Other concepts, examples, and workflows including the `mffer` webapp are in the
+[Usage guide](USAGE.md). For information about deploying the webapp rather than
+using it, see the [Development guide](Development.md#deploying-the-webapp).

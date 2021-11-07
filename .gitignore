@@ -1,10 +1,12 @@
 .clasp.json
+.clasprc.json
+creds.json
 /.jython_cache/
 /bin/
 /data/
 /obj/
 /output/
 /release/
-/tools/.nuget/
-/tools/node_modules/
+/tools/.nuget/*
+/tools/node_modules/*
 /tools/package-lock.json
