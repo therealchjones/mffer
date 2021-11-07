@@ -8,11 +8,6 @@ Existentially Inconsequential Things I Learned
 	- [Static analysis](#static-analysis)
 		- [External files](#external-files)
 			- [File changes](#file-changes)
-				- [Version 7.0.0, change in time, personal account, not running](#version-700-change-in-time-personal-account-not-running)
-				- [Versions 7.0.0->7.0.1, change in time & version, personal account, not running](#versions-700-701-change-in-time--version-personal-account-not-running)
-				- [Version 7.0.1, change in time, anonymous account, from not restarted to restarted](#version-701-change-in-time-anonymous-account-from-not-restarted-to-restarted)
-				- [Version 7.0.1, change in time, change from anonymous account to personal login, not restarted](#version-701-change-in-time-change-from-anonymous-account-to-personal-login-not-restarted)
-				- [Version 7.0.1, change in time, personal account, from not restarted to restarted](#version-701-change-in-time-personal-account-from-not-restarted-to-restarted)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
 		- [AssetsTools](#assetstools)
@@ -62,44 +57,299 @@ section](#marvel-future-fight).
 
 ##### File changes
 
-Evaluate files changed between different runs of the same version on the same
-account (change in time only), different versions (change in time and version),
-different accounts (before and after signing in), running application versus
-closed.
+Analyzing files changed with different changes to the app allow otherwise
+"blind" evaluation of the app and where it may store specific data. Because of
+the large number of changes that can quickly happen, however, controlling this
+experiment as much as possible is important. Among other changes, simply
+reinstalling the app may change some tokens, essentially without importance, so
+where possible testing should even be done on the same installation. The steps
+below describe at which point in the `autoextract` process (or its equivalent)
+files were retrieved; the changes listed with each step are in comparison to the
+files obtained after the prior step.
 
-Findings:
+Methods:
 
-###### Version 7.0.0, change in time, personal account, not running
+mff_no_google_play AVD was created manually but with the same parameters as in
+`autoextract`, as was /sdcard/Download/getfiles. APK files for version
+7.2.0-174314-20210713 were obtained from a prior run of `autoextract` and
+installed on the AVD in the same fashion as in `autoextract`. Steps similar to
+the manual steps in `autoextract` (and listed below) were taken followed by
+running `getfiles` and downloading the resulting file hierarchies into
+individual directories. `dfdiff -v` was used to identify changes from each step to
+the next, and changed files were manually reviewed to identify interesting or
+potentially useful changes. (Of note, `dfdiff` intentionally ignores some
+directory trees believed to be system traces, performance data, etc.) Files that
+do not appear to be of interest are only mentioned in the below results the
+first time they are included in `dfdiff` output.
 
--   app directory: vdex & odex differences
--   multiple authentication token differences
--   shared_prefs:
-    -   com.netmarble.mherosgb.v2.playerprefs.xml: a few strings & keys,
-        possibly different but not grossly; need to evaluate these with parsed
-        XML/strings
-    -   ff_openudid.xml: different device IDs
-    -   marblePush.ko_Kr.real.xml: different registration IDs
--   /data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
+Steps & Results:
 
-###### Versions 7.0.0->7.0.1, change in time & version, personal account, not running
+1. Installed MFF, waited until unprompted downloads were complete, and used
+   Options->Download to complete optional downloads. Extracted file hierarchy 1.
+2. Closed MFF. Extracted file hierarchy 2.
 
--   same as above, plus base APK, library, and metadata changes
+    _There were no differences between file hierarchy 1 and file hierarchy 2._
 
-###### Version 7.0.1, change in time, anonymous account, from not restarted to restarted
+3. Restarted MFF. Extracted file hierarchy 3.
 
--   change from AppEventsLogger events log to an empty file
--   shared_prefs changes
+    _In short, nothing interesting added; specifically:_
 
-###### Version 7.0.1, change in time, change from anonymous account to personal login, not restarted
+    ```
+    Δ/data/data/com.netmarble.mherosgb/app_webview/Default/Cookies
+    ```
 
--   Facebook login changes
--   shared_prefs changes
+    _Only updated cookies access times_
 
-###### Version 7.0.1, change in time, personal account, from not restarted to restarted
+    ```
+    Δ/data/data/com.netmarble.mherosgb/databases/androidx.work.workdb-shm
+    Δ/data/data/com.netmarble.mherosgb/databases/google_app_measurement_local.db
+    Δ/data/data/com.netmarble.mherosgb/databases/singular-1.db
+    ```
 
--   shared_prefs changes
--   data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/newcontents
-    & notices
+    _nothing meaningful_
+
+    ```
+    -/data/data/com.netmarble.mherosgb/files/AppEventsLogger.persistedevents
+    ```
+
+    _data being logged back to Facebook unlikely of interest_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/files/nmsslg.nmss
+    ```
+
+    _unknown, likely regarding NetMarble Security System_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.CrashReport.xml
+    ```
+
+    _different sessionKey_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Log.xml
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Notice.xml
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/Promotion.xml
+    ```
+
+    _different counts_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.google.android.gms.measurement.prefs.xml
+    ```
+
+    _pause time & background status_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml
+    ```
+
+    _heartbeat time, session count, session ID_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb_preferences.xml
+    ```
+
+    _Facebook session info_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/pref-event-index.xml
+    ```
+
+    _different indices_
+
+    ```
+    Δ/data/misc/profiles/cur/0/com.netmarble.mherosgb/primary.prof
+    ```
+
+    _Profile-guided compilation data_
+
+    ```
+    Δ/data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
+    ```
+
+    _different timestamps on shortcuts_
+
+4. Logged in and restored account from Facebook; restarted as prompted and
+   returned to main lobby screen. Extracted file hierarchy 4.
+
+    _New "notice" or "promotion" files in asset format to the `bundle_each`
+    directory. A bit more info in playerprefs of questionable utility. Other
+    than that, little of use, including a few of the above, plus:_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Auth.xml
+    ```
+
+    _different player ID, unchanged "constants"_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Channel.xml
+    ```
+
+    _added Facebook ID & token_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.CrashReport.xml
+    ```
+
+    _different user_
+
+    ```
+     +/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Facebook.xml
+    ```
+
+    _new file, Facebook "version"_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Notice.xml
+    ```
+
+    _new skip count with new user ID_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.Tos.xml
+    ```
+
+    _COPPA & buy limits (uncertain usefulness)_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/Preference.xml
+    ```
+
+    _subscription info (empty, uncertain usefullness)_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/Promotion.xml
+    ```
+
+    _skip counts and open history_
+
+    ```
+     +/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.AccessTokenManager.SharedPreferences.xml
+     +/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.login.AuthorizationClient.WebViewAuthHandler.TOKEN_STORE_KEY.xml
+     +/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.loginManager.xml
+    ```
+
+    _Facebook login information_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml
+    ```
+
+    - Added `EQ_RECOMMEND_TIME_*`, `UPDATE_ID`, `LOCAL_PUSH_*`, `PUSH_INIT`,
+      `DOMINATION_LAST_NOTICE_SEASION_ID_*`, `cinematicbattlenoticeday*` values
+    - Added checksums for the below `bundle_each` files
+    - Changed `UnityGraphicsQuality`, `MISSION_ACHIEVE_NAVI` values
+    - Removed `SEEN_DIALOG` value
+    - Update heartbeat time
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/marblePush.ko_Kr.real.xml
+    ```
+
+    _only player ID changed_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/singular-pref-session.xml
+    ```
+
+    _pause times and IDs_
+
+    ```
+     +/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/newcontents194
+     +/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/newcontents273
+     +/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/newcontents274
+     +/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle_each/noticepopup_blackwidow
+    ```
+
+    _new asset bundles (not yet explored)_
+
+5. Closed MFF. Extracted file hierarchy 5.
+
+    _Mostly more of the same, with minimal useful information, including some of
+    the above plus:_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb_preferences.xml
+    ```
+
+    _Added the `LOCAL_PUSH_IDS` value_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/marblePush.ko_Kr.real.xml
+    ```
+
+    _Added the `localNotificationId` value_
+
+6. Created new AVD, installed MFF, waited until unprompted downloads were
+   complete, used Options->Download to complete optional downloads, logged in
+   and restored account from Facebook, restarted as prompted, returned to main
+   lobby screen, and closed MFF. Extracted file hierarchy 6.
+
+    _Mostly inconsequential changes. Long list of files changed, many including
+    the above and several others that just seem to change IDs, plus:_
+
+    ```
+    Δ/data/app/*/com.netmarble.mherosgb-*/oat/x86/base.odex
+    ```
+
+    _Pre-optimized DEX file_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/app_webview/Default/Cookies
+    ```
+
+    _Different device key_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/files/PersistedInstallation.W0RFRkFVTFRd+MToyNjUyNzk4MjY4MjI6YW5kcm9pZDo3MjY1ZmNhMmM4NTlmNTM0.json
+     Δ/data/data/com.netmarble.mherosgb/no_backup/com.google.InstanceId.properties
+    ```
+
+    _Different tokens of uncertain significance_
+
+    ```
+      Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.internal.MODEL_STORE.xml
+    ```
+
+    _unknown_
+
+    ```
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.login.AuthorizationClient.WebViewAuthHandler.TOKEN_STORE_KEY.xml
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.sdk.appEventPreferences.xml
+    Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.facebook.sdk.attributionTracking.xml
+    ```
+
+    _Facebook tokens unlikely of any significance_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.google.android.gms.appid.xml
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.google.android.gms.measurement.prefs.xml
+    ```
+
+    _Google tokens unlikely of any significance_
+
+    ```
+     Δ/data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml
+    ```
+
+    _just the additional `hbm_therealchjones` string, which on retrospect
+    probably should have been in the last one, too; otherwise only cosmetic
+    differences of keys in different orders and such_
+
+    ```
+       Δ/data/data/com.netmarble.mherosgb/shared_prefs/pref-singular-id.xml
+       Δ/data/data/com.netmarble.mherosgb/shared_prefs/singular-licensing-api.xml
+       Δ/data/data/com.netmarble.mherosgb/shared_prefs/singular-pref-session.xml
+    ```
+
+    _tokens unlikely to be of any significance_
+
+All in all, very little additional information gained from personal login,
+restarting, or even closing the app before extracting files. The notable
+exception is the possibility of extracting new "notices" from the `bundle_each`
+directory, something that's not currently being done anyway.
 
 ## Unity
 
@@ -182,7 +432,7 @@ as within the `/data/app/*/*/base.apk` file), but the ones currently used in
 `mffer` are in
 `/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/`. Additionally,
 "preferences" from `/data/data/com.netmarbe.mherosgb/shared_prefs/` are
-extracted, though these do not store true individualized preferences as much
+extracted, though these do not store true individualized preferences but rather
 more frequently updated data such as news, events, and achievements.
 
 ## Marvel Future Fight

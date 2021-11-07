@@ -8,6 +8,6 @@
 		"@types/google-apps-script": "^1.0.35",
 		"@types/google-apps-script-oauth2": "^38.0.0",
 		"@types/google.picker": "^0.0.39",
-		"stream-json": "1.x"
+		"stream-json": "1.7.1"
 	}
 }

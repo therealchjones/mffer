@@ -1,12 +1,7 @@
 #!/bin/sh
 
-# shellcheck source=./common.sh
-if [ -r "$(dirname "$0")"/common.sh ]; then
-	. "$(dirname "$0")"/common.sh
-fi
-
 summary() {
-	echo "$(basename "$0"): download and extract game data"
+	echo "$(basename "$0"): download and extract MFF game data"
 }
 
 usage() {
@@ -17,14 +12,21 @@ usage() {
 description() {
 	echo "mandatory arguments:"
 	echo "	-o output_directory"
-	echo "		place device-files/ and data/ directories into output_directory "
+	echo '		place mff-device-files-<version>/ directory into output_directory'
 	echo "options:"
-	echo "	-h	print this summarized help message"
-	echo "	-v	print progress information; specify twice for debug output"
+	echo "	-h	print this summarized help message and quit"
+	echo "	-v	print more information; specify twice for debug output"
 }
 
-DEBUG=N
-VERBOSE=N
+# shbuild replace common.sh
+# shellcheck source=./common.sh
+if [ -r "$(dirname "$0")"/common.sh ]; then
+	. "$(dirname "$0")"/common.sh
+fi
+# shbuild end replace common.sh
+
+DEBUG=""
+VERBOSE=""
 
 while getopts 'hvo:' option; do
 	case "$option" in
@@ -78,16 +80,10 @@ if [ -d "$MFFTEMPDIR" ]; then
 	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
 		throwfatal "Temporary directory '$MFFTEMPDIR' is not empty. Exiting."
 	fi
-	trap 'rm -rf "$MFFTEMPDIR"; kill -- -$$' EXIT HUP INT QUIT TERM
+	trapforcleanup
 else
 	throwfatal "Unable to create temporary directory. Exiting."
 fi
-if [ -z "$HOME" ]; then
-	echo 'Warning: HOME environment variable is not set.' >&2
-fi
-ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
-ANDROID_HOME="$ANDROID_SDK_ROOT"
-export ANDROID_SDK_ROOT
 
 if [ -z "${MFFOUTPUTDIR+1}" ]; then
 	echo "Error: Output directory not set" >&2
@@ -99,35 +95,65 @@ if [ -z "$MFFOUTPUTDIR" ]; then
 	usage >&2
 	exit 1
 fi
-if ! mkdir -p -- "$MFFOUTPUTDIR" >"$VERBOSEOUT" 2>&1; then
+if ! mkdir -p -- "$MFFOUTPUTDIR" >"$DEBUGOUT" 2>&1; then
 	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
 	usage >&2
 	exit 1
 fi
 MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
 
+MFF_ANDROID_SDK_URL_BASE='https://dl.google.com/android/repository/'
+if [ x = "${MFF_OS}x" ]; then
+	case "$(uname)" in
+		Darwin)
+			MFF_OS="mac"
+			;;
+		Linux)
+			MFF_OS="linux"
+			;;
+		Windows* | CYGWIN* | MINGW* | MSYS*)
+			MFF_OS="win"
+			;;
+		*) ;;
+
+	esac
+fi
+if [ "" = "${MFF_OS}" ]; then
+	throwfatal "Unable to determine operating system."
+fi
+if [ win != "${MFF_OS}" ] && [ mac != "$MFF_OS" ] && [ linux != "$MFF_OS" ]; then
+	throwfatal "Operating system '${MFF_OS}' not supported."
+fi
+MFF_ANDROID_SDK_URL_FILE="commandlinetools-${MFF_OS}-7302050_latest.zip"
+MFF_ANDROID_SDK_URL="${MFF_ANDROID_SDK_URL:-$MFF_ANDROID_SDK_URL_BASE$MFF_ANDROID_SDK_URL_FILE}"
+echo "Getting Android command-line tools" >"$VERBOSEOUT"
+MFF_CURL="$(getexec curl wget)" || throwfatal "Unable to find downloader. 'curl' or 'wget' required."
+ANDROID_SDK_ROOT="$MFFTEMPDIR/sdk"
+ANDROID_HOME="$ANDROID_SDK_ROOT"
+export ANDROID_SDK_ROOT
+mkdir -p "$ANDROID_SDK_ROOT" || throwfatal "Unable to create Android command-line tools directory."
+MFF_UNZIP="$(getexec unzip)" || throwfatal "Unable to find unzipping program. 'unzip' required."
+case "$MFF_CURL" in
+	curl)
+		MFF_CURLOPTS="-Ss"
+		if [ "Y" = "$DEBUG" ]; then MFF_CURLOPTS="-v"; fi
+		"${MFF_CURL}" "${MFF_CURLOPTS}" -L -o "$MFFTEMPDIR"/sdk.zip "$MFF_ANDROID_SDK_URL" >"$DEBUGOUT"
+		;;
+	wget)
+		MFF_WGETOPTS="-q"
+		if [ "Y" = "$DEBUG" ]; then MFF_WGETOPTS="-v"; fi
+		"$MFF_CURL" "$MFF_WGETOPTS" -O "$MFFTEMPDIR"/sdk.zip "$MFF_ANDROID_SDK_URL" >"$DEBUGOUT"
+		;;
+esac
+if [ "Y" != "$DEBUG" ]; then MFF_UNZIP_OPTS="-qq"; fi
+"$MFF_UNZIP" $MFF_UNZIP_OPTS "$MFFTEMPDIR/sdk.zip" -d "$MFFTEMPDIR/cmdline-tools-tmp" >"$DEBUGOUT"
+mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools" \
+	&& mv "$MFFTEMPDIR/cmdline-tools-tmp/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/downloaded"
+
 ANDROID_SDKMANAGER="${ANDROID_SDKMANAGER:-$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)}"
 if [ ! -x "$ANDROID_SDKMANAGER" ]; then
-	echo 'Unable to find sdkmanager.' >&2
-	echo 'If sdkmanager is installed, set ANDROID_SDK_ROOT properly.' >&2
-	echo 'If not, download Android command line tools from' >&2
-	echo 'https://developer.android.com/studio#command-tools' >&2
-	echo "and unpack into $ANDROID_SDK_ROOT/cmdline-tools/latest/" >&2
-	exit 1
+	throwfatal 'Unable to get sdkmanager.'
 fi
-mkdir -p "$MFFTEMPDIR/sdk"
-echo 'Accepting Android command line tool licenses' >"$VERBOSEOUT"
-i=0
-while [ $i -lt 100 ]; do
-	echo y
-	i=$((i + 1))
-done \
-	| "$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --licenses \
-	| sed '/^y$/d' >"$DEBUGOUT"
-echo 'Getting updated Android command line tools' >"$VERBOSEOUT"
-"$ANDROID_SDKMANAGER" --sdk_root="$MFFTEMPDIR/sdk" --install \
-	'cmdline-tools;latest' >"$DEBUGOUT"
-ANDROID_SDK_ROOT="$MFFTEMPDIR/sdk"
 ANDROID_HOME="$ANDROID_SDK_ROOT"
 ANDROID_EMULATOR_HOME="$MFFTEMPDIR"
 ANDROID_SDK_HOME="$MFFTEMPDIR"
@@ -135,13 +161,22 @@ ANDROID_PREFS_ROOT="$MFFTEMPDIR"
 ANDROID_AVD_HOME="$MFFTEMPDIR/avd"
 export ANDROID_SDK_ROOT ANDROID_HOME ANDROID_EMULATOR_HOME
 export ANDROID_SDK_HOME ANDROID_PREFS_ROOT ANDROID_AVD_HOME
-ANDROID_SDKMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name sdkmanager)"
-if [ ! -x "$ANDROID_SDKMANAGER" ]; then
-	echo 'Unable to get sdkmanager. Exiting.' >&2
-	exit 1
-fi
+mkdir -p -- "$ANDROID_AVD_HOME" || throwfatal "Unable to create Android virtual device directory."
+
+echo 'Accepting Android command-line tool licenses' >"$VERBOSEOUT"
+i=0
+while [ $i -lt 100 ]; do
+	echo y
+	i=$((i + 1))
+done \
+	| "$ANDROID_SDKMANAGER" --licenses \
+	| sed '/^y$/d' >"$DEBUGOUT"
+echo 'Getting updated Android command line tools' >"$VERBOSEOUT"
+"$ANDROID_SDKMANAGER" --verbose --install \
+	'cmdline-tools;latest' >"$DEBUGOUT"
+ANDROID_SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools/latest" \( -type f -o -type l \) -name sdkmanager)"
 echo 'Getting Android emulator and platform tools' >"$VERBOSEOUT"
-"$ANDROID_SDKMANAGER" --install \
+"$ANDROID_SDKMANAGER" --verbose --install \
 	'platform-tools' \
 	emulator \
 	'platforms;android-30' >"$DEBUGOUT"
@@ -149,10 +184,10 @@ echo 'Getting Android emulator and platform tools' >"$VERBOSEOUT"
 # recognize that emulator (a dependency of theirs) is already
 # installed and install a second copy which messes things up.
 echo 'Getting Android system images' >"$VERBOSEOUT"
-"$ANDROID_SDKMANAGER" --install \
+"$ANDROID_SDKMANAGER" --verbose --install \
 	'system-images;android-30;google_apis_playstore;x86' \
 	'system-images;android-30;google_apis;x86' >"$DEBUGOUT"
-ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT" \( -type f -o -type l \) -name avdmanager)"
+ANDROID_AVDMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools/latest" \( -type f -o -type l \) -name avdmanager)"
 if [ ! -x "$ANDROID_AVDMANAGER" ]; then
 	echo 'Unable to get avdmanager. Exiting.' >&2
 	exit 1
@@ -168,14 +203,32 @@ if [ ! -x "$ANDROID_ADB" ]; then
 	exit 1
 fi
 echo 'Creating Android virtual devices' >"$VERBOSEOUT"
-mkdir -p -- "$MFFTEMPDIR/avd"
-"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis_playstore;x86' --name 'mff_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
-"$ANDROID_AVDMANAGER" create avd --package 'system-images;android-30;google_apis;x86' --name 'mff_no_google_play' --device "7in WSVGA (Tablet)" >"$DEBUGOUT"
+"$ANDROID_AVDMANAGER" --verbose create avd \
+	--package 'system-images;android-30;google_apis_playstore;x86' \
+	--name 'mff_google_play' \
+	--device "7in WSVGA (Tablet)" >"$DEBUGOUT"
+"$ANDROID_AVDMANAGER" --verbose create avd \
+	--package 'system-images;android-30;google_apis;x86' \
+	--name 'mff_no_google_play' \
+	--device "7in WSVGA (Tablet)" >"$DEBUGOUT"
 for name in mff_google_play mff_no_google_play; do
 	sed -E -e 's/^hw.keyboard[ =]+.*$/hw.keyboard = yes/' \
-		"$MFFTEMPDIR"/avd/"$name".avd/config.ini >"$MFFTEMPDIR/newconfig" \
-		&& mv "$MFFTEMPDIR/newconfig" "$MFFTEMPDIR/avd/$name.avd/config.ini"
+		"$ANDROID_AVD_HOME"/"$name".avd/config.ini >"$MFFTEMPDIR/newconfig" \
+		&& mv "$MFFTEMPDIR/newconfig" "$ANDROID_AVD_HOME/$name.avd/config.ini"
 done
+# Really silly workaround for the emulator's "out of date" warning:
+MFF_EMULATOR_VERSION="$(
+	"$ANDROID_EMULATOR" -version 2>&1 \
+		| grep ' emulator version ' \
+		| sed -e 's/^.*Android emulator version \([0-9\.]*\) .*$/_version.3D\1/'
+)"
+MFF_QEMU_VERSION="$(
+	"$ANDROID_EMULATOR" -qemu -version 2>&1 \
+		| grep 'QEMU emulator version ' \
+		| sed -e 's/^.*QEMU emulator version \([0-9\.]*\) .*$/.26coreVersion.3Dqemu2.2520\1/'
+)"
+MFF_VERSION_KEY="${MFF_EMULATOR_VERSION}${MFF_QEMU_VERSION}"
+echo "$MFF_VERSION_KEY = $(date +%s)" >"$ANDROID_EMULATOR_HOME/emu-update-last-check.ini"
 echo 'Starting Google Play Android virtual device' >"$VERBOSEOUT"
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
@@ -185,12 +238,12 @@ echo 'Fight. Leave the emulator running.'
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'
-if [ "$DEBUG" = "Y" ]; then EMULATOR_VERBOSETAG="-verbose"; fi
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_google_play -memory 3583 -no-boot-anim -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
+# -no-audio disables microphone as well, so the system won't prompt for permission
+"$ANDROID_EMULATOR" ${DEBUG+-verbose} -avd mff_google_play -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
 read -r
 if ! ps -p "$emulator_pid" >/dev/null; then
-	echo "Emulator is no longer running. Exiting." >&2
+	echo "Emulator is no longer running. Unable to continue." >&2
 	exit 1
 fi
 echo 'Getting installation files' >"$VERBOSEOUT"
@@ -257,20 +310,20 @@ serial="$(get_avd_serial mff_google_play)" || exit 1
 echo 'Stopping Google Play emulator' >"$VERBOSEOUT"
 kill "$emulator_pid"
 echo 'Starting rootable Android virtual device' >"$VERBOSEOUT"
-"$ANDROID_EMULATOR" $EMULATOR_VERBOSETAG -avd mff_no_google_play -no-boot-anim -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
+"$ANDROID_EMULATOR" ${DEBUG+-verbose} -avd mff_no_google_play -delay-adb -no-audio -dns-server 8.8.8.8 >"$DEBUGOUT" 2>&1 &
 emulator_pid="$!"
 echo 'Connecting to emulator' >"$VERBOSEOUT"
 serial="$(get_avd_serial mff_no_google_play)" || exit 1
 "$ANDROID_ADB" -s "$serial" wait-for-device
-until "$ANDROID_ADB" -s "$serial" shell pm list users >/dev/null 2>&1; do
-	sleep 30
-done
 echo 'Installing Marvel Future Fight' >"$VERBOSEOUT"
-"$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* >"$DEBUGOUT" \
-	|| {
-		echo "Unable to install. Exiting." >&2
-		exit 1
-	}
+i=1
+until "$ANDROID_ADB" -s "$serial" install-multiple "$MFFTEMPDIR/new-apks/"* >"$DEBUGOUT" 2>&1 || [ $i = 30 ]; do
+	sleep 1 && i=$((i + 1))
+done
+if [ $i = 30 ]; then
+	echo "Unable to install. Exiting." >&2
+	exit 1
+fi
 echo ''
 echo '************* USER INTERACTION REQUIRED *************'
 echo '1. Open Marvel Future Fight.'
@@ -282,12 +335,7 @@ echo '   and "Settings".'
 echo '5. Wait for any automatic downloads shown in progress to'
 echo '   complete. Go to the "Option" tab and "Download All'
 echo '   Data". Wait for the downloads to finish.'
-echo '6. Go to the "Account" tab and sign in to Facebook; if'
-echo '   prompted for Chrome sign in and sync, "No Thanks".'
-echo '7. When the app restarts and returns to the main'
-echo '   lobby screen, press the triangle button and exit'
-echo '   the game.'
-echo '8. Leave the emulator running and...'
+echo '6. Leave the emulator running and...'
 echo '******************************************************'
 echo ''
 echo 'Press <enter> or <return> when that is complete.'

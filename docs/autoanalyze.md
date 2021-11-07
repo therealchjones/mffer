@@ -12,7 +12,7 @@ $ autoanalyze -h
 ## Description
 
 `autoanalyze` automates the complicated process of extracting data structure
-information from the Marvel Future Fight binary code, importing it
+information from the Marvel Future Fight program code, importing it
 into a new ghidra project and performing ghidra auto-analysis, as well as
 decompiling Java bytecode, to prepare for
 further (manual) code exploration and analysis.
@@ -28,14 +28,14 @@ further (manual) code exploration and analysis.
 
 ## Extended Description
 
-`autoanalyze` uses Il2CppInspector to prepare data structure information (C
-types and function signatures) from the device files extracted by
-[`autoextract`](autoextract.md), even downloading and building Il2CppInspector
-into a temporary directory to do so. It then creates a new ghidra project,
-imports the binary application data, applies the information from
-Il2CppInspector, and performs a ghidra auto-analysis. Finally, `autoextract`
-decompiles the Java bytecode used for small parts of the Marvel Future Fight
-package into source files.
+`autoanalyze` uses [Il2CppInspector](https://github.com/djkaty/Il2CppInspector)
+to prepare data structure information (C types and function signatures) from the
+device files extracted by [`autoextract`](autoextract.md). It then creates a
+new [ghidra](https://ghidra-sre.org) project, imports the binary application
+data, applies the information from Il2CppInspector, and performs a ghidra
+auto-analysis. Finally, `autoextract` uses
+[JADX](https://github.com/skylot/jadx) to decompile the Java bytecode used for
+small parts of the Marvel Future Fight package into source files.
 
 `autoanalyze` uses ghidra's `analyzerHeadless` mode to perform these processes
 without a GUI, and this ends up being significantly faster than importing these
@@ -70,8 +70,9 @@ decompiled Java code from the device-independent portion of the application.
 -   POSIX-compliant Unix-like environment for which all the used
     programs are available (likely macOS/OS X, Windows with Cygwin or
     another POSIX layer, or Linux).
--   ghidra
--   Java (required by ghidra)
+-   [ghidra](https://ghidra-sre.org)
+-   Java runtime (required by ghidra); consider
+    [AdoptOpenJDK](https://adoptopenjdk.net)
 -   A reasonable machine upon which to run these; ghidra can be quite resource
     intensive.
 

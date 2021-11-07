@@ -129,6 +129,11 @@ namespace Mffer {
 							character.BaseName = LocalDictionary.GetString( $"HERO_{baseId}" );
 						}
 					}
+					try {
+						newLevel.Instinct = LocalDictionary.GetString( "SPECIAL_TYPE_" + entry.specialType.ToString() );
+					} catch ( Microsoft.CSharp.RuntimeBinder.RuntimeBinderException ) {
+						newLevel.Instinct = "";
+					}
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );
 					character.StartGrade = Int32.Parse( entry.startGrade.ToString() );
 					character.GrowType = Int32.Parse( entry.growType.ToString() );
@@ -166,6 +171,7 @@ namespace Mffer {
 				"Allies",
 				"Max Tier",
 				"Growth Type",
+				"Instinct",
 				"Abilities",
 				"World Boss Ability",
 				"Leader Skill",
@@ -196,7 +202,8 @@ namespace Mffer {
 						uniform.Camps,
 						character.Species,
 						character.MaxTier.ToString(),
-						character.GrowType.ToString()
+						character.GrowType.ToString(),
+						character.Instinct
 					};
 					int size = uniform.Abilities.Count;
 					string abilities = "";
@@ -290,6 +297,19 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
+		/// Gets the instinct type of the <see cref="Character"/>
+		/// </summary>
+		public string Instinct {
+			get {
+				string instinct = null;
+				foreach ( Uniform uniform in Uniforms.Values ) {
+					if ( instinct == null ) instinct = uniform.Instinct;
+					else if ( instinct != uniform.Instinct ) throw new Exception( "Not all character level instincts are the same." );
+				}
+				return instinct;
+			}
+		}
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Character"/> class
 		/// </summary>
 		public Character() {
@@ -353,6 +373,20 @@ namespace Mffer {
 		/// </summary>
 		public string MainAtk { get; set; }
 		/// <summary>
+		/// Gets or sets the instinct type of the <see cref="Character"/> when
+		/// wearing this <see cref="Uniform"/>
+		/// </summary>
+		public string Instinct {
+			get {
+				string instinct = null;
+				foreach ( CharacterLevel level in CharacterLevels.Values ) {
+					if ( instinct == null ) instinct = level.Instinct;
+					else if ( instinct != level.Instinct ) throw new Exception( "Not all character level instincts are the same." );
+				}
+				return instinct;
+			}
+		}
+		/// <summary>
 		/// Gets or sets the list of abilities of the <see cref="Character"/>
 		/// when wearing this <see cref="Uniform"/>
 		/// </summary>
@@ -411,6 +445,10 @@ namespace Mffer {
 		/// Gets or sets the tier for this <see cref="CharacterLevel"/>
 		/// </summary>
 		public int Tier { get; set; }
+		/// <summary>
+		/// Gets or sets the instinct type for this <see cref="CharacterLevel"/>
+		/// </summary>
+		public string Instinct { get; set; }
 		/// <summary>
 		/// Gets or sets the list of skills available at this
 		/// <see cref="CharacterLevel"/>

@@ -16,9 +16,13 @@ This project facilitates analysis of [Marvel Future Fight](#marvel-future-fight)
 
 The project includes:
 
--   a [shell script](docs/autoextract.md) to obtain the Marvel Future Fight data files
--   a [.NET console app](docs/mffer.md) to parse the data files, analyze the data, and output information in an open and usable format
--   a [Google Sheet and web app](docs/webapp.md) to present and use the game data
+-   a [shell script](docs/autoextract.md) to obtain the Marvel Future Fight data
+    and program files
+-   a [shell script](docs/autoanalyze.md) to decompile and evaluate the program
+    files
+-   a [.NET console app](docs/mffer.md) to parse the data files, analyze the
+    data, and output information in an open and usable format
+-   a [web app](docs/webapp.md) to present and use the game data
 
 ## Usage
 
@@ -31,7 +35,11 @@ The project may only be useful to developers. Detailed usage instructions for th
     $ dotnet run mffer --datadir data_directory --outputdir output_directory
     ```
 3.  Import the resulting CSV file(s) to a Google Sheet for further work.
+4.  Deploy the webapp.
 
 ## Contributing
 
-Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has information for contributors with any level of experience. Use [the issues tracker](https://github.com/therealchjones/mffer/issues) for any and all questions and comments, or email <chjones@aleph0.com>.
+Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has
+information for contributors with any level or variety of experience. Use
+[the issues tracker](https://github.com/therealchjones/mffer/issues) for any and all
+questions and comments, or email <chjones@aleph0.com>.

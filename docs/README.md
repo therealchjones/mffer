@@ -19,6 +19,8 @@ This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones
 	- [Using and Presenting the Data](#using-and-presenting-the-data)
 - [Copyright](#copyright)
 - [Contributing](#contributing)
+- [Problems & possible workarounds](#problems--possible-workarounds)
+	- [Android emulator does not recognize internet connection](#android-emulator-does-not-recognize-internet-connection)
 
 ## Marvel Future Fight
 
@@ -127,3 +129,14 @@ Wherever possible, code from `mffer` is in the public domain; see [the CC0 Licen
 ## Contributing
 
 I welcome outside contributions, comments, questions, concerns, pull requests, and so forth. At least, I would if this were a public project in a public repository, but because I prefer not to be booted from my favorite game, you'll likely never hear about it. However, in the hypothetical case you'd like to contribute to a project you've never heard of, you can hypothetically learn about the best way to do so by hypothetically reading [CONTRIBUTING](docs/CONTRIBUTING.md), to which you also don't have access. You can also hypothetically email me at <chjones@aleph0.com>.
+
+## Problems & possible workarounds
+
+### Android emulator does not recognize internet connection
+
+This may occur when the host machine is connected to certain shared networks; it
+happens when I attempt to use a "guest" network in one workplace. Switching to a
+different (perhaps, more properly configured) network corrects the problem for
+me. It may also be useful to set the _host_ machine's DNS server to a known IP
+(such as 8.8.8.8), as suggested in
+[this StackOverflow question](https://stackoverflow.com/questions/42736038/android-emulator-not-able-to-access-the-internet).

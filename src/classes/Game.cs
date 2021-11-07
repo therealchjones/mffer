@@ -59,9 +59,8 @@ namespace Mffer {
 		/// <summary>
 		/// Writes all loaded data to files, separated by version
 		/// </summary>
-		/// <param name="dirName">Name of a directory into which to write the files</param>
-		public void ToJsonFiles( string dirName ) {
-			DirectoryInfo directory = new DirectoryInfo( dirName );
+		/// <param name="directory">Name of a directory into which to write the files</param>
+		public void ToJsonFiles( DirectoryInfo directory ) {
 			if ( !directory.Exists ) directory.Create();
 			JsonSerializerOptions serialOptions = new JsonSerializerOptions( JsonSerializerDefaults.General );
 			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
@@ -75,10 +74,9 @@ namespace Mffer {
 		/// <summary>
 		/// Write data from each <see cref="Version"/> to a usable file
 		/// </summary>
-		/// <param name="dirname">The name of a directory into which to write
+		/// <param name="directory">The name of a directory into which to write
 		/// the files</param>
-		public void WriteCSVs( string dirname ) {
-			DirectoryInfo directory = new DirectoryInfo( dirname );
+		public void WriteCSVs( DirectoryInfo directory ) {
 			if ( !directory.Exists ) directory.Create();
 			foreach ( Version version in Versions ) {
 				version.WriteCSVs( directory );
