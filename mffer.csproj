@@ -60,6 +60,12 @@
 	<Error Condition="'$(Configuration)' != 'Release'"
 		Text="The 'Publish' target should only be run with a 'Release' configuration. Try 'dotnet publish -c Release'."/>
   </Target>
+  <Target Name="CheckZip">
+    <PropertyGroup>
+	  <ZipCommand Condition="'$(ZipCommand)' == ''">zip</ZipCommand>
+	</PropertyGroup>
+	<Exec Command="'$(ZipCommand)' -v &gt; /dev/null" ContinueOnError="false" Condition="'$(OS)' != 'Windows_NT'"/>
+  </Target>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <!--
 		include these properties for all "Release" configurations, but requires
@@ -137,8 +143,9 @@
   <Target Name="CopyScripts" AfterTargets="Publish" DependsOnTargets="Publish">
 	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
   </Target>
-  <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts">
-    <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" />
+  <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts;CheckZip">
+    <Exec Command="'$(ZipCommand)' -q -r -j - '$(PublishDir)' &gt;  '$(ReleaseDirectory)/$(ReleaseString).zip'" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
+    <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" Condition="'$(OS)' == 'Windows_NT' Or '$(RuntimeIdentifier)' == 'win-x64'"/>
 	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
 </Project>
