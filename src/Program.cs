@@ -1,94 +1,89 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
 using System.IO;
-using CommandLine;
+using System.Linq;
 
 namespace Mffer {
 	/// <summary>
 	/// The primary user-facing program class
 	/// </summary>
 	public static class Program {
-		/// <summary>
-		/// The name of the game
-		/// </summary>
-		const string GameName = "Marvel Future Fight";
 		static Game Game { get; set; }
-		/// <summary>
-		/// Gets or sets a dictionary of the command line arguments,
-		/// indexed by option name
-		/// </summary>
-		static Dictionary<string, string> Arguments { get; set; }
+		static readonly string Description = "Marvel Future Fight extraction & reporting";
+		static readonly Dictionary<string[], string> Options = new Dictionary<string[], string> {
+			{new[]{"--datadir","-d"}, "directory containing Marvel Future Fight data files"},
+			{new[]{"--outputdir","-o"}, "directory in which to place created files"}
+		};
 		/// <summary>
 		/// Primary entry point of the program
 		/// </summary>
-		static void Main() {
-			LoadAll();
-			WriteAll();
+		static int Main( string[] args ) {
+			// Due to a limitation of System.CommandLine in evaluating empty
+			// strings, we first parse options as strings then re-parse properly
+			// as DirectoryInfo objects.
+			var stringCommand = new RootCommand( Description );
+			var dirCommand = new RootCommand( Description );
+			foreach ( var entry in Options ) {
+				Option<string> stringOption = new Option<string>( entry.Key, entry.Value ) { IsRequired = true };
+				stringOption.AddValidator(
+					optionResult => {
+						IEnumerable<string> emptyStrings =
+							optionResult.Tokens
+								.Select( t => t.Value )
+								.Where( s => String.IsNullOrEmpty( s ) );
+						if ( emptyStrings.Count() == 0 ) {
+							return null;
+						} else {
+							return $"Option '{entry.Key[0]}' must not be empty.";
+						}
+					}
+				);
+				Option<DirectoryInfo> dirOption = new Option<DirectoryInfo>( entry.Key, entry.Value ) { IsRequired = true };
+				if ( entry.Key[0] == "--datadir" ) dirOption.ExistingOnly();
+				else if ( entry.Key[0] == "--outputdir" ) dirOption.LegalFilePathsOnly();
+				stringCommand.AddOption( stringOption );
+				dirCommand.AddOption( dirOption );
+			}
+			stringCommand.Handler = CommandHandler.Create<string, string>( ( datadir, outputdir ) => {
+				dirCommand.Handler = CommandHandler.Create<DirectoryInfo, DirectoryInfo>( OptionsHandler );
+				return dirCommand.Invoke( args );
+			} );
+			return stringCommand.Invoke( args );
 		}
-		/// <summary>
-		/// Loads command line arguments/options
-		/// </summary>
-		/// <remarks>
-		/// <see cref="GetArguments()"/> uses the <see cref="CommandLine"/> class
-		/// to build a dictionary of command-line arguments and their associated
-		/// options, flags, or parameters. This is saved in the static
-		/// <see cref="Arguments"/> property.
-		/// </remarks>
-		static void GetArguments() {
-			Arguments = new Dictionary<string, string>();
-			Parser cmdLine = new Parser();
-			Arguments.Add( "datadir", cmdLine.GetOption( "datadir" ) );
-			Arguments.Add( "outputdir", cmdLine.GetOption( "outputdir" ) );
+		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
+			LoadAll( dataDir );
+			WriteAll( outputDir );
 		}
 		/// <summary>
 		/// Loads all available game data
 		/// </summary>
 		/// <remarks>
-		/// <see cref="LoadAll()"/> uses <see cref="Arguments"/>'s
-		/// "datadir" value to load game information from a game data directory
-		/// into the <see cref="Program.Game"/> static property. All
-		/// information that is extractable from the data directory (including
-		/// all version and all assets and components within those versions)
-		/// will be loaded.
+		/// <see cref="LoadAll(DirectoryInfo)"/> loads game information from a
+		/// game data directory into the <see cref="Program.Game"/> static
+		/// property. All information that is extractable from the data
+		/// directory (including all version and all assets and components
+		/// within those versions) will be loaded.
 		/// </remarks>
-		static void LoadAll() {
-			string dataDirName = null;
-			if ( Arguments is null ) {
-				GetArguments();
-			}
-			if ( Arguments.ContainsKey( "datadir" ) ) {
-				dataDirName = Arguments["datadir"];
-			} else {
-				throw new Exception( "You must provide the name of a data directory." );
-			}
-			if ( !Directory.Exists( dataDirName ) ) {
-				throw new DirectoryNotFoundException( $"Unable to access directory '${dataDirName}'" );
-			}
-			DirectoryInfo dataDir = new DirectoryInfo( dataDirName );
-			Game = new Game( GameName );
+		static void LoadAll( DirectoryInfo dataDir ) {
+			Game = new Game();
 			Game.LoadAll( dataDir.FullName );
 		}
 		/// <summary>
 		/// Outputs all loaded <see cref="Game"/> data
 		/// </summary>
 		/// <remarks>
-		/// <see cref="WriteAll()"/> saves all data that has been loaded into the
-		/// <see cref="Program.Game"/> static property into the output directory
-		/// available from the <see cref="Arguments"/><c>["outputdir"]</c> value.
-		/// If no data has been loaded prior to calling <see cref="WriteAll()"/>,
-		/// <see cref="LoadAll()"/> will be run first.
+		/// <see cref="WriteAll(DirectoryInfo)"/> saves all data that has been
+		/// loaded into the <see cref="Program.Game"/> static property into the
+		/// output directory. If no data has been loaded prior to calling <see
+		/// cref="WriteAll(DirectoryInfo)"/>, <see
+		/// cref="LoadAll(DirectoryInfo)"/> will be run first.
 		/// </remarks>
-		static void WriteAll() {
-			string saveDirName = null;
-			if ( Arguments is null ) {
-				GetArguments();
-			}
-			if ( Arguments.ContainsKey( "outputdir" ) ) {
-				saveDirName = Arguments["outputdir"];
-			} else {
-				System.Console.WriteLine( "You must provide the name of an output directory." );
-			}
-			Game.ToJsonFiles( saveDirName );
+		static void WriteAll( DirectoryInfo saveDir ) {
+			Game.ToJsonFiles( saveDir );
+			Game.WriteCSVs( saveDir );
 		}
 	}
 }
