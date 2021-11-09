@@ -5,7 +5,8 @@ apparent, and the workflows for those are described here, with references to
 related documents as needed. In brief, these are:
 
 -   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future Fight data
--   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools) to extract and report Marvel Future Fight
+-   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
+    to extract, analyze, or summarize Marvel Future Fight
     data
 -   [Using the `mffer` library](#using-the-mffer-library) to develop a custom program
 
@@ -37,14 +38,15 @@ underlying code. It is not necessary to use the command line tools to
 
 ### Obtaining the `mffer` command line tools
 
-The `mffer` command line tools can be downloaded from GitHub and built; see the
-[development guide](Development.md) for details.
+While the `mffer` command line tools can be downloaded from GitHub and built (see the
+[development guide](Development.md) for details), it is probably easier to
+download the [latest release of `mffer`](https://github.com/therealchjones/mffer/releases/latest) for your platform.
 
 ### Installation
 
-No installation is needed or provided. After cloning the GitHub repository into
-a directory _`mffer`_ and building the tools (as described in the
-[development guide](Development.md)), the tools are available at the following
+No installation is needed or provided. Release packages include all necessary
+files in a single directory. Alternatively, cloning the GitHub repository into
+a directory _`mffer`_ and building the tools results in the individual tools residing at the following
 paths:
 
 |               |                                      |
@@ -55,22 +57,24 @@ paths:
 
 ### Requirements
 
--   POSIX sh and typical development environment
+-   POSIX sh and typical development environment (required for `autoextract` and
+    `autoanalyze`)
 -   [Android Studio](https://developer.android.com/studio/) or standalone
-    [Android command-line tools](https://developer.android.com/studio/#command-tools)
--   Java runtime or SDK such as [AdoptOpenJDK](https://adoptopenjdk.net)
-    (required by standalone Android command-line tools but included in Android Studio)
+    [Android command-line
+    tools](https://developer.android.com/studio/#command-tools)
+    (required for `autoextract`)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
-    (required only for `autoanalyze` and further analysis)
--   [.NET 5 SDK](https://dotnet.microsoft.com/download)
+    (required for `autoanalyze` and manual analysis)
+-   Java runtime or SDK such as [AdoptOpenJDK](https://adoptopenjdk.net)
+    (required by standalone Android command-line tools and Ghidra)
+-   [.NET 5 SDK](https://dotnet.microsoft.com/download) (required for building
+    `mffer` or for running the platform-independent releases)
 
 macOS and most Linux distributions satisfy the needs for the initial
 environment. (In addition to the defined
-[POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar` and
-`mktemp` are used.) They may require installation of a Java runtime (or SDK) if
-one is not already installed. The Java requirement is for the Android command
-line tools (unless using the command line tools within Android Studio) and the
-[ghidra disassembler](https://github.com/NationalSecurityAgency/ghidra). We
+[POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar`,
+`mktemp`, and other common utilities are used.) They may require installation of a Java runtime (or SDK) if
+one is not already installed. We
 recommend the OpenJDK 11 distribution freely available from
 (AdoptOpenJDK)[AdoptOpenJDK.com] at
 https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot.
