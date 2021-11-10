@@ -145,7 +145,7 @@
 	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
   </Target>
   <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts;CheckZip">
-    <Exec Command="'$(ZipCommand)' -q -r -j - '$(PublishDir)' &gt;  '$(ReleaseDirectory)/$(ReleaseString).zip'" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
+    <Exec Command="'$(ZipCommand)' -q -r - * &gt; '$(ReleaseDirectory)/$(ReleaseString).zip'" WorkingDirectory="$(PublishDir)" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
     <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" Condition="'$(OS)' == 'Windows_NT' Or '$(RuntimeIdentifier)' == 'win-x64'"/>
 	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
