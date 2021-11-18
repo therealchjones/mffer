@@ -38,21 +38,31 @@
 	  Condition="'$(DOTNET_HOST_PATH)' == ''"
 	  Text="Unable to identify dotnet executable. Run as 'dotnet &lt;command&gt;'."/>
   </Target>
-  <Target Name="CheckNpm">
+  <Target Name="CheckNpmPath">
 	<PropertyGroup>
-      <NpmPath Condition="'$(NpmPath)' == '' and '$(NPM)' != ''">$(NPM)</NpmPath>
       <NpmPath Condition="'$(NpmPath)' == ''">npm</NpmPath>
 	</PropertyGroup>
+	<!-- npm doesn't work right in cmd.exe if the command is quoted and a
+		directory isn't specified. As a workaround, npm must be in the path
+		on Windows and the command can't be overridden by an environment
+		variable. -->
 	<Exec
-	  Command="'$(NpmPath)' -v &gt; /dev/null"
+	  Command='"$(NpmPath)" -v'
 	  WorkingDirectory="$(ToolsDirectory)"
-	  ContinueOnError="false" />
+	  StandardOutputImportance="low"
+	  Condition="'$(OS)' != 'Windows_NT'" />
+	<Exec
+	  Command='npm -v'
+	  WorkingDirectory="$(ToolsDirectory)"
+	  StandardOutputImportance="low"
+	  Condition="'$(OS)' == 'Windows_NT'" />
   </Target>
   <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
-	<Exec Command="'$(DOTNET_HOST_PATH)' tool restore -v quiet" WorkingDirectory="$(ToolsDirectory)"/>
+	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)"/>
   </Target>
-  <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpm" AfterTargets="Restore">
-	<Exec Command="'$(NpmPath)' install --loglevel silent" WorkingDirectory="$(ToolsDirectory)"/>
+  <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpmPath" AfterTargets="Restore">
+	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' != 'Windows_NT'" />
+	<Exec Command='npm install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' == 'Windows_NT'" />
 	<Message Text="Restored Node.js tools."/>
   </Target>
 
@@ -65,7 +75,7 @@
     <PropertyGroup>
 	  <ZipCommand Condition="'$(ZipCommand)' == ''">zip</ZipCommand>
 	</PropertyGroup>
-	<Exec Command="'$(ZipCommand)' -v &gt; /dev/null" ContinueOnError="false" Condition="'$(OS)' != 'Windows_NT'"/>
+	<Exec Command='"$(ZipCommand)" -v' ContinueOnError="false" Condition="'$(OS)' != 'Windows_NT'" StandardOutputImportance="low"/>
   </Target>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <!--
@@ -87,11 +97,12 @@
       <GitPath Condition="'$(GitPath)' == ''">git</GitPath>
 	</PropertyGroup>
 	<Exec
-	  Command="'$(GitPath)' --version &gt; /dev/null"
+	  Command='"$(GitPath)" --version'
+	  StandardOutputImportance="low"
 	  ContinueOnError="false" />
   </Target>
   <Target Name="GetVersion" DependsOnTargets="CheckGit" Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'">
-	<Exec Command="$(GitPath) tag --list --contains HEAD" ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
+	<Exec Command='"$(GitPath)" tag --list --contains HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
 	  <Output TaskParameter="ConsoleOutput" PropertyName="GitTagName" />
 	</Exec>
 	<PropertyGroup Condition="'$(GitTagName)' != '' and ( $(GitTagName.StartsWith(`v`)) == 'true' or $(GitTagName.StartsWith(`V`)) == 'true' )" >
@@ -138,14 +149,14 @@
 	  <DeployablesDirectory Condition="'$(VersionString)' != ''">$(DeployablesDirectory)-$(VersionString)</DeployablesDirectory>
 	</PropertyGroup>
 	<Exec
-		Command="'$(DOTNET_HOST_PATH)' '$(XmlDocMdPath)' '$(PublishDir)/mffer.dll' '$(DeployablesDirectory)/docs/api' --visibility private --source 'https://github.com/therealchjones/mffer' --clean --quiet --permalink pretty --namespace-pages"
+		Command='"$(DOTNET_HOST_PATH)" "$(XmlDocMdPath)" "$(PublishDir)/mffer.dll" "$(DeployablesDirectory)/docs/api" --visibility private --source "https://github.com/therealchjones/mffer" --clean --quiet --permalink pretty --namespace-pages'
 		WorkingDirectory="$(ToolsDirectory)" />
   </Target>
   <Target Name="CopyScripts" AfterTargets="Publish" DependsOnTargets="Publish">
 	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
   </Target>
   <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts;CheckZip">
-    <Exec Command="'$(ZipCommand)' -q -r - * &gt; '$(ReleaseDirectory)/$(ReleaseString).zip'" WorkingDirectory="$(PublishDir)" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
+    <Exec Command='"$(ZipCommand)" -q -r - * &gt; "$(ReleaseDirectory)/$(ReleaseString).zip"' WorkingDirectory="$(PublishDir)" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
     <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" Condition="'$(OS)' == 'Windows_NT' Or '$(RuntimeIdentifier)' == 'win-x64'"/>
 	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
