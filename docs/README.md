@@ -10,6 +10,9 @@ This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones
 - [This Project](#this-project)
 - [Versioning](#versioning)
 - [Requirements](#requirements)
+- [Installation](#installation)
+	- [Downloading a Release](#downloading-a-release)
+	- [Cloning the GitHub Repository](#cloning-the-github-repository)
 - [Usage](#usage)
 	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
 	- [Exploring the Data](#exploring-the-data)
@@ -24,7 +27,7 @@ This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones
 
 ## Marvel Future Fight
 
-[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is (or appears to be) made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
+[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [NetMarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to collect and modify with dozens of different resources, and enough game modes to make mastering all of them nigh impossible.
 
@@ -54,18 +57,48 @@ As this project includes evaluation of the binary distributions of the game, whi
 
 ## Requirements
 
+## Installation
+
+### Downloading a Release
+
+"Releases" of `mffer` correspond to sets of files that are designed to be
+"complete" in that any changes in them are designed to work together, have
+documentation that appropriately describes them, and have pre-built
+[versions](#versioning) that can be downloaded and run without further building
+or customization at the source code level.
+[Download the latest release from GitHub](https://github.com/therealchjones/mffer/releases)
+for your platform of choice:
+
+|                                     |                                     |
+| ----------------------------------- | ----------------------------------- |
+| `mffer-`_`version`_`-linux-x64.zip` | Linux binary release                |
+| `mffer-`_`version`_`-net5.0.zip`    | platform-independent binary release |
+| `mffer-`_`version`_`-osx-x64.zip`   | macOS/OS X binary release           |
+| `mffer-`_`version`_`-win-x64.zip`   | Windows binary release              |
+
+Unzip the files into a directory of your choice, and run as described in [usage](#usage).
+
+### Cloning the GitHub Repository
+
+The most up-to-date changes can be obtained by cloning the git repository and
+building the software yourself. Details and requirements for doing so are
+described in the [Development guide](./Development.md).
+
 ## Usage
 
 The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer), with an overall workflow in [USAGE](USAGE.md). Briefly:
 
-```
+```shell
 $ autoextract [-v] -o data_directory
-$ dotnet run -- --datadir data_directory --outputdir output_directory
+$ mffer --datadir data_directory --outputdir output_directory
 ```
 
-Then import the resulting CSV file(s) to a Google Sheet for further work.
+Then import the resulting CSV file into the webapp.
 
-A workflow for general use may be found in [USAGE](USAGE.md). Full options and further descriptions of individual commands can be found in their corresponding pages: [`autoextract`](autoextract.md), [`mffer`](mffer.md), and [the webapp](webapp.md).
+Full options and further descriptions of individual commands can be found in
+their corresponding pages: [`autoextract`](autoextract.md),
+[`autoanalyze`](autoanalyze.md), [`mffer`](mffer.md), and
+[the webapp](webapp.md).
 
 ### Obtaining and Extracting the Data Files
 

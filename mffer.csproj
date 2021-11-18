@@ -1,9 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<RollForward>Major</RollForward>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.2.85" />
@@ -11,33 +10,154 @@
 	<PackageReference Include="System.CommandLine" Version="2.0.0-beta1.21308.1" />
   </ItemGroup>
 
+  <!-- custom project properties -->
   <PropertyGroup>
-	<ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
-	<NpmPath Condition="'$(NpmPath)' == ''">$(NPM)</NpmPath>
-	<NpmPath Condition="'$(NpmPath)' == ''">npm</NpmPath>
+    <ToolsDirectory>$(MSBuildProjectDirectory)/tools</ToolsDirectory>
+	<ReleaseDirectory>$(MSBuildProjectDirectory)/release</ReleaseDirectory>
+	<ScriptDirectory>$(MSBuildProjectDirectory)/src/scripts</ScriptDirectory>
   </PropertyGroup>
-  <Target Name="CheckDotnetPath" BeforeTargets="RestoreTools">
-    <Error
-	  Condition="'$(DOTNET_HOST_PATH)' == ''"
-	  Text="Unable to identify dotnet executable. Run as 'dotnet &lt;command&gt;'."/>
-  </Target>
-  <Target Name="CheckNpm" BeforeTargets="RestoreTools">
-	<Exec
-	  Command="$(NpmPath) -v &gt; /dev/null"
-	  WorkingDirectory="$(ToolsDirectory)"
-	  ContinueOnError="false" />
-  </Target>
-  <Target Name="RestoreTools" AfterTargets="Restore">
-	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)"/>
-	<Exec Command="echo Node.js tools were restored."/>
-	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore' WorkingDirectory="$(ToolsDirectory)"/>
-  </Target>
+  <ItemGroup>
+    <DeletableDirectory Include="$(ReleaseDirectory)"/>
+	<DeletableDirectory Include="$(MSBuildProjectDirectory)/bin"/>
+	<DeletableDirectory Include="$(MSBuildProjectDirectory)/obj"/>
+	<ReleaseableScripts Include="$(ScriptDirectory)/*" CopyToPublishDirectory="PreseveNewest"/>
+  </ItemGroup>
+
+  <!-- dotnet clean -->
   <Target Name="Cleaning tools/" AfterTargets="Clean">
     <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
 	<Delete Files="$(ToolsDirectory)/package-lock.json;$(ToolsDirectory)/.clasp.json"/>
   </Target>
   <Target Name="Deep cleaning" AfterTargets="Clean">
-    <RemoveDir
-      Directories="$(MSBuildProjectDirectory)/bin;$(MSBuildProjectDirectory)/obj;$(MSBuildProjectDirectory)/release"/>
+    <RemoveDir Directories="@(DeletableDirectory)"/>
+  </Target>
+
+  <!-- dotnet restore -->
+  <Target Name="CheckDotnetPath">
+    <Error
+	  Condition="'$(DOTNET_HOST_PATH)' == ''"
+	  Text="Unable to identify dotnet executable. Run as 'dotnet &lt;command&gt;'."/>
+  </Target>
+  <Target Name="CheckNpmPath">
+	<PropertyGroup>
+      <NpmPath Condition="'$(NpmPath)' == ''">npm</NpmPath>
+	</PropertyGroup>
+	<!-- npm doesn't work right in cmd.exe if the command is quoted and a
+		directory isn't specified. As a workaround, npm must be in the path
+		on Windows and the command can't be overridden by an environment
+		variable. -->
+	<Exec
+	  Command='"$(NpmPath)" -v'
+	  WorkingDirectory="$(ToolsDirectory)"
+	  StandardOutputImportance="low"
+	  Condition="'$(OS)' != 'Windows_NT'" />
+	<Exec
+	  Command='npm -v'
+	  WorkingDirectory="$(ToolsDirectory)"
+	  StandardOutputImportance="low"
+	  Condition="'$(OS)' == 'Windows_NT'" />
+  </Target>
+  <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
+	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)"/>
+  </Target>
+  <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpmPath" AfterTargets="Restore">
+	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' != 'Windows_NT'" />
+	<Exec Command='npm install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' == 'Windows_NT'" />
+	<Message Text="Restored Node.js tools."/>
+  </Target>
+
+  <!-- dotnet publish -->
+  <Target Name="CheckReleaseConfig" BeforeTargets="Publish">
+	<Error Condition="'$(Configuration)' != 'Release'"
+		Text="The 'Publish' target should only be run with a 'Release' configuration. Try 'dotnet publish -c Release'."/>
+  </Target>
+  <Target Name="CheckZip">
+    <PropertyGroup>
+	  <ZipCommand Condition="'$(ZipCommand)' == ''">zip</ZipCommand>
+	</PropertyGroup>
+	<Exec Command='"$(ZipCommand)" -v' ContinueOnError="false" Condition="'$(OS)' != 'Windows_NT'" StandardOutputImportance="low"/>
+  </Target>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <!--
+		include these properties for all "Release" configurations, but requires
+	    that we explicitly set the configuration early in the MSBuild process
+		(e.g., dotnet publish -c Release )
+	-->
+	<Optimize>true</Optimize>
+	<DebugSymbols>false</DebugSymbols>
+	<DebugType>None</DebugType>
+	<RuntimeIdentifiers>osx-x64;win-x64;linux-x64</RuntimeIdentifiers>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
+	<ReleasePlatform Include="$(RuntimeIdentifiers)" />
+  </ItemGroup>
+  <Target Name="CheckGit">
+	<PropertyGroup>
+      <GitPath Condition="'$(GitPath)' == ''">git</GitPath>
+	</PropertyGroup>
+	<Exec
+	  Command='"$(GitPath)" --version'
+	  StandardOutputImportance="low"
+	  ContinueOnError="false" />
+  </Target>
+  <Target Name="GetVersion" DependsOnTargets="CheckGit" Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'">
+	<Exec Command='"$(GitPath)" tag --list --contains HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
+	  <Output TaskParameter="ConsoleOutput" PropertyName="GitTagName" />
+	</Exec>
+	<PropertyGroup Condition="'$(GitTagName)' != '' and ( $(GitTagName.StartsWith(`v`)) == 'true' or $(GitTagName.StartsWith(`V`)) == 'true' )" >
+	  <VersionString>$(GitTagName)</VersionString>
+	</PropertyGroup>
+	<Error Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'" Text="No version tag is associated with the git branch HEAD." />
+  </Target>
+  <Target Name="GetReleaseString" BeforeTargets="Build" DependsOnTargets="GetVersion" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+  	  <ReleaseString>$(MSBuildProjectName)</ReleaseString>
+  	  <ReleaseString Condition="'$(VersionString)' != ''">$(ReleaseString)-$(VersionString)</ReleaseString>
+	  <ReleaseString Condition="'$(RuntimeIdentifier)' == ''">$(ReleaseString)-$(TargetFramework)</ReleaseString>
+	  <ReleaseString Condition="'$(RuntimeIdentifier)' != ''">$(ReleaseString)-$(RuntimeIdentifier)</ReleaseString>
+	</PropertyGroup>
+  </Target>
+  <Target Name="GetPublishProperties" AfterTargets="Build" DependsOnTargets="GetReleaseString" Condition="'$(Configuration)' == 'Release'">
+    <!-- While this should really only affect the "Publish" target, Publish depends on targets that use this, so setting BeforeTargets="Publish"
+	     doesn't work as expected. Instead, we set the properties after Build -->
+  	<PropertyGroup>
+	  <PublishDir>$(ReleaseDirectory)/$(ReleaseString)</PublishDir>
+	</PropertyGroup>
+  </Target>
+  <Target Name="PublishPlatforms" AfterTargets="Publish" Condition=" '$(RuntimeIdentifier)' == ''">
+    <MsBuild Projects="$(MsBuildProjectFile)" Targets="Publish"
+		Properties="RuntimeIdentifier=%(ReleasePlatform.Identity);
+			GenerateDocumentationFile=false;
+			PublishSingleFile=true;
+			PublishTrimmed=true;
+			IncludeAllContentForSelfExtract=true;" />
+  </Target>
+  <Target Name="CheckXmlDocMd" DependsOnTargets="RestoreDotnetTools">
+    <PropertyGroup>
+	  <XmlDocMdPath Condition="'$(XmlDocMdPath)' == ''">$(ToolsDirectory)/.nuget/packages/xmldocmd/2.5.2/tools/$(TargetFramework)/any/xmldocmd.dll</XmlDocMdPath>
+	</PropertyGroup>
+	<Error Condition="!Exists('$(XmlDocMdPath)')" Text="Unable to locate XmlDocMd at '$(XmlDocMdPath)'" />
+  </Target>
+  <Target Name="BuildDocs"
+	AfterTargets="Publish"
+	BeforeTargets="ZipRelease"
+	DependsOnTargets="CheckXmlDocMd;CheckDotnetPath;Publish;GetVersion"
+	Condition=" '$(RuntimeIdentifier)' == ''">
+	<PropertyGroup>
+	  <DeployablesDirectory>$(ReleaseDirectory)/deployables</DeployablesDirectory>
+	  <DeployablesDirectory Condition="'$(VersionString)' != ''">$(DeployablesDirectory)-$(VersionString)</DeployablesDirectory>
+	</PropertyGroup>
+	<Exec
+		Command='"$(DOTNET_HOST_PATH)" "$(XmlDocMdPath)" "$(PublishDir)/mffer.dll" "$(DeployablesDirectory)/docs/api" --visibility private --source "https://github.com/therealchjones/mffer" --clean --quiet --permalink pretty --namespace-pages'
+		WorkingDirectory="$(ToolsDirectory)" />
+  </Target>
+  <Target Name="CopyScripts" AfterTargets="Publish" DependsOnTargets="Publish">
+	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
+  </Target>
+  <Target Name="ZipRelease" AfterTargets="Publish" DependsOnTargets="CopyScripts;CheckZip">
+    <Exec Command='"$(ZipCommand)" -q -r - * &gt; "$(ReleaseDirectory)/$(ReleaseString).zip"' WorkingDirectory="$(PublishDir)" Condition="'$(OS)' != 'Windows_NT' And '$(RuntimeIdentifier)' != 'win-x64'"/>
+    <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" Condition="'$(OS)' == 'Windows_NT' Or '$(RuntimeIdentifier)' == 'win-x64'"/>
+	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
 </Project>

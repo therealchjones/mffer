@@ -45,6 +45,7 @@
 		- [Code structure](#code-structure)
 - [The `mffer` APIs](#the-mffer-apis)
 - [Building `mffer`](#building-mffer)
+	- [Building a release](#building-a-release)
 - [The `mffer` webapp](#the-mffer-webapp)
 	- [Description](#description)
 	- [Deploying the webapp](#deploying-the-webapp)
@@ -610,6 +611,35 @@ in the code itself.
     $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
     ```
 4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
+
+### Building a release
+
+A "release" is a package of the `mffer` program and the associated scripts.
+Creating a release builds the program from source as [above](#building-mffer),
+but intentionally leaves out extra debugging information and (in most cases)
+results in a single file `mffer` program that will only work on a specific
+platform. While "official" releases are
+[available for download](https://github.com/therealchjones/mffer/releases/), you
+can build a customized version or test changes with your own copy of the source
+code.
+
+To choose a "name" for your release, tag the HEAD of your git repository:
+
+```shell
+$ git tag v0.1.0-pre
+```
+
+The name must be a string that starts with `v`. Official releases use the
+[Semantic Versioning](README.md#versioning) conventions, but you can use any
+string starting with `v`. (If you don't want to tag the git repository, you can
+alternatively set the environment variable `VersionString` to any string you
+wish.)
+
+To build the release packages in the `release` directory, use
+
+```shell
+$ dotnet publish -c release
+```
 
 ## The `mffer` webapp
 
