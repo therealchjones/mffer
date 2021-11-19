@@ -1,4 +1,4 @@
-# `mffer` Development
+# Developing `mffer`
 
 ## Highlights
 

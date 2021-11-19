@@ -44,29 +44,6 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
-			"label": "push webapp",
-			"type": "shell",
-			"command": "${workspaceFolder}/tools/pushwebapp",
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"detail": "Push the latest webapp code to Google Apps Script",
-			"runOptions": {
-				"instanceLimit": 1
-			},
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": false,
-				"panel": "shared",
-				"showReuseMessage": true,
-				"clear": false
-			},
-			"isBackground": false,
-			"promptOnClose": true,
-			"problemMatcher": []
-		},
-		{
 			"label": "autoextract",
 			"type": "shell",
 			"command": "${workspaceFolder}/src/autoextract",

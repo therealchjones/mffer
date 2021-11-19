@@ -1,4 +1,4 @@
-# Contributing to mffer
+# Contributing to `mffer`
 
 Guidelines, notes, and tips for maintaining and adding to the mffer project
 

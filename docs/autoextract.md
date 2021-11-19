@@ -18,11 +18,11 @@ Android device, and downloading the game-related files that can be processed by
 
 ## Options
 
-|                           |                                                                                                                   |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `-o `_`output_directory`_ | Specify the directory in which to place the extracted files. Existing files of the same name will be overwritten. |
-| `-v`                      | Output more information when running. May be specified 0, 1, or 2 times.                                          |
-| `-h`                      | Output brief usage instructions but take no other action.                                                         |
+|                           |                                                                          |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `-o `_`output_directory`_ | Specify the directory in which to place the extracted files.             |
+| `-v`                      | Output more information when running. May be specified 0, 1, or 2 times. |
+| `-h`                      | Output brief usage instructions but take no other action.                |
 
 ## Extended Description
 
@@ -64,4 +64,4 @@ directory hierarchy copied directly from the Android emulator's filesystem.
 ## See Also
 
 Other concepts, examples, and workflows including `autoexec` are in the
-[usage guide](USAGE.md).
+[User Guide](USAGE.md).
