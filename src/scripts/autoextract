@@ -419,17 +419,17 @@ DEVICEFILEDIR="mff-device-files-$VERSIONSTRING"
 i=1
 # if $DEVICEFILEDIR already ends in -1, add another one to avoid
 # removing it in the next step
-if [ "x${DEVICEFILEDIR%-$i}" != "x$DEVICEFILEDIR" ]; then
+if [ "x${DEVICEFILEDIR%-"$i"}" != "x$DEVICEFILEDIR" ]; then
 	DEVICEFILEDIR="$DEVICEFILEDIR-$i"
 fi
 while [ -d "$MFFOUTPUTDIR"/"$DEVICEFILEDIR" ] && [ "$i" -lt 100 ]; do
-	DEVICEFILEDIR="${DEVICEFILEDIR%-$i}"
+	DEVICEFILEDIR="${DEVICEFILEDIR%-"$i"}"
 	i=$((i + 1))
 	DEVICEFILEDIR="${DEVICEFILEDIR}-$i"
 done
 if [ "$i" = "100" ]; then
 	echo 'Unable to create directory' >&2
-	echo "'${DEVICEFILEDIR%-$i}'" >&2
+	echo "'${DEVICEFILEDIR%-"$i"}'" >&2
 	echo "or any variant appending '-n' for 1 <= n <= 99" >&2
 	echo 'because they already exist.' >&2
 	echo 'Stopping here so as to avoid deleting' >&2
