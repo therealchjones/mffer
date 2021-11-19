@@ -9,50 +9,50 @@
 
 ## Full contents
 
-- [Highlights](#highlights)
-- [Full contents](#full-contents)
-- [Introduction](#introduction)
-- [Copyright & licensing](#copyright--licensing)
-- [Setting up a development environment](#setting-up-a-development-environment)
-	- [Requirements](#requirements)
-	- [Recommendations](#recommendations)
-	- [Setup](#setup)
-		- [In Visual Studio Code](#in-visual-studio-code)
-		- [At the command line](#at-the-command-line)
-	- [Included tools](#included-tools)
-- [Writing documentation](#writing-documentation)
-	- [Source tree](#source-tree)
-	- [README](#readme)
-		- [At-a-glance README](#at-a-glance-readme)
-		- [Comprehensive README](#comprehensive-readme)
-		- [More about READMEs](#more-about-readmes)
-	- [CONTRIBUTING](#contributing)
-- [Writing code](#writing-code)
-	- [Coding Style](#coding-style)
-		- [Whitespace](#whitespace)
-		- [Code Style](#code-style)
-		- [Comments](#comments)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Making a custom `Program.cs`](#making-a-custom-programcs)
-- [Making a custom `Component`](#making-a-custom-component)
-- [Changing `mffer` internals](#changing-mffer-internals)
-	- [`mffer` best practices](#mffer-best-practices)
-	- [Models & designs](#models--designs)
-		- [The repository directory tree](#the-repository-directory-tree)
-		- [Code structure](#code-structure)
-- [The `mffer` APIs](#the-mffer-apis)
-- [Building `mffer`](#building-mffer)
-	- [Building a release](#building-a-release)
-- [The `mffer` webapp](#the-mffer-webapp)
-	- [Description](#description)
-	- [Deploying the webapp](#deploying-the-webapp)
-		- [Requirements](#requirements-1)
-		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
-		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
-- [See also](#see-also)
+-   [Highlights](#highlights)
+-   [Full contents](#full-contents)
+-   [Introduction](#introduction)
+-   [Copyright & licensing](#copyright--licensing)
+-   [Setting up a development environment](#setting-up-a-development-environment)
+    -   [Requirements](#requirements)
+    -   [Recommendations](#recommendations)
+    -   [Setup](#setup)
+        -   [In Visual Studio Code](#in-visual-studio-code)
+        -   [At the command line](#at-the-command-line)
+    -   [Included tools](#included-tools)
+-   [Writing documentation](#writing-documentation)
+    -   [Source tree](#source-tree)
+    -   [README](#readme)
+        -   [At-a-glance README](#at-a-glance-readme)
+        -   [Comprehensive README](#comprehensive-readme)
+        -   [More about READMEs](#more-about-readmes)
+    -   [CONTRIBUTING](#contributing)
+-   [Writing code](#writing-code)
+    -   [Coding Style](#coding-style)
+        -   [Whitespace](#whitespace)
+        -   [Code Style](#code-style)
+        -   [Comments](#comments)
+    -   [Tools](#tools)
+        -   [Visual Studio Code](#visual-studio-code)
+        -   [Formatters](#formatters)
+        -   [Linters](#linters)
+-   [Making a custom `Program.cs`](#making-a-custom-programcs)
+-   [Making a custom `Component`](#making-a-custom-component)
+-   [Changing `mffer` internals](#changing-mffer-internals)
+    -   [`mffer` best practices](#mffer-best-practices)
+    -   [Models & designs](#models--designs)
+        -   [The repository directory tree](#the-repository-directory-tree)
+        -   [Code structure](#code-structure)
+-   [The `mffer` APIs](#the-mffer-apis)
+-   [Building `mffer`](#building-mffer)
+    -   [Building a release](#building-a-release)
+-   [The `mffer` webapp](#the-mffer-webapp)
+    -   [Description](#description)
+    -   [Deploying the webapp](#deploying-the-webapp)
+        -   [Requirements](#requirements-1)
+        -   [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
+        -   [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
+-   [See also](#see-also)
 
 ## Introduction
 
@@ -632,14 +632,22 @@ $ git tag v0.1.0-pre
 The name must be a string that starts with `v`. Official releases use the
 [Semantic Versioning](README.md#versioning) conventions, but you can use any
 string starting with `v`. (If you don't want to tag the git repository, you can
-alternatively set the environment variable `VersionString` to any string you
-wish.)
+alternatively set the environment variable `VersionString`.)
 
-To build the release packages in the `release` directory, use
+To build the release packages, use
 
 ```shell
 $ dotnet publish -c release
 ```
+
+The result will be files placed in the `release` directory of the source tree.
+There are files are named `mffer-`_`version`_`-`_`platform`_`.zip` for each of the
+built platforms (by default, `win-x64`, `osx-x64`, and `linux-x64`). These files
+contain the `mffer` executable file and its associated scripts, `autoextract`
+and `autoanalyze`, and may contain other supporting files. A
+platform-independent file `mffer-`_`version`_`-net5.0.zip` includes several
+other files needed to run the `mffer` program using the .NET 5.0 runtime (not
+included).
 
 ## The `mffer` webapp
 
