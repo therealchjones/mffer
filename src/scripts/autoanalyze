@@ -76,7 +76,7 @@ if [ "$VERBOSE" = "Y" ]; then
 	VERBOSEOUT=/dev/stdout
 fi
 
-if [ "Y" = "$VERBOSE" ]; then
+if [ "Y" = "$DEBUG" ]; then
 	CURLOPTS='-v'
 	GITOPTS='-v'
 else
@@ -200,3 +200,5 @@ echo 'Importing data structures...' >"$VERBOSEOUT"
 echo 'Analyzing binary...' >"$VERBOSEOUT"
 "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
 	-log "$DESTDIR"/"$PROJECTNAME"-analysis.log >"$DEBUGOUT" 2>&1
+
+echo 'Done.' >"$VERBOSEOUT"
