@@ -9,50 +9,56 @@
 
 ## Full contents
 
--   [Highlights](#highlights)
--   [Full contents](#full-contents)
--   [Introduction](#introduction)
--   [Copyright & licensing](#copyright--licensing)
--   [Setting up a development environment](#setting-up-a-development-environment)
-    -   [Requirements](#requirements)
-    -   [Recommendations](#recommendations)
-    -   [Setup](#setup)
-        -   [In Visual Studio Code](#in-visual-studio-code)
-        -   [At the command line](#at-the-command-line)
-    -   [Included tools](#included-tools)
--   [Writing documentation](#writing-documentation)
-    -   [Source tree](#source-tree)
-    -   [README](#readme)
-        -   [At-a-glance README](#at-a-glance-readme)
-        -   [Comprehensive README](#comprehensive-readme)
-        -   [More about READMEs](#more-about-readmes)
-    -   [CONTRIBUTING](#contributing)
--   [Writing code](#writing-code)
-    -   [Coding Style](#coding-style)
-        -   [Whitespace](#whitespace)
-        -   [Code Style](#code-style)
-        -   [Comments](#comments)
-    -   [Tools](#tools)
-        -   [Visual Studio Code](#visual-studio-code)
-        -   [Formatters](#formatters)
-        -   [Linters](#linters)
--   [Making a custom `Program.cs`](#making-a-custom-programcs)
--   [Making a custom `Component`](#making-a-custom-component)
--   [Changing `mffer` internals](#changing-mffer-internals)
-    -   [`mffer` best practices](#mffer-best-practices)
-    -   [Models & designs](#models--designs)
-        -   [The repository directory tree](#the-repository-directory-tree)
-        -   [Code structure](#code-structure)
--   [The `mffer` APIs](#the-mffer-apis)
--   [Building `mffer`](#building-mffer)
-    -   [Building a release](#building-a-release)
--   [The `mffer` webapp](#the-mffer-webapp)
-    -   [Description](#description)
-    -   [Deploying the webapp](#deploying-the-webapp)
-        -   [Requirements](#requirements-1)
-        -   [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
-        -   [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
--   [See also](#see-also)
+- [Highlights](#highlights)
+- [Full contents](#full-contents)
+- [Introduction](#introduction)
+- [Copyright & licensing](#copyright--licensing)
+- [Setting up a development environment](#setting-up-a-development-environment)
+	- [Requirements](#requirements)
+	- [Recommendations](#recommendations)
+	- [Setup](#setup)
+		- [In Visual Studio Code](#in-visual-studio-code)
+		- [At the command line](#at-the-command-line)
+	- [Included tools](#included-tools)
+- [Writing documentation](#writing-documentation)
+	- [Source tree](#source-tree)
+	- [README](#readme)
+		- [At-a-glance README](#at-a-glance-readme)
+		- [Comprehensive README](#comprehensive-readme)
+		- [More about READMEs](#more-about-readmes)
+	- [CONTRIBUTING](#contributing)
+- [Writing code](#writing-code)
+	- [Coding Style](#coding-style)
+		- [Whitespace](#whitespace)
+		- [Code Style](#code-style)
+		- [Comments](#comments)
+	- [Tools](#tools)
+		- [Visual Studio Code](#visual-studio-code)
+		- [Formatters](#formatters)
+		- [Linters](#linters)
+- [Making a custom `Program.cs`](#making-a-custom-programcs)
+- [Making a custom `Component`](#making-a-custom-component)
+- [Changing `mffer` internals](#changing-mffer-internals)
+	- [`mffer` best practices](#mffer-best-practices)
+	- [Models & designs](#models--designs)
+		- [The repository directory tree](#the-repository-directory-tree)
+		- [Code structure](#code-structure)
+- [The `mffer` APIs](#the-mffer-apis)
+- [Building `mffer`](#building-mffer)
+	- [Building a release](#building-a-release)
+- [Testing `mffer`](#testing-mffer)
+	- [Testing releases](#testing-releases)
+		- [Reference systems](#reference-systems)
+			- [macOS/OS X](#macosos-x)
+			- [Linux](#linux)
+			- [Windows](#windows)
+- [The `mffer` webapp](#the-mffer-webapp)
+	- [Description](#description)
+	- [Deploying the webapp](#deploying-the-webapp)
+		- [Requirements](#requirements-1)
+		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
+		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
+- [See also](#see-also)
 
 ## Introduction
 
@@ -648,6 +654,100 @@ and `autoanalyze`, and may contain other supporting files. A
 platform-independent file `mffer-`_`version`_`-net5.0.zip` includes several
 other files needed to run the `mffer` program using the .NET 5.0 runtime (not
 included).
+
+## Testing `mffer`
+
+### Testing releases
+
+Manual testing of [releases](#building-a-release) is currently done within
+virtual machines that have simple configurations and a minimum of installed
+software. Testing is simply ensuring the programs run as expected; output files
+are not strictly compared due to minor variations. Interactive testing is
+currently used rather than automated testing partly due to the need for user
+interaction in [`autoextract`](autoextract.md).
+
+In order to ensure bugs are not the result of building on different systems, the
+below [reference systems](#reference-systems) are each used to build the
+candidate release versions of the software using the process
+[above](#building-a-release). Each of those builds is then tested on each
+reference system, resulting in a testing checklist such as:
+
+```
+## `autoextract`
+- [ ] windows
+- [x] ~macOS~ (`autoextract` does not work in Parallels macOS VM, works as expected on development machine)
+- [ ] linux
+
+## `autoanalyze`
+- [ ] windows
+- [ ] macOS
+- [ ] linux
+
+## `mffer`
+
+|                | build on windows | build on macOS | build on linux |
+|----------------|------------------|----------------|----------------|
+| run on windows |    [ ]           |     [ ]        |       [ ]      |
+| run on macOS   |    [ ]           |     [ ]        |       [ ]      |
+| run on linux   |    [ ]           |     [ ]        |       [ ]      |
+
+## webapp deployment
+- [ ] windows
+- [ ] macOS
+- [ ] linux
+
+## webapp setup
+- [ ] gmail
+- [ ] google workspace
+```
+
+#### Reference systems
+
+Defining systems on which `mffer` is known to work may help track down bugs that
+interact with software not installed on the reference systems, and ensure that
+the [software requirements list](USAGE.md#requirements) is sufficient. Each of
+these systems is run in a Parallels virtual machine on the latest release of
+macOS.
+
+##### macOS/OS X
+
+(Of note, due to software limitations, [`autoextract`](autoextract.md) is not
+tested on a reference macOS system. Specifically, Parallels Desktop does not
+appear to support running the Android emulators for `autoextract` within a macOS
+Monterey virtual machine on a macOS Monterey host. `autoextract` is separately
+tested on a macOS development machine.)
+
+1. Install macOS Monterey & apply all available updates
+2. Install Parallels Tools
+3. Test `mffer`
+4. Install
+   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+5. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
+6. Install Xcode command line development tools (by trying to run `git` from
+   the command line)
+7. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
+8. Test `autoanalyze`
+
+##### Linux
+
+1. Install Ubuntu 20.04 & apply all available updates
+2. Install Parallels Tools
+3. Test `mffer`
+4. Test `autoextract`
+5. Test `autoanalyze`
+
+##### Windows
+
+1. Install Windows 10 & apply all available updates
+2. Install Parallels Tools
+3. Test `mffer`
+4. Install
+   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+5. Install Git (with Git Bash)
+6. Test `autoextract`
+7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
+8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
+9. Test `autoanalyze`
 
 ## The `mffer` webapp
 

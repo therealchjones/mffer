@@ -165,10 +165,7 @@ mkdir -p -- "$ANDROID_AVD_HOME" || throwfatal "Unable to create Android virtual 
 
 echo 'Accepting Android command-line tool licenses' >"$VERBOSEOUT"
 i=0
-while [ $i -lt 100 ]; do
-	echo y
-	i=$((i + 1))
-done \
+while true; do echo y; done \
 	| "$ANDROID_SDKMANAGER" --licenses \
 	| sed '/^y$/d' >"$DEBUGOUT"
 echo 'Getting updated Android command line tools' >"$VERBOSEOUT"

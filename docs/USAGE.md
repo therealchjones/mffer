@@ -1,19 +1,35 @@
 # Using `mffer`
 
+## Introduction
+
 There are several possible uses for the `mffer` project. A few are readily
 apparent, and the workflows for those are described here, with references to
 related documents as needed. In brief, these are:
 
--   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future Fight data
+-   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future
+    Fight data
 -   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
-    to extract, analyze, or summarize Marvel Future Fight
-    data
--   [Using the `mffer` library](#using-the-mffer-library) to develop a custom program
+    to extract, analyze, or summarize Marvel Future Fight data
+-   [Using the `mffer` library](#using-the-mffer-library) to develop a custom
+    program
 
 Additionally, `mffer` code may be useful to those trying to explore Marvel
 Future Fight, explore similar apps, deploy a custom version of the webapp, or
 contribute to `mffer` itself. For these topics, refer to the [development
 guide](Development.md).
+
+- [Introduction](#introduction)
+- [Using the `mffer` webapp](#using-the-mffer-webapp)
+- [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
+	- [Obtaining the `mffer` command line tools](#obtaining-the-mffer-command-line-tools)
+	- [Installation](#installation)
+	- [Requirements](#requirements)
+	- [Workflow](#workflow)
+- [Using the `mffer` library](#using-the-mffer-library)
+- [Reviewing & changing `mffer` code](#reviewing--changing-mffer-code)
+- [See also](#see-also)
+	- [Brief manuals](#brief-manuals)
+	- [Guides & References](#guides--references)
 
 ## Using the `mffer` webapp
 
@@ -62,37 +78,38 @@ paths:
 
 ### Requirements
 
--   POSIX sh and typical development environment (required for `autoextract` and
+The `mffer` tool itself does not require any other specific software. It will
+run on a system that
+[supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
+but no .NET (or Mono) runtime needs to be separately installed.
+
+The other tools, `autoextract` and `autoanalyze`, have a few other requirements:
+
+-   POSIX-like typical development environment (required for `autoextract` and
     `autoanalyze`)
--   [Android Studio](https://developer.android.com/studio/) or standalone
-    [Android command-line
-    tools](https://developer.android.com/studio/#command-tools)
-    (required for `autoextract`)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
-    (required for `autoanalyze` and manual analysis)
--   Java runtime or SDK such as [AdoptOpenJDK](https://adoptopenjdk.net)
-    (required by standalone Android command-line tools and Ghidra)
--   [.NET 5 SDK](https://dotnet.microsoft.com/download) (required for building
-    `mffer` or for running the platform-independent releases)
+    (required for `autoanalyze`)
+-   Java 11 runtime or SDK
+    (required for `autoextract` and Ghidra)
 
-macOS and most Linux distributions satisfy the needs for the initial
-environment. (In addition to the defined
+macOS and most Linux distributions satisfy the needs for the "typical
+development environment"; Windows requires additional POSIX-like software such
+as Git Bash or Cygwin. (In addition to the defined
 [POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar`,
-`mktemp`, and other common utilities are used.) They may require installation of a Java runtime (or SDK) if
-one is not already installed. We
-recommend the OpenJDK 11 distribution freely available from
-(AdoptOpenJDK)[AdoptOpenJDK.com] at
-https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot.
+`mktemp`, `git`, and other common utilities are used.) Most modern systems
+require installation of a Java runtime (or SDK); we recommend the "Temurin" OpenJDK 11
+distribution freely available from
+[Adoptium.net](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot).
 
-The [Android command-line tools](https://developer.android.com/studio/command-line)
-are part of Android Studio, but may also be obtained separately from the larger
-application at https://developer.android.com/studio#command-tools. This basic
-package includes `sdkmanager` which `autoextract` will automatically use to
-update the command-line tools themselves as well as obtain temporary copies of
-all the other Android SDK packages required to run the Android emulator and
-extract the Marvel Future Fight data from it. `autoextract` will run an Android
-emulator automatically; unfortunately, this will not likely work within another
-emulator or virtual machine such as VirtualBox or Parallels.
+Additionally, other programs are obtained and run by the `autoextract` and
+`autoanalyze` scripts, so the system on which they are run must support these
+programs, though the programs themselves do not need to be separately installed.
+`autoextract` will run an Android emulator to obtain and install Marvel Future
+Fight. This must be run on a system that supports virtualization to allow the
+emulator to run and supports running the emulator QEMU. These requirements are
+met with most modern Windows, macOS/OS X, and Linux systems, but the emulator
+may not run on such systems installed in virtual machines that do not support
+"nested virtualization".
 
 ### Workflow
 

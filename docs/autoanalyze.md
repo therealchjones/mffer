@@ -37,9 +37,13 @@ auto-analysis. Finally, `autoextract` uses
 [JADX](https://github.com/skylot/jadx) to decompile the Java bytecode used for
 small parts of the Marvel Future Fight package into source files.
 
-`autoanalyze` uses ghidra's `analyzerHeadless` mode to perform these processes
+`autoanalyze` uses ghidra's `analyzeHeadless` mode to perform these processes
 without a GUI, and this ends up being significantly faster than importing these
-items manually, even if the point-and-click tasks themselves are minimal.
+items manually, even if the point-and-click tasks themselves are minimal. If
+Ghidra is installed somewhere (and in only one place) under `/usr/local`, this
+will be found automatically; otherwise, set the `GHIDRA` environment variable to
+the path of the `analyzeHeadless` script (which, in most releases, is in the
+`support/` subdirectory).
 
 With a minimum of pre-installed software, `autoanalyze` will obtain the
 remainder of necessary software. `autoanalyze` installs software into temporary
@@ -67,12 +71,14 @@ decompiled Java code from the device-independent portion of the application.
 
 ## Requirements
 
--   POSIX-compliant Unix-like environment for which all the used
-    programs are available (likely macOS/OS X, Windows with Cygwin or
-    another POSIX layer, or Linux).
+-   POSIX-like environment for which all the used programs are available (likely
+    macOS/OS X, Windows with Cygwin or another POSIX layer, or Linux).
+-   `git`
+-   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (required
+    for building automatically downloaded tools)
 -   [ghidra](https://ghidra-sre.org)
 -   Java runtime (required by ghidra); consider
-    [AdoptOpenJDK](https://adoptopenjdk.net)
+    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 -   A reasonable machine upon which to run these; ghidra can be quite resource
     intensive.
 
