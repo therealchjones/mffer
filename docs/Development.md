@@ -15,6 +15,7 @@
 - [Copyright & licensing](#copyright--licensing)
 - [Setting up a development environment](#setting-up-a-development-environment)
 	- [Requirements](#requirements)
+	- [Program requirements](#program-requirements)
 	- [Recommendations](#recommendations)
 	- [Setup](#setup)
 		- [In Visual Studio Code](#in-visual-studio-code)
@@ -139,6 +140,16 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 -   [git](https://git-scm.com)
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
+
+### Program requirements
+
+Though not strictly required for development of the `mffer` tools, the
+requirements for running the programs themselves additionally include:
+
+-   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
+    (required for `autoanalyze`)
+-   Java 11 runtime or SDK (required for `autoextract` and Ghidra); consider
+    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 
 ### Recommendations
 
@@ -709,6 +720,15 @@ the [software requirements list](USAGE.md#requirements) is sufficient. Each of
 these systems is run in a Parallels virtual machine on the latest release of
 macOS.
 
+Where possible, reference systems are defined programatically by building
+"headless" Parallels Desktop virtual machines and interacting with them via the
+command line and scripts rather than instructions for user interaction. Further
+information on using the command line to build and interact with Paralells
+Desktop is available
+[on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
+the latest version should be available
+[here](https://www.parallels.com/products/desktop/resources/).
+
 ##### macOS/OS X
 
 (Of note, due to software limitations, [`autoextract`](autoextract.md) is not
@@ -716,6 +736,35 @@ tested on a reference macOS system. Specifically, Parallels Desktop does not
 appear to support running the Android emulators for `autoextract` within a macOS
 Monterey virtual machine on a macOS Monterey host. `autoextract` is separately
 tested on a macOS development machine.)
+
+```shell
+softwareupdate --fetch-full-installer --full-installer-version 12.0.1 && \
+hdiutil create -o "macOS Installer" -size 16g -layout SPUD -fs HFS+J && \
+hdiutil attach "macOS Installer".dmg -noverify -mountpoint "/Volumes/macOS Installer" -nobrowse && \
+sudo "/Applications/Install macOS Monterey.app/Contents/Resources/createinstallmedia" --volume "/Volumes/macOS Installer" --nointeraction && \
+hdiutil detach "/Volumes/Install macOS Monterey" && \
+prlctl create "Headless" -o macos && \
+prlctl set "Headless" --cpus auto --memsize auto \
+	--auto-share-camera off \
+	--smart-mount off --shared-cloud off \
+	--sh-app-guest-to-host off \
+	--sh-app-host-to-guest off && \
+prlctl set "Headless" --device-set "cdrom0" --image "macOS Installer.dmg" --connect && \
+prlctl start "Headless"
+```
+
+After booting and when prompted, set language, then open
+"Utilities->Terminal" and run
+
+```shell
+"/Volumes/Image Volume/Install macOS Monterey.app/Contents/Resources/startosinstall" \
+	--nointeraction --agreetolicense --volume "/Volumes/Macintosh HD"
+```
+
+After the VM restarts and completes installation, set up as prompted, including
+addition of a user and password, skipping or accepting defaults for other
+settings when prompted. (Maybe also do stuff with Terminal via CMD-OPT-CTRL-T.)
+Uncheck "Enable Ask Siri" when prompted.
 
 1. Install macOS Monterey & apply all available updates
 2. Install Parallels Tools
@@ -727,6 +776,11 @@ tested on a macOS development machine.)
    the command line)
 7. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
 8. Test `autoanalyze`
+
+```shell
+softwareupdate --fetch-full-installer --full-installer-version 12.0.1 \
+&&
+```
 
 ##### Linux
 
