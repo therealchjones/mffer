@@ -746,6 +746,7 @@ hdiutil detach "/Volumes/Install macOS Monterey" && \
 prlctl create "Headless" -o macos && \
 prlctl set "Headless" --cpus auto --memsize auto \
 	--auto-share-camera off \
+	--nested-virt on \
 	--smart-mount off --shared-cloud off \
 	--sh-app-guest-to-host off \
 	--sh-app-host-to-guest off && \
