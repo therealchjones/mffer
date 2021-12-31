@@ -36,7 +36,6 @@ not exactly a *developer* problem), and probably far too technical for the
 reddit Future Fight forum. Maybe Google/Android/Play Store would be interested
 in the unusable APK being distributed for certain architectures.
 
-
 Posted variations to Google Play Store help request & community:
 
 Marvel Future Fight x86_64 APK does not include libraries
@@ -233,13 +232,298 @@ unzipped apk files to base.apk-unzipped and split.apk-unzipped. Used Il2CppDumpe
 
 loaded device/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle into AssetStudioGUI (which took a very long time)
 
-Discovery utilities:
-Il2CppDumper
-IlSpy
-DnSpy?
-VC_redist?
-android studio (not emulated)
-apktool?
-vdexextractor?
-AssetStudioGUI
-Decompiler.com?
+When libil2cpp.so calls PluginsCommon, retype as PluginsCommonForAndroid to get
+proper method name/function, then check jadx decompiled
+sources/com/seed9/common/Common.java
+
+We make assumptions where needed that we're using a final "distribution" version
+of the software, in the "global" (i.e., not china or tencent) setting
+
+Common dead ends: GameObject_AddComponent...
+
+Reverse Engineered Program Flow:
+
+SceneTitle.Start() {
+	SceneTitle.CheckServer() {
+		PacketTransfer.SetServerData( scene SceneTitle ) {
+			url = PatchSystem.get_url() {
+				PatchSystem.CreateUrl() {
+					BuildType  = Define.get_BuildType = BUILD_TYPE__Enum.GLOBAL (0)
+					BuildOptions = Define.get_BuildOptions = BUILD_OPTIONS__Enum.DIST (4)
+					baseUrl = PatchSystem.get_base_url() = PatchSystem.GetBaseUrl() = http://mheroesgb.gcdn.netmarble.com/mheroesgb/
+					return baseUrl + DIST/Android/
+				}
+			}
+			filepath = ServerInfo.GetRemoteFilePath() {
+				filepath = "v" + bundleVersion + "/"
+				filepath = filepath + ServerInfo.GetFileName() { return "server_info.txt" }
+				filepath = filepath + "?p=" + CommonUtil.GetRandomInt()
+				return filepath
+			}
+			WWWUtil.Get( param = url + filepath, scene, successMethod = "SetServerDataOK", failMethod = "", isLock = true, sendOption = 0, sendtotargetscene = false, timeout, _retry = false, receiveresultwhenunlock = true, useFastJson = false, forceNotSequence = false, disableProgressUI = false ) {
+				wwwType = 1
+				if param startswith http {
+					url = param
+					isGamePacket = false
+					isSequenceProcess = false
+				} else {
+					WWWUtil.AddDefaultPacketParameter( param ) {
+
+					}
+					key = packetkey = CryptUtil.get_packetKey() {
+
+					}
+					if packetkey is nullorempty
+						key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+					encryptedParam = CryptUtil.AESEncrypt( param, key, IsKeyIvSame = true ) {
+
+					}
+					WWWUtil.MakeHeader( sessionId, encryptedParam.length ) {
+
+					}
+					contents = header + encryptedParam
+					url = ServerInfo.get_URL() + "FF"
+					isGamePacket = true
+					isSequenceProcess = true
+					encoded = true
+					form = WWWForm.AddBinaryData( fieldname = bin, contents, filename = bin, mimetype = application / octet - stream ) {
+
+					}
+				}
+				failedReason = 0
+				MyData.RestoreAllPrevData()
+				WWWUtil.GetRoutine_1() {
+					// via MonoBehaviour.StartCoroutine(): WWWUtil.GetRoutine_c_Iterator1.MoveNext() { // this is a guess
+					if isSequenceProcess {
+						// add the request( WWWData ) to the WWWUtil data stack then do the next request in the stack via WWWUtil.GetRountine_internal like below
+					} else {
+						// just do the request via
+						WWWUtil.GetRountine_internal() {
+							// via MonoBehaviour.StartCoroutine() WWWUtil.GetRountine_internal_c_Iterator0.MoveNext() { // this is a guess
+							// specifically for WWWType = 1
+							// BestHTTP package HTTPRequest( url, POST )
+							HTTPRequest.SetFields( form )
+							HTTPRequest.Send()
+							bytes = HTTPRequest.get_Response().get_Data()
+							WWWUtil.OnRequestFinished( data, error, bytes ) {
+								if failedReason == 0 && error is nullorempty {
+									if IsGamePacket {
+										errors = WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
+										if errors is nullorempty {
+											WWWUtil.ResultOK( data, packetdecode, fastjson ) {
+												WWWUtil.SendResult( scene, successmethod, packetdecode, sendoption, sendtotargetscene, data, fastjson, byte[] bytes = null, bool isCache = false ) {
+													If sendtoTargetScene == 0 {
+														PacketTransfer( aka Component_1 ).SendMessage( successmethod, WWWResult, SendMessageOptions.Enum.DontRequireReceiver ) // just guessing this calls PacketTransfer.successMethod()
+													} else {
+														Scene( aka GameObject ).SendMessage( successmethod, wwwresult, sendmessageoptions * *enum.DontRequireReceiver) // just guessing this calls scene.successMethod
+													}
+												}
+												HeroList_UpdateAll()
+											}
+										} else {
+											WWW.ResultFail( data, errors, fastjson, packetdecode )
+										}
+									} else {
+										byteString = CryptUtil.ByteToString(bytes)
+										byteString = WWW.UnEscapeURL(byteString)
+										WWWUtil.ResultOK(data,resultString,FastJsonObject desc = null)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+PacketTransfer.SetServerDataOK(WWWResult result) {
+	PacketTransfer.NotifyResult(scene,"SetServerDataOK",result->text) {
+		scene.sendmessage("SetServerDataOK",text,SendMessageOptions__Enum_DontRequireReceiver) // guessing this calls
+			SceneTitle.SetServerDataOK(text) {
+				ServerInfo.ParseVersionFile(text) {
+					ServerInfo.ParseVersionFileCDN(text) {
+						serverResponse = JsonParser.Parse(text, typeof Server_Response)
+						PatchConfig.Init() // Configures low device resource usage if necessary
+						ServerInfo.set_data(null) { ServerInfo.staticfields.data_ = null }
+						serverList = serverResponse.server_list
+						foreach server in serverList {
+							selectServer = serverResponse.select_server
+							if server.type == selectServer.type {
+								ServerInfo.set_data(server);
+								break;
+							}
+						}
+						serverData = ServerInfo.get_data()
+						if serverData == null ServerInfo.set_data(serverList[0]) {
+							ServerInfo.data = server
+							ServerInfo.contentServer = server.detail.content
+						}
+						ServerInfo.get_contentBuild() {
+							ServerInfo.contentBuild_ = new ContentOnOffForBuild() // Includes some hardcoded settings
+						}
+					}
+				}
+				SceneTitle.NextUpdateInfoViewState() // continue on to further startup
+			}
+	}
+}
+
+// (Back up to SceneTitle__SetServerDataOK)—>SceneTitle__ShowUpdateInfoView
+// (Callback)SceneTitle.<ShowUpdateInfoView>m_0();
+// Showtermsofservice
+// packettransfer__checkaccount
+// packettransfer$$Checkaccountok
+// sceneTitle$$oncheckaccountok
+// scenetitle__showtermsofservice (again)
+// SceneTitle$$SignIn
+// Plugins__signin
+// - Get access token
+
+// 	Searching for gameCode/accessToken:
+// ConfigurationImpl.loadXml
+// setGameCode
+// gameCode
+// GMC2Network.getConstants
+// Configuration.copy
+// gameToken
+// ChannelNetwork.INSTANCE.getChannel(… gameCode, … gameToken,…)
+// LogIm[pl: I_GameCode netmarbles?
+// SessionImpl: JSONObject3
+// NetMarlbeLog
+// AuthDataManager.KEY_GAME_TOKEN
+// Service$$GetGameCode: not obviously called by anything, returns only mherosgb (without e)
+// curl -H "gameCode: mherosgb" -v 'Https://apis.netmarble.com/mobileauth/v2/players/01A703E413294D38825A102A6E5E943E/deviceKeys/9C088F867BAB426987D6DA877B782F44/accessToken'
+// - gameToken:
+//     - Java doSignIn result JSON object accessToken ->SessionNetwork.signIn(gatewayUrl, playerId, DeviceKey, GameCode, AndroidId, CountryCode, str, callback)
+//     - https://apis.netmarble.com/, playerID, devicekey, Gamecode mherosgb?, androidID random uuid, US,
+//     - Https://apis.netmarble.com/mobileauth/v2/players/01A703E413294D38825A102A6E5E943E/deviceKeys/9C088F86-7BAB-4269-87D6-DA877B782F44/accessToken
+// Back up the chain to SceneTitle$$OnSignIn
+// SceneTitle\$\$NextStepByNetmarbleSignIn->
+// SceneTitle__NextStepByConnect->
+// SceneTitle$$CheckCertificationWithCondition->
+// SceneTitle\$\$PreLogin->
+// 	ServerDetail__get_WebServerSSL: returns websvr_ssl (https://mherosgb.netmarble.com/NM/)
+// ServerInfo__get_SslURL:  calls get_WebServerSSL
+// URL: concat surl, “PreLogin”: https://mherosgb.netmarble.com/NM/PreLogin
+// PacketTransfer__PreLogin: gathers form data information, calls WWWUtil_PostSSL
+// Form data:
+// - cID: PluginsNetmarbleS$$get_PlayerId; set_PlayerId (general: random UUID with -s removed, all upper case)
+// - dID: GetDeviceId2; mine is in ff_openudid.xml, general:
+//     - str=android.os.SystemProperties.ro.serialno or 0
+//     - str2=same
+//     - string2=UnityPlayer.currentActivity.getContentResolver() android_id or 0
+//     - str3=0,0,string2
+//     - str4=str,str2,string2 if all 0, randomUUID()
+//     - deviceName = Devices.getDeviceName() = e.g., “HTC One”
+//     - md5(str3+deviceName)”-“md5(str4+deviceName)
+//     - Simple valid = md5(“0,0,0HTC One”)”-“md5(randomUUID+”HTC One”)
+// - gameToken: (from above apis.netmarble.com URL)
+// - platform: android
+// - ver: 6.2.0
+// - lang: en(?)
+// - country: US(?)
+// - ds: CommonUtil$$IsDaylightSavingTime 1(?)
+// - client_ip: get_ipAddress 127.0.0.1(?)
+// - srvPush: get_allowGame(get_PushNotification) 1(?)
+// - de: get_deviceModel “HTC One” (?)
+// - pan: Panho$$isEnableLimit(0,1,0) 0(?)
+// - pan2: Panho$$isEnable(0,1,0) 0(?)
+// - timeZone: -08:00(?)
+// WWWUtil__PostSSL:  processes & submits form data; on success passes result to PacketTransfer__PreLoginOK
+// Form processing:
+// base url=Https://mheroesgb.netmarble.com/NM/PreLogin?cKey=fRealtimeSinceStartup(sec)
+
+// PacketTransfer__PreLogin: WWWUtil__PostSSL
+// - Get text key
+// —>PreLoginOK:
+// 	PacketTransfer__PreLoginOK: sets:
+// textKey: WWWResult->Json->key=tek
+// packetKey: concat(WWWresult—>JSON->key=sessID->last 8 characters if length > 19, WWWresult->Json->key=cID->last 8 characters)
+// CryptUtil__set_textKey(,tek,):
+//		pk = CryptUtil__get_packetKey
+//		textKey_ = CryptUtil__AESEncrypt(,tek,pk,)-->
+//		textKey_ = CryptUtil__XOREncode(,textKey_,)
+// - Get asset
+// - Decrypt asset
+// - Format csv vs load into dbtable
+
+// Maybe: - SceneTitle__Login_c__Iterator1__MoveNext (maybe from SceneTitle::Login)
+// - DBTable__LoadDB
+//     - Various DBTable__get_*Table
+//         - TableUtility__Load_*_
+//             - TableUtility__GetAssetPath (by type)
+//                 - TableUtility__GetPathWithoutExtension + “.asset”
+//                     - Which seems to dynamically determine loader to call, <type>$$LoadCSV
+
+/*****************************************************
+// Eventual goal: parse supplied text assets to CSV
+// *****************************************************/
+
+// ISO8Set**LoadCSV() -->
+// CSVLoader**Load(,,text/data/ISO8*SET.csv,) -->
+// AssetBundleLoader\_\_Load_TextAsset*(,text/data/ISO8-SET.csv,) -->
+// AssetBundleLoader**LoadAsset(, text/data/ISO8_SET.csv,typeof(TextAsset),) -->
+// AssetBundleMgr**LoadAsset(,text/data/ISO*SET.csv,type,) (or UnityEngine_Resources**Load if not found)-->
+// AssetBundleMrg**LoadAsset(,text,text/data/ISO8_SET.csv,type,false,) -->
+// AssetBundleMgr_AssetBundleData**LoadAsset(assetBundle, text/data/ISO8_SET.csv,type,) -->
+// UnityEngine_AssetBundle**LoadAsset(assetBundle, text/data/ISO8_SET.csv,type,), returning the TextAsset back
+// up the chain to CSVLoader**Load:
+// str = UnityEngine_TextAsset**get_text(textAsset,);
+// CSVLoader**LoadFromString(textAsset,readvalue,str,0)-->
+// CryptUtil**AESDecryptText(,str,) [0x010a1fc9]-->
+// key = CryptUtil\_\_get_textKey(,)
+// textKey* = CryptUtil*TypeInfo->CryptUtil_c-->CryptUtil_StaticFields-->textKey*
+// packetKey = CryptUtil**get_packetKey(,) -->
+// PluginsCommonForAndroid-->get_packetKey -->
+// (decompiled) getPacketKey
+// textKey = CryptUtil**XORDecode(,textKey*,)
+// textKey = CryptUtil\_\_AESDecrypt(,textKey,packetKey,) (or, if packetKey is null, just textKey*)
+// CryptUtil\_\_AESDecrypt(,str,key,) [0x010a055b] ->
+
+// from (decompiled) classes/sources/com/seed9/unityplugins/UnityPluginCommon.java:
+// AesKey = "!YJKLNGD"
+
+// packetKey:
+
+// PacketTransfer__PreLoginOK: (along with setting userId, sessionId, isEmailRegistered, cID, isNewAccount,apkToken,admit,textKey)
+// If sessionId length >=20, take last 8 chars only; for
+// (Last8 of sessionId)^2->
+// CryptUtil__set_packetKey -> PluginsCommonForAndroid__set_PacketKey —>decompiled setPacketKey
+// When getting packetKey, if null, concat(aesKey,aesKey) is used instead in WWWUtil__Get, but not in CryptUtil__get/set_textKey. CryptUtil$$PacketDecode tries the AESkey^2 first.
+
+// CryptUtil\_\_set_textKey(,string,) (from PacketTransfer$$PreLoginOK)
+// Setting textKey\_ in CryptUtil_TypeInfo:
+// Start at CSVLoader\_\_LoadFromString with CryptUtil_TypeInfo initializer (43ef37c, in .bss) (starting at 10a45d7):
+// XOREncode/XORDecode uses xor_table in CryptUtil_TypeInfo, but since it uses it for each,
+// can't I just use any table?
+
+// For this program, reorganizing based on dependencies, so the idea is just to
+// call GetCSV(Type) or something similar (maybe even an umbrella GetAllCSV or the like)
+// and determine which parts need to be called to simulate a login and download or
+// otherwise obtain needed data. Would also make a "force" flag to update all the date
+
+// Where reasonable below, methods have the same name as the function's basename
+// in libil2cpp.so (without having the namespace, it may combine parts from multiple
+// namespaces)
+
+//TablePath = text/data/
+//TableName = TableNameAttribute/CSVTableNameAttribute
+//ext = csv
+// \*/
+
+/\* Most are simple base64-encoded strings the base-64 strings when decoded have a ^@ (null) before every character after every character, presumably due to the use of 16-bit characters? Should effectively strip when possible or otherwise work around Many are within the device/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/text asset bundle (These have already been decoded to output/) Others appear to be identified by TableName/TableNameAttribute/CSVTableNameAttribute but I don't yet know where they're stored TableNameAttribute and CSVTableNameAttribute appear to be set by their respective ctors called by various anonymous functions with names/"filenames" strings from .rodata
+
+The simple \*.csv textassets can be exported and (when necessary), base64 decoded with only command line base64 -D -i filename Without rigorous testing, the TableNames appear to be MonoBehavior/MonoScript pairs in bundle/text, though I'm not sure yet about decoding; need to better eval, e.g., loading IntAbilityGroupDataDictionary from text/data/action_ability.asset
+
+Appears UABE can extract these to JSON files Perhaps these are the ones that are too large for CSVs?
+
+Some are: TableNameAttribute: ACTION_AUTO_ABILITY ALLIANCE_EMBLEM_BG ALLIANCE_EMBLEM_BORDER ALLIANCE_EMBLEM_SYMBOL APPLY_OTHER_BY_TARGET ARENA_PARTICIPATION_RANK_REWARD HERO_SKILL MOB_SKILL GAME_CONFIG TOURNAMENT_EVENT_BATTLE_CONFIG SHADOWLAND_BATTLE_CONFIG SUPER_COOP_BATTLE_CONFIG PVP_BALANCE DOMINATION_BATTLE_CONFIG DANGER_ROOM_CONFIG ACHIEVEMENTS ALLIANCE_ACHIEVEMENTS INTRUSION_TEAMUP INTRUSION_BOSS LOADING_TIP LOADING_TIP_LIST WORLD_BOSS_REWARD WORLD_BOSS_HAVE_BONUS URU_PREMIUM URU_COMPOSE TOURNAMENT_EVENT_REWARD SUPER_COOP_QUEST SUMMON SUBTYPE_GROUP_ID COUNTRY_LATLON ERR_PROCESS DOMINATION_MOB STORY_CAMPAIGN_TRAIT STORY_CAMPAIGN_LEVEL STORY_CAMPAIGN_HERO STAGE_FIRST_CLEAR_REWARD StageEnterBundleList TEAM_LEAGUE_RANK_REWARD TEAM_LEAGUE TEAM_LEAGUE_CONDITION SPECIAL_GEAR_ICON ... and lots more
+
+CSVTableNameAttribute: ACTION_ABILITY ALLIANCE_EMBLEM ARENA_RANK_REWARD HERO_SKILL MOB_SKILL RANDOM_OPTION ADD_ABILITY_LIST
+
+TableUtility**GetCSVPaths: text/data/ + TableName + .csv TableUtility**GetAssetPath: text/data/ + TableName + .asset
+
+\*/
+
+/_ Other interesting things: GlobalConstants\_\_\_ctor Maybe everything in DBTable->Fields _/

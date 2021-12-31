@@ -117,6 +117,7 @@ namespace Mffer {
 				Name = "";
 				Components = new Dictionary<string, Component>();
 				Data = null;
+				AddComponent( new NetworkData() );
 				AddComponent( new Localization() );
 				AddComponent( new Roster() );
 			}

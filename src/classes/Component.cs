@@ -45,7 +45,7 @@ namespace Mffer {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
-		public Component() {
+		public Component() : base() {
 			BackingData = new Dictionary<string, GameObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
@@ -187,8 +187,7 @@ namespace Mffer {
 		/// <see cref="Dependencies"/> have been loaded, so the property
 		/// loading should be reproducible at any point afterward.
 		/// </remarks>
-		/// <returns><c>true</c> if the <see cref="Component"/> contains
-		/// loaded data, <c>false</c> otherwise</returns>
+		/// <returns><c>true</c>; derived classes should override this</returns>
 		public virtual bool IsLoaded() {
 			return true;
 		}

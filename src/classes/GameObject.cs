@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml;
 using MessagePack;
@@ -17,7 +16,7 @@ namespace Mffer {
 	/// can be formatted as a string, an array of <see cref="GameObject"/>s, or
 	/// a dictionary of named <see cref="GameObject"/>s. A <see
 	/// cref="GameObject"/> can be easily represented in JSON format; a <see
-	/// cref="GameObject"/> is analagous to a JSON documnent (though more
+	/// cref="GameObject"/> is analagous to a JSON document (though more
 	/// restrictive). <see cref="GameObject"/>s form the base from which other
 	/// game data such as <see cref="AssetObject"/>s are derived. This class
 	/// contains the basic structure and simple methods for manipulation of the
