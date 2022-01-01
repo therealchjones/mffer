@@ -29,27 +29,39 @@ namespace Mffer {
 		const string PatchBaseUrl = "http://mheroesgb.gcdn.netmarble.com/mheroesgb/";
 		// Obtained in libil2cpp.so via PatchSystem.CreateUrl()
 		const string PatchUrl = PatchBaseUrl + "DIST/Android/";
+		const string CountryCode = "US";
 		// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
 		// varies by version
 		const string BundleVersion = "7.7.0";
 		// Obtained in libil2cpp.so via ServerInfo.GetFileName()
 		const string ServerFileName = "server_info.txt";
+		// Obtained in libil2cpp.so via CryptUtil.get_aesKey()
+		const string AesKey = "!YJKLNGD";
+		// Obtained via a long path in Java to base/resources/res/xml/nmconfiguration.xml
+		const string GameCode = "mherosgb";
+		// Obtained via Java::PlatformDetails.getGateWayUrl()
+		const string GateWayUrl = "https://apis.netmarble.com";
+		// Obtained in libil2cpp.so vi PluginsNetmarbleS.GetTimeZone()
+		const string TimeZone = "+1:00";
 		HttpClient Www = new HttpClient();
+		Random Rng = new Random();
 		JsonDocument ServerInfo = null;
 		JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
+		double uptime = 0;
+		bool PreLoginInProgress = false;
 		string PacketKey = null;
-		string AesKey = null;
 		string CID = null;
 		string SessionID = null;
+		string UserID = null;
 		string DeviceModel = null;
 		string DeviceId = null;
+		string AndroidId = null;
 		string DeviceKey = null;
 		string IP = null;
 		string AccessToken = null;
-		string AccessTokenUrl = null;
 		/// <summary>
 		/// Initializes a new instance of the <see cref="NetworkData"/> class
 		/// </summary>
@@ -67,7 +79,6 @@ namespace Mffer {
 		/// </remarks>
 		public override void Load() {
 			base.Load();
-			string url = GetServerUrl();
 			FindAlliances();
 		}
 		/// <summary>
@@ -93,7 +104,7 @@ namespace Mffer {
 		JsonDocument GetServerInfo() {
 			if ( ServerInfo == null ) {
 				// Obtained in libil2cpp.so via ServerInfo.GetRemoteFilePath()
-				string serverInfoUrl = PatchUrl + "v" + BundleVersion + "/" + ServerFileName + "?p=" + ( new Random() ).Next( 0, 0x7fffffff ).ToString();
+				string serverInfoUrl = PatchUrl + "v" + BundleVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
 				// Obtained in libil2cpp.so via PacketTransfer.SetServerDataOK()
 				ServerInfo = JsonDocument.Parse(
 					Www.GetStringAsync( serverInfoUrl ).Result,
@@ -148,9 +159,12 @@ namespace Mffer {
 		/// and PacketTransfer.GetRecommendedAllianceListOk()
 		/// </remarks>
 		public void FindAlliances() {
-			throw new NotImplementedException();
 			const string param = "GetSuggestionAllianceList?lang=";
 			HttpResponseMessage data = GetWwwData( param );
+			byte[] responseBytes = data.Content.ReadAsByteArrayAsync().Result;
+			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
+			string text = ResponseDecompress( decryptedBytes );
+			throw new NotImplementedException();
 			// data.AddHash( "country", "all" );
 		}
 		/// <summary>
@@ -161,18 +175,17 @@ namespace Mffer {
 		/// WWWUtil.GetRountine(), and affiliated methods
 		/// </remarks>
 		HttpResponseMessage GetWwwData( string parameter ) {
-			throw new NotImplementedException();
-
 			HttpRequestMessage request = new HttpRequestMessage();
-
-			string Parameter = null;
-			if ( parameter.StartsWith( "http" ) ) {
-				Parameter = parameter;
-				string Url = parameter;
-				bool isGamePacket = false;
-				bool isSequenceProcess = false;
-			} else {
-				Parameter = AddDefaultPacketParameter( parameter );
+			string Parameter = parameter;
+			string Url = parameter;
+			bool isGamePacket = false;
+			bool isSequenceProcess = false;
+			bool isEncoded = false;
+			if ( !parameter.StartsWith( "http" ) ) {
+				Parameter = AddDefaultPacketParameter( Parameter );
+				isGamePacket = true;
+				isSequenceProcess = true;
+				isEncoded = true;
 				string key = GetPacketKey();
 				if ( String.IsNullOrEmpty( key ) ) key = GetAesKey() + GetAesKey();
 				byte[] parameterBytes = Encoding.UTF8.GetBytes( Parameter );
@@ -181,9 +194,6 @@ namespace Mffer {
 				byte[] contents = new byte[header.Length + encryptedParameter.Length];
 				Array.Copy( header, contents, header.Length );
 				Array.Copy( encryptedParameter, 0, contents, header.Length, encryptedParameter.Length );
-				bool isGamePacket = true;
-				bool isSequenceProcess = true;
-				bool encoded = true;
 				// Using the BestHTTP plugin (https://github.com/magento-hackathon/DashboardVR/blob/b4623ec42af062cf7f40d55e3ce331eba0d3b920/VR/UnityProject/Assets/Plugins/Best%20HTTP%20(Pro)/BestHTTP/Forms/Implementations/HTTPMultiPartForm.cs) to prepare the form
 				ByteArrayContent binaryContent = new ByteArrayContent( contents );
 				binaryContent.Headers.Add( "Content-Type", "application/octet-stream" );
@@ -232,9 +242,28 @@ namespace Mffer {
 			byte[] headerBytes = new byte[sessionBytes.Length + 5];
 			headerBytes[0] = 0xff;
 			Array.Copy( sizeBytes, sizeBytes.Length - 3, headerBytes, 1, 3 );
-			headerBytes[4] = (byte)( new Random() ).Next( 0x100 );
+			headerBytes[4] = (byte)( Rng.Next( 0x100 ) );
 			Array.Copy( sessionBytes, 0, headerBytes, 5, sessionBytes.Length );
 			return AesEncrypt( headerBytes, GetAesKey() + GetAesKey() );
+		}
+		/// <summary>
+		///
+		/// </summary>
+		/// <remarks>
+		/// Re-implementation of SceneTitle.SignIn() and the many methods it calls
+		/// </remarks>
+		void SignIn() {
+			string url = GateWayUrl + "/mobileauth/v2/players/";
+			url += GetPlayerId() + "/deviceKeys/" + GetDeviceKey();
+			url += "/accessToken?nmDeviceKey=" + GetAndroidId();
+			url += "&countryCode=" + CountryCode;
+			url += "&adId=";
+			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Get, url );
+			request.Headers.Add( "Accept", "application/json" );
+			request.Headers.Add( "GameCode", GetGameCode() );
+			HttpResponseMessage response = Www.Send( request );
+			JsonDocument result = JsonDocument.Parse( response.Content.ReadAsStringAsync().Result.ToString(), JsonOptions );
+			AccessToken = result.RootElement.GetProperty( "resultData" ).GetProperty( "accessToken" ).GetString();
 		}
 		/// <summary>
 		/// Obtains the packet key used for encryption &amp; decryption
@@ -244,26 +273,41 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns></returns>
 		string GetPacketKey() {
-			throw new NotImplementedException();
-
 			if ( String.IsNullOrEmpty( PacketKey ) ) {
-				LoadConstants();
+				if ( PreLoginInProgress ) {
+					return null;
+				} else {
+					LoadConstants();
+				}
 			}
-
+			return PacketKey;
 		}
 		void LoadConstants() {
-			throw new NotImplementedException();
 			PreLogin();
 		}
+		/// <summary>
+		///
+		/// </summary>
+		/// <remarks>
+		/// Reimplementation of libil2cpp.so's SceneTitle.PreLogin() and the
+		/// following steps through SceneTitle.PreLoginOK()
+		/// </remarks>
+		/// <exception cref="NotImplementedException"></exception>
 		void PreLogin() {
-			throw new NotImplementedException();
-			double uptime = 37;
-			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, GetPreLoginUrl() );
+			PreLoginInProgress = true;
+			string url = GetSslUrl() + "PreLogin";
+			if ( url.Contains( '?' ) ) {
+				url += '&';
+			} else {
+				url += '?';
+			}
+			url += "cKey=" + GetUptime();
+			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, url );
 			Dictionary<string, string> formData = new Dictionary<string, string>();
 
 			formData.Add( "cID", GetCID() );
 			formData.Add( "dID", GetDeviceId() );
-			formData.Add( "gameToken", GetAccessToken() );
+			formData.Add( "gameToken", GetGameToken() );
 			formData.Add( "platform", "android" );
 			formData.Add( "ver", BundleVersion );
 			formData.Add( "lang", "en" );
@@ -274,26 +318,41 @@ namespace Mffer {
 			formData.Add( "de", GetDeviceModel() );
 			formData.Add( "pan", "0" );
 			formData.Add( "pan2", "1" );
-			formData.Add( "openId", "0" );
-			formData.Add( "cKey", uptime + "" );
+			formData.Add( "timeZone", GetTimeZone() );
 
 			FormUrlEncodedContent form = new FormUrlEncodedContent( formData );
 			request.Content = form;
 			HttpResponseMessage response = Www.Send( request );
 			byte[] responseBytes = response.Content.ReadAsByteArrayAsync().Result;
 			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
-			byte[] decompressedBytes = ResponseDecompress( decryptedBytes );
-			string decompressedText = System.Text.Encoding.UTF8.GetString( decompressedBytes );
+			string text = ResponseDecompress( decryptedBytes );
+			int lastBrace = text.LastIndexOf( '}' );
+			text = text.Substring( 0, lastBrace + 1 );
+			JsonDocument result = JsonDocument.Parse( text );
 
-			JsonDocument result = JsonDocument.Parse( decompressedText );
-
+			UserID = result.RootElement.GetProperty( "desc" ).GetProperty( "uID" ).GetUInt64().ToString();
 			CID = result.RootElement.GetProperty( "desc" ).GetProperty( "cID" ).GetString();
+			string cIDEnd = CID.Substring( CID.Length - 8 );
 			SessionID = result.RootElement.GetProperty( "desc" ).GetProperty( "sessID" ).GetString();
+			string sessionIDEnd = null;
 			if ( SessionID.Length > 25 ) {
-				SessionID = SessionID.Substring( SessionID.Length - 8 );
+				sessionIDEnd = SessionID.Substring( SessionID.Length - 8 );
+				SessionID = SessionID.Substring( 0, SessionID.Length - 8 );
 			}
-			SetPacketKey( SessionID + CID.Substring( CID.Length - 8 ) );
+			if ( !String.IsNullOrEmpty( sessionIDEnd ) && !String.IsNullOrEmpty( cIDEnd ) )
+				SetPacketKey( sessionIDEnd + cIDEnd );
 			SetTextKey( result.RootElement.GetProperty( "desc" ).GetProperty( "tek" ).GetString() );
+			PreLoginInProgress = false;
+		}
+		/// <summary>
+		///
+		/// </summary>
+		/// <remarks>
+		/// Re-implementation of Java::SessionImpl.getPlayerID()
+		/// </remarks>
+		/// <returns></returns>
+		string GetPlayerId() {
+			return GetCID();
 		}
 		string GetCID() {
 			if ( String.IsNullOrEmpty( CID ) ) {
@@ -315,11 +374,25 @@ namespace Mffer {
 			}
 			return DeviceId;
 		}
+		/// <summary>
+		///
+		/// </summary>
+		/// <remarks>
+		/// Reimplementation of Java::SessionImpl.getDeviceKey()
+		/// </remarks>
+		/// <returns></returns>
 		string GetDeviceKey() {
 			if ( String.IsNullOrEmpty( DeviceKey ) ) {
 				DeviceKey = Guid.NewGuid().ToString( "N" ).ToUpper();
 			}
 			return DeviceKey;
+		}
+		string GetAndroidId() {
+			if ( String.IsNullOrEmpty( AndroidId ) ) {
+				long num = ( Rng.Next() << 31 | Rng.Next() );
+				AndroidId = num.ToString( "X16" );
+			}
+			return AndroidId;
 		}
 		string AesEncrypt( string decrypted, string key ) {
 			ASCIIEncoding asciiEncoding = new ASCIIEncoding();
@@ -372,10 +445,14 @@ namespace Mffer {
 			return IP;
 		}
 		byte[] ResponseDecrypt( byte[] encryptedBytes ) {
-			byte[] key = Encoding.UTF8.GetBytes( GetAesKey() + GetAesKey() );
-			return CoreAesDecrypt( encryptedBytes, key, key );
+			string key = GetPacketKey();
+			if ( String.IsNullOrEmpty( key ) ) {
+				key = GetAesKey() + GetAesKey();
+			}
+			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
+			return CoreDecrypt( encryptedBytes, keyBytes, keyBytes );
 		}
-		byte[] CoreAesDecrypt( byte[] text, byte[] key, byte[] iv ) {
+		byte[] CoreDecrypt( byte[] text, byte[] key, byte[] iv ) {
 			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
 				rijAlg.KeySize = key.Length << 3;
 				rijAlg.BlockSize = 128;
@@ -393,38 +470,51 @@ namespace Mffer {
 				}
 			}
 		}
-		byte[] ResponseDecompress( byte[] compressedBytes ) {
-			SnappyDecompressor snappyDecompressor = new SnappyDecompressor();
-			return snappyDecompressor.Decompress( compressedBytes, 0, compressedBytes.Length );
+		string ResponseDecompress( byte[] compressedBytes ) {
+			string decompressed = "";
+			try {
+				SnappyDecompressor snappyDecompressor = new SnappyDecompressor();
+				byte[] decompressedBytes = snappyDecompressor.Decompress( compressedBytes, 0, compressedBytes.Length );
+				decompressed = Encoding.UTF8.GetString( decompressedBytes );
+			} catch ( IndexOutOfRangeException ) {
+				decompressed = Encoding.UTF8.GetString( compressedBytes );
+			}
+			return decompressed;
 		}
 		string GetAccessToken() {
 			if ( String.IsNullOrEmpty( AccessToken ) ) {
-				string url = String.Concat( GetAccessTokenUrl(), "players/", GetCID(), "/deviceKeys/", GetDeviceKey(), "/accessToken" );
-				HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Get, url );
-				request.Headers.Add( "GameCode", GetGameCode() );
-				HttpResponseMessage response = Www.Send( request );
-				JsonDocumentOptions options = new JsonDocumentOptions {
-					CommentHandling = JsonCommentHandling.Skip,
-					AllowTrailingCommas = true
-				};
-				JsonDocument signInResponse = JsonDocument.Parse( response.Content.ReadAsStringAsync().Result, options );
-				AccessToken = signInResponse.RootElement.GetProperty( "resultData" ).GetProperty( "accessToken" ).GetString();
+				SignIn();
 			}
 			return AccessToken;
 		}
-		string GetAccessTokenUrl() {
-			// get server info, parse for access token URL
-			throw new NotImplementedException();
-		}
 		string GetAesKey() {
-			// not sure if there's a way to get programmatically
-			throw new NotImplementedException();
+			return AesKey;
 		}
 		string GetGameCode() {
-			throw new NotImplementedException();
+			return GameCode;
 		}
-		string GetPreLoginUrl() {
-			throw new NotImplementedException();
+		/// <summary>
+		/// Obtains the game token
+		/// </summary>
+		/// <remarks>
+		/// Re-implementation of PluginsNetmarbleSForAndroid.get_gameToken()
+		/// </remarks>
+		/// <returns>A string representing the game token</returns>
+		string GetGameToken() {
+			return GetAccessToken();
+		}
+		/// <summary>
+		/// Obtains the URL to use for secure NetMarble HTTP requests
+		/// </summary>
+		/// <remarks>
+		/// Re-implementation of libil2cpp.so's ServerInfo.get_SslURL()
+		/// </remarks>
+		/// <returns>A string representing the secure URL</returns>
+		string GetSslUrl() {
+			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr_ssl" ).GetString();
+		}
+		string GetTimeZone() {
+			return TimeZone;
 		}
 		/// <summary>
 		/// Simulates the uptime to report
@@ -433,10 +523,10 @@ namespace Mffer {
 		/// Alternate implementation of libil2cpp.so's
 		/// Time.get_realtimeSinceStartup()
 		/// </remarks>
-		/// <returns>a string representation of a double floating point number
-		/// between 0 and 37</returns>
+		/// <returns>a string representation of a double floating point number</returns>
 		string GetUptime() {
-			return ( ( new Random() ).NextDouble() * 37 ).ToString();
+			uptime = uptime + Rng.NextDouble() * 37;
+			return uptime.ToString();
 		}
 		/// <summary>
 		/// Simulates the user ID to report
@@ -447,35 +537,24 @@ namespace Mffer {
 		/// <returns>a properly formatted string representation of a user ID
 		/// that may or may not exist</returns>
 		string GetUserId() {
-			Random rng = new Random();
-			long userId = ( rng.Next() << 31 ) | ( rng.Next() );
-			return userId.ToString();
-		}
-		void SetPacketKey( string protoPacketKey ) {
-			if ( String.IsNullOrEmpty( protoPacketKey ) ) {
-				if ( String.IsNullOrEmpty( PacketKey ) ) {
-					LoadConstants();
+			if ( String.IsNullOrEmpty( UserID ) ) {
+				if ( PreLoginInProgress ) {
+					return null;
+				} else {
+					PreLogin();
 				}
-				protoPacketKey = PacketKey;
 			}
+			return UserID;
+		}
+		void SetPacketKey( string protoPacketKey = null ) {
 			PacketKey = protoPacketKey;
 		}
 		void SetTextKey( string text ) {
-			// Debug.Log( "Setting text key from " + text );
-			//CryptUtil__set_textKey(,tek,) [0x0109fd62]:
-			// pk = CryptUtil__get_packetKey
 			string pk = GetPacketKey();
-			// Debug.Log( "packetKey: " + packetKey );
-			// textKey_ = CryptUtil__AESEncrypt(,tek,pk,)[0x0109fe6f]:
-			//			btSrc = CryptUtil__ConvertStringToByteArray(,tek,)
 			System.Text.UnicodeEncoding unicodeEncoding = new System.Text.UnicodeEncoding( false, true, false );
 			byte[] textBytes = unicodeEncoding.GetBytes( text );
-			// Debug.Log( "tek.Length: " + text.Length );
-			// Debug.Log( "textBytes.Length: " + textBytes.Length );
-			//			btSrc = CryptUtil__AESEncrypt(,btSrc,pk,false,)[0x010a20fd]
 			System.Text.ASCIIEncoding asciiEncoding = new System.Text.ASCIIEncoding();
 			byte[] keyBytes = asciiEncoding.GetBytes( pk );
-			// Debug.Log( "keyBytes.Length: " + keyBytes.Length );
 			System.Security.Cryptography.RijndaelManaged rijAlg = new System.Security.Cryptography.RijndaelManaged();
 			rijAlg.KeySize = keyBytes.Length << 3;
 			rijAlg.BlockSize = 0x80;
@@ -520,7 +599,6 @@ namespace Mffer {
 class NetworkDataOld {
 	string accessToken;
 	string accessTokenUrl = "https://apis.netmarble.com/mobileauth/v2/";
-	string AesKey = "!YJKLNGD";
 	string cID;
 	string deviceID;
 	string deviceKey;
@@ -637,9 +715,6 @@ string AesDecrypt( string encrypted, string key ) {
 	}
 	UnicodeEncoding unicodeEncoding = new UnicodeEncoding();
 	return unicodeEncoding.GetString( decryptedBytes );
-}
-string getAesKey() {
-	return String.Concat( AesKey, AesKey );
 }
 
 
