@@ -258,101 +258,103 @@ Common dead ends: GameObject_AddComponent...
 
 Reverse Engineered Program Flow:
 
+
+
 SceneTitle.Start() {
-SceneTitle.CheckServer() {
-PacketTransfer.SetServerData( scene SceneTitle ) {
-url = PatchSystem.get*url() {
-PatchSystem.CreateUrl() {
-BuildType = Define.get_BuildType = BUILD_TYPE**Enum.GLOBAL (0)
-BuildOptions = Define.get_BuildOptions = BUILD_OPTIONS**Enum.DIST (4)
-baseUrl = PatchSystem.get_base_url() = PatchSystem.GetBaseUrl() = http://mheroesgb.gcdn.netmarble.com/mheroesgb/
-return baseUrl + DIST/Android/
-}
-}
-filepath = ServerInfo.GetRemoteFilePath() {
-filepath = "v" + bundleVersion + "/"
-filepath = filepath + ServerInfo.GetFileName() { return "server_info.txt" }
-filepath = filepath + "?p=" + CommonUtil.GetRandomInt()
-return filepath
-}
-WWWUtil.Get( param = url + filepath, scene, successMethod = "SetServerDataOK", failMethod = "", isLock = true, sendOption = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, useFastJson = false, forceNotSequence = false, disableProgressUI = false ) {
-wwwType = 1
-retry= true
-islock = true
-parameter = param
-key = parameter
-if ! parameter starts with http:// {
-pmvar7 = 4
-if ! parameter starts with https:// {
-WWWUtil.AddDefaultPacketParameter( parameter ) {
-if parameter contains ?
-append &
+	SceneTitle.CheckServer() {
+		PacketTransfer.SetServerData( scene SceneTitle ) {
+			url = PatchSystem.get * url() {
+				PatchSystem.CreateUrl() {
+					BuildType = Define.get_BuildType = BUILD_TYPE * *Enum.GLOBAL( 0 )
+				BuildOptions = Define.get_BuildOptions = BUILD_OPTIONS * *Enum.DIST( 4 )
+				baseUrl = PatchSystem.get_base_url() = PatchSystem.GetBaseUrl() = http://mheroesgb.gcdn.netmarble.com/mheroesgb/
+return baseUrl + DIST / Android /
+				}
+			}
+			filepath = ServerInfo.GetRemoteFilePath() {
+				filepath = "v" + bundleVersion + "/"
+			filepath = filepath + ServerInfo.GetFileName() { return "server_info.txt" }
+				filepath = filepath + "?p=" + CommonUtil.GetRandomInt()
+			return filepath
+			}
+			WWWUtil.Get( param = url + filepath, scene, successMethod = "SetServerDataOK", failMethod = "", isLock = true, sendOption = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, useFastJson = false, forceNotSequence = false, disableProgressUI = false ) {
+				wwwType = 1
+			retry = true
+			islock = true
+			parameter = param
+			key = parameter
+			if !parameter starts with http:// {
+				pmvar7 = 4
+			if !parameter starts with https:// {
+				WWWUtil.AddDefaultPacketParameter( parameter ) {
+					if parameter contains?
+				append &
 else
-append ?
-append "uID=" + userId
-append "&cKey=" + uptime
-}
-key = CryptUtil.getPacketKey()
-if key is nullorempty
-key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-param-bytes = Encoding.UTF8.GetBytes()
-pmvar7 = 1
-param-bytes = CryptUtil.AESEncrypt( param-bytes, key, IsKeyIvSame = true)
-key = sessionId
-header = WWWUtil.MakeHeader(key,param-bytes.length)
-contents = header + encryptedParam
-key = ServerInfo.get_URL() + "FF"
-url = key
-param = parameter
-isGamePacket = true
-isSequenceProcess = true
-encoded = true
-form = new WWWForm()
-form.AddBinaryData( fieldname = bin, contents, filename = bin, mimetype = application / octet - stream ) {
-}
-} else {
-url = key
-param = parameter
-isGamePacket = false
-isSequenceProcess = false
-}
-failedReason = 0
-MyData.RestoreAllPrevData()
-WWWUtil.GetRoutine_1() {
-// via MonoBehaviour.StartCoroutine(): WWWUtil.GetRoutine_c_Iterator1.MoveNext() { // this is a guess
-if isSequenceProcess {
-// add the request( WWWData ) to the WWWUtil data stack then do the next request in the stack via WWWUtil.GetRountine_internal like below
-} else {
-// just do the request via
-WWWUtil.GetRountine_internal() {
-// via MonoBehaviour.StartCoroutine() WWWUtil.GetRountine_internal_c_Iterator0.MoveNext() { // this is a guess
-// specifically for WWWType = 1
-// BestHTTP package HTTPRequest( url, POST )
-HTTPRequest.SetFields( form )
-HTTPRequest.Send()
-bytes = HTTPRequest.get_Response().get_Data()
-WWWUtil.OnRequestFinished( data, error, bytes ) {
-if failedReason == 0 && error is nullorempty {
+						append?
+						append "uID=" + userId
+				append "&cKey=" + uptime
+				}
+				key = CryptUtil.getPacketKey()
+			if key is nullorempty
+			key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+			param - bytes = Encoding.UTF8.GetBytes()
+			pmvar7 = 1
+			param - bytes = CryptUtil.AESEncrypt( param - bytes, key, IsKeyIvSame = true )
+			key = sessionId
+			header = WWWUtil.MakeHeader( key, param - bytes.length )
+			contents = header + encryptedParam
+			key = ServerInfo.get_URL() + "FF"
+			url = key
+			param = parameter
+			isGamePacket = true
+			isSequenceProcess = true
+			encoded = true
+			form = new WWWForm()
+			form.AddBinaryData( fieldname = bin, contents, filename = bin, mimetype = application / octet - stream ) {
+				}
+			} else {
+				url = key
+			param = parameter
+			isGamePacket = false
+			isSequenceProcess = false
+			}
+			failedReason = 0
+		MyData.RestoreAllPrevData()
+		WWWUtil.GetRoutine_1() {
+				// via MonoBehaviour.StartCoroutine(): WWWUtil.GetRoutine_c_Iterator1.MoveNext() { // this is a guess
+				if isSequenceProcess {
+					// add the request( WWWData ) to the WWWUtil data stack then do the next request in the stack via WWWUtil.GetRountine_internal like below
+				} else {
+					// just do the request via
+					WWWUtil.GetRountine_internal() {
+						// via MonoBehaviour.StartCoroutine() WWWUtil.GetRountine_internal_c_Iterator0.MoveNext() { // this is a guess
+						// specifically for WWWType = 1
+						// BestHTTP package HTTPRequest( url, POST )
+						HTTPRequest.SetFields( form )
+					HTTPRequest.Send()
+					bytes = HTTPRequest.get_Response().get_Data()
+					WWWUtil.OnRequestFinished( data, error, bytes ) {
+							if failedReason == 0 && error is nullorempty {
 if IsGamePacket {
-errors = WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
+										errors = WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
 if errors is nullorempty {
 WWWUtil.ResultOK( data, packetdecode, fastjson ) {
-WWWUtil.SendResult( scene, successmethod, packetdecode, sendoption, sendtotargetscene, data, fastjson, byte[] bytes = null, bool isCache = false ) {
-If sendtoTargetScene == 0 {
-PacketTransfer( aka Component_1 ).SendMessage( successmethod, WWWResult, SendMessageOptions.Enum.DontRequireReceiver ) // just guessing this calls PacketTransfer.successMethod()
+	WWWUtil.SendResult( scene, successmethod, packetdecode, sendoption, sendtotargetscene, data, fastjson, byte[] bytes = null, bool isCache = false ) {
+											If sendtoTargetScene == 0 {
+												PacketTransfer( aka Component_1 ).SendMessage( successmethod, WWWResult, SendMessageOptions.Enum.DontRequireReceiver ) // just guessing this calls PacketTransfer.successMethod()
 } else {
-Scene( aka GameObject ).SendMessage( successmethod, wwwresult, sendmessageoptions \* \*enum.DontRequireReceiver) // just guessing this calls scene.successMethod
+												Scene( aka GameObject ).SendMessage( successmethod, wwwresult, sendmessageoptions \* \*enum.DontRequireReceiver) // just guessing this calls scene.successMethod
 }
 }
 HeroList_UpdateAll()
 }
 } else {
-WWW.ResultFail( data, errors, fastjson, packetdecode )
+	WWW.ResultFail( data, errors, fastjson, packetdecode )
 }
 } else {
-byteString = CryptUtil.ByteToString(bytes)
-byteString = WWW.UnEscapeURL(byteString)
-WWWUtil.ResultOK(data,resultString,FastJsonObject desc = null)
+	byteString = CryptUtil.ByteToString( bytes )
+byteString = WWW.UnEscapeURL( byteString )
+WWWUtil.ResultOK( data, resultString, FastJsonObject desc = null )
 }
 }
 }
@@ -363,68 +365,68 @@ WWWUtil.ResultOK(data,resultString,FastJsonObject desc = null)
 }
 }
 }
-PacketTransfer.SetServerDataOK(WWWResult result) {
-PacketTransfer.NotifyResult(scene,"SetServerDataOK",result->text) {
-scene.sendmessage("SetServerDataOK",text,SendMessageOptions\_\_Enum_DontRequireReceiver) // guessing this calls
-SceneTitle.SetServerDataOK(text) {
-ServerInfo.ParseVersionFile(text) {
-ServerInfo.ParseVersionFileCDN(text) {
-serverResponse = JsonParser.Parse(text, typeof Server_Response)
-PatchConfig.Init() // Configures low device resource usage if necessary
-ServerInfo.set_data(null) { ServerInfo.staticfields.data* = null }
-serverList = serverResponse.server*list
-foreach server in serverList {
-selectServer = serverResponse.select_server
-if server.type == selectServer.type {
-ServerInfo.set_data(server);
-break;
+PacketTransfer.SetServerDataOK( WWWResult result ) {
+	PacketTransfer.NotifyResult( scene, "SetServerDataOK", result->text ) {
+		scene.sendmessage( "SetServerDataOK", text, SendMessageOptions\_\_Enum_DontRequireReceiver ) // guessing this calls
+SceneTitle.SetServerDataOK( text ) {
+			ServerInfo.ParseVersionFile( text ) {
+				ServerInfo.ParseVersionFileCDN( text ) {
+					serverResponse = JsonParser.Parse( text, typeof Server_Response )
+					PatchConfig.Init() // Configures low device resource usage if necessary
+ServerInfo.set_data( null ) { ServerInfo.staticfields.data * = null }
+					serverList = serverResponse.server * list
+				  foreach server in serverList {
+						selectServer = serverResponse.select_server
+				  if server.type == selectServer.type {
+							ServerInfo.set_data( server );
+							break;
+						}
+					}
+					serverData = ServerInfo.get_data()
+				  if serverData == null ServerInfo.set_data( serverList[0] ) {
+						ServerInfo.data = server
+					ServerInfo.contentServer = server.detail.content
+					}
+					ServerInfo.get_contentBuild() {
+						ServerInfo.contentBuild * = new ContentOnOffForBuild() // Includes some hardcoded settings
 }
+				}
+			}
+			SceneTitle.NextUpdateInfoViewState() // continue on to further startup
 }
-serverData = ServerInfo.get_data()
-if serverData == null ServerInfo.set_data(serverList[0]) {
-ServerInfo.data = server
-ServerInfo.contentServer = server.detail.content
-}
-ServerInfo.get_contentBuild() {
-ServerInfo.contentBuild* = new ContentOnOffForBuild() // Includes some hardcoded settings
-}
-}
-}
-SceneTitle.NextUpdateInfoViewState() // continue on to further startup
-}
-}
+	}
 }
 
 CryptUtil.get_aesKey() {
-PluginsCommonForAndroid.get_aesKey() {
-Java::UnityPluginCommon::getAesKey() { return "!YJKLNGD";}
-}
+	PluginsCommonForAndroid.get_aesKey() {
+		Java::UnityPluginCommon::getAesKey() { return "!YJKLNGD"; }
+	}
 }
 
 PluginsNetmarbleSForAndroid.get_gameToken() {
-Java::unityplugins.NetmarbleS.java:getGameToken() {
-com.netmarble.Session.java:getGameToken() {
-com.netmarble.core.SessionImpl.getInstance().getGameToken() {
-AuthDataManager.INSTANCE.getGameToken(applicationContext) {
-return gameToken; // set in same with setGameToken, but this isn't used;
-// instead, see below
-}
-}
-}
-}
+	Java::unityplugins.NetmarbleS.java:getGameToken() {
+		com.netmarble.Session.java:getGameToken() {
+			com.netmarble.core.SessionImpl.getInstance().getGameToken() {
+				AuthDataManager.INSTANCE.getGameToken( applicationContext ) {
+					return gameToken; // set in same with setGameToken, but this isn't used;
+									  // instead, see below
+				}
+			}
+		}
+	}
 }
 
 SceneTitle.SignIn() {
-callback = new MyDelegate.Callback_1.FastJsonObject( SceneTitle.SignIn_m**1 )
-PluginsNetmarbleSForAndroid.GameCenterAuthenticate(callback) {
-callback
+	callback = new MyDelegate.Callback_1.FastJsonObject( SceneTitle.SignIn_m * *1 )
+PluginsNetmarbleSForAndroid.GameCenterAuthenticate( callback ) {
+		callback
+  }
 }
-}
-SceneTitle.SignIn_m**1() {
-SceneTitle.SignInNetmarble() {
-PluginsNetmarbleSForAndroid.SignIn(scene) {
-UnityPluginNetmarbleS.signIn() {
-r0 = new Session.SignInListener() {
+SceneTitle.SignIn_m * *1() {
+	SceneTitle.SignInNetmarble() {
+		PluginsNetmarbleSForAndroid.SignIn( scene ) {
+			UnityPluginNetmarbleS.signIn() {
+				r0 = new Session.SignInListener() {
 onSignIn(Result result) {
 UnityPluginNetmarbleS.printChannelConnectOption(result)
 UnityPluginNetmarbleS.InitializePromotionView()
@@ -438,113 +440,113 @@ PluginsNetmarbleS.set_PlayerId(value)
 SceneTitle.OnSignIn()
 }
 }
-}
-}
-Netmarble.Session.signIn(r0) {
-r1 = new SignInListener() {
+			}
+		}
+		Netmarble.Session.signIn( r0 ) {
+			r1 = new SignInListener() {
 onSignIn(Result result) {
 r0.onSignIn(result)
 }
 }
-core/SessionImpl.signIn(r1) {
-if ( checkSessionStatus(r1, false )) {
-doSignIn(r1) {
-r2 = new Function() {
+		  core / SessionImpl.signIn( r1 ) {
+				if ( checkSessionStatus( r1, false ) ) {
+					doSignIn( r1 ) {
+						r2 = new Function() {
 invoke(Result result, JSONObject jSONObject) {
 if result.isSuccess() || result.getCode() == 65538 {
-int optInt = jSONObject.optInt("errorCode", -1); // org.json.JSONObject
-if optInt == 0 {
-JSONObject jSONObject2 = jSONObject.getJSONObject("resultData");
-String string = jSONObject2.getString(ItemKeys.ACCESS_TOKEN);
-HashMap hashMap = new HashMap(); // java.util.HashMap
-hashMap.put(AuthDataManager.KEY_GAME_TOKEN, string)
-responseOnSignIn(r1,result) {
-r1.onSignIn(result)
-}
-}
-}
-}
-}
-Utils.getAdvertisingId(applicationContext, new Utils.AdvertisingIdCallback() {
+							int optInt = jSONObject.optInt( "errorCode", -1 ); // org.json.JSONObject
+							if optInt == 0 {
+								JSONObject jSONObject2 = jSONObject.getJSONObject( "resultData" );
+								String string = jSONObject2.getString( ItemKeys.ACCESS_TOKEN );
+								HashMap hashMap = new HashMap(); // java.util.HashMap
+								hashMap.put( AuthDataManager.KEY_GAME_TOKEN, string )
+							responseOnSignIn( r1, result ) {
+									r1.onSignIn( result )
+							   }
+							}
+						}
+					}
+				}
+				Utils.getAdvertisingId( applicationContext, new Utils.AdvertisingIdCallback() {
 onReceived(str) {
 SessionNetwork.signIn(PlatformDetails.getGateWayUrl(), SessionImpl.getPlayerID(),SessionImpl.getDeviceKey(),Configuration.getGameCode(),Utils.getAndroidID(),SessionImpl.getCountryCode(),str,r2) {
 url = gateWayUrl + SERVICE_NAME + "v2" + Games.EXTRA_PLAYER_IDS + playerID + "deviceKeys" + deviceKey + ItemKeys.ACCESS_TOKEN + ? + IAPConsts.KEY_NMDEVICE_KEY"="androidID + & + "countryCode=" + countryCode + & + "adId=";
-NetworkHelper(uri, "GET", getCONVERTER_JSON_OBJECT);
-NetworkHelper.AddHeaders {
-Accept: "application/json",
-Content-Type: "application/json",
+				NetworkHelper( uri, "GET", getCONVERTER_JSON_OBJECT );
+				NetworkHelper.AddHeaders {
+				Accept: "application/json",
+Content - Type: "application/json",
 GameCode: gameCode
-}
-NetworkHelper.execute(r2);
-}
-}) {
-onReceived(new String())
-}
-}
+				}
+				NetworkHelper.execute( r2 );
+			}
+		}) {
+			onReceived( new String() )
+	 }
+	}
 }
 }
 }
 }
 }
 Utils.getAndroidID() {
-// ANDROID_ID is a user-, app-, and device-specific 64-bit number
-// expressed as a hexadecimal string
+	// ANDROID_ID is a user-, app-, and device-specific 64-bit number
+	// expressed as a hexadecimal string
 }
 SessionImpl.getCountryCode() {
-return PlatformDetails.getCountryCode(applicationContext) {
-return getSharedPreferences(context).getString("NetmarbleS.CountryCode", null) {
-// from NetmarbleS.Auth.xml
-return "US"
-}
-}
+	return PlatformDetails.getCountryCode( applicationContext ) {
+		return getSharedPreferences( context ).getString( "NetmarbleS.CountryCode", null ) {
+			// from NetmarbleS.Auth.xml
+			return "US"
+			}
+	}
 }
 PlatformDetails.getGateWayUrl() {
-return gateWayUrl = REAL_GATE_WAY_URL = "https://apis.netmarble.com";
+	return gateWayUrl = REAL_GATE_WAY_URL = "https://apis.netmarble.com";
 }
 SessionImpl.getPlayerID() {
-return checkPlayerID() {
-playerID = AuthDataManager.getPlayerID(context)
-if playerID is null or empty {
-playerID = UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ENGLISH)
-AuthDataManager.setPlayerID(playerID)
-}
-return playerID
+	return checkPlayerID() {
+		playerID = AuthDataManager.getPlayerID( context )
+	if playerID is null or empty {
+	playerID = UUID.randomUUID().toString().replace( "-", "" ).toUpperCase( Locale.ENGLISH )
+	AuthDataManager.setPlayerID( playerID )
+	}
+	return playerID
 }
 }
 SessionImpl.getDeviceKey() {
-deviceKey = AuthDataManager.getDeviceKey(context)
+	deviceKey = AuthDataManager.getDeviceKey( context )
 if deviceKey is null or empty {
-deviceKey = = UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ENGLISH);
-AuthDataManager.setDeviceKey(context,deviceKey)
+deviceKey = = UUID.randomUUID().toString().replace( "-", "" ).toUpperCase( Locale.ENGLISH );
+	AuthDataManager.setDeviceKey( context, deviceKey )
 }
 return deviceKey
 }
 Configuration.getGameCode() {
-ConfigurationImpl.getGameCode() {
-return gameCode;
-}
+	ConfigurationImpl.getGameCode() {
+		return gameCode;
+	}
 }
 SceneTitle.OnSignIn() {
-SceneTitle.RequestPermission()
+	SceneTitle.RequestPermission()
 SceneTitle.NextStepByNetmarbleSignIn()
 }
 Session.initialize() {
-ConfigurationImpl.initWithXml() {
-int identifier = applicationContext.getResources().getIdentifier("nmconfiguration", "xml", applicationContext.getPackageName());
-loadXml(applicationContext.getResources().getXml(identifier)) {
-String str = null;
-int eventType = xmlPullParser.getEventType();
-while (eventType != 1) {
-if (eventType == 2) {
-str = xmlPullParser.getName();
-} else if (eventType == 4) {
-if (true == str.equalsIgnoreCase("gameCode")) {
-this.gameCode = xmlPullParser.getText();
-}
-}
-}
-}
-}
+	ConfigurationImpl.initWithXml() {
+		int identifier = applicationContext.getResources().getIdentifier( "nmconfiguration", "xml", applicationContext.getPackageName() );
+		loadXml( applicationContext.getResources().getXml( identifier ) ) {
+			String str = null;
+			int eventType = xmlPullParser.getEventType();
+			while ( eventType != 1 ) {
+				if ( eventType == 2 ) {
+					str = xmlPullParser.getName();
+				} else if ( eventType == 4 ) {
+					if ( true == str.equalsIgnoreCase( "gameCode" ) ) {
+						this.gameCode = xmlPullParser.getText();
+					}
+				}
+			}
+		}
+	}
 }
 // in JADX/base/resources/res/xml/nmconfiguration.xml,
 // <gameCode>mherosgb</gameCode>
@@ -597,104 +599,105 @@ this.gameCode = xmlPullParser.getText();
 // base url=Https://mheroesgb.netmarble.com/NM/PreLogin?cKey=fRealtimeSinceStartup(sec)
 
 SceneTitle.PreLogin() {
-PacketTransfer.PreLogin(scene SceneTitle) {
-playerId = PluginsNetmarbleS.get_PlayerId()
-WWWForm.AddField("cID",playerId)
-dID = PluginsCommonForAndroid.GetDeviceId2()
-WWWForm.AddField("dID",dID)
-gameToken = PluginsCommonForAndroid.get_gameToken()
-WWWForm.AddField("gameToken",gameToken)
-platform = PluginsCommonForAndroid.get_platform()
-WWWForm.AddField("platform",platform)
-ver = PluginsCommonForAndroid.get_bundleVersion()
-WWWForm.AddField("ver",ver)
-lang = LocalizationModule.GetLanguageCode()
-WWWForm.AddField("lang",lang)
-country = PluginsNetmarbleS.GetCountryCode()
-WWWForm.AddField("country",country)
-ds = CommonUtil.IsDaylightSavingTime()
-WWWForm.AddField_2("ds",ds)
-ip = PluginsCommonForAndroid.get_ipAddress()
-WWWForm.AddField("client_ip",ip)
-push = PushNotification.get_allowGame()
-WWWForm.AddField_2("srvPush",push)
-WWWForm.AddField("de", SystemInfo.get_deviceModel() )
-WWWForm.AddField_2("pan",Panho.IsEnableLimit())
-WWWForm.AddField_2("pan2",Panho_isEnable())
-WWWForm.AddField("timeZone",PluginsNetmarbleS.GetTimeZone())
-url = ServerInfo.get_SslURL() + "PreLogin"
-WWWUtil.PostSSL(url,form,scene,"PreLoginOK","PreLoginFail",UseFastJson = true) {
-if url contains ? append "&"
+	PacketTransfer.PreLogin( scene SceneTitle ) {
+		playerId = PluginsNetmarbleS.get_PlayerId()
+	  WWWForm.AddField( "cID", playerId )
+	  dID = PluginsCommonForAndroid.GetDeviceId2()
+	  WWWForm.AddField( "dID", dID )
+	  gameToken = PluginsCommonForAndroid.get_gameToken()
+	  WWWForm.AddField( "gameToken", gameToken )
+	  platform = PluginsCommonForAndroid.get_platform()
+	  WWWForm.AddField( "platform", platform )
+	  ver = PluginsCommonForAndroid.get_bundleVersion()
+	  WWWForm.AddField( "ver", ver )
+	  lang = LocalizationModule.GetLanguageCode()
+	  WWWForm.AddField( "lang", lang )
+	  country = PluginsNetmarbleS.GetCountryCode()
+	  WWWForm.AddField( "country", country )
+	  ds = CommonUtil.IsDaylightSavingTime()
+	  WWWForm.AddField_2( "ds", ds )
+	  ip = PluginsCommonForAndroid.get_ipAddress()
+	  WWWForm.AddField( "client_ip", ip )
+	  push = PushNotification.get_allowGame()
+	  WWWForm.AddField_2( "srvPush", push )
+	  WWWForm.AddField( "de", SystemInfo.get_deviceModel() )
+	  WWWForm.AddField_2( "pan", Panho.IsEnableLimit() )
+	  WWWForm.AddField_2( "pan2", Panho_isEnable() )
+	  WWWForm.AddField( "timeZone", PluginsNetmarbleS.GetTimeZone() )
+	  url = ServerInfo.get_SslURL() + "PreLogin"
+	  WWWUtil.PostSSL( url, form, scene, "PreLoginOK", "PreLoginFail", UseFastJson = true ) {
+			if url contains? append "&"
 else append "?"
-append "ckey=" + Time.get_realtimeSinceStartup()
-retry=true
-islock = true
-wwwType = 2
-param = url
-isGamePacket = true
-isSequenceProcess = true
-useFastJson = true
-WWWUtil.GetRoutine_1(data) {
-// as above to GetRountine_internal_c_Iterator0.MoveNext(),
-// but with wwwType = 2, same as wwwType = 1
-}
-}
-}
+			 append "ckey=" + Time.get_realtimeSinceStartup()
+			 retry = true
+			 islock = true
+			 wwwType = 2
+			 param = url
+			 isGamePacket = true
+			 isSequenceProcess = true
+			 useFastJson = true
+			 WWWUtil.GetRoutine_1( data ) {
+				// as above to GetRountine_internal_c_Iterator0.MoveNext(),
+				// but with wwwType = 2, same as wwwType = 1
+			}
+		}
+	}
 }
 WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
 WWWUtil.UsePacketKeyFirst( param ) {
-if param is nullorempty return true
+	if param is nullorempty return true
 if param contains "GetVersion?" return false
 if param contains "GetNotice?" return false
 else return true
 }
 CrypUtil.PacketDecode( encBytes, usePacketKeyFirst ) {
-if usePacketKeyFirst {
-key = CryptUtil.get_packetKey ()
-if key is nullorempty {
-key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-}
-bin = CryptUtil.Decrypt(encBytes,key) {
-rij = new RijndaelManaged()
-rij.set_Mode(1)
-rij.set_Padding(2)
-rij.set_KeySize( key.length << 3)
-rij.set_BlockSize( 0x80 )
-keyBytes = Encoding.UTF8.GetBytes(key)
-rij.set_Key = keyBytes
-rij.set_IV = keyBytes
-decryptor = rij.CreateDecryptor()
-// ... more, but I'll defer to my previous CoreAesDecrypt code
-}
+	if usePacketKeyFirst {
+		key = CryptUtil.get_packetKey()
+	if key is nullorempty {
+	key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+	}
+	bin = CryptUtil.Decrypt( encBytes, key ) {
+		rij = new RijndaelManaged()
+	   rij.set_Mode( 1 )
+	   rij.set_Padding( 2 )
+	   rij.set_KeySize( key.length << 3 )
+	   rij.set_BlockSize( 0x80 )
+	   keyBytes = Encoding.UTF8.GetBytes( key )
+	   rij.set_Key = keyBytes
+	   rij.set_IV = keyBytes
+	   decryptor = rij.CreateDecryptor()
+	   // ... more, but I'll defer to my previous CoreAesDecrypt code
+	}
 } else {
-key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-bin = CryptUtil.Decrypt(encBytes,key)
+	key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+bin = CryptUtil.Decrypt( encBytes, key )
 if bin == null {
-key = CryptUtil.get_packetKey()
+		key = CryptUtil.get_packetKey()
 if key is nullorempty {
-return CryptUtil.ByteToString(encBytes) {
-return Encoding.UTF8.GetString(encBytes,0,encBytes.length)
+return CryptUtil.ByteToString( encBytes ) {
+			return Encoding.UTF8.GetString( encBytes, 0, encBytes.length )
+  }
+	} else {
+		bin = CryptUtil.Decrypt( encBytes, key )
+	}
 }
-} else {
-bin = CryptUtil.Decrypt(encBytes,key)
 }
-}
-}
-string = CryptUtil.Decompress(bin,bin.length) {
-decompressor = CryptUtil.get_decompressor()
-bytes = decompressor.Decompress(bin,0,bin.length)
-string = Encoding.UTF8.GetString( bytes )
-return string;
+string = CryptUtil.Decompress( bin, bin.length ) {
+	decompressor = CryptUtil.get_decompressor()
+   bytes = decompressor.Decompress( bin, 0, bin.length )
+   string = Encoding.UTF8.GetString( bytes )
+   return string;
 }
 if string is not nullorempty return string
-return CryptUtil.ByteToString(encBytes)
+return CryptUtil.ByteToString( encBytes )
 }
 PacketTransfer.GetRecommendedAllianceList() {
-param = "GetSuggestionAllianceList?" + "lang="
-WWWData data = WWWUtil.Get( param, scene, "GetRecommendedAllianceListOk", "", islock = true, option= 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, usefastjson = false, forcenotsequence = false, disableprogressui = false)
+	param = "GetSuggestionAllianceList?" + "lang="
+WWWData data = WWWUtil.Get( param, scene, "GetRecommendedAllianceListOk", "", islock = true, option = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, usefastjson = false, forcenotsequence = false, disableprogressui = false )
 }
-PacketTransfer.PreLoginOK(result) {
+PacketTransfer.PreLoginOK( result ) {
 
+}
 }
 
 // PacketTransfer**PreLogin: WWWUtil**PostSSL
@@ -714,14 +717,14 @@ PacketTransfer.PreLoginOK(result) {
 // Maybe: - SceneTitle**Login_c**Iterator1**MoveNext (maybe from SceneTitle::Login)
 // - DBTable**LoadDB
 // - Various DBTable**get\_\*Table
-// - TableUtility**Load*\**
+// - TableUtility**Load\*\*\*
 // - TableUtility**GetAssetPath (by type)
 // - TableUtility**GetPathWithoutExtension + “.asset”
 // - Which seems to dynamically determine loader to call, <type>$$LoadCSV
 
-/**************************\***************************
+/************\*\*************\*************\*\*************
 // Eventual goal: parse supplied text assets to CSV
-// **************************\***************************/
+// ************\*\*************\*************\*\*************/
 
 // ISO8Set**LoadCSV() -->
 // CSVLoader**Load(,,text/data/ISO8*SET.csv,) -->

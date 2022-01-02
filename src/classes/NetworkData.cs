@@ -50,7 +50,7 @@ namespace Mffer {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
-		double uptime = 0;
+		float uptime = 0;
 		bool PreLoginInProgress = false;
 		string PacketKey = null;
 		string CID = null;
@@ -164,8 +164,11 @@ namespace Mffer {
 			byte[] responseBytes = data.Content.ReadAsByteArrayAsync().Result;
 			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
 			string text = ResponseDecompress( decryptedBytes );
-			throw new NotImplementedException();
 			// data.AddHash( "country", "all" );
+			int lastBrace = text.LastIndexOf( '}' );
+			text = text.Substring( 0, lastBrace + 1 );
+			JsonDocument result = JsonDocument.Parse( text );
+			throw new NotImplementedException();
 		}
 		/// <summary>
 		/// Obtains network data via HTTP(S)
@@ -177,17 +180,11 @@ namespace Mffer {
 		HttpResponseMessage GetWwwData( string parameter ) {
 			HttpRequestMessage request = new HttpRequestMessage();
 			string Parameter = parameter;
-			string Url = parameter;
-			bool isGamePacket = false;
-			bool isSequenceProcess = false;
-			bool isEncoded = false;
 			if ( !parameter.StartsWith( "http" ) ) {
 				Parameter = AddDefaultPacketParameter( Parameter );
-				isGamePacket = true;
-				isSequenceProcess = true;
-				isEncoded = true;
 				string key = GetPacketKey();
-				if ( String.IsNullOrEmpty( key ) ) key = GetAesKey() + GetAesKey();
+				if ( String.IsNullOrEmpty( key ) )
+					key = GetAesKey() + GetAesKey();
 				byte[] parameterBytes = Encoding.UTF8.GetBytes( Parameter );
 				byte[] encryptedParameter = AesEncrypt( parameterBytes, key, true );
 				byte[] header = MakeWwwHeader( SessionID, encryptedParameter.Length );
@@ -196,7 +193,6 @@ namespace Mffer {
 				Array.Copy( encryptedParameter, 0, contents, header.Length, encryptedParameter.Length );
 				// Using the BestHTTP plugin (https://github.com/magento-hackathon/DashboardVR/blob/b4623ec42af062cf7f40d55e3ce331eba0d3b920/VR/UnityProject/Assets/Plugins/Best%20HTTP%20(Pro)/BestHTTP/Forms/Implementations/HTTPMultiPartForm.cs) to prepare the form
 				ByteArrayContent binaryContent = new ByteArrayContent( contents );
-				binaryContent.Headers.Add( "Content-Type", "application/octet-stream" );
 				MultipartFormDataContent form = new MultipartFormDataContent();
 				form.Add( binaryContent, "bin", "bin" );
 				request.Method = HttpMethod.Post;
@@ -225,7 +221,7 @@ namespace Mffer {
 				parameterBuilder.Append( '?' );
 			parameterBuilder.Append( "uID=" );
 			parameterBuilder.Append( GetUserId() );
-			parameterBuilder.Append( "cKey=" + GetUptime() );
+			parameterBuilder.Append( "&cKey=" + GetUptime() );
 			// more appears to be done if the service is Tencent, but not global
 			return parameterBuilder.ToString();
 		}
@@ -238,6 +234,7 @@ namespace Mffer {
 		byte[] MakeWwwHeader( string sessionId, int size ) {
 			if ( String.IsNullOrEmpty( sessionId ) ) sessionId = "0000000000000000000000";
 			byte[] sizeBytes = BitConverter.GetBytes( size );
+			if ( BitConverter.IsLittleEndian ) Array.Reverse( sizeBytes );
 			byte[] sessionBytes = Encoding.ASCII.GetBytes( sessionId );
 			byte[] headerBytes = new byte[sessionBytes.Length + 5];
 			headerBytes[0] = 0xff;
@@ -305,9 +302,9 @@ namespace Mffer {
 			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, url );
 			Dictionary<string, string> formData = new Dictionary<string, string>();
 
+			formData.Add( "gameToken", GetGameToken() );
 			formData.Add( "cID", GetCID() );
 			formData.Add( "dID", GetDeviceId() );
-			formData.Add( "gameToken", GetGameToken() );
 			formData.Add( "platform", "android" );
 			formData.Add( "ver", BundleVersion );
 			formData.Add( "lang", "en" );
@@ -368,7 +365,7 @@ namespace Mffer {
 		}
 		string GetDeviceId() {
 			if ( String.IsNullOrEmpty( DeviceId ) ) {
-				string part1 = "0,0,0" + GetDeviceModel();
+				string part1 = "0,0," + GetAndroidId();
 				string part2 = GetDeviceKey() + GetDeviceModel();
 				DeviceId = GetMD5( part1 ) + "-" + GetMD5( part2 );
 			}
@@ -441,7 +438,7 @@ namespace Mffer {
 		}
 		string GetIP() {
 			if ( String.IsNullOrEmpty( IP ) )
-				IP = "216.143.116.194";
+				IP = "10.0.2.16";
 			return IP;
 		}
 		byte[] ResponseDecrypt( byte[] encryptedBytes ) {
@@ -525,7 +522,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns>a string representation of a double floating point number</returns>
 		string GetUptime() {
-			uptime = uptime + Rng.NextDouble() * 37;
+			uptime = uptime + (Single)( Rng.NextDouble() ) * 37;
 			return uptime.ToString();
 		}
 		/// <summary>
