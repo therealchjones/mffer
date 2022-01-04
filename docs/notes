@@ -691,11 +691,17 @@ string = CryptUtil.Decompress( bin, bin.length ) {
 if string is not nullorempty return string
 return CryptUtil.ByteToString( encBytes )
 }
-PacketTransfer.GetRecommendedAllianceList() {
+PacketTransfer.GetRecommendAllianceList() {
 	param = "GetSuggestionAllianceList?" + "lang="
-WWWData data = WWWUtil.Get( param, scene, "GetRecommendedAllianceListOk", "", islock = true, option = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, usefastjson = false, forcenotsequence = false, disableprogressui = false )
+	WWWData data = WWWUtil.Get( param, scene, "GetRecommendedAllianceListOk", "", islock = true, option = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, usefastjson = false, forcenotsequence = false, disableprogressui = false )
+}
+PacketTransfer.GetRecommendAllianceListOk() {
+	key = "sgs"
+	if data.hash["country"] is not nullorempty key = "sgl"
+	if data.hash["country"] == "all" key = "sgs"
 }
 PacketTransfer.PreLoginOK( result ) {
+
 
 }
 }
