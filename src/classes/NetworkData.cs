@@ -79,7 +79,6 @@ namespace Mffer {
 		/// </remarks>
 		public override void Load() {
 			base.Load();
-			FindAlliances();
 		}
 		/// <summary>
 		/// Reports whether the <see cref="NetworkData"/> has already been
@@ -160,15 +159,85 @@ namespace Mffer {
 		/// </remarks>
 		public void FindAlliances() {
 			const string param = "GetSuggestionAllianceList?lang=";
-			HttpResponseMessage data = GetWwwData( param );
-			byte[] responseBytes = data.Content.ReadAsByteArrayAsync().Result;
+			HashSet<string> checkedAlliances = new HashSet<string>();
+			HashSet<string> prospectiveAlliances = new HashSet<string>();
+			JsonDocument result;
+			JsonElement alliances;
+			for ( int i = 0; i < 10000; i++ ) {
+				result = GetWww( param );
+				if ( result == null ) continue;
+				alliances = result.RootElement.GetProperty( "desc" ).GetProperty( "sgs" );
+				foreach ( JsonElement alliance in alliances.EnumerateArray() ) {
+					string encodedName = alliance.GetProperty( "gname" ).GetString();
+					if ( checkedAlliances.Contains( encodedName ) ) continue;
+					checkedAlliances.Add( encodedName );
+					int level = alliance.GetProperty( "glv" ).GetInt32();
+					if ( alliance.GetProperty( "wExp" ).GetInt32() == 0 &&
+						alliance.GetProperty( "autoJoinYN" ).GetInt32() == 1 &&
+						level >= 30 ) {
+						string name = Encoding.UTF8.GetString( Convert.FromBase64String( encodedName ) );
+						int shopLevel = alliance.GetProperty( "sLv" ).GetInt32();
+						int reqLevel = alliance.GetProperty( "lvt" ).GetInt32();
+						prospectiveAlliances.Add( $"{name}: level {level}, shop level {shopLevel}, required level {reqLevel}" );
+					}
+				}
+			}
+		}
+		/// <summary>
+		/// Determines whether an alliance has no logins for two weeks
+		/// </summary>
+		/// <param name="allianceName">Name of the alliance to check</param>
+		/// <returns>False if any of the members of the alliance have logged in
+		/// within two weeks, true otherwise</returns>
+		bool CanBeCaptured( string allianceName ) {
+			JsonElement members = GetAllianceMembers( allianceName );
+			DateTimeOffset now = new DateTimeOffset( DateTime.Now );
+			TimeSpan span = new TimeSpan( 14, 0, 0, 0 );
+			foreach ( JsonElement member in members.EnumerateArray() ) {
+				DateTimeOffset lastLogin = DateTimeOffset.FromUnixTimeSeconds( member.GetProperty( "llTime" ).GetInt64() );
+				if ( now - lastLogin < span ) {
+					return false;
+				}
+			}
+			return true;
+		}
+		JsonElement GetAllianceMembers( string allianceName ) {
+			string param = "SearchAlliance?guildName="
+				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
+			JsonDocument result = GetWww( param );
+			long allianceId = result.RootElement.GetProperty( "desc" ).GetProperty( "pgld" ).GetProperty( "guID" ).GetInt64();
+			param = "ViewAllianceInfo?guID=" + allianceId.ToString();
+			result = GetWww( param );
+			return result.RootElement.GetProperty( "desc" ).GetProperty( "mems" );
+		}
+		JsonDocument GetWww( string param ) {
+			HttpRequestMessage request = GetWwwRequest( param );
+			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
 			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
 			string text = ResponseDecompress( decryptedBytes );
-			// data.AddHash( "country", "all" );
+			return FixJson( text );
+		}
+		/// <summary>
+		/// Trims illegal characters from the end of a JSON string until
+		/// parseable, then parses the JSON
+		/// </summary>
+		/// <param name="text">JSON-formatted string</param>
+		/// <returns>JsonDocument object, discarding extraneous data after the
+		/// last <c>}</c></returns>
+		JsonDocument FixJson( string text ) {
 			int lastBrace = text.LastIndexOf( '}' );
-			text = text.Substring( 0, lastBrace + 1 );
-			JsonDocument result = JsonDocument.Parse( text );
-			throw new NotImplementedException();
+			JsonDocument result;
+			while ( lastBrace < text.Length - 1 && lastBrace > -1 ) {
+				text = text.Substring( 0, lastBrace + 1 );
+				try {
+					result = JsonDocument.Parse( text );
+					return result;
+				} catch ( System.Text.Json.JsonException ) {
+					text = text.Substring( 0, text.Length - 1 );
+					lastBrace = text.LastIndexOf( '}' );
+				}
+			}
+			return null;
 		}
 		/// <summary>
 		/// Obtains network data via HTTP(S)
@@ -177,24 +246,10 @@ namespace Mffer {
 		/// Reimplimentation and simplification of WWWUtil.Get(),
 		/// WWWUtil.GetRountine(), and affiliated methods
 		/// </remarks>
-		HttpResponseMessage GetWwwData( string parameter ) {
+		HttpRequestMessage GetWwwRequest( string parameter ) {
 			HttpRequestMessage request = new HttpRequestMessage();
-			string Parameter = parameter;
 			if ( !parameter.StartsWith( "http" ) ) {
-				Parameter = AddDefaultPacketParameter( Parameter );
-				string key = GetPacketKey();
-				if ( String.IsNullOrEmpty( key ) )
-					key = GetAesKey() + GetAesKey();
-				byte[] parameterBytes = Encoding.UTF8.GetBytes( Parameter );
-				byte[] encryptedParameter = AesEncrypt( parameterBytes, key, true );
-				byte[] header = MakeWwwHeader( SessionID, encryptedParameter.Length );
-				byte[] contents = new byte[header.Length + encryptedParameter.Length];
-				Array.Copy( header, contents, header.Length );
-				Array.Copy( encryptedParameter, 0, contents, header.Length, encryptedParameter.Length );
-				// Using the BestHTTP plugin (https://github.com/magento-hackathon/DashboardVR/blob/b4623ec42af062cf7f40d55e3ce331eba0d3b920/VR/UnityProject/Assets/Plugins/Best%20HTTP%20(Pro)/BestHTTP/Forms/Implementations/HTTPMultiPartForm.cs) to prepare the form
-				ByteArrayContent binaryContent = new ByteArrayContent( contents );
-				MultipartFormDataContent form = new MultipartFormDataContent();
-				form.Add( binaryContent, "bin", "bin" );
+				HttpContent form = BuildRequestContent( parameter );
 				request.Method = HttpMethod.Post;
 				request.RequestUri = new Uri( GetServerUrl() + "FF" );
 				request.Content = form;
@@ -202,8 +257,25 @@ namespace Mffer {
 			// many other settings for data fields/properties within WWWUtil.Get(), dunno what's useful
 			// (essentially all the properties defined in game's WWWData)
 			//MyData.RestoreAllPreviousData();
-			HttpResponseMessage response = Www.Send( request );
-			return response;
+
+			return request;
+		}
+		HttpContent BuildRequestContent( string param ) {
+			string completeParam = AddDefaultPacketParameter( param );
+			string key = GetPacketKey();
+			if ( String.IsNullOrEmpty( key ) )
+				key = GetAesKey() + GetAesKey();
+			byte[] parameterBytes = Encoding.UTF8.GetBytes( completeParam );
+			byte[] encryptedParameter = AesEncrypt( parameterBytes, key, true );
+			byte[] header = MakeWwwHeader( SessionID, encryptedParameter.Length );
+			byte[] contents = new byte[header.Length + encryptedParameter.Length];
+			Array.Copy( header, contents, header.Length );
+			Array.Copy( encryptedParameter, 0, contents, header.Length, encryptedParameter.Length );
+			// Using the BestHTTP plugin (https://github.com/magento-hackathon/DashboardVR/blob/b4623ec42af062cf7f40d55e3ce331eba0d3b920/VR/UnityProject/Assets/Plugins/Best%20HTTP%20(Pro)/BestHTTP/Forms/Implementations/HTTPMultiPartForm.cs) to prepare the form
+			ByteArrayContent binaryContent = new ByteArrayContent( contents );
+			MultipartFormDataContent form = new MultipartFormDataContent();
+			form.Add( binaryContent, "bin", "bin" );
+			return form;
 		}
 		/// <summary>
 		/// Adds common parameters to web requests
@@ -299,9 +371,7 @@ namespace Mffer {
 				url += '?';
 			}
 			url += "cKey=" + GetUptime();
-			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, url );
 			Dictionary<string, string> formData = new Dictionary<string, string>();
-
 			formData.Add( "gameToken", GetGameToken() );
 			formData.Add( "cID", GetCID() );
 			formData.Add( "dID", GetDeviceId() );
@@ -316,17 +386,17 @@ namespace Mffer {
 			formData.Add( "pan", "0" );
 			formData.Add( "pan2", "1" );
 			formData.Add( "timeZone", GetTimeZone() );
-
 			FormUrlEncodedContent form = new FormUrlEncodedContent( formData );
-			request.Content = form;
-			HttpResponseMessage response = Www.Send( request );
-			byte[] responseBytes = response.Content.ReadAsByteArrayAsync().Result;
-			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
-			string text = ResponseDecompress( decryptedBytes );
-			int lastBrace = text.LastIndexOf( '}' );
-			text = text.Substring( 0, lastBrace + 1 );
-			JsonDocument result = JsonDocument.Parse( text );
-
+			JsonDocument result = null;
+			while ( result == null ) {
+				HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, url );
+				request.Content = form;
+				HttpResponseMessage response = Www.Send( request );
+				byte[] responseBytes = response.Content.ReadAsByteArrayAsync().Result;
+				byte[] decryptedBytes = ResponseDecrypt( responseBytes );
+				string text = ResponseDecompress( decryptedBytes );
+				result = FixJson( text );
+			}
 			UserID = result.RootElement.GetProperty( "desc" ).GetProperty( "uID" ).GetUInt64().ToString();
 			CID = result.RootElement.GetProperty( "desc" ).GetProperty( "cID" ).GetString();
 			string cIDEnd = CID.Substring( CID.Length - 8 );
