@@ -618,7 +618,7 @@ in the code itself.
 
 ## Building `mffer`
 
-1. `autoextract` is a shell script and requires no building.
+1. `autoextract` and `autoinstall` are shell scripts and require no building.
 2. Building the dotnet app: from within the root `mffer` directory,
     ```shell
     $ dotnet build mffer.csproj
@@ -673,7 +673,7 @@ included).
 Manual testing of [releases](#building-a-release) is currently done within
 virtual machines that have simple configurations and a minimum of installed
 software. Testing is simply ensuring the programs run as expected; output files
-are not strictly compared due to minor variations. Interactive testing is
+are not strictly compared due to expected minor variations. Interactive testing is
 currently used rather than automated testing partly due to the need for user
 interaction in [`autoextract`](autoextract.md).
 
@@ -686,7 +686,7 @@ reference system, resulting in a testing checklist such as:
 ```
 ## `autoextract`
 - [ ] windows
-- [x] ~macOS~ (`autoextract` does not work in Parallels macOS VM, works as expected on development machine)
+- [ ] macOS
 - [ ] linux
 
 ## `autoanalyze`
@@ -722,36 +722,32 @@ macOS.
 
 Where possible, reference systems are defined programatically by building
 "headless" Parallels Desktop virtual machines and interacting with them via the
-command line and scripts rather than instructions for user interaction. Further
-information on using the command line to build and interact with Paralells
-Desktop is available
+command line and scripts rather than instructions for user interaction. (This
+remains a work in progress.) Further information on using the command line to
+build and interact with Paralells Desktop is available
 [on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
 the latest version should be available
 [here](https://www.parallels.com/products/desktop/resources/).
 
 ##### macOS/OS X
 
-(Of note, due to software limitations, [`autoextract`](autoextract.md) is not
-tested on a reference macOS system. Specifically, Parallels Desktop does not
-appear to support running the Android emulators for `autoextract` within a macOS
-Monterey virtual machine on a macOS Monterey host. `autoextract` is separately
-tested on a macOS development machine.)
+1. Install the latest version of macOS on a Parallels virtual machine:
 
 ```shell
-softwareupdate --fetch-full-installer --full-installer-version 12.0.1 && \
+softwareupdate --fetch-full-installer --full-installer-version 12.1 && \
 hdiutil create -o "macOS Installer" -size 16g -layout SPUD -fs HFS+J && \
 hdiutil attach "macOS Installer".dmg -noverify -mountpoint "/Volumes/macOS Installer" -nobrowse && \
 sudo "/Applications/Install macOS Monterey.app/Contents/Resources/createinstallmedia" --volume "/Volumes/macOS Installer" --nointeraction && \
 hdiutil detach "/Volumes/Install macOS Monterey" && \
-prlctl create "Headless" -o macos && \
-prlctl set "Headless" --cpus auto --memsize auto \
+prlctl create "macOS" -o macos && \
+prlctl set "macOS" --cpus auto --memsize auto \
 	--auto-share-camera off \
 	--nested-virt on \
 	--smart-mount off --shared-cloud off \
 	--sh-app-guest-to-host off \
 	--sh-app-host-to-guest off && \
-prlctl set "Headless" --device-set "cdrom0" --image "macOS Installer.dmg" --connect && \
-prlctl start "Headless"
+prlctl set "macOS" --device-set "cdrom0" --image "macOS Installer.dmg" --connect && \
+prlctl start "macOS"
 ```
 
 After booting and when prompted, set language, then open
@@ -764,24 +760,17 @@ After booting and when prompted, set language, then open
 
 After the VM restarts and completes installation, set up as prompted, including
 addition of a user and password, skipping or accepting defaults for other
-settings when prompted. (Maybe also do stuff with Terminal via CMD-OPT-CTRL-T.)
-Uncheck "Enable Ask Siri" when prompted.
+settings when prompted. Uncheck "Enable Ask Siri" when prompted.
 
-1. Install macOS Monterey & apply all available updates
-2. Install Parallels Tools
-3. Test `mffer`
-4. Install
+1. Test `mffer`
+2. Install
    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
-5. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
-6. Install Xcode command line development tools (by trying to run `git` from
+3. Test `autoextract`
+4. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
+5. Install Xcode command line development tools (e.g., by trying to run `git` from
    the command line)
-7. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
-8. Test `autoanalyze`
-
-```shell
-softwareupdate --fetch-full-installer --full-installer-version 12.0.1 \
-&&
-```
+6. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
+7. Test `autoanalyze`
 
 ##### Linux
 
