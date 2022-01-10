@@ -28,7 +28,8 @@ namespace Mffer {
 	public class GameObject {
 		/// <summary>
 		/// Gets or sets the value of the object, which may be a string,
-		/// array, or object
+		/// array, dictionary of <see cref="GameObject"/>s indexed by strings,
+		/// or null
 		/// </summary>
 		public virtual dynamic Value {
 			get {

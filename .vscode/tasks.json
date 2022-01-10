@@ -9,7 +9,7 @@
 				"build",
 				"${workspaceFolder}/mffer.csproj",
 				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
+				"/consoleloggerparameters:NoSummary;ShowTimestamp"
 			],
 			"problemMatcher": "$msCompile",
 			"group": {

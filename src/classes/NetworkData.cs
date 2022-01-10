@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -43,14 +44,14 @@ namespace Mffer {
 		const string GateWayUrl = "https://apis.netmarble.com";
 		// Obtained in libil2cpp.so vi PluginsNetmarbleS.GetTimeZone()
 		const string TimeZone = "+1:00";
-		HttpClient Www = new HttpClient();
-		Random Rng = new Random();
+		readonly HttpClient Www = new HttpClient();
+		readonly Random Rng = new Random();
 		JsonDocument ServerInfo = null;
-		JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
+		readonly JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
-		float uptime = 0;
+		float Uptime = 0;
 		bool PreLoginInProgress = false;
 		string PacketKey = null;
 		string CID = null;
@@ -79,6 +80,47 @@ namespace Mffer {
 		/// </remarks>
 		public override void Load() {
 			base.Load();
+			List<Alliance> alliancesToCheck = new List<Alliance> {
+				"81",
+				"모여라쉴드",
+				"Cikarang SGC",
+				"꽁쓰 Family",
+				"unit",
+				"겨울아이",
+				"퓨처원더러",
+				"台灣神盾局",
+				"Pinoy 2600"
+			};
+			List<Alliance> prospectiveAlliances = CheckProspectiveAlliances( alliancesToCheck );
+			if ( prospectiveAlliances.Count == 0 ) {
+				Console.WriteLine( "Known alliances are active. Searching for new inactive alliances." );
+				Dictionary<Alliance, string> newInactiveAlliances = FindInactiveAlliances( 100000 );
+				throw new NotImplementedException();
+			}
+		}
+		List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
+			List<Alliance> newList = new List<Alliance>();
+			DateTimeOffset now = DateTimeOffset.Now;
+			TimeSpan sinceLastCheck;
+			foreach ( Alliance alliance in alliances ) {
+				if ( alliance.LastUpdateTime != null
+					&& alliance.LastUpdateTime != default ) {
+					sinceLastCheck = now - alliance.LastUpdateTime;
+				} else {
+					sinceLastCheck = now - now;
+				}
+				UpdateAlliance( alliance );
+				if ( alliance.WeeklyExperience != 0 )
+					continue;
+				if ( alliance.LastLoginTime == null
+					|| alliance.LastLoginTime == default
+					|| now - alliance.LastLoginTime > sinceLastCheck )
+					newList.Add( alliance );
+			}
+			return newList;
+		}
+		void UpdateAlliance( Alliance alliance ) {
+
 		}
 		/// <summary>
 		/// Reports whether the <see cref="NetworkData"/> has already been
@@ -87,7 +129,7 @@ namespace Mffer {
 		/// <returns><c>true</c> if the <see cref="NetworkData"/> contains
 		/// any data, <c>false</c> otherwise</returns>
 		public override bool IsLoaded() {
-			return ServerInfo != null;
+			return false;
 		}
 		/// <summary>
 		/// Obtains data about the NetMarble servers
@@ -149,7 +191,6 @@ namespace Mffer {
 		string GetServerUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr" ).GetString();
 		}
-
 		/// <summary>
 		/// Find available alliances
 		/// </summary>
@@ -157,58 +198,119 @@ namespace Mffer {
 		/// Rework/reimplementation of PacketTransfer.GetRecommendedAllianceList()
 		/// and PacketTransfer.GetRecommendedAllianceListOk()
 		/// </remarks>
-		public void FindAlliances() {
+		Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
 			const string param = "GetSuggestionAllianceList?lang=";
-			HashSet<string> checkedAlliances = new HashSet<string>();
-			HashSet<string> prospectiveAlliances = new HashSet<string>();
-			JsonDocument result;
+			int pulledAlliances = 0;
+			HashSet<string> checkedAllianceNames = new HashSet<string>();
+			Dictionary<Alliance, string> prospectiveAlliances = new Dictionary<Alliance, string>();
+			Dictionary<Alliance, string> qualifyingAlliances = new Dictionary<Alliance, string>();
 			JsonElement alliances;
-			for ( int i = 0; i < 10000; i++ ) {
-				result = GetWww( param );
-				if ( result == null ) continue;
-				alliances = result.RootElement.GetProperty( "desc" ).GetProperty( "sgs" );
-				foreach ( JsonElement alliance in alliances.EnumerateArray() ) {
-					string encodedName = alliance.GetProperty( "gname" ).GetString();
-					if ( checkedAlliances.Contains( encodedName ) ) continue;
-					checkedAlliances.Add( encodedName );
-					int level = alliance.GetProperty( "glv" ).GetInt32();
-					if ( alliance.GetProperty( "wExp" ).GetInt32() == 0 &&
-						alliance.GetProperty( "autoJoinYN" ).GetInt32() == 1 &&
-						level >= 30 ) {
-						string name = Encoding.UTF8.GetString( Convert.FromBase64String( encodedName ) );
-						int shopLevel = alliance.GetProperty( "sLv" ).GetInt32();
-						int reqLevel = alliance.GetProperty( "lvt" ).GetInt32();
-						prospectiveAlliances.Add( $"{name}: level {level}, shop level {shopLevel}, required level {reqLevel}" );
-					}
+			JsonElement desc, gname, wExp, autoJoinYN;
+			JsonElement level, shopLevel, requiredLevel;
+			string encodedName, name, description;
+			int j = 0;
+			double allianceDaysInactive = 0, maxDaysInactive = 0;
+			while ( pulledAlliances < alliancesToCheck ) {
+				using ( JsonDocument result = GetWww( param ) ) {
+					if ( result == null
+						|| !result.RootElement.TryGetProperty( "desc", out desc )
+						|| !desc.TryGetProperty( "sgs", out JsonElement jsonElement )
+						|| jsonElement.ValueKind != JsonValueKind.Array )
+						continue;
+					alliances = jsonElement.Clone();
+				}
+				foreach ( JsonElement allianceJson in alliances.EnumerateArray() ) {
+					if ( !allianceJson.TryGetProperty( "gname", out gname )
+						|| gname.ValueKind != JsonValueKind.String )
+						continue;
+					encodedName = gname.GetString();
+					pulledAlliances++;
+					if ( String.IsNullOrEmpty( encodedName )
+						|| checkedAllianceNames.Contains( encodedName )
+						|| !allianceJson.TryGetProperty( "wExp", out wExp )
+						|| wExp.ValueKind != JsonValueKind.Number
+						|| !allianceJson.TryGetProperty( "autoJoinYN", out autoJoinYN )
+						|| autoJoinYN.ValueKind != JsonValueKind.Number )
+						continue;
+					checkedAllianceNames.Add( encodedName );
+					if ( wExp.GetInt32() != 0
+						|| autoJoinYN.GetInt32() != 1 )
+						continue;
+					if ( !allianceJson.TryGetProperty( "glv", out level )
+						|| level.ValueKind != JsonValueKind.Number
+						|| !allianceJson.TryGetProperty( "sLv", out shopLevel )
+						|| shopLevel.ValueKind != JsonValueKind.Number
+						|| !allianceJson.TryGetProperty( "lvt", out requiredLevel )
+						|| shopLevel.ValueKind != JsonValueKind.Number )
+						continue;
+					name = Encoding.UTF8.GetString( Convert.FromBase64String( encodedName ) );
+					Alliance alliance = new Alliance( name );
+					allianceDaysInactive = alliance.DaysInactive;
+					description = $"level {level.GetInt32()}, shop level {shopLevel.GetInt32()}, required level {requiredLevel.GetInt32()}, {allianceDaysInactive} days without activity";
+					prospectiveAlliances.Add( alliance, description );
+					if ( allianceDaysInactive > maxDaysInactive ) maxDaysInactive = allianceDaysInactive;
+					if ( allianceDaysInactive > daysInactive ) qualifyingAlliances.Add( alliance, description );
+				}
+				if ( ++j == 100 ) {
+					j = 0;
+					Console.WriteLine( $"Requested {pulledAlliances} alliances." );
+					Console.WriteLine( $"Checked {checkedAllianceNames.Count} unique alliances." );
+					Console.WriteLine( $"Found {prospectiveAlliances.Count} public alliances without activity." );
+					Console.WriteLine( $"Identified {qualifyingAlliances.Count} alliances to take over." );
+					Console.WriteLine( $"Maximum days inactive in prospective alliances: {maxDaysInactive}" );
 				}
 			}
+			return qualifyingAlliances;
+		}
+		Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck ) {
+			return FindInactiveAlliances( alliancesToCheck, 14 );
+		}
+		Dictionary<Alliance, string> FindInactiveAlliances() {
+			return FindInactiveAlliances( 100000, 14 );
+		}
+		List<Alliance> FindProspectiveAlliances() {
+			return FindInactiveAlliances( 1000000, 0 ).Keys.ToList();
 		}
 		/// <summary>
-		/// Determines whether an alliance has no logins for two weeks
+		/// Determines whether an alliance has had no logins for two weeks
 		/// </summary>
-		/// <param name="allianceName">Name of the alliance to check</param>
+		/// <param name="alliance">Alliance to check</param>
 		/// <returns>False if any of the members of the alliance have logged in
 		/// within two weeks, true otherwise</returns>
-		bool CanBeCaptured( string allianceName ) {
-			JsonElement members = GetAllianceMembers( allianceName );
-			DateTimeOffset now = new DateTimeOffset( DateTime.Now );
-			TimeSpan span = new TimeSpan( 14, 0, 0, 0 );
-			foreach ( JsonElement member in members.EnumerateArray() ) {
-				DateTimeOffset lastLogin = DateTimeOffset.FromUnixTimeSeconds( member.GetProperty( "llTime" ).GetInt64() );
-				if ( now - lastLogin < span ) {
-					return false;
-				}
-			}
-			return true;
+		bool CanBeCaptured( Alliance alliance ) {
+			if ( alliance.DaysInactive > 14 ) return true;
+			else return false;
 		}
-		JsonElement GetAllianceMembers( string allianceName ) {
+		List<Alliance> GetInactiveAlliances( List<Alliance> alliances, int daysInactive = 1 ) {
+			List<Alliance> inactiveAlliances = new List<Alliance>();
+			foreach ( Alliance alliance in alliances ) {
+				if ( alliance.DaysInactive > daysInactive )
+					inactiveAlliances.Add( alliance );
+			}
+			return inactiveAlliances;
+		}
+		Alliance FindAlliance( string allianceName ) {
 			string param = "SearchAlliance?guildName="
 				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
-			JsonDocument result = GetWww( param );
-			long allianceId = result.RootElement.GetProperty( "desc" ).GetProperty( "pgld" ).GetProperty( "guID" ).GetInt64();
-			param = "ViewAllianceInfo?guID=" + allianceId.ToString();
-			result = GetWww( param );
-			return result.RootElement.GetProperty( "desc" ).GetProperty( "mems" );
+			Alliance alliance = new Alliance( allianceName );
+			using ( JsonDocument result = GetWww( param ) ) {
+				alliance.Load( result.RootElement );
+			}
+			return alliance;
+		}
+		void GetAllianceMembers( Alliance alliance ) {
+			if ( alliance.Id == default ) {
+				if ( String.IsNullOrEmpty( alliance.Name ) ) {
+					throw new ArgumentException( "Neither alliance name nor alliance ID are given", "alliance" );
+				}
+				alliance = FindAlliance( alliance.Name );
+			}
+			string param = "ViewAllianceInfo?guID=" + alliance.Id.ToString();
+			using ( JsonDocument result = GetWww( param ) ) {
+				if ( result != null ) {
+					alliance.Load( result.RootElement );
+				}
+			}
 		}
 		JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
@@ -217,6 +319,7 @@ namespace Mffer {
 			string text = ResponseDecompress( decryptedBytes );
 			return FixJson( text );
 		}
+
 		/// <summary>
 		/// Trims illegal characters from the end of a JSON string until
 		/// parseable, then parses the JSON
@@ -226,18 +329,22 @@ namespace Mffer {
 		/// last <c>}</c></returns>
 		JsonDocument FixJson( string text ) {
 			int lastBrace = text.LastIndexOf( '}' );
-			JsonDocument result;
-			while ( lastBrace < text.Length - 1 && lastBrace > -1 ) {
+			JsonDocument result = null;
+			while ( lastBrace > -1 ) {
 				text = text.Substring( 0, lastBrace + 1 );
 				try {
 					result = JsonDocument.Parse( text );
-					return result;
+					break;
 				} catch ( System.Text.Json.JsonException ) {
 					text = text.Substring( 0, text.Length - 1 );
 					lastBrace = text.LastIndexOf( '}' );
 				}
 			}
-			return null;
+			if ( lastBrace > -1 ) return result;
+			else {
+				result.Dispose();
+				return null;
+			}
 		}
 		/// <summary>
 		/// Obtains network data via HTTP(S)
@@ -387,20 +494,28 @@ namespace Mffer {
 			formData.Add( "pan2", "1" );
 			formData.Add( "timeZone", GetTimeZone() );
 			FormUrlEncodedContent form = new FormUrlEncodedContent( formData );
-			JsonDocument result = null;
-			while ( result == null ) {
+			JsonElement desc = new JsonElement();
+			int i = 0;
+			while ( i++ < 100 ) {
 				HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Post, url );
 				request.Content = form;
 				HttpResponseMessage response = Www.Send( request );
 				byte[] responseBytes = response.Content.ReadAsByteArrayAsync().Result;
 				byte[] decryptedBytes = ResponseDecrypt( responseBytes );
 				string text = ResponseDecompress( decryptedBytes );
-				result = FixJson( text );
+				using ( JsonDocument result = FixJson( text ) ) {
+					if ( result != null
+						&& result.RootElement.TryGetProperty( "desc", out JsonElement jsonElement ) ) {
+						desc = jsonElement.Clone();
+						break;
+					}
+				}
 			}
-			UserID = result.RootElement.GetProperty( "desc" ).GetProperty( "uID" ).GetUInt64().ToString();
-			CID = result.RootElement.GetProperty( "desc" ).GetProperty( "cID" ).GetString();
+
+			UserID = desc.GetProperty( "uID" ).GetUInt64().ToString();
+			CID = desc.GetProperty( "cID" ).GetString();
 			string cIDEnd = CID.Substring( CID.Length - 8 );
-			SessionID = result.RootElement.GetProperty( "desc" ).GetProperty( "sessID" ).GetString();
+			SessionID = desc.GetProperty( "sessID" ).GetString();
 			string sessionIDEnd = null;
 			if ( SessionID.Length > 25 ) {
 				sessionIDEnd = SessionID.Substring( SessionID.Length - 8 );
@@ -408,7 +523,7 @@ namespace Mffer {
 			}
 			if ( !String.IsNullOrEmpty( sessionIDEnd ) && !String.IsNullOrEmpty( cIDEnd ) )
 				SetPacketKey( sessionIDEnd + cIDEnd );
-			SetTextKey( result.RootElement.GetProperty( "desc" ).GetProperty( "tek" ).GetString() );
+			SetTextKey( desc.GetProperty( "tek" ).GetString() );
 			PreLoginInProgress = false;
 		}
 		/// <summary>
@@ -592,8 +707,8 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns>a string representation of a double floating point number</returns>
 		string GetUptime() {
-			uptime = uptime + (Single)( Rng.NextDouble() ) * 37;
-			return uptime.ToString();
+			Uptime = Uptime + (Single)( Rng.NextDouble() ) * 37;
+			return Uptime.ToString();
 		}
 		/// <summary>
 		/// Simulates the user ID to report
