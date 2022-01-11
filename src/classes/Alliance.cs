@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.Json;
 
 namespace Mffer {
@@ -17,9 +18,13 @@ namespace Mffer {
 		/// Gets or sets the name of the <see cref="Alliance"/>
 		/// </summary>
 		public string Name { get; set; }
+		public bool PublicAlliance { get; set; }
+		public int Level { get; set; }
+		public int ShopLevel { get; set; }
+		public int RequiredLevel { get; set; }
 		public List<Player> Players {
 			get {
-				if ( Value.GetType().IsGenericType()
+				if ( Value.GetType().IsGenericType
 					&& Value.GetType().GetGenericTypeDefinition() == typeof( List<> )
 					&& typeof( Player ).IsAssignableFrom( Value.GetType().GenericTypeArguments[0] ) ) {
 					return Value;
@@ -43,18 +48,16 @@ namespace Mffer {
 		/// status in the <see cref="Alliance"/>
 		/// </summary>
 		public List<Player> Class1Players { get; set; }
-		public double DaysInactive {
+		public DateTimeOffset LastUpdateTime { get; set; }
+		public DateTimeOffset LastLoginTime {
 			get {
 				DateTimeOffset lastLogin = new DateTimeOffset();
 				foreach ( Player player in Players ) {
 					if ( player.LastLogin > lastLogin ) lastLogin = player.LastLogin;
 				}
-				TimeSpan timeSinceLogin = DateTimeOffset.UtcNow - lastLogin;
-				return timeSinceLogin.TotalDays;
+				return lastLogin;
 			}
 		}
-		public DateTimeOffset LastUpdateTime { get; set; }
-		public DateTimeOffset LastLoginTime { get; set; }
 		public int WeeklyExperience { get; set; }
 		/// <summary>
 		/// Creates a new instance of an <see cref="Alliance"/> object
@@ -69,36 +72,63 @@ namespace Mffer {
 		public Alliance( long allianceId, string allianceName ) : this( allianceName ) {
 			Id = allianceId;
 		}
-		void Load( JsonElement json ) {
+		public Alliance( JsonElement json ) : this() {
+			Load( json );
+		}
+		public override void Load( JsonElement json ) {
 			if ( json.TryGetProperty( "now", out JsonElement serverTime )
 				&& serverTime.ValueKind == JsonValueKind.Number
 				&& serverTime.TryGetInt64( out long updateTime ) ) {
 				LastUpdateTime = DateTimeOffset.FromUnixTimeSeconds( updateTime );
 			}
-			JsonElement pgld = new JsonElement();
-			if ( json.TryGetProperty( "desc", out JsonElement desc ) ) {
-				if ( desc.TryGetProperty( "pgld", out pgld )
-					&& pgld.TryGetProperty( "guID", out JsonElement guID )
-					&& guID.ValueKind == JsonValueKind.Number
-					&& guID.TryGetInt64( out long id ) )
-					Id = id;
-				JsonElement mems = new JsonElement();
-				if ( desc.TryGetProperty( "mems", out mems )
-					|| ( desc.TryGetProperty( "pgld", out pgld ) )
-						&& pgld.TryGetProperty( "mems", out mems ) ) {
-					if ( mems.ValueKind == JsonValueKind.Array ) {
-						List<Player> newPlayerList = new List<Player>();
-						foreach ( JsonElement player in mems.EnumerateArray() ) {
-							Player newPlayer = new Player( player );
-							if ( newPlayer.Id != default ) {
-								newPlayerList.Add( newPlayer );
-							}
-						}
-						if ( newPlayerList.Count > 0 ) Players = newPlayerList;
+			if ( json.TryGetProperty( "desc", out JsonElement desc ) )
+				json = desc;
+			if ( json.TryGetProperty( "mems", out JsonElement mems )
+				&& mems.ValueKind == JsonValueKind.Array ) {
+				List<Player> newPlayerList = new List<Player>();
+				foreach ( JsonElement player in mems.EnumerateArray() ) {
+					Player newPlayer = new Player( player );
+					if ( newPlayer.Id != default ) {
+						newPlayerList.Add( newPlayer );
 					}
 				}
+				if ( newPlayerList.Count > 0 ) Players = newPlayerList;
 			}
+			if ( json.TryGetProperty( "pgld", out JsonElement pgld ) )
+				json = pgld;
+			if ( json.TryGetProperty( "gname", out JsonElement gname )
+				&& gname.ValueKind == JsonValueKind.String )
+				Name = Encoding.UTF8.GetString( Convert.FromBase64String( gname.GetString() ) );
+			if ( json.TryGetProperty( "guID", out JsonElement guID )
+				&& guID.ValueKind == JsonValueKind.Number
+				&& guID.TryGetInt64( out long id ) )
+				Id = id;
+			if ( json.TryGetProperty( "wExp", out JsonElement wExp )
+				&& wExp.ValueKind == JsonValueKind.Number
+				&& wExp.TryGetInt32( out int experience ) )
+				WeeklyExperience = experience;
+			if ( json.TryGetProperty( "autoJoinYN", out JsonElement publicJson )
+				&& publicJson.ValueKind == JsonValueKind.Number
+				&& publicJson.TryGetInt32( out int publicNumber ) ) {
+				if ( publicNumber == 1 ) PublicAlliance = true;
+				else PublicAlliance = false;
+			}
+			if ( json.TryGetProperty( "glv", out JsonElement levelJson )
+				&& levelJson.ValueKind == JsonValueKind.Number
+				&& levelJson.TryGetInt32( out int level ) )
+				Level = level;
+			if ( json.TryGetProperty( "sLv", out levelJson )
+				&& levelJson.ValueKind == JsonValueKind.Number
+				&& levelJson.TryGetInt32( out level ) )
+				ShopLevel = level;
+			if ( json.TryGetProperty( "lvt", out levelJson )
+				&& levelJson.ValueKind == JsonValueKind.Number
+				&& levelJson.TryGetInt32( out level ) )
+				RequiredLevel = level;
 		}
-
+		public double GetDaysInactive() {
+			TimeSpan timeSinceLogin = DateTimeOffset.UtcNow - LastLoginTime;
+			return timeSinceLogin.TotalDays;
+		}
 	}
 }

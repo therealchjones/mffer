@@ -80,7 +80,7 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="element">A <see cref="JsonElement"/> from a
 		/// <see cref="JsonDocument"/> to load</param>
-		public void Load( JsonElement element ) {
+		public virtual void Load( JsonElement element ) {
 			switch ( element.ValueKind ) {
 				case JsonValueKind.Object:
 					Value = new Dictionary<string, GameObject>();

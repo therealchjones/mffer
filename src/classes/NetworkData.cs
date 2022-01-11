@@ -25,7 +25,7 @@ namespace Mffer {
 	/// properly. Program and function flows to identify these within the game code are
 	/// included in the mffer documentation.</para>
 	/// </remarks>
-	public class NetworkData : Component {
+	public static class NetworkData {
 		// Obtained in libil2cpp.so via PatchSystem.GetBaseUrl()
 		const string PatchBaseUrl = "http://mheroesgb.gcdn.netmarble.com/mheroesgb/";
 		// Obtained in libil2cpp.so via PatchSystem.CreateUrl()
@@ -44,67 +44,36 @@ namespace Mffer {
 		const string GateWayUrl = "https://apis.netmarble.com";
 		// Obtained in libil2cpp.so vi PluginsNetmarbleS.GetTimeZone()
 		const string TimeZone = "+1:00";
-		readonly HttpClient Www = new HttpClient();
-		readonly Random Rng = new Random();
-		JsonDocument ServerInfo = null;
-		readonly JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
+		static readonly HttpClient Www = new HttpClient();
+		static readonly Random Rng = new Random();
+		static readonly JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
-		float Uptime = 0;
-		bool PreLoginInProgress = false;
-		string PacketKey = null;
-		string CID = null;
-		string SessionID = null;
-		string UserID = null;
-		string DeviceModel = null;
-		string DeviceId = null;
-		string AndroidId = null;
-		string DeviceKey = null;
-		string IP = null;
-		string AccessToken = null;
+		static JsonDocument ServerInfo = null;
+		static float Uptime = 0;
+		static bool PreLoginInProgress = false;
+		static string PacketKey = null;
+		static string CID = null;
+		static string SessionID = null;
+		static string UserID = null;
+		public static string DeviceModel = null;
+		static string DeviceId = null;
+		static string AndroidId = null;
+		static string DeviceKey = null;
+		static string IP = null;
+		static string AccessToken = null;
 		/// <summary>
-		/// Initializes a new instance of the <see cref="NetworkData"/> class
+		/// Initializes the static <see cref="NetworkData"/> class
 		/// </summary>
-		public NetworkData() : base() {
-			Name = "NetworkData";
+		static NetworkData() {
 		}
-		/// <summary>
-		/// Loads data into this <see cref="NetworkData"/>
-		/// </summary>
-		/// <remarks>
-		/// Loads non-user-specific information from the NetMarble servers.
-		/// This is a re-implementation of the game's
-		/// PacketTransfer.SetServerData() and its associated response handlers
-		/// up through ServerInfo.ParseVersionFileCDN().
-		/// </remarks>
-		public override void Load() {
-			base.Load();
-			List<Alliance> alliancesToCheck = new List<Alliance> {
-				"81",
-				"모여라쉴드",
-				"Cikarang SGC",
-				"꽁쓰 Family",
-				"unit",
-				"겨울아이",
-				"퓨처원더러",
-				"台灣神盾局",
-				"Pinoy 2600"
-			};
-			List<Alliance> prospectiveAlliances = CheckProspectiveAlliances( alliancesToCheck );
-			if ( prospectiveAlliances.Count == 0 ) {
-				Console.WriteLine( "Known alliances are active. Searching for new inactive alliances." );
-				Dictionary<Alliance, string> newInactiveAlliances = FindInactiveAlliances( 100000 );
-				throw new NotImplementedException();
-			}
-		}
-		List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
+		static List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
 			List<Alliance> newList = new List<Alliance>();
 			DateTimeOffset now = DateTimeOffset.Now;
 			TimeSpan sinceLastCheck;
 			foreach ( Alliance alliance in alliances ) {
-				if ( alliance.LastUpdateTime != null
-					&& alliance.LastUpdateTime != default ) {
+				if ( alliance.LastUpdateTime != default ) {
 					sinceLastCheck = now - alliance.LastUpdateTime;
 				} else {
 					sinceLastCheck = now - now;
@@ -112,24 +81,14 @@ namespace Mffer {
 				UpdateAlliance( alliance );
 				if ( alliance.WeeklyExperience != 0 )
 					continue;
-				if ( alliance.LastLoginTime == null
-					|| alliance.LastLoginTime == default
+				if ( alliance.LastLoginTime == default
 					|| now - alliance.LastLoginTime > sinceLastCheck )
 					newList.Add( alliance );
 			}
 			return newList;
 		}
-		void UpdateAlliance( Alliance alliance ) {
-
-		}
-		/// <summary>
-		/// Reports whether the <see cref="NetworkData"/> has already been
-		/// loaded
-		/// </summary>
-		/// <returns><c>true</c> if the <see cref="NetworkData"/> contains
-		/// any data, <c>false</c> otherwise</returns>
-		public override bool IsLoaded() {
-			return false;
+		static void UpdateAlliance( Alliance alliance ) {
+			GetAllianceMembers( alliance );
 		}
 		/// <summary>
 		/// Obtains data about the NetMarble servers
@@ -142,7 +101,7 @@ namespace Mffer {
 		/// steps.
 		/// </remarks>
 		/// <returns></returns>
-		JsonDocument GetServerInfo() {
+		static JsonDocument GetServerInfo() {
 			if ( ServerInfo == null ) {
 				// Obtained in libil2cpp.so via ServerInfo.GetRemoteFilePath()
 				string serverInfoUrl = PatchUrl + "v" + BundleVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
@@ -161,7 +120,7 @@ namespace Mffer {
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_data()
 		/// </remarks>
 		/// <returns></returns>
-		JsonElement GetServerData() {
+		static JsonElement GetServerData() {
 			string selectServerType = GetServerInfo().RootElement.GetProperty( "select_server" ).GetProperty( "type" ).GetString();
 			JsonElement serverList = GetServerInfo().RootElement.GetProperty( "server_list" );
 			JsonElement selectedServer = new JsonElement();
@@ -188,7 +147,7 @@ namespace Mffer {
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_URL()
 		/// </remarks>
 		/// <returns>server url</returns>
-		string GetServerUrl() {
+		static string GetServerUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr" ).GetString();
 		}
 		/// <summary>
@@ -198,7 +157,7 @@ namespace Mffer {
 		/// Rework/reimplementation of PacketTransfer.GetRecommendedAllianceList()
 		/// and PacketTransfer.GetRecommendedAllianceListOk()
 		/// </remarks>
-		Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
+		static Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
 			const string param = "GetSuggestionAllianceList?lang=";
 			int pulledAlliances = 0;
 			HashSet<string> checkedAllianceNames = new HashSet<string>();
@@ -207,7 +166,7 @@ namespace Mffer {
 			JsonElement alliances;
 			JsonElement desc, gname, wExp, autoJoinYN;
 			JsonElement level, shopLevel, requiredLevel;
-			string encodedName, name, description;
+			string encodedName, description;
 			int j = 0;
 			double allianceDaysInactive = 0, maxDaysInactive = 0;
 			while ( pulledAlliances < alliancesToCheck ) {
@@ -243,9 +202,8 @@ namespace Mffer {
 						|| !allianceJson.TryGetProperty( "lvt", out requiredLevel )
 						|| shopLevel.ValueKind != JsonValueKind.Number )
 						continue;
-					name = Encoding.UTF8.GetString( Convert.FromBase64String( encodedName ) );
-					Alliance alliance = new Alliance( name );
-					allianceDaysInactive = alliance.DaysInactive;
+					Alliance alliance = new Alliance( allianceJson );
+					allianceDaysInactive = alliance.GetDaysInactive();
 					description = $"level {level.GetInt32()}, shop level {shopLevel.GetInt32()}, required level {requiredLevel.GetInt32()}, {allianceDaysInactive} days without activity";
 					prospectiveAlliances.Add( alliance, description );
 					if ( allianceDaysInactive > maxDaysInactive ) maxDaysInactive = allianceDaysInactive;
@@ -262,14 +220,19 @@ namespace Mffer {
 			}
 			return qualifyingAlliances;
 		}
-		Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck ) {
+		static Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck ) {
 			return FindInactiveAlliances( alliancesToCheck, 14 );
 		}
-		Dictionary<Alliance, string> FindInactiveAlliances() {
+		static Dictionary<Alliance, string> FindInactiveAlliances() {
 			return FindInactiveAlliances( 100000, 14 );
 		}
-		List<Alliance> FindProspectiveAlliances() {
-			return FindInactiveAlliances( 1000000, 0 ).Keys.ToList();
+		public static List<Alliance> FindProspectiveAlliances() {
+			return FindInactiveAlliances( 100000, 0 ).Keys.ToList();
+		}
+		public static List<Alliance> FindProspectiveAlliances( List<Alliance> oldAlliances ) {
+			List<Alliance> newAlliances = CheckProspectiveAlliances( oldAlliances );
+			newAlliances.AddRange( FindProspectiveAlliances() );
+			return newAlliances;
 		}
 		/// <summary>
 		/// Determines whether an alliance has had no logins for two weeks
@@ -277,19 +240,19 @@ namespace Mffer {
 		/// <param name="alliance">Alliance to check</param>
 		/// <returns>False if any of the members of the alliance have logged in
 		/// within two weeks, true otherwise</returns>
-		bool CanBeCaptured( Alliance alliance ) {
-			if ( alliance.DaysInactive > 14 ) return true;
+		static bool CanBeCaptured( Alliance alliance ) {
+			if ( alliance.GetDaysInactive() > 14 ) return true;
 			else return false;
 		}
-		List<Alliance> GetInactiveAlliances( List<Alliance> alliances, int daysInactive = 1 ) {
+		static List<Alliance> GetInactiveAlliances( List<Alliance> alliances, int daysInactive = 1 ) {
 			List<Alliance> inactiveAlliances = new List<Alliance>();
 			foreach ( Alliance alliance in alliances ) {
-				if ( alliance.DaysInactive > daysInactive )
+				if ( alliance.GetDaysInactive() > daysInactive )
 					inactiveAlliances.Add( alliance );
 			}
 			return inactiveAlliances;
 		}
-		Alliance FindAlliance( string allianceName ) {
+		static Alliance FindAlliance( string allianceName ) {
 			string param = "SearchAlliance?guildName="
 				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
 			Alliance alliance = new Alliance( allianceName );
@@ -298,12 +261,12 @@ namespace Mffer {
 			}
 			return alliance;
 		}
-		void GetAllianceMembers( Alliance alliance ) {
+		static void GetAllianceMembers( Alliance alliance ) {
 			if ( alliance.Id == default ) {
 				if ( String.IsNullOrEmpty( alliance.Name ) ) {
 					throw new ArgumentException( "Neither alliance name nor alliance ID are given", "alliance" );
 				}
-				alliance = FindAlliance( alliance.Name );
+				alliance.Id = FindAlliance( alliance.Name ).Id;
 			}
 			string param = "ViewAllianceInfo?guID=" + alliance.Id.ToString();
 			using ( JsonDocument result = GetWww( param ) ) {
@@ -312,7 +275,7 @@ namespace Mffer {
 				}
 			}
 		}
-		JsonDocument GetWww( string param ) {
+		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
 			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
@@ -327,7 +290,7 @@ namespace Mffer {
 		/// <param name="text">JSON-formatted string</param>
 		/// <returns>JsonDocument object, discarding extraneous data after the
 		/// last <c>}</c></returns>
-		JsonDocument FixJson( string text ) {
+		static JsonDocument FixJson( string text ) {
 			int lastBrace = text.LastIndexOf( '}' );
 			JsonDocument result = null;
 			while ( lastBrace > -1 ) {
@@ -353,7 +316,7 @@ namespace Mffer {
 		/// Reimplimentation and simplification of WWWUtil.Get(),
 		/// WWWUtil.GetRountine(), and affiliated methods
 		/// </remarks>
-		HttpRequestMessage GetWwwRequest( string parameter ) {
+		static HttpRequestMessage GetWwwRequest( string parameter ) {
 			HttpRequestMessage request = new HttpRequestMessage();
 			if ( !parameter.StartsWith( "http" ) ) {
 				HttpContent form = BuildRequestContent( parameter );
@@ -367,7 +330,7 @@ namespace Mffer {
 
 			return request;
 		}
-		HttpContent BuildRequestContent( string param ) {
+		static HttpContent BuildRequestContent( string param ) {
 			string completeParam = AddDefaultPacketParameter( param );
 			string key = GetPacketKey();
 			if ( String.IsNullOrEmpty( key ) )
@@ -392,7 +355,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="parameter"></param>
 		/// <returns></returns>
-		string AddDefaultPacketParameter( string parameter ) {
+		static string AddDefaultPacketParameter( string parameter ) {
 			StringBuilder parameterBuilder = new StringBuilder( parameter );
 			if ( parameter.Contains( '?' ) )
 				parameterBuilder.Append( '&' );
@@ -410,7 +373,7 @@ namespace Mffer {
 		/// <param name="sessionId"></param>
 		/// <param name="size"></param>
 		/// <returns>The encrypted "header" as a byte array</returns>
-		byte[] MakeWwwHeader( string sessionId, int size ) {
+		static byte[] MakeWwwHeader( string sessionId, int size ) {
 			if ( String.IsNullOrEmpty( sessionId ) ) sessionId = "0000000000000000000000";
 			byte[] sizeBytes = BitConverter.GetBytes( size );
 			if ( BitConverter.IsLittleEndian ) Array.Reverse( sizeBytes );
@@ -428,7 +391,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Re-implementation of SceneTitle.SignIn() and the many methods it calls
 		/// </remarks>
-		void SignIn() {
+		static void SignIn() {
 			string url = GateWayUrl + "/mobileauth/v2/players/";
 			url += GetPlayerId() + "/deviceKeys/" + GetDeviceKey();
 			url += "/accessToken?nmDeviceKey=" + GetAndroidId();
@@ -448,7 +411,7 @@ namespace Mffer {
 		/// Re-implementation of libil2cpp.so's CryptUtil.get_packetKey()
 		/// </remarks>
 		/// <returns></returns>
-		string GetPacketKey() {
+		static string GetPacketKey() {
 			if ( String.IsNullOrEmpty( PacketKey ) ) {
 				if ( PreLoginInProgress ) {
 					return null;
@@ -458,7 +421,7 @@ namespace Mffer {
 			}
 			return PacketKey;
 		}
-		void LoadConstants() {
+		static void LoadConstants() {
 			PreLogin();
 		}
 		/// <summary>
@@ -469,7 +432,7 @@ namespace Mffer {
 		/// following steps through SceneTitle.PreLoginOK()
 		/// </remarks>
 		/// <exception cref="NotImplementedException"></exception>
-		void PreLogin() {
+		static void PreLogin() {
 			PreLoginInProgress = true;
 			string url = GetSslUrl() + "PreLogin";
 			if ( url.Contains( '?' ) ) {
@@ -533,22 +496,22 @@ namespace Mffer {
 		/// Re-implementation of Java::SessionImpl.getPlayerID()
 		/// </remarks>
 		/// <returns></returns>
-		string GetPlayerId() {
+		static string GetPlayerId() {
 			return GetCID();
 		}
-		string GetCID() {
+		static string GetCID() {
 			if ( String.IsNullOrEmpty( CID ) ) {
 				CID = Guid.NewGuid().ToString( "N" ).ToUpper();
 			}
 			return CID;
 		}
-		string GetDeviceModel() {
+		static string GetDeviceModel() {
 			if ( String.IsNullOrEmpty( DeviceModel ) ) {
 				DeviceModel = "HTC One";
 			}
 			return DeviceModel;
 		}
-		string GetDeviceId() {
+		static string GetDeviceId() {
 			if ( String.IsNullOrEmpty( DeviceId ) ) {
 				string part1 = "0,0," + GetAndroidId();
 				string part2 = GetDeviceKey() + GetDeviceModel();
@@ -563,20 +526,20 @@ namespace Mffer {
 		/// Reimplementation of Java::SessionImpl.getDeviceKey()
 		/// </remarks>
 		/// <returns></returns>
-		string GetDeviceKey() {
+		static string GetDeviceKey() {
 			if ( String.IsNullOrEmpty( DeviceKey ) ) {
 				DeviceKey = Guid.NewGuid().ToString( "N" ).ToUpper();
 			}
 			return DeviceKey;
 		}
-		string GetAndroidId() {
+		static string GetAndroidId() {
 			if ( String.IsNullOrEmpty( AndroidId ) ) {
 				long num = ( Rng.Next() << 31 | Rng.Next() );
 				AndroidId = num.ToString( "X16" );
 			}
 			return AndroidId;
 		}
-		string AesEncrypt( string decrypted, string key ) {
+		static string AesEncrypt( string decrypted, string key ) {
 			ASCIIEncoding asciiEncoding = new ASCIIEncoding();
 			byte[] rijKey = asciiEncoding.GetBytes( key );
 			UnicodeEncoding unicodeEncoding = new UnicodeEncoding();
@@ -584,11 +547,11 @@ namespace Mffer {
 			byte[] encryptedBytes = AesEncrypt( decryptedBytes, rijKey );
 			return Convert.ToBase64String( encryptedBytes );
 		}
-		byte[] AesEncrypt( byte[] decrypted, string key, bool isKeyIvSame = true ) {
+		static byte[] AesEncrypt( byte[] decrypted, string key, bool isKeyIvSame = true ) {
 			byte[] keyBytes = ( new ASCIIEncoding() ).GetBytes( key );
 			return AesEncrypt( decrypted, keyBytes, isKeyIvSame );
 		}
-		byte[] AesEncrypt( byte[] decrypted, byte[] key, bool isKeyIvSame = true ) {
+		static byte[] AesEncrypt( byte[] decrypted, byte[] key, bool isKeyIvSame = true ) {
 			byte[] encryptedBytes = null;
 			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
 				rijAlg.KeySize = key.Length << 3;
@@ -609,7 +572,7 @@ namespace Mffer {
 			}
 			return encryptedBytes;
 		}
-		string GetMD5( string input ) {
+		static string GetMD5( string input ) {
 			string output;
 			using ( MD5 md5hash = MD5.Create() ) {
 				byte[] outputBytes = md5hash.ComputeHash( Encoding.UTF8.GetBytes( input ) );
@@ -621,12 +584,12 @@ namespace Mffer {
 			}
 			return output;
 		}
-		string GetIP() {
+		static string GetIP() {
 			if ( String.IsNullOrEmpty( IP ) )
 				IP = "10.0.2.16";
 			return IP;
 		}
-		byte[] ResponseDecrypt( byte[] encryptedBytes ) {
+		static byte[] ResponseDecrypt( byte[] encryptedBytes ) {
 			string key = GetPacketKey();
 			if ( String.IsNullOrEmpty( key ) ) {
 				key = GetAesKey() + GetAesKey();
@@ -634,7 +597,7 @@ namespace Mffer {
 			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
 			return CoreDecrypt( encryptedBytes, keyBytes, keyBytes );
 		}
-		byte[] CoreDecrypt( byte[] text, byte[] key, byte[] iv ) {
+		static byte[] CoreDecrypt( byte[] text, byte[] key, byte[] iv ) {
 			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
 				rijAlg.KeySize = key.Length << 3;
 				rijAlg.BlockSize = 128;
@@ -652,7 +615,7 @@ namespace Mffer {
 				}
 			}
 		}
-		string ResponseDecompress( byte[] compressedBytes ) {
+		static string ResponseDecompress( byte[] compressedBytes ) {
 			string decompressed = "";
 			try {
 				SnappyDecompressor snappyDecompressor = new SnappyDecompressor();
@@ -663,16 +626,16 @@ namespace Mffer {
 			}
 			return decompressed;
 		}
-		string GetAccessToken() {
+		static string GetAccessToken() {
 			if ( String.IsNullOrEmpty( AccessToken ) ) {
 				SignIn();
 			}
 			return AccessToken;
 		}
-		string GetAesKey() {
+		static string GetAesKey() {
 			return AesKey;
 		}
-		string GetGameCode() {
+		static string GetGameCode() {
 			return GameCode;
 		}
 		/// <summary>
@@ -682,7 +645,7 @@ namespace Mffer {
 		/// Re-implementation of PluginsNetmarbleSForAndroid.get_gameToken()
 		/// </remarks>
 		/// <returns>A string representing the game token</returns>
-		string GetGameToken() {
+		static string GetGameToken() {
 			return GetAccessToken();
 		}
 		/// <summary>
@@ -692,10 +655,10 @@ namespace Mffer {
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_SslURL()
 		/// </remarks>
 		/// <returns>A string representing the secure URL</returns>
-		string GetSslUrl() {
+		static string GetSslUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr_ssl" ).GetString();
 		}
-		string GetTimeZone() {
+		static string GetTimeZone() {
 			return TimeZone;
 		}
 		/// <summary>
@@ -706,7 +669,7 @@ namespace Mffer {
 		/// Time.get_realtimeSinceStartup()
 		/// </remarks>
 		/// <returns>a string representation of a double floating point number</returns>
-		string GetUptime() {
+		static string GetUptime() {
 			Uptime = Uptime + (Single)( Rng.NextDouble() ) * 37;
 			return Uptime.ToString();
 		}
@@ -718,7 +681,7 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns>a properly formatted string representation of a user ID
 		/// that may or may not exist</returns>
-		string GetUserId() {
+		static string GetUserId() {
 			if ( String.IsNullOrEmpty( UserID ) ) {
 				if ( PreLoginInProgress ) {
 					return null;
@@ -728,10 +691,10 @@ namespace Mffer {
 			}
 			return UserID;
 		}
-		void SetPacketKey( string protoPacketKey = null ) {
+		static void SetPacketKey( string protoPacketKey = null ) {
 			PacketKey = protoPacketKey;
 		}
-		void SetTextKey( string text ) {
+		static void SetTextKey( string text ) {
 			string pk = GetPacketKey();
 			System.Text.UnicodeEncoding unicodeEncoding = new System.Text.UnicodeEncoding( false, true, false );
 			byte[] textBytes = unicodeEncoding.GetBytes( text );

@@ -12,7 +12,7 @@ namespace Mffer {
 	/// </summary>
 	public static class Program {
 		static Game Game { get; set; }
-		static readonly string Description = "Marvel Future Fight extraction & reporting";
+		const string Description = "Marvel Future Fight extraction & reporting";
 		static readonly Dictionary<string[], string> Options = new Dictionary<string[], string> {
 			{new[]{"--datadir","-d"}, "directory containing Marvel Future Fight data files"},
 			{new[]{"--outputdir","-o"}, "directory in which to place created files"}
@@ -51,6 +51,8 @@ namespace Mffer {
 				dirCommand.Handler = CommandHandler.Create<DirectoryInfo, DirectoryInfo>( OptionsHandler );
 				return dirCommand.Invoke( args );
 			} );
+			Game = new Game();
+			GetProspectiveAlliances();
 			return stringCommand.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
@@ -68,7 +70,6 @@ namespace Mffer {
 		/// within those versions) will be loaded.
 		/// </remarks>
 		static void LoadAll( DirectoryInfo dataDir ) {
-			Game = new Game();
 			Game.LoadAll( dataDir.FullName );
 		}
 		/// <summary>
@@ -84,6 +85,23 @@ namespace Mffer {
 		static void WriteAll( DirectoryInfo saveDir ) {
 			Game.ToJsonFiles( saveDir );
 			Game.WriteCSVs( saveDir );
+		}
+		static void GetProspectiveAlliances() {
+			// List<Alliance> prospectiveAlliances = LoadFromJsonFile( "prospectiveAlliances.json" );
+			List<Alliance> prospectiveAlliances = new List<Alliance>();
+			prospectiveAlliances.AddRange( new List<Alliance> {
+				"81",
+				"모여라쉴드",
+				"Cikarang SGC",
+				"꽁쓰 Family",
+				"unit",
+				"겨울아이",
+				"퓨처원더러",
+				"台灣神盾局",
+				"Pinoy 2600"
+			} );
+			prospectiveAlliances = NetworkData.FindProspectiveAlliances( prospectiveAlliances );
+			// SaveToJsonFile( prospectiveAlliances, "prospectiveAlliances.json" );
 		}
 	}
 }
