@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -21,37 +20,9 @@ namespace Mffer {
 		/// Primary entry point of the program
 		/// </summary>
 		static int Main( string[] args ) {
-			// Due to a limitation of System.CommandLine in evaluating empty
-			// strings, we first parse options as strings then re-parse properly
-			// as DirectoryInfo objects.
-			var stringCommand = new RootCommand( Description );
-			var dirCommand = new RootCommand( Description );
-			foreach ( var entry in Options ) {
-				Option<string> stringOption = new Option<string>( entry.Key, entry.Value ) { IsRequired = true };
-				stringOption.AddValidator(
-					optionResult => {
-						IEnumerable<string> emptyStrings =
-							optionResult.Tokens
-								.Select( t => t.Value )
-								.Where( s => String.IsNullOrEmpty( s ) );
-						if ( emptyStrings.Count() == 0 ) {
-							return null;
-						} else {
-							return $"Option '{entry.Key[0]}' must not be empty.";
-						}
-					}
-				);
-				Option<DirectoryInfo> dirOption = new Option<DirectoryInfo>( entry.Key, entry.Value ) { IsRequired = true };
-				if ( entry.Key[0] == "--datadir" ) dirOption.ExistingOnly();
-				else if ( entry.Key[0] == "--outputdir" ) dirOption.LegalFilePathsOnly();
-				stringCommand.AddOption( stringOption );
-				dirCommand.AddOption( dirOption );
-			}
-			stringCommand.Handler = CommandHandler.Create<string, string>( ( datadir, outputdir ) => {
-				dirCommand.Handler = CommandHandler.Create<DirectoryInfo, DirectoryInfo>( OptionsHandler );
-				return dirCommand.Invoke( args );
-			} );
-			return stringCommand.Invoke( args );
+			RootCommand command = SetupCommandLine();
+			Game = new Game();
+			return command.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
 			LoadAll( dataDir );
@@ -84,6 +55,39 @@ namespace Mffer {
 		static void WriteAll( DirectoryInfo saveDir ) {
 			Game.ToJsonFiles( saveDir );
 			Game.WriteCSVs( saveDir );
+		}
+		static RootCommand SetupCommandLine() {
+			// Due to a limitation of System.CommandLine in evaluating empty
+			// strings, we first parse options as strings then re-parse properly
+			// as DirectoryInfo objects.
+			var command = new RootCommand( Description );
+			ParseArgument<DirectoryInfo> DirectoryInfoParser = result => {
+				if ( String.IsNullOrEmpty( result.ToString() ) ) throw new ArgumentException( "Directory name must not be an empty string" );
+				return new DirectoryInfo( result.ToString() );
+			};
+			foreach ( var entry in Options ) {
+				Option option = new Option<DirectoryInfo>( entry.Key, DirectoryInfoParser, false, entry.Value ) { IsRequired = true, };
+				option.AddValidator(
+					optionResult => {
+						IEnumerable<string> emptyStrings =
+							optionResult.Tokens
+								.Select( t => t.Value )
+								.Where( s => String.IsNullOrEmpty( s ) );
+						if ( emptyStrings.Count() == 0 ) {
+							return null;
+						} else {
+							return $"Option '{entry.Key[0]}' must not be empty.";
+						}
+					}
+				);
+				// if ( entry.Key[0] == "--datadir" ) option.ExistingOnly();
+				if ( entry.Key[0] == "--outputdir" ) option.LegalFilePathsOnly();
+				command.AddOption( option );
+			}
+			command.SetHandler(
+				( DirectoryInfo dataDir, DirectoryInfo outputDir ) => OptionsHandler( dataDir, outputDir ), command.Options
+				);
+			return command;
 		}
 	}
 }
