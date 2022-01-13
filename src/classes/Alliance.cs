@@ -22,6 +22,7 @@ namespace Mffer {
 		public int Level { get; set; }
 		public int ShopLevel { get; set; }
 		public int RequiredLevel { get; set; }
+		public int MaxMembers { get; set; }
 		public List<Player> Players {
 			get {
 				if ( Value.GetType().IsGenericType
@@ -64,6 +65,7 @@ namespace Mffer {
 		/// </summary>
 		public Alliance() : base() {
 			Players = new List<Player>();
+			MaxMembers = 40; // for now; should get real number by level after importing appropriate asset table
 		}
 		public Alliance( string allianceName ) : this() {
 			if ( String.IsNullOrEmpty( allianceName ) ) throw new ArgumentNullException( allianceName );

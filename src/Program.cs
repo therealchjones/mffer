@@ -5,6 +5,7 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -87,21 +88,80 @@ namespace Mffer {
 			Game.WriteCSVs( saveDir );
 		}
 		static void GetProspectiveAlliances() {
-			// List<Alliance> prospectiveAlliances = LoadFromJsonFile( "prospectiveAlliances.json" );
-			List<Alliance> prospectiveAlliances = new List<Alliance>();
-			prospectiveAlliances.AddRange( new List<Alliance> {
-				"81",
-				"모여라쉴드",
-				"Cikarang SGC",
-				"꽁쓰 Family",
-				"unit",
-				"겨울아이",
-				"퓨처원더러",
-				"台灣神盾局",
-				"Pinoy 2600"
-			} );
-			prospectiveAlliances = NetworkData.FindProspectiveAlliances( prospectiveAlliances );
-			// SaveToJsonFile( prospectiveAlliances, "prospectiveAlliances.json" );
+			FileInfo alliancesFile = new FileInfo( "alliances.json" );
+			List<Alliance> importedAlliances = new List<Alliance>();
+			JsonSerializerOptions jsonOptions = new JsonSerializerOptions();
+			jsonOptions.Converters.Add( new GameObjectJsonConverter() );
+			if ( alliancesFile.Exists ) {
+				String fileContents = File.ReadAllText( alliancesFile.FullName );
+				JsonDocument jsonDocument = JsonDocument.Parse( fileContents );
+				JsonElement jsonList = jsonDocument.RootElement.GetProperty( "Value" );
+				String jsonListString = jsonList.ToString();
+				importedAlliances = (List<Alliance>)JsonSerializer.Deserialize( jsonListString, typeof( List<Alliance> ), jsonOptions );
+			}
+			int startSize = importedAlliances.Count;
+			int endSize = startSize;
+			if ( startSize > 0 ) {
+				Console.WriteLine( $"Checking {startSize} monitored alliances" );
+				importedAlliances = NetworkData.CheckProspectiveAlliances( importedAlliances );
+				endSize = importedAlliances.Count;
+				if ( endSize < startSize ) Console.WriteLine( $"{startSize - endSize} alliances had activity and were discarded." );
+				if ( endSize > 0 ) Console.WriteLine( $"{endSize} alliances will continue to be monitored." );
+			}
+			List<Alliance> newAlliances = new List<Alliance>();
+			if ( endSize < 100 ) {
+				int searchSize = ( 100 - endSize ) * 1000;
+				Console.Write( "Finding new alliances to monitor" );
+				if ( searchSize > 1000 ) Console.WriteLine( "... this will take a little time." );
+				else Console.WriteLine();
+				newAlliances = NetworkData.FindProspectiveAlliances( searchSize );
+				if ( newAlliances.Count > 0 ) {
+					Console.WriteLine( $"Found {newAlliances.Count} new alliances to monitor." );
+				} else {
+					Console.WriteLine( "No new alliances identified." );
+				}
+			}
+			newAlliances.AddRange( importedAlliances );
+			if ( newAlliances.Count > 0 ) {
+				List<long> allianceIds = new List<long>();
+				List<Alliance> prospectiveAlliances = new List<Alliance>();
+				foreach ( Alliance alliance in newAlliances ) {
+					if ( !allianceIds.Contains( alliance.Id ) ) {
+						allianceIds.Add( alliance.Id );
+						prospectiveAlliances.Add( alliance );
+					}
+				}
+				if ( prospectiveAlliances.Count < newAlliances.Count )
+					Console.WriteLine( $"Removing {newAlliances.Count - prospectiveAlliances.Count} duplicates" );
+				prospectiveAlliances.Sort( delegate ( Alliance x, Alliance y ) {
+					if ( x.LastLoginTime == null || x.LastLoginTime == default ) {
+						if ( y.LastLoginTime == null || y.LastLoginTime == default ) return 0;
+						else return 1;
+					}
+					if ( y.LastLoginTime == null | y.LastLoginTime == default ) return -1;
+					if ( x.LastLoginTime < y.LastLoginTime ) return 1;
+					if ( x.LastLoginTime == y.LastLoginTime ) return 0;
+					return -1;
+				} );
+				prospectiveAlliances.Reverse();
+				Console.WriteLine( "Currently monitored alliances:" );
+				int currentDays = -1;
+				foreach ( Alliance alliance in prospectiveAlliances ) {
+					double daysInactive = alliance.GetDaysInactive();
+					if ( currentDays == -1 || daysInactive < currentDays ) {
+						currentDays = (int)daysInactive;
+						Console.WriteLine( $"Inactive more than {currentDays} days:" );
+					}
+					Console.WriteLine( $"{alliance.Name}: level {alliance.Level}, shop level {alliance.ShopLevel}, {alliance.Players.Count} members, inactive {daysInactive} days." );
+				}
+				GameObject alliances = prospectiveAlliances.ToGameObject();
+				JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
+				using ( Stream file = new FileStream( alliancesFile.FullName, FileMode.Create ) )
+					alliances.ToJson( file, jsonOptions, writeOptions );
+			} else {
+				Console.WriteLine( "No alliances to monitor." );
+				alliancesFile.Delete();
+			}
 		}
 	}
 }

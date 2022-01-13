@@ -68,7 +68,7 @@ namespace Mffer {
 		/// </summary>
 		static NetworkData() {
 		}
-		static List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
+		static public List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
 			List<Alliance> newList = new List<Alliance>();
 			DateTimeOffset now = DateTimeOffset.Now;
 			TimeSpan sinceLastCheck;
@@ -79,7 +79,8 @@ namespace Mffer {
 					sinceLastCheck = now - now;
 				}
 				UpdateAlliance( alliance );
-				if ( alliance.WeeklyExperience != 0 )
+				if ( alliance.WeeklyExperience != 0
+					|| alliance.Players.Count >= alliance.MaxMembers )
 					continue;
 				if ( alliance.LastLoginTime == default
 					|| now - alliance.LastLoginTime > sinceLastCheck )
@@ -203,19 +204,14 @@ namespace Mffer {
 						|| shopLevel.ValueKind != JsonValueKind.Number )
 						continue;
 					Alliance alliance = new Alliance( allianceJson );
+					UpdateAlliance( alliance );
+					if ( alliance.Players.Count >= alliance.MaxMembers )
+						continue;
 					allianceDaysInactive = alliance.GetDaysInactive();
 					description = $"level {level.GetInt32()}, shop level {shopLevel.GetInt32()}, required level {requiredLevel.GetInt32()}, {allianceDaysInactive} days without activity";
 					prospectiveAlliances.Add( alliance, description );
 					if ( allianceDaysInactive > maxDaysInactive ) maxDaysInactive = allianceDaysInactive;
 					if ( allianceDaysInactive > daysInactive ) qualifyingAlliances.Add( alliance, description );
-				}
-				if ( ++j == 100 ) {
-					j = 0;
-					Console.WriteLine( $"Requested {pulledAlliances} alliances." );
-					Console.WriteLine( $"Checked {checkedAllianceNames.Count} unique alliances." );
-					Console.WriteLine( $"Found {prospectiveAlliances.Count} public alliances without activity." );
-					Console.WriteLine( $"Identified {qualifyingAlliances.Count} alliances to take over." );
-					Console.WriteLine( $"Maximum days inactive in prospective alliances: {maxDaysInactive}" );
 				}
 			}
 			return qualifyingAlliances;
@@ -228,6 +224,9 @@ namespace Mffer {
 		}
 		public static List<Alliance> FindProspectiveAlliances() {
 			return FindInactiveAlliances( 100000, 0 ).Keys.ToList();
+		}
+		public static List<Alliance> FindProspectiveAlliances( int toSearch ) {
+			return FindInactiveAlliances( toSearch, 0 ).Keys.ToList();
 		}
 		public static List<Alliance> FindProspectiveAlliances( List<Alliance> oldAlliances ) {
 			List<Alliance> newAlliances = CheckProspectiveAlliances( oldAlliances );
@@ -261,6 +260,12 @@ namespace Mffer {
 			}
 			return alliance;
 		}
+		static public Alliance GetAlliance( string allianceName ) {
+			if ( String.IsNullOrEmpty( allianceName ) ) throw new ArgumentNullException( "allianceName" );
+			Alliance alliance = new Alliance( allianceName );
+			GetAllianceMembers( alliance );
+			return alliance;
+		}
 		static void GetAllianceMembers( Alliance alliance ) {
 			if ( alliance.Id == default ) {
 				if ( String.IsNullOrEmpty( alliance.Name ) ) {
@@ -282,7 +287,6 @@ namespace Mffer {
 			string text = ResponseDecompress( decryptedBytes );
 			return FixJson( text );
 		}
-
 		/// <summary>
 		/// Trims illegal characters from the end of a JSON string until
 		/// parseable, then parses the JSON
