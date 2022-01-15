@@ -8,26 +8,45 @@ namespace Mffer {
 	/// Represents the settings and data for an individual user
 	/// </summary>
 	public class Player : GameObject {
-		DateTimeOffset LastUpdated { get; set; }
+		/// <summary>
+		/// Gets or sets the unique unchanging identifier for the <see cref="Player"/>
+		/// </summary>
 		public long Id { get; set; }
+		/// <summary>
+		/// Gets or sets the <see cref="Player"/>-customizable in-game name
+		/// </summary>
 		public string Name { get; set; }
 		/// <summary>
 		/// Gets or sets the <see cref="Alliance"/> of which the
 		/// <see cref="Player"/> is a member
 		/// </summary>
 		public Alliance alliance { get; set; }
+		/// <summary>
+		/// Gets or sets the most recent login time for the <see cref="Player"/>
+		/// </summary>
 		public DateTimeOffset LastLogin { get; set; }
 		/// <summary>
 		/// Gets or sets the list of <see cref="Character"/>s currently owned
 		/// by the <see cref="Player"/>
 		/// </summary>
 		public List<MyCharacter> MyRoster { get; set; }
+		/// <summary>
+		/// Creates an instance of the <see cref="Player"/> class
+		/// </summary>
 		public Player() : base() {
-
 		}
+		/// <summary>
+		/// Creates an instance of the <see cref="Player"/> class with data from the
+		/// provided <see cref="JsonElement"/>
+		/// </summary>
+		/// <param name="json"><see cref="JsonElement"/> containing data about the <see cref="Player"/></param>
 		public Player( JsonElement json ) : this() {
 			Load( json );
 		}
+		/// <summary>
+		/// Loads data from the provided <see cref="JsonElement"/> into the <see cref="Player"/> instance
+		/// </summary>
+		/// <param name="json"><see cref="JsonElement"/> containing data about the <see cref="Player"/></param>
 		public override void Load( JsonElement json ) {
 			if ( json.TryGetProperty( "llTime", out JsonElement loginTime )
 				&& loginTime.TryGetInt64( out long thisLogin ) ) {
@@ -39,7 +58,6 @@ namespace Mffer {
 				&& tempJson.ValueKind == JsonValueKind.Number
 				&& tempJson.TryGetInt64( out long tempLong ) )
 				Id = tempLong;
-
 		}
 		/// <summary>
 		/// Represents the settings and data for the current state of a

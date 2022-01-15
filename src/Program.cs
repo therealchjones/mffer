@@ -54,7 +54,8 @@ namespace Mffer {
 			} );
 			Game = new Game();
 			GetProspectiveAlliances();
-			return stringCommand.Invoke( args );
+			return 0;
+			// return stringCommand.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
 			LoadAll( dataDir );
@@ -105,7 +106,7 @@ namespace Mffer {
 				Console.WriteLine( $"Checking {startSize} monitored alliances" );
 				importedAlliances = NetworkData.CheckProspectiveAlliances( importedAlliances );
 				endSize = importedAlliances.Count;
-				if ( endSize < startSize ) Console.WriteLine( $"{startSize - endSize} alliances had activity and were discarded." );
+				if ( endSize < startSize ) Console.WriteLine( $"{startSize - endSize} alliances had activity or no longer exist and were discarded." );
 				if ( endSize > 0 ) Console.WriteLine( $"{endSize} alliances will continue to be monitored." );
 			}
 			List<Alliance> newAlliances = new List<Alliance>();
@@ -134,11 +135,11 @@ namespace Mffer {
 				if ( prospectiveAlliances.Count < newAlliances.Count )
 					Console.WriteLine( $"Removing {newAlliances.Count - prospectiveAlliances.Count} duplicates" );
 				prospectiveAlliances.Sort( delegate ( Alliance x, Alliance y ) {
-					if ( x.LastLoginTime == null || x.LastLoginTime == default ) {
-						if ( y.LastLoginTime == null || y.LastLoginTime == default ) return 0;
+					if ( x.LastLoginTime == default ) {
+						if ( y.LastLoginTime == default ) return 0;
 						else return 1;
 					}
-					if ( y.LastLoginTime == null | y.LastLoginTime == default ) return -1;
+					if ( y.LastLoginTime == default ) return -1;
 					if ( x.LastLoginTime < y.LastLoginTime ) return 1;
 					if ( x.LastLoginTime == y.LastLoginTime ) return 0;
 					return -1;

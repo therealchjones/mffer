@@ -57,7 +57,7 @@ namespace Mffer {
 		static string CID = null;
 		static string SessionID = null;
 		static string UserID = null;
-		public static string DeviceModel = null;
+		static string DeviceModel = null;
 		static string DeviceId = null;
 		static string AndroidId = null;
 		static string DeviceKey = null;
@@ -68,6 +68,23 @@ namespace Mffer {
 		/// </summary>
 		static NetworkData() {
 		}
+		/// <summary>
+		/// Check a list of <see cref="Alliance"/>s for new activity
+		/// </summary>
+		/// <remarks>
+		/// Given a <see cref="List{Alliance}"/> of <see cref="Alliance"/>s,
+		/// <see cref="CheckProspectiveAlliances"/> checks each for logins by the
+		/// <see cref="Alliance"/>'s <see cref="Player"/>s that have occurred
+		/// since the last time the <see cref="Alliance"/> was checked, and
+		/// checks for any weekly experience points. (<see cref="Alliance"/>s
+		/// that cannot be found are discarded.) If there are neither, the
+		/// <see cref="Alliance"/> is added to a new <see
+		/// cref="List{Alliance}"/> to be returned.
+		/// </remarks>
+		/// <param name="alliances">The <see cref="List{Alliance}"/> of <see
+		/// cref="Alliance"/>s to check</param>
+		/// <returns>A new <see cref="List{Alliance}"/> of the <see
+		/// cref="Alliance"/>s that have had no activity since last checked</returns>
 		static public List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
 			List<Alliance> newList = new List<Alliance>();
 			DateTimeOffset now = DateTimeOffset.Now;
@@ -78,8 +95,8 @@ namespace Mffer {
 				} else {
 					sinceLastCheck = now - now;
 				}
-				UpdateAlliance( alliance );
-				if ( alliance.WeeklyExperience != 0
+				if ( !TryUpdateAlliance( alliance )
+					|| alliance.WeeklyExperience != 0
 					|| alliance.Players.Count >= alliance.MaxMembers )
 					continue;
 				if ( alliance.LastLoginTime == default
@@ -88,8 +105,9 @@ namespace Mffer {
 			}
 			return newList;
 		}
-		static void UpdateAlliance( Alliance alliance ) {
-			GetAllianceMembers( alliance );
+		static bool TryUpdateAlliance( Alliance alliance ) {
+			if ( TryGetAllianceData( alliance ) ) return true;
+			else return false;
 		}
 		/// <summary>
 		/// Obtains data about the NetMarble servers
@@ -168,8 +186,7 @@ namespace Mffer {
 			JsonElement desc, gname, wExp, autoJoinYN;
 			JsonElement level, shopLevel, requiredLevel;
 			string encodedName, description;
-			int j = 0;
-			double allianceDaysInactive = 0, maxDaysInactive = 0;
+			double allianceDaysInactive = 0;
 			while ( pulledAlliances < alliancesToCheck ) {
 				using ( JsonDocument result = GetWww( param ) ) {
 					if ( result == null
@@ -204,81 +221,71 @@ namespace Mffer {
 						|| shopLevel.ValueKind != JsonValueKind.Number )
 						continue;
 					Alliance alliance = new Alliance( allianceJson );
-					UpdateAlliance( alliance );
-					if ( alliance.Players.Count >= alliance.MaxMembers )
+					if ( !TryUpdateAlliance( alliance )
+						|| alliance.Players.Count >= alliance.MaxMembers )
 						continue;
 					allianceDaysInactive = alliance.GetDaysInactive();
 					description = $"level {level.GetInt32()}, shop level {shopLevel.GetInt32()}, required level {requiredLevel.GetInt32()}, {allianceDaysInactive} days without activity";
 					prospectiveAlliances.Add( alliance, description );
-					if ( allianceDaysInactive > maxDaysInactive ) maxDaysInactive = allianceDaysInactive;
 					if ( allianceDaysInactive > daysInactive ) qualifyingAlliances.Add( alliance, description );
 				}
 			}
 			return qualifyingAlliances;
 		}
-		static Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck ) {
-			return FindInactiveAlliances( alliancesToCheck, 14 );
-		}
-		static Dictionary<Alliance, string> FindInactiveAlliances() {
-			return FindInactiveAlliances( 100000, 14 );
-		}
-		public static List<Alliance> FindProspectiveAlliances() {
-			return FindInactiveAlliances( 100000, 0 ).Keys.ToList();
-		}
+		/// <summary>
+		/// Obtain a list of <see cref="Alliance"/>s without weekly activity
+		/// </summary>
+		/// <remarks>
+		/// <see cref="FindProspectiveAlliances(int)"/> requests a number of
+		/// alliances to search and examines each to determine whether they've had any
+		/// weekly contribution points. (Weekly contribution points reset to 0
+		/// at the weekly reset at 0100 Friday UTC.) Alliances without weekly
+		/// contribution points are returned in a <see cref="List{Alliance}"/>.
+		/// The number of alliances returned is typically far less than the
+		/// number searched.
+		/// </remarks>
+		/// <param name="toSearch">the number of <see cref="Alliance"/>s to search</param>
+		/// <returns></returns>
 		public static List<Alliance> FindProspectiveAlliances( int toSearch ) {
 			return FindInactiveAlliances( toSearch, 0 ).Keys.ToList();
-		}
-		public static List<Alliance> FindProspectiveAlliances( List<Alliance> oldAlliances ) {
-			List<Alliance> newAlliances = CheckProspectiveAlliances( oldAlliances );
-			newAlliances.AddRange( FindProspectiveAlliances() );
-			return newAlliances;
-		}
-		/// <summary>
-		/// Determines whether an alliance has had no logins for two weeks
-		/// </summary>
-		/// <param name="alliance">Alliance to check</param>
-		/// <returns>False if any of the members of the alliance have logged in
-		/// within two weeks, true otherwise</returns>
-		static bool CanBeCaptured( Alliance alliance ) {
-			if ( alliance.GetDaysInactive() > 14 ) return true;
-			else return false;
-		}
-		static List<Alliance> GetInactiveAlliances( List<Alliance> alliances, int daysInactive = 1 ) {
-			List<Alliance> inactiveAlliances = new List<Alliance>();
-			foreach ( Alliance alliance in alliances ) {
-				if ( alliance.GetDaysInactive() > daysInactive )
-					inactiveAlliances.Add( alliance );
-			}
-			return inactiveAlliances;
 		}
 		static Alliance FindAlliance( string allianceName ) {
 			string param = "SearchAlliance?guildName="
 				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
 			Alliance alliance = new Alliance( allianceName );
 			using ( JsonDocument result = GetWww( param ) ) {
-				alliance.Load( result.RootElement );
+				if ( result != null
+					&& result.RootElement.TryGetProperty( "err", out JsonElement error )
+					&& error.TryGetInt32( out int errorNum )
+					&& errorNum == 0 ) {
+					alliance.Load( result.RootElement );
+				} else {
+					alliance = null;
+				}
 			}
 			return alliance;
 		}
-		static public Alliance GetAlliance( string allianceName ) {
-			if ( String.IsNullOrEmpty( allianceName ) ) throw new ArgumentNullException( "allianceName" );
-			Alliance alliance = new Alliance( allianceName );
-			GetAllianceMembers( alliance );
-			return alliance;
-		}
-		static void GetAllianceMembers( Alliance alliance ) {
+		static bool TryGetAllianceData( Alliance alliance ) {
 			if ( alliance.Id == default ) {
 				if ( String.IsNullOrEmpty( alliance.Name ) ) {
 					throw new ArgumentException( "Neither alliance name nor alliance ID are given", "alliance" );
 				}
-				alliance.Id = FindAlliance( alliance.Name ).Id;
+				Alliance newAlliance = FindAlliance( alliance.Name );
+				if ( newAlliance == null )
+					return false;
+				alliance.Id = newAlliance.Id;
 			}
 			string param = "ViewAllianceInfo?guID=" + alliance.Id.ToString();
 			using ( JsonDocument result = GetWww( param ) ) {
-				if ( result != null ) {
-					alliance.Load( result.RootElement );
+				if ( result == null
+					|| !result.RootElement.TryGetProperty( "err", out JsonElement error )
+					|| !error.TryGetInt32( out int errorNum )
+					|| errorNum != 0 ) {
+					return false;
 				}
+				alliance.Load( result.RootElement );
 			}
+			return true;
 		}
 		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
