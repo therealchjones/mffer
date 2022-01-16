@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -69,47 +68,6 @@ namespace Mffer {
 		static NetworkData() {
 		}
 		/// <summary>
-		/// Check a list of <see cref="Alliance"/>s for new activity
-		/// </summary>
-		/// <remarks>
-		/// Given a <see cref="List{Alliance}"/> of <see cref="Alliance"/>s,
-		/// <see cref="CheckProspectiveAlliances"/> checks each for logins by the
-		/// <see cref="Alliance"/>'s <see cref="Player"/>s that have occurred
-		/// since the last time the <see cref="Alliance"/> was checked, and
-		/// checks for any weekly experience points. (<see cref="Alliance"/>s
-		/// that cannot be found are discarded.) If there are neither, the
-		/// <see cref="Alliance"/> is added to a new <see
-		/// cref="List{Alliance}"/> to be returned.
-		/// </remarks>
-		/// <param name="alliances">The <see cref="List{Alliance}"/> of <see
-		/// cref="Alliance"/>s to check</param>
-		/// <returns>A new <see cref="List{Alliance}"/> of the <see
-		/// cref="Alliance"/>s that have had no activity since last checked</returns>
-		static public List<Alliance> CheckProspectiveAlliances( List<Alliance> alliances ) {
-			List<Alliance> newList = new List<Alliance>();
-			DateTimeOffset now = DateTimeOffset.Now;
-			TimeSpan sinceLastCheck;
-			foreach ( Alliance alliance in alliances ) {
-				if ( alliance.LastUpdateTime != default ) {
-					sinceLastCheck = now - alliance.LastUpdateTime;
-				} else {
-					sinceLastCheck = now - now;
-				}
-				if ( !TryUpdateAlliance( alliance )
-					|| alliance.WeeklyExperience != 0
-					|| alliance.Players.Count >= alliance.MaxMembers )
-					continue;
-				if ( alliance.LastLoginTime == default
-					|| now - alliance.LastLoginTime > sinceLastCheck )
-					newList.Add( alliance );
-			}
-			return newList;
-		}
-		static bool TryUpdateAlliance( Alliance alliance ) {
-			if ( TryGetAllianceData( alliance ) ) return true;
-			else return false;
-		}
-		/// <summary>
 		/// Obtains data about the NetMarble servers
 		/// </summary>
 		/// <remarks>
@@ -168,124 +126,6 @@ namespace Mffer {
 		/// <returns>server url</returns>
 		static string GetServerUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr" ).GetString();
-		}
-		/// <summary>
-		/// Find available alliances
-		/// </summary>
-		/// <remarks>
-		/// Rework/reimplementation of PacketTransfer.GetRecommendedAllianceList()
-		/// and PacketTransfer.GetRecommendedAllianceListOk()
-		/// </remarks>
-		static Dictionary<Alliance, string> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
-			const string param = "GetSuggestionAllianceList?lang=";
-			int pulledAlliances = 0;
-			HashSet<string> checkedAllianceNames = new HashSet<string>();
-			Dictionary<Alliance, string> prospectiveAlliances = new Dictionary<Alliance, string>();
-			Dictionary<Alliance, string> qualifyingAlliances = new Dictionary<Alliance, string>();
-			JsonElement alliances;
-			JsonElement desc, gname, wExp, autoJoinYN;
-			JsonElement level, shopLevel, requiredLevel;
-			string encodedName, description;
-			double allianceDaysInactive = 0;
-			while ( pulledAlliances < alliancesToCheck ) {
-				using ( JsonDocument result = GetWww( param ) ) {
-					if ( result == null
-						|| !result.RootElement.TryGetProperty( "desc", out desc )
-						|| !desc.TryGetProperty( "sgs", out JsonElement jsonElement )
-						|| jsonElement.ValueKind != JsonValueKind.Array )
-						continue;
-					alliances = jsonElement.Clone();
-				}
-				foreach ( JsonElement allianceJson in alliances.EnumerateArray() ) {
-					if ( !allianceJson.TryGetProperty( "gname", out gname )
-						|| gname.ValueKind != JsonValueKind.String )
-						continue;
-					encodedName = gname.GetString();
-					pulledAlliances++;
-					if ( String.IsNullOrEmpty( encodedName )
-						|| checkedAllianceNames.Contains( encodedName )
-						|| !allianceJson.TryGetProperty( "wExp", out wExp )
-						|| wExp.ValueKind != JsonValueKind.Number
-						|| !allianceJson.TryGetProperty( "autoJoinYN", out autoJoinYN )
-						|| autoJoinYN.ValueKind != JsonValueKind.Number )
-						continue;
-					checkedAllianceNames.Add( encodedName );
-					if ( wExp.GetInt32() != 0
-						|| autoJoinYN.GetInt32() != 1 )
-						continue;
-					if ( !allianceJson.TryGetProperty( "glv", out level )
-						|| level.ValueKind != JsonValueKind.Number
-						|| !allianceJson.TryGetProperty( "sLv", out shopLevel )
-						|| shopLevel.ValueKind != JsonValueKind.Number
-						|| !allianceJson.TryGetProperty( "lvt", out requiredLevel )
-						|| shopLevel.ValueKind != JsonValueKind.Number )
-						continue;
-					Alliance alliance = new Alliance( allianceJson );
-					if ( !TryUpdateAlliance( alliance )
-						|| alliance.Players.Count >= alliance.MaxMembers )
-						continue;
-					allianceDaysInactive = alliance.GetDaysInactive();
-					description = $"level {level.GetInt32()}, shop level {shopLevel.GetInt32()}, required level {requiredLevel.GetInt32()}, {allianceDaysInactive} days without activity";
-					prospectiveAlliances.Add( alliance, description );
-					if ( allianceDaysInactive > daysInactive ) qualifyingAlliances.Add( alliance, description );
-				}
-			}
-			return qualifyingAlliances;
-		}
-		/// <summary>
-		/// Obtain a list of <see cref="Alliance"/>s without weekly activity
-		/// </summary>
-		/// <remarks>
-		/// <see cref="FindProspectiveAlliances(int)"/> requests a number of
-		/// alliances to search and examines each to determine whether they've had any
-		/// weekly contribution points. (Weekly contribution points reset to 0
-		/// at the weekly reset at 0100 Friday UTC.) Alliances without weekly
-		/// contribution points are returned in a <see cref="List{Alliance}"/>.
-		/// The number of alliances returned is typically far less than the
-		/// number searched.
-		/// </remarks>
-		/// <param name="toSearch">the number of <see cref="Alliance"/>s to search</param>
-		/// <returns></returns>
-		public static List<Alliance> FindProspectiveAlliances( int toSearch ) {
-			return FindInactiveAlliances( toSearch, 0 ).Keys.ToList();
-		}
-		static Alliance FindAlliance( string allianceName ) {
-			string param = "SearchAlliance?guildName="
-				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
-			Alliance alliance = new Alliance( allianceName );
-			using ( JsonDocument result = GetWww( param ) ) {
-				if ( result != null
-					&& result.RootElement.TryGetProperty( "err", out JsonElement error )
-					&& error.TryGetInt32( out int errorNum )
-					&& errorNum == 0 ) {
-					alliance.Load( result.RootElement );
-				} else {
-					alliance = null;
-				}
-			}
-			return alliance;
-		}
-		static bool TryGetAllianceData( Alliance alliance ) {
-			if ( alliance.Id == default ) {
-				if ( String.IsNullOrEmpty( alliance.Name ) ) {
-					throw new ArgumentException( "Neither alliance name nor alliance ID are given", "alliance" );
-				}
-				Alliance newAlliance = FindAlliance( alliance.Name );
-				if ( newAlliance == null )
-					return false;
-				alliance.Id = newAlliance.Id;
-			}
-			string param = "ViewAllianceInfo?guID=" + alliance.Id.ToString();
-			using ( JsonDocument result = GetWww( param ) ) {
-				if ( result == null
-					|| !result.RootElement.TryGetProperty( "err", out JsonElement error )
-					|| !error.TryGetInt32( out int errorNum )
-					|| errorNum != 0 ) {
-					return false;
-				}
-				alliance.Load( result.RootElement );
-			}
-			return true;
 		}
 		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
@@ -726,27 +566,96 @@ namespace Mffer {
 					textBytes = msEncrypt.ToArray();
 				}
 			}
-			// Debug.Log( "Encrypted textBytes.Length: " + textBytes.Length );
-			// textKey_ = CryptUtil__ConvertByteArrayToStringB(,btSrc,)
 			string textKey_ = Convert.ToBase64String( textBytes );
-			// Debug.Log( "Base64 textKey_.Length: " + textKey_.Length );
-			// Debug.Log( "Base64 textKey_: " + textKey_ );
-			// textKey_ = CryptUtil__XOREncode(,textKey_,) [0x0109ff70]
 			StringBuilder builder = new StringBuilder( textKey_.Length );
 			char[] decoded = textKey_.ToCharArray();
-			// Debug.Log( "textKey as char[] length: " + decoded.Length );
 			uint[] xor_table = { 0, 0, 0, 0 };
-			// Debug.Log( "xor_table.Length: " + xor_table.Length );
 			for ( int i = 0; i < decoded.Length; i++ ) {
 				builder.Append( (uint)( (char)( (uint)decoded[i] ^ xor_table[i % xor_table.Length] ) ) );
 			}
 			textKey_ = builder.ToString();
-			// Debug.Log( "XORed textKey_ length: " + textKey_.Length );
-			// Debug.Log( "textKey_: " + textKey_ );
 			System.Text.Encoding encoding = System.Text.Encoding.UTF8;
 			textKey_ = Convert.ToBase64String( encoding.GetBytes( textKey_ ) );
-			// Debug.Log( "Base64'd textKey_ length: " + textKey_.Length );
-			// Debug.Log( "Set textKey_ to " + textKey_ );
+		}
+		/// <summary>
+		/// Downloads and parses available data for the given <see cref="Alliance"/>
+		/// </summary>
+		/// <param name="alliance">the <see cref="Alliance"/> to be updated with
+		/// all available data</param>
+		/// <returns><c>true</c> if data for the given <see cref="Alliance"/> is
+		/// successfully downloaded and parsed into the <see cref="Alliance"/>
+		/// instance, <c>false</c> otherwise.</returns>
+		/// <exception cref="ArgumentException"> if <paramref name="alliance"/>
+		/// does not have a defined <see cref="Alliance.Id"/> or <see
+		/// cref="Alliance.Name"/></exception>
+		static public bool TryGetAllianceData( Alliance alliance ) {
+			if ( alliance.Id == default ) {
+				if ( String.IsNullOrEmpty( alliance.Name ) ) {
+					throw new ArgumentException( "Neither alliance name nor alliance ID are given", "alliance" );
+				}
+				Alliance newAlliance = FindAlliance( alliance.Name );
+				if ( newAlliance == null
+					|| newAlliance.Id == default )
+					return false;
+				alliance.Id = newAlliance.Id;
+			}
+			string param = "ViewAllianceInfo?guID=" + alliance.Id.ToString();
+			using ( JsonDocument result = GetWww( param ) ) {
+				if ( result == null
+					|| !result.RootElement.TryGetProperty( "err", out JsonElement error )
+					|| !error.TryGetInt32( out int errorNum )
+					|| errorNum != 0 ) {
+					return false;
+				}
+				alliance.Load( result.RootElement );
+			}
+			return true;
+		}
+		static Alliance FindAlliance( string allianceName ) {
+			string param = "SearchAlliance?guildName="
+				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
+			Alliance alliance = new Alliance( allianceName );
+			using ( JsonDocument result = GetWww( param ) ) {
+				if ( result != null
+					&& result.RootElement.TryGetProperty( "err", out JsonElement error )
+					&& error.TryGetInt32( out int errorNum )
+					&& errorNum == 0 ) {
+					alliance.Load( result.RootElement );
+				} else {
+					alliance = null;
+				}
+			}
+			return alliance;
+		}
+		/// <summary>
+		/// Obtains a list of alliances from Netmarble servers
+		/// </summary>
+		/// <remarks>
+		/// <see cref="FindSuggestedAlliances()"/> obtains a list of 10
+		/// alliances from Netmarble servers. The alliances have typically had
+		/// a member login within the preceding 24 hours. Repeated calls to
+		/// <see cref="FindSuggestedAlliances()"/> often have significant
+		/// overlap in the alliances returned. The data provided about each
+		/// alliance is incomplete; more complete data for a given
+		/// <see cref="Alliance"/> obtained from
+		/// <see cref="FindSuggestedAlliances()"/> can be obtained via
+		/// <see cref="TryGetAllianceData(Alliance)"/>.
+		/// </remarks>
+		/// <returns>a <see cref="List{Alliance}"/> of known <see cref="Alliance"/>s</returns>
+		static public List<Alliance> FindSuggestedAlliances() {
+			const string param = "GetSuggestionAllianceList?lang=";
+			List<Alliance> alliances = new List<Alliance>();
+			using ( JsonDocument result = GetWww( param ) ) {
+				if ( result == null
+					|| !result.RootElement.TryGetProperty( "desc", out JsonElement desc )
+					|| !desc.TryGetProperty( "sgs", out JsonElement sgs )
+					|| sgs.ValueKind != JsonValueKind.Array )
+					return alliances;
+				foreach ( JsonElement allianceJson in sgs.EnumerateArray() ) {
+					Alliance alliance = new Alliance( allianceJson );
+				}
+				return alliances;
+			}
 		}
 	}
 }
