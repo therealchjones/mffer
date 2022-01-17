@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Snappy.Sharp;
 
 namespace Mffer {
 	/// <summary>
@@ -101,15 +100,13 @@ namespace Mffer {
 			string selectServerType = GetServerInfo().RootElement.GetProperty( "select_server" ).GetProperty( "type" ).GetString();
 			JsonElement serverList = GetServerInfo().RootElement.GetProperty( "server_list" );
 			JsonElement selectedServer = new JsonElement();
-			bool selected = false;
 			foreach ( JsonElement server in serverList.EnumerateArray() ) {
 				if ( server.GetProperty( "type" ).GetString() == selectServerType ) {
 					selectedServer = server;
-					selected = true;
 					break;
 				}
 			}
-			if ( selected == false ) {
+			if ( !selectedServer.TryGetProperty( "type", out _ ) ) {
 				foreach ( JsonElement server in serverList.EnumerateArray() ) {
 					selectedServer = server;
 					break;
@@ -130,35 +127,13 @@ namespace Mffer {
 		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
-			byte[] decryptedBytes = ResponseDecrypt( responseBytes );
-			string text = ResponseDecompress( decryptedBytes );
-			return FixJson( text );
-		}
-		/// <summary>
-		/// Trims illegal characters from the end of a JSON string until
-		/// parseable, then parses the JSON
-		/// </summary>
-		/// <param name="text">JSON-formatted string</param>
-		/// <returns>JsonDocument object, discarding extraneous data after the
-		/// last <c>}</c></returns>
-		static JsonDocument FixJson( string text ) {
-			int lastBrace = text.LastIndexOf( '}' );
-			JsonDocument result = null;
-			while ( lastBrace > -1 ) {
-				text = text.Substring( 0, lastBrace + 1 );
-				try {
-					result = JsonDocument.Parse( text );
-					break;
-				} catch ( System.Text.Json.JsonException ) {
-					text = text.Substring( 0, text.Length - 1 );
-					lastBrace = text.LastIndexOf( '}' );
-				}
+			string text = null;
+			if ( !param.StartsWith( "http" ) ) {
+				text = ResponseDecrypt( responseBytes );
+			} else {
+				text = Encoding.UTF8.GetString( responseBytes );
 			}
-			if ( lastBrace > -1 ) return result;
-			else {
-				result.Dispose();
-				return null;
-			}
+			return JsonDocument.Parse( text );
 		}
 		/// <summary>
 		/// Obtains network data via HTTP(S)
@@ -315,9 +290,8 @@ namespace Mffer {
 				request.Content = form;
 				HttpResponseMessage response = Www.Send( request );
 				byte[] responseBytes = response.Content.ReadAsByteArrayAsync().Result;
-				byte[] decryptedBytes = ResponseDecrypt( responseBytes );
-				string text = ResponseDecompress( decryptedBytes );
-				using ( JsonDocument result = FixJson( text ) ) {
+				string text = ResponseDecrypt( responseBytes );
+				using ( JsonDocument result = JsonDocument.Parse( text ) ) {
 					if ( result != null
 						&& result.RootElement.TryGetProperty( "desc", out JsonElement jsonElement ) ) {
 						desc = jsonElement.Clone();
@@ -325,7 +299,6 @@ namespace Mffer {
 					}
 				}
 			}
-
 			UserID = desc.GetProperty( "uID" ).GetUInt64().ToString();
 			CID = desc.GetProperty( "cID" ).GetString();
 			string cIDEnd = CID.Substring( CID.Length - 8 );
@@ -440,42 +413,31 @@ namespace Mffer {
 				IP = "10.0.2.16";
 			return IP;
 		}
-		static byte[] ResponseDecrypt( byte[] encryptedBytes ) {
+		static string ResponseDecrypt( byte[] encryptedBytes ) {
 			string key = GetPacketKey();
 			if ( String.IsNullOrEmpty( key ) ) {
 				key = GetAesKey() + GetAesKey();
 			}
 			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
-			return CoreDecrypt( encryptedBytes, keyBytes, keyBytes );
+			return Decrypt( encryptedBytes, keyBytes, keyBytes );
 		}
-		static byte[] CoreDecrypt( byte[] text, byte[] key, byte[] iv ) {
-			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
+		static string Decrypt( byte[] text, byte[] key, byte[] iv ) {
+			using ( Aes rijAlg = Aes.Create() ) {
 				rijAlg.KeySize = key.Length << 3;
 				rijAlg.BlockSize = 128;
 				rijAlg.Mode = CipherMode.CBC;
-				rijAlg.Padding = (PaddingMode)2;
+				rijAlg.Padding = PaddingMode.PKCS7;
 				rijAlg.Key = key;
 				rijAlg.IV = iv;
 				ICryptoTransform decryptor = rijAlg.CreateDecryptor( key, iv );
 				using ( MemoryStream msDecrypt = new MemoryStream( text ) ) {
-					using ( CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Write ) ) {
-						csDecrypt.Write( text, 0, text.Length );
-						csDecrypt.FlushFinalBlock();
-						return msDecrypt.ToArray();
+					using ( CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Read ) ) {
+						using ( StreamReader srDecrypt = new StreamReader( csDecrypt ) ) {
+							return srDecrypt.ReadToEnd();
+						}
 					}
 				}
 			}
-		}
-		static string ResponseDecompress( byte[] compressedBytes ) {
-			string decompressed = "";
-			try {
-				SnappyDecompressor snappyDecompressor = new SnappyDecompressor();
-				byte[] decompressedBytes = snappyDecompressor.Decompress( compressedBytes, 0, compressedBytes.Length );
-				decompressed = Encoding.UTF8.GetString( decompressedBytes );
-			} catch ( IndexOutOfRangeException ) {
-				decompressed = Encoding.UTF8.GetString( compressedBytes );
-			}
-			return decompressed;
 		}
 		static string GetAccessToken() {
 			if ( String.IsNullOrEmpty( AccessToken ) ) {
@@ -653,6 +615,9 @@ namespace Mffer {
 					return alliances;
 				foreach ( JsonElement allianceJson in sgs.EnumerateArray() ) {
 					Alliance alliance = new Alliance( allianceJson );
+					if ( !String.IsNullOrEmpty( alliance.Name )
+						|| alliance.Id != default )
+						alliances.Add( alliance );
 				}
 				return alliances;
 			}

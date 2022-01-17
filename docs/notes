@@ -266,86 +266,118 @@ SceneTitle.Start() {
 			url = PatchSystem.get * url() {
 				PatchSystem.CreateUrl() {
 					BuildType = Define.get_BuildType = BUILD_TYPE * *Enum.GLOBAL( 0 )
-				BuildOptions = Define.get_BuildOptions = BUILD_OPTIONS * *Enum.DIST( 4 )
-				baseUrl = PatchSystem.get_base_url() = PatchSystem.GetBaseUrl() = http://mheroesgb.gcdn.netmarble.com/mheroesgb/
+					BuildOptions = Define.get_BuildOptions = BUILD_OPTIONS * *Enum.DIST( 4 )
+					baseUrl = PatchSystem.get_base_url() = PatchSystem.GetBaseUrl() = http://mheroesgb.gcdn.netmarble.com/mheroesgb/
 return baseUrl + DIST / Android /
 				}
 			}
 			filepath = ServerInfo.GetRemoteFilePath() {
 				filepath = "v" + bundleVersion + "/"
-			filepath = filepath + ServerInfo.GetFileName() { return "server_info.txt" }
+				filepath = filepath + ServerInfo.GetFileName() { return "server_info.txt" }
 				filepath = filepath + "?p=" + CommonUtil.GetRandomInt()
-			return filepath
+				return filepath
 			}
 			WWWUtil.Get( param = url + filepath, scene, successMethod = "SetServerDataOK", failMethod = "", isLock = true, sendOption = 0, sendtotargetscene = false, timeout, \_retry = false, receiveresultwhenunlock = true, useFastJson = false, forceNotSequence = false, disableProgressUI = false ) {
 				wwwType = 1
-			retry = true
-			islock = true
-			parameter = param
-			key = parameter
-			if !parameter starts with http:// {
-				pmvar7 = 4
-			if !parameter starts with https:// {
-				WWWUtil.AddDefaultPacketParameter( parameter ) {
-					if parameter contains?
-				append &
-else
-						append?
-						append "uID=" + userId
-				append "&cKey=" + uptime
-				}
-				key = CryptUtil.getPacketKey()
-			if key is nullorempty
-			key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-			param - bytes = Encoding.UTF8.GetBytes()
-			pmvar7 = 1
-			param - bytes = CryptUtil.AESEncrypt( param - bytes, key, IsKeyIvSame = true )
-			key = sessionId
-			header = WWWUtil.MakeHeader( key, param - bytes.length )
-			contents = header + encryptedParam
-			key = ServerInfo.get_URL() + "FF"
-			url = key
-			param = parameter
-			isGamePacket = true
-			isSequenceProcess = true
-			encoded = true
-			form = new WWWForm()
-			form.AddBinaryData( fieldname = bin, contents, filename = bin, mimetype = application / octet - stream ) {
-				}
-			} else {
-				url = key
-			param = parameter
-			isGamePacket = false
-			isSequenceProcess = false
-			}
-			failedReason = 0
-		MyData.RestoreAllPrevData()
-		WWWUtil.GetRoutine_1() {
-				// via MonoBehaviour.StartCoroutine(): WWWUtil.GetRoutine_c_Iterator1.MoveNext() { // this is a guess
-				if isSequenceProcess {
-					// add the request( WWWData ) to the WWWUtil data stack then do the next request in the stack via WWWUtil.GetRountine_internal like below
+				retry = true
+				islock = true
+				parameter = param
+				key = parameter
+				if !parameter starts with http:// {
+					if !parameter starts with https:// {
+						WWWUtil.AddDefaultPacketParameter( parameter ) {
+							if parameter contains?
+								append &
+							else
+								append ?
+							append "uID=" + userId
+							append "&cKey=" + uptime
+						}
+						key = CryptUtil.getPacketKey()
+						if key is nullorempty
+							key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+						parambytes = Encoding.UTF8.GetBytes(parameter)
+						encryptedParam = CryptUtil.AESEncrypt( parambytes, key, IsKeyIvSame = true )
+						key = sessionId
+						header = WWWUtil.MakeHeader( key, encryptedParam.length )
+						contents = header + encryptedParam
+						key = ServerInfo.get_URL() + "FF"
+						url = key
+						param = parameter
+						isGamePacket = true
+						isSequenceProcess = true
+						encoded = true
+						form = new WWWForm()
+						form.AddBinaryData( fieldname = bin, contents, filename = bin, mimetype = application / octet - stream )
+					}
 				} else {
-					// just do the request via
-					WWWUtil.GetRountine_internal() {
-						// via MonoBehaviour.StartCoroutine() WWWUtil.GetRountine_internal_c_Iterator0.MoveNext() { // this is a guess
-						// specifically for WWWType = 1
-						// BestHTTP package HTTPRequest( url, POST )
-						HTTPRequest.SetFields( form )
-					HTTPRequest.Send()
-					bytes = HTTPRequest.get_Response().get_Data()
-					WWWUtil.OnRequestFinished( data, error, bytes ) {
-							if failedReason == 0 && error is nullorempty {
-if IsGamePacket {
-										errors = WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
-if errors is nullorempty {
-WWWUtil.ResultOK( data, packetdecode, fastjson ) {
-	WWWUtil.SendResult( scene, successmethod, packetdecode, sendoption, sendtotargetscene, data, fastjson, byte[] bytes = null, bool isCache = false ) {
-											If sendtoTargetScene == 0 {
-												PacketTransfer( aka Component_1 ).SendMessage( successmethod, WWWResult, SendMessageOptions.Enum.DontRequireReceiver ) // just guessing this calls PacketTransfer.successMethod()
-} else {
-												Scene( aka GameObject ).SendMessage( successmethod, wwwresult, sendmessageoptions \* \*enum.DontRequireReceiver) // just guessing this calls scene.successMethod
+					url = key [parameter]
+					param = parameter
+					isGamePacket = false
+					isSequenceProcess = false
+				}
+				wwwType = 1
+				islock = islock
+				sendOption = options
+				sendtotargetscene = sendtoTargetScene
+				failedReason = 0
+				MyData.RestoreAllPrevData()
+				WWWUtil.GetRoutine_1() {
+					// via MonoBehaviour.StartCoroutine(): WWWUtil.GetRoutine_c_Iterator1.MoveNext() { // this is a guess
+					if isSequenceProcess {
+						// add the request( WWWData ) to the WWWUtil data stack then do the next request in the stack via WWWUtil.GetRountine_internal like below
+					} else {
+						// just do the request via
+						WWWUtil.GetRountine_internal() {
+							// via MonoBehaviour.StartCoroutine() WWWUtil.GetRountine_internal_c_Iterator0.MoveNext() { // this is a guess
+							// specifically for WWWType = 1
+							// BestHTTP package HTTPRequest( url, POST )
+							HTTPRequest.SetFields( form )
+							HTTPRequest.Send()
+							bytes = HTTPRequest.get_Response().get_Data()
+							WWWUtil.OnRequestFinished( data, error, bytes ) {
+								if failedReason == 0 {
+									if error is nullorempty {
+										if IsGamePacket {
+											errors = WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
+											if errors is nullorempty {
+												WWWUtil.ResultOK( data, packetdecode, fastjson ) {
+													WWWUtil.SendResult( scene, successmethod, packetdecode, sendoption, sendtotargetscene, data, fastjson, byte	[] bytes = null, bool isCache = false ) {
+													If sendtoTargetScene == 0 {
+														PacketTransfer( aka Component_1 ).SendMessage( successmethod, WWWResult, SendMessageOptions.Enum.DontRequireReceiver ) // just guessing this calls PacketTransfer.successMethod()
+													} else {
+														Scene( aka GameObject ).SendMessage( successmethod, wwwresult, sendmessageoptions \* \*enum.DontRequireReceiver) // just guessing this calls scene.successMethod
+													}
+												}
+											} else WWWUtil.ResultFail()
+											return;
+										}
+										string = ByteToString(bytes)
+										string = UnEscapeURL(string)
+										WWWUtil.ResultOK(data,string,null)
+										return;
+									}
+								} else if failedReason != 2 {
+									failedReason = 1
+									WWWUtil.Retry()
+									return;
+								} else throw NullReferenceException
+							}
+						}
+					}
+				}
+				return data;
+			}
+			return;
+		}
+		return;
+	}
+	TasSDK.init
+	TASEventListener.RegisterEvent()
+	return;
 }
-}
+
+
 HeroList_UpdateAll()
 }
 } else {
@@ -646,50 +678,60 @@ else append "?"
 WWWUtil.Parse( CryptUtil.PacketDecode( bytes, WWWUtil.UsePacketKeyFirst( param ) ), data, descRef )
 WWWUtil.UsePacketKeyFirst( param ) {
 	if param is nullorempty return true
-if param contains "GetVersion?" return false
-if param contains "GetNotice?" return false
-else return true
+	if param contains "GetVersion?" return false
+	if param contains "GetNotice?" return false
+	else return true
 }
 CrypUtil.PacketDecode( encBytes, usePacketKeyFirst ) {
 	if usePacketKeyFirst {
 		key = CryptUtil.get_packetKey()
-	if key is nullorempty {
-	key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-	}
-	bin = CryptUtil.Decrypt( encBytes, key ) {
-		rij = new RijndaelManaged()
-	   rij.set_Mode( 1 )
-	   rij.set_Padding( 2 )
-	   rij.set_KeySize( key.length << 3 )
-	   rij.set_BlockSize( 0x80 )
-	   keyBytes = Encoding.UTF8.GetBytes( key )
-	   rij.set_Key = keyBytes
-	   rij.set_IV = keyBytes
-	   decryptor = rij.CreateDecryptor()
-	   // ... more, but I'll defer to my previous CoreAesDecrypt code
-	}
-} else {
-	key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
-bin = CryptUtil.Decrypt( encBytes, key )
-if bin == null {
-		key = CryptUtil.get_packetKey()
-if key is nullorempty {
-return CryptUtil.ByteToString( encBytes ) {
-			return Encoding.UTF8.GetString( encBytes, 0, encBytes.length )
-  }
-	} else {
+		if key is not nullorempty {
+			bin = CryptUtil.Decrypt( encBytes, key ) {
+				rij = new RijndaelManaged()
+				rij.set_Mode( 1 )
+				rij.set_Padding( 2 )
+				rij.set_KeySize( key.length << 3 )
+				rij.set_BlockSize( 0x80 )
+				keyBytes = Encoding.UTF8.GetBytes( key )
+				rij.set_Key = keyBytes
+				rij.set_IV = keyBytes
+				decryptor = rij.CreateDecryptor()
+				ICryptoTransform( decryptor, encBytes, 0, encBytes.Length)
+				// ... more, but I'll defer to my previous CoreAesDecrypt code
+			}
+			if bin is not null {
+				text = CryptUtil.Decompress(bin,bin.Length)
+				if text is not nullorempty
+					return text
+		} // e.g., if packetkey is nullorempty, bin is null, or text is nullorempty
+		key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
+		bin = CryptUtil.Decrypt( encBytes, key)
+		if bin is null
+			return CryptUtil.ByteToString( encBytes )
+	} else { // usepacketkeyfirst == false
+		key = CryptUtil.get_aesKey() + CryptUtil.get_aesKey()
 		bin = CryptUtil.Decrypt( encBytes, key )
+		if bin == null {
+			key = CryptUtil.get_packetKey()
+			if key is nullorempty {
+				return CryptUtil.ByteToString( encBytes ) {
+					return Encoding.UTF8.GetString( encBytes, 0, encBytes.length )
+  				}
+			} else { // packetkey is not null
+				bin = CryptUtil.Decrypt( encBytes, key )
+				if bin == null
+					return CryptUtil.ByteToString( encBytes )
+			}
+		}
 	}
-}
-}
-string = CryptUtil.Decompress( bin, bin.length ) {
-	decompressor = CryptUtil.get_decompressor()
-   bytes = decompressor.Decompress( bin, 0, bin.length )
-   string = Encoding.UTF8.GetString( bytes )
-   return string;
-}
-if string is not nullorempty return string
-return CryptUtil.ByteToString( encBytes )
+	string = CryptUtil.Decompress( bin, bin.length ) {
+		decompressor = CryptUtil.get_decompressor()
+		bytes = decompressor.Decompress( bin, 0, bin.length )
+		string = Encoding.UTF8.GetString( bytes )
+		return string;
+	}
+	if string is not nullorempty return string
+	else return CryptUtil.ByteToString( encBytes )
 }
 PacketTransfer.GetRecommendAllianceList() {
 	param = "GetSuggestionAllianceList?" + "lang="

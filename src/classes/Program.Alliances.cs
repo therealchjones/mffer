@@ -132,7 +132,6 @@ namespace Mffer {
 			static List<Alliance> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
 				int pulledAlliances = 0;
 				List<string> checkedAllianceNames = new List<string>();
-				List<Alliance> prospectiveAlliances = new List<Alliance>();
 				List<Alliance> qualifyingAlliances = new List<Alliance>();
 				double allianceDaysInactive = 0;
 				while ( pulledAlliances < alliancesToCheck ) {
@@ -141,15 +140,13 @@ namespace Mffer {
 						pulledAlliances++;
 						if ( checkedAllianceNames.Contains( alliance.Name ) ) continue;
 						else checkedAllianceNames.Add( alliance.Name );
-						if ( alliance.WeeklyExperience == default
-							|| alliance.WeeklyExperience == 0
+						if ( alliance.WeeklyExperience > 0
 							|| alliance.IsPublic == false )
 							continue;
 						if ( !NetworkData.TryGetAllianceData( alliance )
 							|| alliance.Players.Count >= alliance.MaxMembers )
 							continue;
 						allianceDaysInactive = alliance.GetDaysInactive();
-						prospectiveAlliances.Add( alliance );
 						if ( allianceDaysInactive > daysInactive ) qualifyingAlliances.Add( alliance );
 					}
 				}
