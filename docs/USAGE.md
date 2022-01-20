@@ -163,8 +163,8 @@ may not run on such systems installed in virtual machines that do not support
 
     `mffer` will take a potentially great deal of time to load the files from
     the `data` directory, process them, and write new files to the
-    `output`directory. When complete, the`output` directory will contain
-    _`version`_`.json`for each version of the game found in`data`, large files
+    `output`directory. When complete, the `output` directory will contain
+    _`version`_`.json` for each version of the game found in `data`, large files
     with amalgamated data from each version's files. It will also have one or
     more `roster-`_`version`_`.csv` files containing information about the
     playable characters in the game.

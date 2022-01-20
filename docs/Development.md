@@ -683,34 +683,36 @@ candidate release versions of the software using the process
 [above](#building-a-release). Each of those builds is then tested on each
 reference system, resulting in a testing checklist such as:
 
-```
-## `autoextract`
-- [ ] windows
-- [ ] macOS
-- [ ] linux
-
-## `autoanalyze`
-- [ ] windows
-- [ ] macOS
-- [ ] linux
-
-## `mffer`
-
-|                | build on windows | build on macOS | build on linux |
-|----------------|------------------|----------------|----------------|
-| run on windows |    [ ]           |     [ ]        |       [ ]      |
-| run on macOS   |    [ ]           |     [ ]        |       [ ]      |
-| run on linux   |    [ ]           |     [ ]        |       [ ]      |
-
-## webapp deployment
-- [ ] windows
-- [ ] macOS
-- [ ] linux
-
-## webapp setup
-- [ ] gmail
-- [ ] google workspace
-```
+> ## `autoextract`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> ## `autoanalyze`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> ## `mffer`
+>
+> |                | build on windows | build on macOS | build on linux |
+> | -------------- | ---------------- | -------------- | -------------- |
+> | run on windows | [ ]              | [ ]            | [ ]            |
+> | run on macOS   | [ ]              | [ ]            | [ ]            |
+> | run on linux   | [ ]              | [ ]            | [ ]            |
+>
+> ## webapp deployment
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> ## webapp setup
+>
+> -   [ ] gmail
+> -   [ ] google workspace
 
 #### Reference systems
 
@@ -721,17 +723,18 @@ these systems is run in a Parallels virtual machine on the latest release of
 macOS.
 
 Where possible, reference systems are defined programatically by building
-"headless" Parallels Desktop virtual machines and interacting with them via the
-command line and scripts rather than instructions for user interaction. (This
-remains a work in progress.) Further information on using the command line to
-build and interact with Paralells Desktop is available
+"headless" Parallels Desktop virtual machines on a macOS host and interacting
+with them via the command line and scripts rather than instructions for user
+interaction. (This remains a work in progress.) Further information on using the
+command line to build and interact with Paralells Desktop is available
 [on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
 the latest version should be available
 [here](https://www.parallels.com/products/desktop/resources/).
 
 ##### macOS/OS X
 
-1. Install the latest version of macOS on a Parallels virtual machine:
+(Note: this doesn't work properly if you already have the latest "Install macOS
+Monterey" application on your computer but not in `/Applications`.) Install the latest version of macOS on a Parallels virtual machine:
 
 ```shell
 softwareupdate --fetch-full-installer --full-installer-version 12.1 && \
@@ -745,8 +748,11 @@ prlctl set "macOS" --cpus auto --memsize auto \
 	--nested-virt on \
 	--smart-mount off --shared-cloud off \
 	--sh-app-guest-to-host off \
-	--sh-app-host-to-guest off && \
+	--sh-app-host-to-guest off \
+	--startup-view window && \
 prlctl set "macOS" --device-set "cdrom0" --image "macOS Installer.dmg" --connect && \
+prlctl set "macOS" --device-set "net0" --ipadd 10.211.55.21 && \
+osascript -e 'tell application "Parallels Desktop" to activate' && \
 prlctl start "macOS"
 ```
 
@@ -760,7 +766,36 @@ After booting and when prompted, set language, then open
 
 After the VM restarts and completes installation, set up as prompted, including
 addition of a user and password, skipping or accepting defaults for other
-settings when prompted. Uncheck "Enable Ask Siri" when prompted.
+settings when prompted. Shut down from within the virtual machine and save this
+installation as a snapshot.
+
+Start the VM, open System Preferences: Security & Privacy: Privacy. Unlock, then
+select "Full Disk Access", and add the "Terminal" application (from
+/Applications/Utilities). Open the Terminal:
+
+```shell
+sudo systemsetup -setremotelogin on
+```
+
+Then, from the host, test logging in "remotely":
+
+```shell
+ssh 10.211.55.21 // ssh macos.shared may also work
+```
+
+If that works as expected, within your `ssh` session, shutdown the VM (which
+will also end your `ssh` session).
+
+```shell
+sudo shutdown -h now
+```
+
+Finally, complete the configuration to be headless, saving the resulting snapshot:
+
+```shell
+prlctl set macOS --startup-view headless && \
+prlctl snapshot macOS -n Headless -d "ssh:macos.shared"
+```
 
 1. Test `mffer`
 2. Install
