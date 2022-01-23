@@ -733,54 +733,20 @@ the latest version should be available
 
 ##### macOS/OS X
 
-(Note: this doesn't work properly if you already have the latest "Install macOS
-Monterey" application on your computer but not in `/Applications`.) Install the latest version of macOS on a Parallels virtual machine:
+(Ed. note: this was a real pain, and is just terribly documented. Settings were
+identified from many different sources, but major concepts were inspired by
+[MDS](https://twocanoes.com/products/mac/mac-deploy-stick/) and
+[pycreateuserpkg](https://github.com/gregneagle/pycreateuserpkg).)
 
 ```shell
-softwareupdate --fetch-full-installer --full-installer-version 12.1 && \
-hdiutil create -o "macOS Installer" -size 16g -layout SPUD -fs HFS+J && \
-hdiutil attach "macOS Installer".dmg -noverify -mountpoint "/Volumes/macOS Installer" -nobrowse && \
-sudo "/Applications/Install macOS Monterey.app/Contents/Resources/createinstallmedia" --volume "/Volumes/macOS Installer" --nointeraction && \
-hdiutil detach "/Volumes/Install macOS Monterey" && \
-prlctl create "macOS" -o macos && \
-prlctl set "macOS" --cpus auto --memsize auto \
-	--auto-share-camera off \
-	--nested-virt on \
-	--smart-mount off --shared-cloud off \
-	--sh-app-guest-to-host off \
-	--sh-app-host-to-guest off \
-	--startup-view window && \
-prlctl set "macOS" --device-set "cdrom0" --image "macOS Installer.dmg" --connect && \
-prlctl set "macOS" --device-set "net0" --ipadd 10.211.55.21 && \
-osascript -e 'tell application "Parallels Desktop" to activate' && \
-prlctl start "macOS"
+./tools/maketestvm
 ```
 
-After booting and when prompted, set language, then open
-"Utilities->Terminal" and run
+After the VM restarts and completes installation, from the host, test logging in
+"remotely":
 
 ```shell
-"/Volumes/Image Volume/Install macOS Monterey.app/Contents/Resources/startosinstall" \
-	--nointeraction --agreetolicense --volume "/Volumes/Macintosh HD"
-```
-
-After the VM restarts and completes installation, set up as prompted, including
-addition of a user and password, skipping or accepting defaults for other
-settings when prompted. Shut down from within the virtual machine and save this
-installation as a snapshot.
-
-Start the VM, open System Preferences: Security & Privacy: Privacy. Unlock, then
-select "Full Disk Access", and add the "Terminal" application (from
-/Applications/Utilities). Open the Terminal:
-
-```shell
-sudo systemsetup -setremotelogin on
-```
-
-Then, from the host, test logging in "remotely":
-
-```shell
-ssh 10.211.55.21 // ssh macos.shared may also work
+ssh macos.shared
 ```
 
 If that works as expected, within your `ssh` session, shutdown the VM (which
@@ -790,11 +756,12 @@ will also end your `ssh` session).
 sudo shutdown -h now
 ```
 
-Finally, complete the configuration to be headless, saving the resulting snapshot:
+Finally, complete the configuration to be headless, saving the resulting
+snapshot:
 
 ```shell
 prlctl set macOS --startup-view headless && \
-prlctl snapshot macOS -n Headless -d "ssh:macos.shared"
+prlctl snapshot macOS -n "Base Installation" -d "ssh:macos.shared"
 ```
 
 1. Test `mffer`

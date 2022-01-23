@@ -1,0 +1,109 @@
+#!/bin/sh
+
+# Creates a "headless" macOS virtual machine with a minimum of interaction
+
+set -e
+
+MACOS_VERSION="12.1"
+
+INSTALLERAPP_PATH="/Applications/Install macOS Monterey.app"
+CREATEINSTALL_PATH="$INSTALLERAPP_PATH/Contents/Resources/createinstallmedia"
+
+if [ "0" != "$(id -u)" ]; then
+	echo "$0 requires administrator privileges. Run as 'sudo \"$0\"'." >&2
+	exit 1
+fi
+if [ -z "$SUDO_USER" ] || [ "0" = "$SUDO_UID" ]; then
+	echo "$0 should be used by a regular user. Run as 'sudo \"$0\"'." >&2
+	exit 1
+fi
+USERNAME="$SUDO_USER"
+hashdata="$(dscl -plist . -read /Users/"$USERNAME" ShadowHashData)"
+if ! echo "$hashdata" | plutil -extract 'dsAttrTypeNative:ShadowHashData.0' raw - >/dev/null 2>&1; then
+	echo "Unable to obtain current settings for user '$USERNAME'." >&2
+	exit 1
+fi
+user_hash="$(echo "$hashdata" \
+	| plutil -extract 'dsAttrTypeNative:ShadowHashData.0' raw - \
+	| xxd -p -r \
+	| plutil -extract 'SALTED-SHA512-PBKDF2' xml1 - -o -)"
+user_entropy="$(echo "$user_hash" \
+	| plutil -extract 'entropy' raw -)"
+user_iterations="$(echo "$user_hash" \
+	| plutil -extract 'iterations' raw -)"
+user_salt="$(echo "$user_hash" \
+	| plutil -extract 'salt' raw -)"
+SHADOW="$(plutil -create binary1 - -o - \
+	| plutil -insert 'SALTED-SHA512-PBKDF2' -dictionary - -o - \
+	| plutil -insert 'SALTED-SHA512-PBKDF2.entropy' -data "${user_entropy}" - -o - \
+	| plutil -insert 'SALTED-SHA512-PBKDF2.iterations' -integer "${user_iterations}" - -o - \
+	| plutil -insert 'SALTED-SHA512-PBKDF2.salt' -data "${user_salt}" - -o - \
+	| base64)"
+
+cat >headlessconfig/config.sh <<-EOF
+	#!/bin/sh
+
+	USERNAME="$USERNAME"
+	SHADOW="$SHADOW"
+EOF
+
+softwareupdate --fetch-full-installer --full-installer-version "$MACOS_VERSION"
+
+if [ ! -x "$CREATEINSTALL_PATH" ]; then
+	echo "$CREATEINSTALL_PATH not found; if the macOS installer is elsewhere on your" >&2
+	echo "computer move it to $INSTALLERAPP_PATH." >&2
+	exit 1
+fi
+
+hdiutil create -o "macOS Installer" -size 16g -layout SPUD -fs HFS+J
+hdiutil attach "macOS Installer".dmg -noverify -mountpoint "/Volumes/macOS Installer" -nobrowse
+
+"$CREATEINSTALL_PATH" --volume "/Volumes/macOS Installer" --nointeraction
+cat >"/Volumes/Install macOS Monterey/install" <<-"EOF"
+	#!/bin/sh
+
+	"/Volumes/Image Volume/Install macOS Monterey.app/Contents/Resources/startosinstall" \
+	--agreetolicense --volume "/Volumes/Macintosh HD" \
+	--installpackage "/Volumes/Image Volume/setup-headless-configuration.pkg"
+EOF
+chmod 0755 "/Volumes/Install macOS Monterey/install"
+
+if [ -r ~/.ssh/id_ecdsa.pub ]; then
+	cp ~/.ssh/id_ecdsa.pub headlessconfig/
+fi
+
+pkgbuild --nopayload --scripts headlessconfig/ --identifier \
+	headless-configuration headless-configuration.pkg
+productbuild --package headless-configuration.pkg \
+	setup-headless-configuration.pkg
+cp setup-headless-configuration.pkg /Volumes/Install\ macOS\ Monterey/
+
+hdiutil detach "/Volumes/Install macOS Monterey"
+
+prlctl create "macOS" -o macos
+prlctl set "macOS" --cpus auto --memsize auto \
+	--auto-share-camera off \
+	--nested-virt on \
+	--smart-mount off --shared-cloud off \
+	--sh-app-guest-to-host off \
+	--sh-app-host-to-guest off \
+	--startup-view window \
+	--adaptive-hypervisor on
+prlctl set "macOS" --device-set "cdrom0" --image "macOS Installer.dmg" --connect
+osascript -e 'tell application "Parallels Desktop" to activate'
+prlctl start "macOS"
+echo ''
+echo '************* USER INTERACTION REQUIRED *************'
+echo '1. Wait for the virtual machine to boot.'
+echo '2. When prompted, choose a language.'
+echo '3. Open the Terminal via the "Utilities" menu'
+echo '4. Run "/Volumes/Image Volume/install'
+echo '5. Wait for macOS to complete installation and present'
+echo '   a new login screen after rebooting.'
+echo '6. Leave the emulator running and...'
+echo '******************************************************'
+echo ''
+echo 'Press <enter> or <return> when that is complete.'
+read -r
+
+# Other stuff from Development.md
