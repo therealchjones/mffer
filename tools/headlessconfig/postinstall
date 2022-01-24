@@ -11,6 +11,11 @@ if [ ! -r "${SCRIPTDIR}/config.sh" ]; then
 	echo "Configuration file '${SCRIPTDIR}/config.sh' not found." >&2
 	exit 1
 fi
+
+# This configuration file is only present during the creation and
+# installation process; disable shellcheck here to prevent complaints
+# about it.
+# shellcheck disable=SC1090,SC1091
 . "${SCRIPTDIR}/config.sh"
 if [ -z "$USERNAME" ]; then
 	echo "Configuration file does not include username. Exiting." >&2
@@ -21,7 +26,9 @@ if [ -z "$SHADOW" ]; then
 	exit 1
 fi
 
-# need to extract relevant plist first
+# This next step requires 'createuser' from the pyusercreatepkg project
+# and an appropriate plist-formatted user configuration to work
+# properly.
 echo Creating user "'$USERNAME'"...
 "$SCRIPTDIR"/createuser "$SCRIPTDIR/$USERNAME.plist"
 
@@ -71,6 +78,7 @@ echo Updating macOS...
 /usr/sbin/softwareupdate -i -a
 
 echo Ejecting installation disk...
+# this probably needs to be dynamic, also it's not working
 hdiutil detach "/Volumes/Install macOS Monterey"
 
 echo Shutting down.
