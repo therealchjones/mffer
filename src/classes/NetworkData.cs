@@ -31,7 +31,7 @@ namespace Mffer {
 		const string CountryCode = "US";
 		// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
 		// varies by version
-		const string BundleVersion = "7.7.0";
+		const string BundleVersion = "7.8.0";
 		// Obtained in libil2cpp.so via ServerInfo.GetFileName()
 		const string ServerFileName = "server_info.txt";
 		// Obtained in libil2cpp.so via CryptUtil.get_aesKey()

@@ -9,6 +9,9 @@ namespace Mffer {
 		/// <see cref="Program"/> properties and methods for user-facing work with <see cref="Alliance"/>s
 		/// </summary>
 		static class Alliances {
+			/// <summary>
+			/// Update a list of inactive alliances
+			/// </summary>
 			public static void GetProspectiveAlliances() {
 				FileInfo alliancesFile = new FileInfo( "alliances.json" );
 				List<Alliance> importedAlliances = new List<Alliance>();
@@ -32,10 +35,9 @@ namespace Mffer {
 				}
 				List<Alliance> newAlliances = new List<Alliance>();
 				if ( endSize < 100 ) {
-					int searchSize = ( 100 - endSize ) * 1000;
+					int searchSize = ( 100 - endSize );
 					Console.Write( "Finding new alliances to monitor" );
-					if ( searchSize > 1000 ) Console.WriteLine( "... this will take a little time." );
-					else Console.WriteLine();
+					Console.WriteLine( "... this will take a little time." );
 					newAlliances = FindProspectiveAlliances( searchSize );
 					if ( newAlliances.Count > 0 ) {
 						Console.WriteLine( $"Found {newAlliances.Count} new alliances to monitor." );
@@ -129,12 +131,12 @@ namespace Mffer {
 			/// Rework/reimplementation of PacketTransfer.GetRecommendedAllianceList()
 			/// and PacketTransfer.GetRecommendedAllianceListOk()
 			/// </remarks>
-			static List<Alliance> FindInactiveAlliances( int alliancesToCheck, int daysInactive ) {
+			static List<Alliance> FindInactiveAlliances( int alliancesToFind, int daysInactive ) {
 				int pulledAlliances = 0;
 				List<string> checkedAllianceNames = new List<string>();
 				List<Alliance> qualifyingAlliances = new List<Alliance>();
 				double allianceDaysInactive = 0;
-				while ( pulledAlliances < alliancesToCheck ) {
+				while ( qualifyingAlliances.Count < alliancesToFind ) {
 					List<Alliance> alliances = NetworkData.FindSuggestedAlliances();
 					foreach ( Alliance alliance in alliances ) {
 						pulledAlliances++;
@@ -157,15 +159,20 @@ namespace Mffer {
 			/// Obtain a list of <see cref="Alliance"/>s without weekly activity
 			/// </summary>
 			/// <remarks>
-			/// <see cref="FindProspectiveAlliances(int)"/> requests a number of
-			/// alliances to search and examines each to determine whether they've had any
-			/// weekly contribution points. (Weekly contribution points reset to 0
-			/// at the weekly reset at 0100 Friday UTC.) Alliances without weekly
-			/// contribution points are returned in a <see cref="List{Alliance}"/>.
-			/// The number of alliances returned is typically far less than the
-			/// number searched.
+			/// <see cref="FindProspectiveAlliances(int)"/> attempts to identify
+			/// a number of alliances without any weekly contribution points.
+			/// (Weekly contribution points reset to 0 at the weekly reset at
+			/// 0100 Friday UTC.) Alliances are obtained from NetMarble servers
+			/// without an obvious order or meeting configurable properties, and
+			/// include previously returned alliances, so increasing the number
+			/// of alliances to be sought can increase the number of alliances
+			/// which need to be searched far more. Once at least
+			/// <see paramref="toSearch"/> alliances without weekly
+			/// contribution points are found, they are returned in a
+			/// <see cref="List{Alliance}"/>.
 			/// </remarks>
-			/// <param name="toSearch">the number of <see cref="Alliance"/>s to search</param>
+			/// <param name="toSearch">the number of <see cref="Alliance"/>s to
+			/// find</param>
 			/// <returns></returns>
 			public static List<Alliance> FindProspectiveAlliances( int toSearch ) {
 				return FindInactiveAlliances( toSearch, 0 );
