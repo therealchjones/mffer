@@ -53,6 +53,8 @@
 			- [macOS/OS X](#macosos-x)
 			- [Linux](#linux)
 			- [Windows](#windows)
+		- [Test Scripts](#test-scripts)
+			- [macOS](#macos)
 - [The `mffer` webapp](#the-mffer-webapp)
 	- [Description](#description)
 	- [Deploying the webapp](#deploying-the-webapp)
@@ -733,46 +735,20 @@ the latest version should be available
 
 ##### macOS/OS X
 
-(Ed. note: this was a real pain, and is just terribly documented. Settings were
-identified from many different sources, but major concepts were inspired by
-[MDS](https://twocanoes.com/products/mac/mac-deploy-stick/) and
-[pycreateuserpkg](https://github.com/gregneagle/pycreateuserpkg).)
+Build the macOS virtual machine:
 
 ```shell
-./tools/maketestvm
+curl -L -o mkmacvm-0.1.2.tar.gz https://github.com/therealchjones/mkmacvm/archive/v0.1.0.tar.gz \
+&& tar xzf mkmacvm-0.1.2.tar.gz \
+&& sudo mkmacvm-0.1.2/mkmacvm
 ```
 
-After the VM restarts and completes installation, from the host, test logging in
-"remotely":
+Complete the configuration and save the resulting snapshot:
 
 ```shell
-ssh macos.shared
+prlctl set macOS --startup-view headless \
+&& prlctl snapshot macOS -n "Base Installation" -d "ssh:macos.shared"
 ```
-
-If that works as expected, within your `ssh` session, shutdown the VM (which
-will also end your `ssh` session).
-
-```shell
-sudo shutdown -h now
-```
-
-Finally, complete the configuration to be headless, saving the resulting
-snapshot:
-
-```shell
-prlctl set macOS --startup-view headless && \
-prlctl snapshot macOS -n "Base Installation" -d "ssh:macos.shared"
-```
-
-1. Test `mffer`
-2. Install
-   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
-3. Test `autoextract`
-4. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
-5. Install Xcode command line development tools (e.g., by trying to run `git` from
-   the command line)
-6. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
-7. Test `autoanalyze`
 
 ##### Linux
 
@@ -794,6 +770,25 @@ prlctl snapshot macOS -n "Base Installation" -d "ssh:macos.shared"
 7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
 8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
 9. Test `autoanalyze`
+
+#### Test Scripts
+
+Once the above reference systems are configured and available, testing can
+occur in a standardized environment. Test scripts seeking to limit the need for
+manual interaction are available in the `tools/` directory of the `mffer`
+repository.
+
+##### macOS
+
+1. Test `mffer`
+2. Install
+   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+3. Test `autoextract`
+4. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
+5. Install Xcode command line development tools (e.g., by trying to run `git` from
+   the command line)
+6. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
+7. Test `autoanalyze`
 
 ## The `mffer` webapp
 
