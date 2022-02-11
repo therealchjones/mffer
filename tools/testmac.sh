@@ -13,20 +13,29 @@ main() {
 		checkNotRoot
 		if BASEVMID="$(getBaseVmId)" && [ -n "$BASEVMID" ]; then
 			echo "Reverting to '$VM_BASESNAPSHOT' virtual machine image..." >"$VERBOSEOUT"
-			prlctl snapshot-switch "$VM_NAME" --id "$BASEVMID"
+			prlctl snapshot-switch "$VM_NAME" --id "$BASEVMID" >"$DEBUGOUT" || exit 1
 			echo "Starting virtual machine..." >"$VERBOSEOUT"
-			prlctl start "$VM_NAME" || exit 1
+			prlctl start "$VM_NAME" >"$DEBUGOUT" || exit 1
 			echo "Connecting to virtual machine..." >"$VERBOSEOUT"
-			scp -o ConnectTimeout=30 "$0" "$VM_HOSTNAME": || exit 1
+			scp -q -o ConnectTimeout=30 "$0" "$VM_HOSTNAME": || exit 1
 			echo "Installing privileged virtual machine tools..." >"$VERBOSEOUT"
-			ssh -t "$VM_HOSTNAME" "sudo -p 'sudo password for $VM_HOSTNAME:' sh '$PROGRAMNAME'" || exit 1
+			ssh -qt "$VM_HOSTNAME" "sudo -p 'sudo password for $VM_HOSTNAME:' sh '$PROGRAMNAME'" || exit 1
 			echo "Installing userland virtual machine tools" >"$VERBOSEOUT"
-			ssh -t "$VM_HOSTNAME" "sh '$PROGRAMNAME'" || exit 1
+			ssh -q "$VM_HOSTNAME" "sh '$PROGRAMNAME'" || exit 1
 			echo "Building mffer..." >"$VERBOSEOUT"
-			ssh -t "$VM_HOSTNAME" "sh '$PROGRAMNAME'" || exit 1
-			echo "Downloading mffer built on $VM_NAME..."
-			scp "$VM_HOSTNAME":built-on-macos.tar.gz .
+			ssh -q "$VM_HOSTNAME" "sh '$PROGRAMNAME'" || exit 1
+			echo "Downloading mffer built on $VM_NAME..." >"$VERBOSEOUT"
+			scp -q "$VM_HOSTNAME":built-on-macos.tar.gz . || exit 1
+			echo "Resetting virtual machine..." >"$VERBOSEOUT"
+			{ prlctl snapshot-switch "$VM_NAME" --id "$BASEVMID" >"$DEBUGOUT" \
+				&& prlctl start "$VM_NAME" >"$DEBUGOUT"; } || exit 1
+			echo "Testing mffer on macOS virtual machine..." >"$VERBOSEOUT"
+			{ tar -xf built-on-macos.tar.gz 'built-on-macos/mffer-v*-osx-x64.zip' >"$DEBUGOUT" \
+				&& unzip built-on-macos/mffer-v*-osx-x64.zip >"$DEBUGOUT" \
+				&& scp -q -o ConnectTimeout=30 mffer "$VM_HOSTNAME": >"$DEBUGOUT"; } || exit 1
+			ssh macos.shared './mffer' || exit 1
 		else
+			echo "Unable to find VM '$VM_NAME' with snapshot '$VM_BASESNAPSHOT'" >&2
 			exit 1
 		fi
 	else                                # we're on the virtual machine
@@ -92,24 +101,27 @@ installsudotools() {
 			-e '/^[ \*]*Label: */{s///;p;}' \
 		| sort -V \
 		| tail -n1)"
-	softwareupdate -i "$CMDLINETOOLS" >"$VERBOSEOUT"
+	if ! output="$(softwareupdate -i "$CMDLINETOOLS" 2>&1)"; then
+		echo "$output"
+		return 1
+	fi
 	rm "$CMDLINETOOLTMP"
 
-	curl -O https://nodejs.org/dist/v16.13.2/node-v16.13.2.pkg >"$VERBOSEOUT"
-	installer -pkg ./node-v16.13.2.pkg -target / >"$VERBOSEOUT"
+	curl -Ss -O https://nodejs.org/dist/v16.13.2/node-v16.13.2.pkg >"$DEBUGOUT"
+	installer -pkg ./node-v16.13.2.pkg -target / >"$DEBUGOUT"
 
 }
 installusertools() {
-	curl -OL https://dot.net/v1/dotnet-install.sh
-	sh ./dotnet-install.sh --channel 5.0
+	curl -Ss -OL https://dot.net/v1/dotnet-install.sh >"$DEBUGOUT"
+	sh ./dotnet-install.sh --channel 5.0 >"$DEBUGOUT"
 }
 buildrelease() {
-	git clone https://github.com/therealchjones/mffer
-	cd mffer || exit 1
-	git checkout 143-Test-deployment
-	VersionString=v0.1.0 ../.dotnet/dotnet publish -c release
-	mv release built-on-macos
-	tar czf ../built-on-macos.tar.gz built-on-macos
+	git clone -q https://github.com/therealchjones/mffer >"$DEBUGOUT"
+	cd mffer || return 1
+	git checkout -q 143-Test-deployment >"$DEBUGOUT"
+	VersionString=v0.1.0 ../.dotnet/dotnet publish -c release >"$DEBUGOUT"
+	mv release built-on-macos || return 1
+	tar czf ../built-on-macos.tar.gz built-on-macos || return 1
 }
 
 main
