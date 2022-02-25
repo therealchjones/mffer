@@ -14,7 +14,7 @@
 - [Introduction](#introduction)
 - [Copyright & licensing](#copyright--licensing)
 - [Setting up a development environment](#setting-up-a-development-environment)
-	- [Requirements](#requirements)
+	- [Build requirements](#build-requirements)
 	- [Program requirements](#program-requirements)
 	- [Recommendations](#recommendations)
 	- [Setup](#setup)
@@ -48,17 +48,15 @@
 - [Building `mffer`](#building-mffer)
 	- [Building a release](#building-a-release)
 - [Testing `mffer`](#testing-mffer)
+	- [Testing environments](#testing-environments)
+	- [Testing on macOS](#testing-on-macos)
+	- [Linux](#linux)
+	- [Windows](#windows)
 	- [Testing releases](#testing-releases)
-		- [Reference systems](#reference-systems)
-			- [macOS/OS X](#macosos-x)
-			- [Linux](#linux)
-			- [Windows](#windows)
-		- [Test Scripts](#test-scripts)
-			- [macOS](#macos)
 - [The `mffer` webapp](#the-mffer-webapp)
 	- [Description](#description)
 	- [Deploying the webapp](#deploying-the-webapp)
-		- [Requirements](#requirements-1)
+		- [Requirements](#requirements)
 		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
 		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
 - [See also](#see-also)
@@ -131,7 +129,7 @@ running the programs.
 Details regarding the specific uses or purposes of the below are also documented
 in the [Tools](#tools) section of [Writing code](#writing-code).
 
-### Requirements
+### Build requirements
 
 -   a vaguely POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
@@ -142,6 +140,9 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 -   [git](https://git-scm.com)
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
+
+Specific configurations on which the build process is tested are noted in the
+[Testing `mffer` section](#testing-mffer).
 
 ### Program requirements
 
@@ -163,7 +164,7 @@ requirements for running the programs themselves additionally include:
 
 If you choose to use Visual Studio Code, open the Source Control (SCM) panel and
 choose "Clone Repository" and enter https://github.com/therealchjones/mffer.git.
-Choose a folder to place the new `mffer` directory within it. Open it when
+Choose a folder to place the new `mffer` directory within. Open it when
 prompted, read the warning and choose the option to enable all features.
 
 When prompted to "execute the restore command to continue", press "Restore". (If
@@ -670,87 +671,53 @@ included).
 
 ## Testing `mffer`
 
-### Testing releases
+### Testing environments
 
-Manual testing of [releases](#building-a-release) is currently done within
-virtual machines that have simple configurations and a minimum of installed
-software. Testing is simply ensuring the programs run as expected; output files
-are not strictly compared due to expected minor variations. Interactive testing is
-currently used rather than automated testing partly due to the need for user
-interaction in [`autoextract`](autoextract.md).
+In order to ensure [software requirements](USAGE.md#requirements) are minimal
+and known, formal testing of `mffer` is performed on basic virtual machines
+created in a reproducible way. Where possible, output is then compared to "known
+good" output from prior builds. There are standardized methods for creating the
+virtual machines and for testing `mffer` on them. Scripts are provided to create
+virtual machines for Parallels Desktop and test `mffer` on the virtual machines,
+all running on a macOS host machine with only the addition of Parallels Desktop
+Pro required to build the virtual machines. These scripts are available in the
+`tools/` directory.
 
-In order to ensure bugs are not the result of building on different systems, the
-below [reference systems](#reference-systems) are each used to build the
-candidate release versions of the software using the process
-[above](#building-a-release). Each of those builds is then tested on each
-reference system, resulting in a testing checklist such as:
-
-> ## `autoextract`
->
-> -   [ ] windows
-> -   [ ] macOS
-> -   [ ] linux
->
-> ## `autoanalyze`
->
-> -   [ ] windows
-> -   [ ] macOS
-> -   [ ] linux
->
-> ## `mffer`
->
-> |                | build on windows | build on macOS | build on linux |
-> | -------------- | ---------------- | -------------- | -------------- |
-> | run on windows | [ ]              | [ ]            | [ ]            |
-> | run on macOS   | [ ]              | [ ]            | [ ]            |
-> | run on linux   | [ ]              | [ ]            | [ ]            |
->
-> ## webapp deployment
->
-> -   [ ] windows
-> -   [ ] macOS
-> -   [ ] linux
->
-> ## webapp setup
->
-> -   [ ] gmail
-> -   [ ] google workspace
-
-#### Reference systems
-
-Defining systems on which `mffer` is known to work may help track down bugs that
-interact with software not installed on the reference systems, and ensure that
-the [software requirements list](USAGE.md#requirements) is sufficient. Each of
-these systems is run in a Parallels virtual machine on the latest release of
-macOS.
-
-Where possible, reference systems are defined programatically by building
-"headless" Parallels Desktop virtual machines on a macOS host and interacting
-with them via the command line and scripts rather than instructions for user
-interaction. (This remains a work in progress.) Further information on using the
-command line to build and interact with Paralells Desktop is available
+(Further information on using the command line to build and interact with
+Paralells Desktop is available
 [on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
 the latest version should be available
-[here](https://www.parallels.com/products/desktop/resources/).
+[here](https://www.parallels.com/products/desktop/resources/).)
 
-##### macOS/OS X
+### Testing on macOS
 
-Build the macOS virtual machine:
+Software used to fulfill the [build requirements](#build-requirements):
+
+-   macOS 12.2.1 Monterey
+-   Xcode Command Line Tools
+-   Node.js
+-   .NET 5.0 SDK
+-   Temurin 11
+-   Ghidra
 
 ```shell
-curl -L -o mkmacvm-0.1.2.tar.gz https://github.com/therealchjones/mkmacvm/archive/v0.1.0.tar.gz \
-&& tar xzf mkmacvm-0.1.2.tar.gz \
-&& sudo mkmacvm-0.1.2/mkmacvm
+sh tools/testmac.sh
 ```
 
-Complete the configuration and save the resulting snapshot:
+This script:
 
-```shell
-prlctl set macOS --startup-view headless \
-&& prlctl snapshot macOS -n "Base Installation" -d "ssh:macos.shared"
-```
+1. Creates a macOS virtual machine if needed
+2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
+3. Builds `mffer`
+4. Resets the virtual machine
+5. Installs Temurin and .NET SDK
+6. Tests `autoextract` (which requires manual interaction)
+7. Resets the virtual machine
+8. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
+9. Tests `autoanalyze`
+10. Tests `mffer`
 
-##### Linux
+### Linux
 
 1. Install Ubuntu 20.04 & apply all available updates
 2. Install Parallels Tools
@@ -758,7 +725,7 @@ prlctl set macOS --startup-view headless \
 4. Test `autoextract`
 5. Test `autoanalyze`
 
-##### Windows
+### Windows
 
 1. Install Windows 10 & apply all available updates
 2. Install Parallels Tools
@@ -771,24 +738,50 @@ prlctl set macOS --startup-view headless \
 8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
 9. Test `autoanalyze`
 
-#### Test Scripts
+### Testing releases
 
-Once the above reference systems are configured and available, testing can
-occur in a standardized environment. Test scripts seeking to limit the need for
-manual interaction are available in the `tools/` directory of the `mffer`
-repository.
+"Semi-automated" testing of [releases](#building-a-release) is currently done
+using virtual machines as noted above. Testing is simply ensuring the programs
+run as expected; output files are not strictly compared due to expected minor
+variations. Interactive testing is currently used rather than automated testing
+for portions requiring user interaction such as [`autoextract`](autoextract.md).
 
-##### macOS
+In order to ensure bugs are not the result of building on different systems, and
+to ensure the minimum of additional software is sufficient, the aforementioned
+scripts are each used to build the virtual machines and then build the candidate
+release versions of the software on each system. Each of those builds is then
+tested on each reference system, resulting in a testing checklist such as:
 
-1. Test `mffer`
-2. Install
-   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
-3. Test `autoextract`
-4. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
-5. Install Xcode command line development tools (e.g., by trying to run `git` from
-   the command line)
-6. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
-7. Test `autoanalyze`
+> #### `autoextract`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### `autoanalyze`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### `mffer`
+>
+> |                | build on windows | build on macOS | build on linux |
+> | -------------- | ---------------- | -------------- | -------------- |
+> | run on windows | [ ]              | [ ]            | [ ]            |
+> | run on macOS   | [ ]              | [ ]            | [ ]            |
+> | run on linux   | [ ]              | [ ]            | [ ]            |
+>
+> #### webapp deployment
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### webapp setup
+>
+> -   [ ] gmail
+> -   [ ] google workspace
 
 ## The `mffer` webapp
 
