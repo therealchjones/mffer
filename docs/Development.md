@@ -53,6 +53,7 @@
 	- [Linux](#linux)
 	- [Windows](#windows)
 	- [Testing releases](#testing-releases)
+- [Releasing `mffer`](#releasing-mffer)
 - [The `mffer` webapp](#the-mffer-webapp)
 	- [Description](#description)
 	- [Deploying the webapp](#deploying-the-webapp)
@@ -782,6 +783,23 @@ tested on each reference system, resulting in a testing checklist such as:
 >
 > -   [ ] gmail
 > -   [ ] google workspace
+
+## Releasing `mffer`
+
+1. Merge all code for the release into the main branch
+2. Declare a "feature freeze" and create a new branch from main named for the release
+3. Serially test and modify the release branch, building with the environment
+   variable `VersionString=`_`releasename`_`-pre`.
+4. Once testing is complete (including full testing _one last time_), `git tag -a `_`releasename`_ on the release branch.
+5. Test yet again, this time without the environment variable. If more needs to
+   be changed, increment the release name appropriately until a tagged commit
+   completes testing as expected.
+6. If appropriate (e.g., there are no intervening changes to main), merge the
+   version branch back into main with this tag.
+7. Create a GitHub release from the final tagged commit.
+8. If later patches need to be made, apply them (separately to multiple release
+   branches, if supported), test, and increment the tag on the branch as needed,
+   then create the new release on GitHub.
 
 ## The `mffer` webapp
 
