@@ -102,7 +102,7 @@
 	  ContinueOnError="false" />
   </Target>
   <Target Name="GetVersion" DependsOnTargets="CheckGit" Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'">
-	<Exec Command='"$(GitPath)" tag --list --contains HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
+	<Exec Command='"$(GitPath)" tag --list --points-at HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
 	  <Output TaskParameter="ConsoleOutput" PropertyName="GitTagName" />
 	</Exec>
 	<PropertyGroup Condition="'$(GitTagName)' != '' and ( $(GitTagName.StartsWith(`v`)) == 'true' or $(GitTagName.StartsWith(`V`)) == 'true' )" >
