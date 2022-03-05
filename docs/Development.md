@@ -692,7 +692,10 @@ the latest version should be available
 
 ### Testing on macOS
 
-Software used to fulfill the [build requirements](#build-requirements):
+Software used to fulfill the [build requirements](#build-requirements) and
+runtime requirements is installed automatically on the virtual machine as needed
+for the various phases of testing. The current testing environment on macOS
+uses:
 
 -   macOS 12.2.1 Monterey
 -   Xcode Command Line Tools

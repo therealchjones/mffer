@@ -1,18 +1,30 @@
 #!/bin/sh
 
-DEBUGOUT=/dev/null
-VERBOSEOUT=/dev/stdout
+DEBUG="${DEBUG:-}"
+VERBOSE="${VERBOSE-y}"
+if [ -n "$DEBUG" ]; then
+	set -x
+	set -u
+	VERBOSE=y
+	DEBUGOUT="${DEBUGOUT:-/dev/stdout}"
+fi
+DEBUGOUT="${DEBUGOUT:-/dev/null}"
+if [ -n "$VERBOSE" ]; then
+	VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
+fi
+VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
 
-MFFER_TEST_TMPDIR=""
-MFFER_TREE_DIRTY=""
+MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"
+MFFER_LOCAL_TREE="${MFFER_LOCAL_TREE:-}"
 MFFER_SOURCE_DIR="${MFFER_SOURCE_DIR:-}"
 MFFER_SOURCE_COMMIT="${MFFER_SOURCE_COMMIT:-}"
+MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}"
 PATH="${PATH:+$PATH:}/usr/local/bin:${HOME:-}/.dotnet"
 PROGRAMNAME="$(basename "$0")"
 PROGRAMDIR="$(dirname "$0")"
-VM_HOSTNAME="macos.shared"
-VM_NAME="macOS"
-VM_BASESNAPSHOT="Base Installation"
+VM_NAME="${VM_NAME:-macOS}"
+VM_HOSTNAME="${VM_HOSTNAME:-macos.shared}"
+VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
 
 # As convention, only main() should exit the program, should do so only if
 # unable to reasonably continue, and should explain why.
@@ -25,69 +37,96 @@ main() {
 		setup || exitError
 		testBuild || exitError
 		getRelease || exitError
+		testAutoextract || failError "autoextract"
+		testAutoanalyze || failError "autoanalyze"
 		testMffer || failError "mffer"
-	else
-		if ! which node >"$DEBUGOUT"; then # we need to install the privileged tools
-			if ! isRoot; then
-				exitError "Privileged tools must be installed as root."
-			fi
-			installsudotools || exit 1
-			exit 0
+	else # on virtual machine
+		if ! state="$(checkVmState)"; then
+			exitError "Unable to determine what to do next on the virtual machine."
 		fi
-		if ! which dotnet >"$DEBUGOUT"; then # we need to install the user tools
-			if isRoot; then
-				exitError "User tools should not be installed as root."
-			fi
-			installusertools || exit 1
-			exit 0
-		fi
-		if isRoot; then
-			exitError "mffer should not be built as root."
-		fi
-		if ! buildrelease; then
-			exit 1
-		fi
+		case "$state" in
+			build) buildRelease ;;
+			mffer) runMffer ;;
+			autoextract) runAutoextract ;;
+			autoanalyze) runAutoanalyze ;;
+			*)
+				exitError "Unable to determine what to do next on the virtual machine."
+				exit 1
+				;;
+		esac
 	fi
 	return 0
 }
-buildrelease() {
-	if [ -d "mffer" ] && [ -n "$MFFER_SOURCE_COMMIT" ]; then
-		if [ "$MFFER_SOURCE_COMMIT" != "$(git -C mffer describe --all --dirty)" ]; then
-			error="Local mffer repository is not at commit '$MFFER_SOURCE_COMMIT'"
-			error="\nWill attempt to switch..."
-			warnError error
-			if ! git -C mffer checkout -q "$MFFER_SOURCE_COMMIT" >"$DEBUGOUT"; then
-				return 1
-			fi
-		fi
-	elif [ ! -d "mffer" ]; then
-		if git clone -q https://github.com/therealchjones/mffer >"$DEBUGOUT"; then
-			if [ -n "$MFFER_SOURCE_COMMIT" ]; then
+buildRelease() {
+	if ! which node >"$DEBUGOUT" && ! installsudotools; then # we need to install the privileged tools
+		warnError "Unable to install privileged build tools."
+	fi
+	if ! which dotnet >"$DEBUGOUT" && ! installusertools; then # we need to install the user tools
+		warnError "Unable to install userland build tools."
+	fi
+	if [ -d "mffer" ]; then
+		# we're using the local source rather than repository,
+		# which means that MFFER_SOURCE_COMMIT is in the source tree (including HEAD) or is blank
+		if [ -n "$MFFER_SOURCE_COMMIT" ]; then
+			if [ "$MFFER_SOURCE_COMMIT" != "$(git -C mffer tag --points-at)" ]; then
+				error="Local mffer repository may not be at commit '$MFFER_SOURCE_COMMIT'"
+				error="\nWill attempt to switch..."
+				warnError error
 				if ! git -C mffer checkout -q "$MFFER_SOURCE_COMMIT" >"$DEBUGOUT"; then
-					warnError "Unable to checkout commit '$MFFER_SOURCE_COMMIT'"
 					return 1
 				fi
+			fi
+		else
+			MFFER_SOURCE_COMMIT=prerelease-testing
+		fi
+	else
+		if git clone -q https://github.com/therealchjones/mffer >"$DEBUGOUT"; then
+			if ! git -C mffer checkout -q "$MFFER_SOURCE_COMMIT" >"$DEBUGOUT"; then
+				warnError "Unable to checkout commit '$MFFER_SOURCE_COMMIT'"
+				return 1
 			fi
 		else
 			warnError "Unable to get mffer source."
 			return 1
 		fi
 	fi
-	if [ "$MFFER_SOURCE_COMMIT" = "$(git -C mffer tag --contains)" ]; then
-		if ! ./.dotnet/dotnet publish -c Release mffer/mffer.csproj >"$DEBUGOUT"; then
+	if [ -n "$MFFER_SOURCE_COMMIT" ] \
+		&& [ -z "$(git -C mffer status --porcelain)" ] \
+		&& [ "$MFFER_SOURCE_COMMIT" = "$(git -C mffer tag --points-at)" ]; then
+		if ! ./.dotnet/dotnet \
+			publish -c Release mffer/mffer.csproj >"$DEBUGOUT"; then
 			warnError "Unable to build mffer."
 			return 1
 		fi
-	elif ! VersionString="$MFFER_SOURCE_COMMIT" ./.dotnet/dotnet publish -c release \
-		mffer/mffer.csproj >"$DEBUGOUT"; then
-		warnError "Unable to build mffer."
-		return 1
+	else
+		if ! VersionString="$MFFER_SOURCE_COMMIT" ./.dotnet/dotnet \
+			publish -c Release mffer/mffer.csproj >"$DEBUGOUT"; then
+			warnError "Unable to build mffer."
+			return 1
+		fi
 	fi
 	if ! mv mffer/release built-on-macos \
 		|| ! tar -czf built-on-macos.tar.gz built-on-macos; then
 		warnError "Unable to tar mffer for download"
 		return 1
 	fi
+}
+checkVmState() {
+	state=""
+	for file in autoextract autoanalyze mffer; do
+		if [ -f "$file" ]; then
+			if [ -n "$state" ]; then
+				warnError "Both '$state' and '$file' exist."
+				return 1
+			fi
+			state="$file"
+		fi
+	done
+	if [ -z "$state" ]; then
+		state="build"
+	fi
+	echo "$state"
+	return 0
 }
 cleanup() {
 	exitstatus="$?"
@@ -111,11 +150,22 @@ createVm() {
 	VM_NAME="${1:-$VM_NAME}"
 	if ! curl -sS -L -o "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0.tar.gz \
 		https://github.com/therealchjones/mkmacvm/archive/v0.3.0.tar.gz \
-		|| ! tar -xf "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0.tar.gz -C "$MFFER_TEST_TMPDIR" \
-		|| ! sudo -p 'sudo password to create VM: ' VERBOSE=y \
-			"$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0/mkmacvm "$VM_NAME"; then
-		warnError "Unable to build virtual machine"
+		|| ! tar -xf "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0.tar.gz -C "$MFFER_TEST_TMPDIR"; then
+		warnError "Unable to get mkmacvm"
 		return 1
+	fi
+	if ! isRoot; then
+		warnError "Creating the virtual machine requires root privileges. Using sudo..."
+		if ! sudo VERBOSE=y \
+			"$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0/mkmacvm "$VM_NAME"; then
+			warnError "Unable to build virtual machine"
+			return 1
+		fi
+	else
+		if ! VERBOSE=y "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0/mkmacvm "$VM_NAME"; then
+			warnError "Unable to build virtual machine"
+			return 1
+		fi
 	fi
 	if ! prlctl set "$VM_NAME" --startup-view headless >"$DEBUGOUT" \
 		|| ! prlctl snapshot "$VM_NAME" -n "$VM_BASESNAPSHOT" >"$DEBUGOUT"; then
@@ -124,7 +174,7 @@ createVm() {
 	fi
 }
 exitError() {
-	error="${*:-Exiting.}"
+	error="${*:-Unable to continue. Exiting.}"
 	echo "ERROR: $error" >&2
 	exit 1
 }
@@ -156,6 +206,14 @@ getBaseVmId() {
 			fi
 		done
 }
+getCanonicalDir() {
+	if [ -n "${1:-}" ] && [ -d "$1" ] && (cd "$1" && pwd); then
+		return 0
+	else
+		warnError "Unable to access directory '${1:-}'"
+		return 1
+	fi
+}
 getRelease() {
 	# puts release files in $MFFER_TEST_TMPDIR/mffer-macos/
 	scp -q "$VM_HOSTNAME":built-on-macos.tar.gz "$MFFER_TEST_TMPDIR" || exit 1
@@ -163,16 +221,32 @@ getRelease() {
 		tar -xf "$MFFER_TEST_TMPDIR"/built-on-macos.tar.gz \
 			-C "$MFFER_TEST_TMPDIR" >"$DEBUGOUT" \
 			&& mkdir -p "$MFFER_TEST_TMPDIR"/mffer-macos \
-			&& unzip "$MFFER_TEST_TMPDIR"/built-on-macos/mffer-"$MFFER_SOURCE_COMMIT"-osx-x64.zip \
+			&& unzip "$MFFER_TEST_TMPDIR"/built-on-macos/mffer-*-osx-x64.zip \
 				-d "$MFFER_TEST_TMPDIR"/mffer-macos >"$DEBUGOUT"
 	} || {
 		warnError "Unable to extract built project on local machine."
 		return 1
 	}
 }
+getSourceDir() {
+	# getSourceDir() returns the canonicalized path of MFFER_SOURCE_DIR if that
+	# variable is already nonempty; otherwise, it tries to identify the local
+	# directory based on the location of this running script.
+	if [ -z "$MFFER_SOURCE_DIR" ]; then
+		if isHostMachine; then
+			searchDir="$PROGRAMDIR"/..
+		else
+			searchDir="$PROGRAMDIR"/mffer
+		fi
+		if ! projectFile="$(find "$searchDir" -name mffer.csproj -print -quit)" \
+			|| ! MFFER_SOURCE_DIR="$(dirname "$projectFile")"; then
+			warnError "Unable to find local mffer repository"
+			return 1
+		fi
+	fi
+	getCanonicalDir "$MFFER_SOURCE_DIR" || return 1
+}
 installsudotools() {
-	# must be sudo'd for the node and Command Line Tools installations
-
 	CMDLINETOOLTMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
 	touch "$CMDLINETOOLTMP"
 	CMDLINETOOLS="$(softwareupdate -l 2>/dev/null \
@@ -182,23 +256,35 @@ installsudotools() {
 			-e '/^[ \*]*Label: */{s///;p;}' \
 		| sort -V \
 		| tail -n1)"
-	if ! output="$(softwareupdate -i "$CMDLINETOOLS" 2>&1)"; then
-		echo "$output"
+	if ! isRoot; then
+		warnError "${CMDLINETOOLS} must be installed as root. Using sudo..."
+	fi
+	if ! output="$(sudo softwareupdate -i "$CMDLINETOOLS" 2>&1)"; then
+		echo "$output" >&2
+		warnError "Unable to install $CMDLINETOOLS"
 		return 1
 	fi
 	rm "$CMDLINETOOLTMP"
-
-	curl -Ss -O https://nodejs.org/dist/v16.13.2/node-v16.13.2.pkg >"$DEBUGOUT"
-	installer -pkg ./node-v16.13.2.pkg -target / >"$DEBUGOUT"
-
+	if curl -Ss -O https://nodejs.org/dist/v16.13.2/node-v16.13.2.pkg >"$DEBUGOUT"; then
+		if ! isRoot; then
+			warnError "Node.js must be installed as root. Using sudo..."
+		fi
+		if { sudo installer -pkg ./node-v16.13.2.pkg -target /; } >"$DEBUGOUT"; then
+			return 0
+		fi
+	fi
+	warnError "Unable to install Node.js"
+	return 1
 }
 installusertools() {
-	curl -Ss -OL https://dot.net/v1/dotnet-install.sh >"$DEBUGOUT"
-	sh ./dotnet-install.sh --channel 5.0 >"$DEBUGOUT"
+	getDotNet="curl -Ss -OL https://dot.net/v1/dotnet-install.sh"
+	installDotNet="sh ./dotnet-install.sh --channel 5.0"
+	$getDotNet >"$DEBUGOUT"
+	$installDotNet >"$DEBUGOUT"
 }
 isHostMachine() {
 	# We assume prlctl is available only on the host machine
-	which prlctl >$DEBUGOUT 2>&1
+	which prlctl >/dev/null 2>&1
 }
 isRoot() {
 	[ 0 = "$(id -u)" ]
@@ -214,7 +300,7 @@ resetVm() {
 	fi
 	# wait for the VM to start
 	tries=10
-	until ssh -q -o ConnectTimeout=30 "$VM_HOSTNAME" true || [ "$tries" -lt 1 ]; do
+	until scp -q -o ConnectTimeout=30 "$0" "$VM_HOSTNAME": || [ "$tries" -lt 1 ]; do
 		sleep 5
 		tries="$((tries - 1))"
 	done
@@ -223,54 +309,31 @@ resetVm() {
 		return 1
 	fi
 }
+runAutoanalyze() {
+	./autoanalyze -h
+}
+runAutoextract() {
+	./autoextract -h
+}
+runMffer() {
+	./mffer -h
+}
 setup() {
 	trap cleanup EXIT
-	if isRoot; then
-		warnError "Do not run $PROGRAMNAME as root."
+	if ! setSources; then
+		warnError "Unable to determine source to test"
 		return 1
 	fi
-	if [ -z "$MFFER_SOURCE_DIR" ]; then
-		if ! MFFER_SOURCE_DIR="$(
-			dirname "$(
-				find "$PROGRAMDIR/../" -name mffer.csproj -print -quit
-			)"
-		)"; then
-			warnError "Unable to find local mffer repository"
-			return 1
-		fi
+	echo "Testing mffer" >"$VERBOSEOUT"
+	if [ -n "$MFFER_SOURCE_COMMIT" ]; then
+		echo "at commit '$MFFER_SOURCE_COMMIT'" >"$VERBOSEOUT"
 	fi
-	if fixed_source_dir="$( (cd "$MFFER_SOURCE_DIR" && pwd))"; then
-		MFFER_SOURCE_DIR="$fixed_source_dir"
+	if [ -n "$MFFER_LOCAL_TREE" ]; then
+		echo "from the local tree at" >"$VERBOSEOUT"
+		echo "$MFFER_SOURCE_DIR" >"$VERBOSEOUT"
 	else
-		warnError "Unable to determine canonical mffer source directory."
-	fi
-	if [ -z "$MFFER_SOURCE_COMMIT" ]; then
-		if [ -n "$(git -C "$MFFER_SOURCE_DIR" tag --points-at)" ] \
-			&& [ "$(git -C "$MFFER_SOURCE_DIR" status --porcelain)" = "" ]; then
-			MFFER_SOURCE_COMMIT="$(git -C "$MFFER_SOURCE_DIR" tag --points-at)"
-		else
-			MFFER_SOURCE_COMMIT="$(git -C "$MFFER_SOURCE_DIR" describe --all --dirty)"
-		fi
-	fi
-	if ! git -C "$MFFER_SOURCE_DIR" describe --all "${MFFER_SOURCE_COMMIT}" >"$DEBUGOUT" 2>&1; then
-		if [ "${MFFER_SOURCE_COMMIT}" != "${MFFER_SOURCE_COMMIT%-dirty}" ] \
-			&& [ "$(git -C "$MFFER_SOURCE_DIR" describe --all)" = "${MFFER_SOURCE_COMMIT%-dirty}" ]; then
-			error="The current git working tree is not committed;\n"
-			error="${error}will be testing uncommitted changes."
-			warnError "$error"
-			MFFER_TREE_DIRTY=y
-		else
-			error="'$MFFER_SOURCE_COMMIT' is not a valid commit identifier to test.\n"
-			error="${error}Change to the git repository root directory,\n"
-			error="${error}or name a valid commit to test."
-			warnError "$error"
-			return 1
-		fi
-	fi
-	# TODO: if tree is not up to date (i.e., not pushed), also use MFFER_TREE_DIRTY
-	echo "Testing mffer commit '$MFFER_SOURCE_COMMIT'" >"$VERBOSEOUT"
-	if [ -n "$MFFER_TREE_DIRTY" ]; then
-		echo "from local repository '$MFFER_SOURCE_DIR'" >"$VERBOSEOUT"
+		echo "from the repository at" >"$VERBOSEOUT"
+		echo "$MFFER_REPO" >"$VERBOSEOUT"
 	fi
 	echo "on virtual machine '$VM_NAME'" >"$VERBOSEOUT"
 	echo "starting at snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
@@ -281,15 +344,175 @@ setup() {
 		createTempDir || return 1
 	fi
 }
-testBuild() {
+setSources() {
+	# Users may specify a commit (or any other object that resolves with git
+	# rev-parse), a directory tree, and/or a repository. If the directory is
+	# specified explicitly, (i.e., before reaching this function), no
+	# checking of the repository is performed and testing is performed directly
+	# from the directory tree.
+	#
+	# setSources() will ensure MFFER_SOURCE_COMMIT, MFFER_SOURCE_DIR,
+	# MFFER_REPO, and MFFER_LOCAL_TREE are set appropriately, unless invalid
+	# settings arise, in which case the function returns a nonzero status.
+	#
+	# WIP
+	#
+	if [ -n "$MFFER_SOURCE_DIR" ]; then
+		error="Local source tree explicitly provided as\n"
+		error="$error $MFFER_SOURCE_DIR;\n"
+		if ! MFFER_SOURCE_DIR="$(getSourceDir)"; then
+			error="$error however, this directory could not be accessed."
+			warnError "$error"
+			return 1
+		fi
+		error="$error will use this without checking remote repository."
+		warnError "$error"
+		MFFER_LOCAL_TREE=y
+		# MFFER_SOURCE_DIR is nonempty & working, MFFER_LOCAL_TREE=y
+	elif [ -n "$MFFER_LOCAL_TREE" ]; then
+		error="Local source tree testing explicitly requested;\n"
+		if ! MFFER_SOURCE_DIR="$(getSourceDir)"; then
+			error="$error however, the local source tree could not be found."
+			warnError "$error"
+			return 1
+		fi
+		error="$error will use it without checking remote repository."
+		warnError "$error"
+		# MFFER_SOURCE_DIR is nonempty & working, MFFER_LOCAL_TREE=y
+	elif ! MFFER_SOURCE_DIR="$(getSourceDir)"; then
+		error="Unable to identify local source tree;\n"
+		if [ -z "$MFFER_REPO" ]; then
+			error="$error however, no repository was provided."
+			warnError "$error"
+			return 1
+		elif ! git ls-remote "$MFFER_REPO" >"$DEBUGOUT" 2>&1; then
+			error="$error however, the provided repository\n"
+			error="$error ($MFFER_REPO)\n "
+			error="$error is not valid."
+			warnError "$error"
+			return 1
+		elif [ -n "$MFFER_SOURCE_COMMIT" ]; then
+			if ! git ls-remote --exit-code "$MFFER_REPO" "$MFFER_SOURCE_COMMIT" >"$DEBUGOUT" 2>&1; then
+				error="$error however, the requested revision identifier\n"
+				error="$error ($MFFER_SOURCE_COMMIT)\n"
+				error="$error was not found in the provided repository\n"
+				error="$error ($MFFER_REPO)."
+				warnError "$error"
+				return 1
+			else
+				error="$error will use the provided repository\n ($MFFER_REPO)\n alone."
+				warnError "$error"
+			fi
+		else
+			error="$error will use the provided repository\n ($MFFER_REPO)\n alone."
+			warnError "$error"
+			warnError "No revision identifier provided; will default to HEAD"
+			MFFER_SOURCE_COMMIT=HEAD
+		fi
+		# At the end of this elif clause (if we haven't returned):
+		# MFFER_SOURCE_DIR & MFFER_LOCAL_TREE are empty as there is no working
+		# local tree, but MFFER_REPO is working and nonempty and contains
+		# MFFER_SOURCE_COMMIT (or is assumed to, in the case MFFER_SOURCE_COMMIT=HEAD)
+	else
+		# At the beginning of this else clause,
+		# MFFER_SOURCE_DIR was not provided but is now nonempty and working
+		# MFFER_LOCAL_TREE was not requested and is now empty
+		if [ -z "$MFFER_REPO" ]; then
+			if ! MFFER_REPO="$(git -C "$MFFER_SOURCE_DIR" ls-remote --get-url)" 2>"$DEBUGOUT" \
+				|| [ -z "$MFFER_REPO" ]; then
+				error="Unable to identify a remote repository associated with the local tree at\n"
+				error="$error $MFFER_SOURCE_DIRECTORY;\n"
+				error="$error will use the local tree alone."
+				warnError "$error"
+				MFFER_LOCAL_TREE=y
+			fi
+		fi
+		if [ -z "$MFFER_SOURCE_COMMIT" ]; then
+			# if the local tree is clean and HEAD of the active branch is tagged, use that,
+			# and use the remote iff that commit exists on the repo
+			# otherwise use nothing, and use only the local tree
+			if ! dirtyTree="$(git -C "$MFFER_SOURCE_DIR" status --porcelain)" 2>"$DEBUGOUT" \
+				|| [ -n "$dirtyTree" ]; then
+				error="The local source tree at \n"
+				error="$error $MFFER_SOURCE_DIR\n"
+				error="$error has uncommitted changes; will use the tree as is."
+				warnError "$error"
+				MFFER_LOCAL_TREE=y
+			elif ! headTag="$(git -C "$MFFER_SOURCE_DIR" tag --points-at)" 2>"$DEBUGOUT" \
+				|| [ -z "$headTag" ]; then
+				error="No tag is associated with HEAD in the local source tree at\n"
+				error="$error $MFFER_SOURCE_DIR;\n"
+				error="$error will use the tree as is."
+				warnError "$error"
+				MFFER_LOCAL_TREE=y
+			else
+				error="Using the tag $headTag\n"
+				error="$error from the HEAD of the local repository at\n"
+				error="$error $MFFER_SOURCE_DIR"
+				warnError "$error"
+				MFFER_SOURCE_COMMIT="$headTag"
+			fi
+		fi
+		if [ -n "$MFFER_SOURCE_COMMIT" ] && [ -z "$MFFER_LOCAL_TREE" ] && [ -n "$MFFER_REPO" ]; then
+			if ! remoteCommit="$(
+				git -C "$MFFER_SOURCE_DIR" ls-remote \
+					--exit-code "$MFFER_REPO" "$MFFER_SOURCE_COMMIT"
+			)" 2>"$DEBUGOUT"; then
+				error="The remote repository at \n"
+				error="$error $MFFER_REPO\n"
+				error="$error does not contain a revision with identifier\n"
+				error="$error $MFFER_SOURCE_COMMIT;\n"
+				error="$error will use the local source tree only."
+				warnError "$error"
+				MFFER_LOCAL_TREE=y
+			fi
+		fi
+		if [ -n "$MFFER_SOURCE_COMMIT" ] && [ -z "$MFFER_LOCAL_TREE" ]; then
+			localCommit="$(
+				git -C "$MFFER_SOURCE_DIR" rev-parse --verify --end-of-options "$MFFER_SOURCE_COMMIT"
+			)" 2>"$DEBUGOUT"
+			if [ "$remoteCommit" = "${remoteCommit#"$localCommit"}" ]; then
+				error="The revisions identified as \n"
+				error="$error $MFFER_SOURCE_COMMIT\n"
+				error="$error are different in the local tree\n"
+				error="$error ($localCommit)\n"
+				error="$error and the remote repository\n"
+				error="$error (${remoteCommit%%[ 	]*})."
+				warnError "$error"
+				return 1
+			fi
+		fi
+	fi
+
+	# The above clauses (if not returning) result in one of:
+	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT empty
+	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT nonempty & working
+}
+testAutoextract() {
 	resetVm || return 1
-	if ! scp -q -o ConnectTimeout=30 "$0" "$VM_HOSTNAME": \
-		|| ! ssh -qt "$VM_HOSTNAME" "sudo -p 'sudo password for $VM_HOSTNAME:' sh '$PROGRAMNAME'" \
-		|| ! ssh -q "$VM_HOSTNAME" "sh '$PROGRAMNAME'"; then
-		warnError "Unable to configure virtual machine for building mffer."
+	echo "Testing autoextract..." >"$VERBOSEOUT"
+	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
+		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
+		"$VM_HOSTNAME": \
+		|| ! ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
+		warnError "Unable to configure virtual machine to test autoextract."
 		return 1
 	fi
-	if [ -n "$MFFER_TREE_DIRTY" ]; then
+}
+testAutoanalyze() {
+	resetVm || return 1
+	echo "Testing autoanalyze..." >"$VERBOSEOUT"
+	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoanalyze \
+		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
+		"$VM_HOSTNAME": \
+		|| ! ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
+		warnError "Unable to configure virtual machine to test autoanalyze."
+		return 1
+	fi
+}
+testBuild() {
+	resetVm || return 1
+	if [ -n "$MFFER_LOCAL_TREE" ]; then
 		if [ -z "$MFFER_TEST_TMPDIR" ] || [ ! -d "$MFFER_TEST_TMPDIR" ]; then
 			createTempDir || return 1
 		fi
@@ -300,16 +523,18 @@ testBuild() {
 			return 1
 		fi
 	fi
-	if ! ssh -q "$VM_HOSTNAME" "MFFER_SOURCE_COMMIT='$MFFER_SOURCE_COMMIT' sh '$PROGRAMNAME'"; then
-		warnError "Building mffer failed."
+	# because the buildrelease function may need sudo, we should allocate a tty
+	# using ssh -t
+	if ! ssh -qt "$VM_HOSTNAME" "MFFER_SOURCE_COMMIT='$MFFER_SOURCE_COMMIT' sh '$PROGRAMNAME'"; then
+		failError "build"
 		return 1
 	fi
 }
 testMffer() {
-	echo "Testing mffer on $VM_NAME..." >"$VERBOSEOUT"
 	resetVm || return 1
+	echo "Testing mffer on $VM_NAME..." >"$VERBOSEOUT"
 	scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/mffer "$VM_HOSTNAME": || return 1
-	ssh -q "$VM_HOSTNAME" './mffer' || return 1
+	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
 }
 vmExists() {
 	vm_name_tocheck="${1:-$VM_NAME}"
