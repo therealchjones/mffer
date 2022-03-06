@@ -699,9 +699,9 @@ uses:
 
 -   macOS 12.2.1 Monterey
 -   Xcode Command Line Tools
--   Node.js
+-   Node.js 16.13.2
 -   .NET 5.0 SDK
--   Temurin 11
+-   Temurin JRE 11.0.14.1_1
 -   Ghidra
 
 ```shell

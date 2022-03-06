@@ -61,7 +61,7 @@ buildRelease() {
 	if ! which node >"$DEBUGOUT" && ! installsudotools; then # we need to install the privileged tools
 		warnError "Unable to install privileged build tools."
 	fi
-	if ! which dotnet >"$DEBUGOUT" && ! installusertools; then # we need to install the user tools
+	if ! which dotnet >"$DEBUGOUT" && ! installDotNet; then # we need to install the user tools
 		warnError "Unable to install userland build tools."
 	fi
 	if [ -d "mffer" ]; then
@@ -246,7 +246,8 @@ getSourceDir() {
 	fi
 	getCanonicalDir "$MFFER_SOURCE_DIR" || return 1
 }
-installsudotools() {
+installCommandLineTools() {
+	notify "Installing Xcode Command Line Tools..."
 	CMDLINETOOLTMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
 	touch "$CMDLINETOOLTMP"
 	CMDLINETOOLS="$(softwareupdate -l 2>/dev/null \
@@ -265,6 +266,19 @@ installsudotools() {
 		return 1
 	fi
 	rm "$CMDLINETOOLTMP"
+}
+installDotNet() {
+	notify "Installing .NET SDK 5.0..."
+	curl -Ss -OL "https://dot.net/v1/dotnet-install.sh" \
+		&& sh ./dotnet-install.sh --channel 5.0 >"$DEBUGOUT"
+}
+installGhidra() {
+	notify "Installing Ghidra 10.1.2..."
+	curl -Ss -OL https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_10.1.2_build/ghidra_10.1.2_PUBLIC_20220125.zip \
+		&& unzip ghidra_10.1.2_PUBLIC_20220125.zip >"$DEBUGOUT"
+}
+installNodeJs() {
+	notify "Installing Node.js 16.13.2..."
 	if curl -Ss -O https://nodejs.org/dist/v16.13.2/node-v16.13.2.pkg >"$DEBUGOUT"; then
 		if ! isRoot; then
 			warnError "Node.js must be installed as root. Using sudo..."
@@ -276,11 +290,22 @@ installsudotools() {
 	warnError "Unable to install Node.js"
 	return 1
 }
-installusertools() {
-	getDotNet="curl -Ss -OL https://dot.net/v1/dotnet-install.sh"
-	installDotNet="sh ./dotnet-install.sh --channel 5.0"
-	$getDotNet >"$DEBUGOUT"
-	$installDotNet >"$DEBUGOUT"
+installTemurin() {
+	notify "Installing Temurin JRE 11.0.14.1_1..."
+	if curl -Ss -OL https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.14.1%2B1/OpenJDK11U-jre_x64_mac_hotspot_11.0.14.1_1.pkg >"$DEBUGOUT"; then
+		if ! isRoot; then
+			warnError "Temurin must be installed as root. Using sudo..."
+		fi
+		if { sudo installer -pkg ./OpenJDK11U-jre_x64_mac_hotspot_11.0.14.1_1.pkg -target /; } >"$DEBUGOUT"; then
+			return 0
+		fi
+	fi
+	warnError "Unable to install Temurin JRE"
+	return 1
+}
+installsudotools() {
+	installCommandLineTools
+	installNodeJs
 }
 isHostMachine() {
 	# We assume prlctl is available only on the host machine
@@ -288,6 +313,11 @@ isHostMachine() {
 }
 isRoot() {
 	[ 0 = "$(id -u)" ]
+}
+notify() {
+	if [ -n "$*" ]; then
+		echo "$*" >"$VERBOSEOUT"
+	fi
 }
 resetVm() {
 	echo "Resetting virtual machine..." >"$VERBOSEOUT"
@@ -310,9 +340,19 @@ resetVm() {
 	fi
 }
 runAutoanalyze() {
-	./autoanalyze -h
+	{
+		installCommandLineTools \
+			&& installTemurin \
+			&& installDotNet \
+			&& installGhidra
+	} || return 1
+	GHIDRA="$(find ./ghidra* -name analyzeHeadless)" ./autoanalyze -h
 }
 runAutoextract() {
+	{
+		installDotNet \
+			&& installTemurin
+	} || return 1
 	./autoextract -h
 }
 runMffer() {
@@ -490,28 +530,31 @@ setSources() {
 }
 testAutoextract() {
 	resetVm || return 1
-	echo "Testing autoextract..." >"$VERBOSEOUT"
+	echo "Testing autoextract on $VM_NAME..." >"$VERBOSEOUT"
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
 		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
 		"$VM_HOSTNAME": \
-		|| ! ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
+		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
 		warnError "Unable to configure virtual machine to test autoextract."
 		return 1
 	fi
+	notify "autoextract run successfully."
 }
 testAutoanalyze() {
 	resetVm || return 1
-	echo "Testing autoanalyze..." >"$VERBOSEOUT"
+	echo "Testing autoanalyze on $VM_NAME..." >"$VERBOSEOUT"
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoanalyze \
 		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
 		"$VM_HOSTNAME": \
-		|| ! ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
+		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
 		warnError "Unable to configure virtual machine to test autoanalyze."
 		return 1
 	fi
+	notify "autoanalyze run successfully."
 }
 testBuild() {
 	resetVm || return 1
+	notify "Building mffer on $VM_NAME..."
 	if [ -n "$MFFER_LOCAL_TREE" ]; then
 		if [ -z "$MFFER_TEST_TMPDIR" ] || [ ! -d "$MFFER_TEST_TMPDIR" ]; then
 			createTempDir || return 1
@@ -529,12 +572,14 @@ testBuild() {
 		failError "build"
 		return 1
 	fi
+	notify "mffer built successfully."
 }
 testMffer() {
 	resetVm || return 1
 	echo "Testing mffer on $VM_NAME..." >"$VERBOSEOUT"
 	scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/mffer "$VM_HOSTNAME": || return 1
 	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
+	notify "mffer run successfully."
 }
 vmExists() {
 	vm_name_tocheck="${1:-$VM_NAME}"
