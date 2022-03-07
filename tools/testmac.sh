@@ -157,8 +157,11 @@ createVm() {
 			return 1
 		fi
 	fi
+	# Android emulator nested virtualization only seems to work under the slower
+	# Parallels hypervisor rather than Apple's.
 	if ! prlctl set "$VM_NAME" --startup-view headless >"$DEBUGOUT" \
-		|| ! prlctl set "$VM_NAME" --memsize 4096 >"$DEBUGOUT" \
+		|| ! prlctl set "$VM_NAME" --memsize 8192 >"$DEBUGOUT" \
+		|| ! prlctl set "$VM_NAME" --hypervisor-type parallels \
 		|| ! prlctl snapshot "$VM_NAME" -n "$VM_BASESNAPSHOT" >"$DEBUGOUT"; then
 		warnError "Unable to set up virtual machine"
 		return 1
@@ -247,7 +250,7 @@ getOptions() {
 	if [ -n "$VERBOSE" ]; then
 		VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
 	fi
-	VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
+	VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
 }
 getRelease() {
 	# puts release files in $MFFER_TEST_TMPDIR/mffer-macos/
