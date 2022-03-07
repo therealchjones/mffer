@@ -258,7 +258,7 @@ installCommandLineTools() {
 		| sort -V \
 		| tail -n1)"
 	if ! isRoot; then
-		warnError "${CMDLINETOOLS} must be installed as root. Using sudo..."
+		warnError "${CMDLINETOOLS}\n must be installed as root. Using sudo..."
 	fi
 	if ! output="$(sudo softwareupdate -i "$CMDLINETOOLS" 2>&1)"; then
 		echo "$output" >&2
@@ -319,6 +319,12 @@ notify() {
 		echo "$*" >"$VERBOSEOUT"
 	fi
 }
+openParallelsGui() {
+	if ! open -a "Parallels Desktop"; then
+		warnError "Unable to open Parallels Desktop GUI"
+		return 1
+	fi
+}
 resetVm() {
 	echo "Resetting virtual machine..." >"$VERBOSEOUT"
 	if ! BASEVMID="$(getBaseVmId)" \
@@ -349,11 +355,29 @@ runAutoanalyze() {
 	GHIDRA="$(find ./ghidra* -name analyzeHeadless)" ./autoanalyze -h
 }
 runAutoextract() {
-	{
-		installDotNet \
-			&& installTemurin
-	} || return 1
-	./autoextract -h
+	if [ ! -f testing-autoextract ]; then
+		cat /dev/null >testing-autoextract
+		chmod a+x "$PROGRAMNAME"
+		notify "Waiting for user to login via GUI..."
+		until open -a Terminal.app "$PROGRAMNAME" >"$DEBUGOUT" 2>&1; do
+			sleep 5
+		done
+		notify "Waiting for test script to complete in GUI..."
+		until [ -s testing-autoextract ]; do
+			sleep 5
+		done
+		returnstatus="$(cat testing-autoextract)"
+		return "$returnstatus"
+	else
+		if ! installDotNet \
+			|| ! installTemurin \
+			|| ! "$PROGRAMDIR"/autoextract -h; then
+			echo 1 >testing-autoextract
+		else
+			echo 0 >testing-autoextract
+		fi
+		exit
+	fi
 }
 runMffer() {
 	./mffer -h
@@ -528,18 +552,6 @@ setSources() {
 	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT empty
 	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT nonempty & working
 }
-testAutoextract() {
-	resetVm || return 1
-	echo "Testing autoextract on $VM_NAME..." >"$VERBOSEOUT"
-	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
-		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
-		"$VM_HOSTNAME": \
-		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
-		warnError "Unable to configure virtual machine to test autoextract."
-		return 1
-	fi
-	notify "autoextract run successfully."
-}
 testAutoanalyze() {
 	resetVm || return 1
 	echo "Testing autoanalyze on $VM_NAME..." >"$VERBOSEOUT"
@@ -551,6 +563,30 @@ testAutoanalyze() {
 		return 1
 	fi
 	notify "autoanalyze run successfully."
+}
+testAutoextract() {
+	resetVm || return
+	echo "Testing autoextract on $VM_NAME..." >"$VERBOSEOUT"
+	notify "Reconfiguring VM..."
+
+	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
+		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
+		"$VM_HOSTNAME":; then
+		warnError "Unable to configure virtual machine to test autoextract."
+		return 1
+	fi
+
+	error="Testing autoextract requires manual interaction.\n"
+	error="$error Login on the virtual machine when its screen appears and follow\n"
+	error="$error the given instructions."
+	warnError "$error"
+	sleep 5
+
+	openParallelsGui
+
+	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"
+
+	notify "autoextract run successfully."
 }
 testBuild() {
 	resetVm || return 1
