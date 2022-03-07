@@ -1,18 +1,7 @@
 #!/bin/sh
 
 DEBUG="${DEBUG:-}"
-VERBOSE="${VERBOSE-y}"
-if [ -n "$DEBUG" ]; then
-	set -x
-	set -u
-	VERBOSE=y
-	DEBUGOUT="${DEBUGOUT:-/dev/stdout}"
-fi
-DEBUGOUT="${DEBUGOUT:-/dev/null}"
-if [ -n "$VERBOSE" ]; then
-	VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
-fi
-VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
+VERBOSE="${VERBOSE:-}"
 
 MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"
 MFFER_LOCAL_TREE="${MFFER_LOCAL_TREE:-}"
@@ -33,6 +22,7 @@ VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
 # other functions. This prevents excessive error output via a "stack trace".
 
 main() {
+	getOptions "$@"
 	if isHostMachine; then
 		setup || exitError
 		testBuild || exitError
@@ -168,10 +158,16 @@ createVm() {
 		fi
 	fi
 	if ! prlctl set "$VM_NAME" --startup-view headless >"$DEBUGOUT" \
+		|| ! prlctl set "$VM_NAME" --memsize 4096 >"$DEBUGOUT" \
 		|| ! prlctl snapshot "$VM_NAME" -n "$VM_BASESNAPSHOT" >"$DEBUGOUT"; then
 		warnError "Unable to set up virtual machine"
 		return 1
 	fi
+}
+description() {
+	echo "options:"
+	echo "	-h	print this summarized help message and quit"
+	echo "	-v	print more information; specify twice for debug output"
 }
 exitError() {
 	error="${*:-Unable to continue. Exiting.}"
@@ -213,6 +209,45 @@ getCanonicalDir() {
 		warnError "Unable to access directory '${1:-}'"
 		return 1
 	fi
+}
+getOptions() {
+	while getopts 'hv' option; do
+		case "$option" in
+			h)
+				summary
+				usage
+				description
+				exit 0
+				;;
+			v)
+				if [ -n "$VERBOSE" ]; then
+					DEBUG=Y
+				fi
+				VERBOSE=Y
+				;;
+			?)
+				usage >&2
+				exit 1
+				;;
+		esac
+	done
+	shift $((OPTIND - 1))
+	if [ "$#" != "0" ]; then
+		usage >&2
+		exit 1
+	fi
+
+	if [ -n "$DEBUG" ]; then
+		set -x
+		set -u
+		VERBOSE=y
+		DEBUGOUT="${DEBUGOUT:-/dev/stdout}"
+	fi
+	DEBUGOUT="${DEBUGOUT:-/dev/null}"
+	if [ -n "$VERBOSE" ]; then
+		VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
+	fi
+	VERBOSEOUT="${VERBOSEOUT:-/dev/stdout}"
 }
 getRelease() {
 	# puts release files in $MFFER_TEST_TMPDIR/mffer-macos/
@@ -371,7 +406,8 @@ runAutoextract() {
 	else
 		if ! installDotNet \
 			|| ! installTemurin \
-			|| ! "$PROGRAMDIR"/autoextract -h; then
+			|| ! "$PROGRAMDIR"/autoextract -o "$PROGRAMDIR/mffer-download" \
+			|| ! tar -cf "$PROGRAMDIR/mffer-download.tar" -C "$PROGRAMDIR" mffer-download; then
 			echo 1 >testing-autoextract
 		else
 			echo 0 >testing-autoextract
@@ -547,16 +583,16 @@ setSources() {
 			fi
 		fi
 	fi
-
-	# The above clauses (if not returning) result in one of:
-	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT empty
-	# MFFER_LOCAL_TREE=y, MFFER_SOURCE_DIR nonempty & working, MFFER_SOURCE_COMMIT nonempty & working
+}
+summary() {
+	echo "$(basename "$0"): test mffer building and running"
 }
 testAutoanalyze() {
 	resetVm || return 1
 	echo "Testing autoanalyze on $VM_NAME..." >"$VERBOSEOUT"
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoanalyze \
 		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
+		"$MFFER_TEST_TMPDIR"/mffer-download.tar \
 		"$VM_HOSTNAME": \
 		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
 		warnError "Unable to configure virtual machine to test autoanalyze."
@@ -582,9 +618,13 @@ testAutoextract() {
 	warnError "$error"
 	sleep 5
 
-	openParallelsGui
+	openParallelsGui || return 1
 
-	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME"
+	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
+	if ! scp -q "$VM_HOSTNAME":mffer-download.tar "$MFFER_TEST_TMPDIR"; then
+		warnError "Unable to get autoextract-downloaded files from the virtual machine"
+		return 1
+	fi
 
 	notify "autoextract run successfully."
 }
@@ -617,6 +657,10 @@ testMffer() {
 	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
 	notify "mffer run successfully."
 }
+usage() {
+	echo "usage: $(basename "$0") [-v]"
+	echo "       $(basename "$0") -h"
+}
 vmExists() {
 	vm_name_tocheck="${1:-$VM_NAME}"
 	if [ -z "$vm_name_tocheck" ]; then return 1; fi
@@ -628,4 +672,4 @@ warnError() {
 	fi
 }
 
-main
+main "$@"
