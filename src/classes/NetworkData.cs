@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Snappier;
 
 namespace Mffer {
 	/// <summary>
@@ -29,9 +30,6 @@ namespace Mffer {
 		// Obtained in libil2cpp.so via PatchSystem.CreateUrl()
 		const string PatchUrl = PatchBaseUrl + "DIST/Android/";
 		const string CountryCode = "US";
-		// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
-		// varies by version
-		const string BundleVersion = "7.8.0";
 		// Obtained in libil2cpp.so via ServerInfo.GetFileName()
 		const string ServerFileName = "server_info.txt";
 		// Obtained in libil2cpp.so via CryptUtil.get_aesKey()
@@ -62,6 +60,14 @@ namespace Mffer {
 		static string IP = null;
 		static string AccessToken = null;
 		/// <summary>
+		/// A <see cref="string"/> representing the current version of the app.
+		/// </summary>
+		/// <remarks>
+		/// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
+		/// varies by version
+		/// </remarks>
+		public static string AppVersion = "7.8.0";
+		/// <summary>
 		/// Initializes the static <see cref="NetworkData"/> class
 		/// </summary>
 		static NetworkData() {
@@ -80,7 +86,7 @@ namespace Mffer {
 		static JsonDocument GetServerInfo() {
 			if ( ServerInfo == null ) {
 				// Obtained in libil2cpp.so via ServerInfo.GetRemoteFilePath()
-				string serverInfoUrl = PatchUrl + "v" + BundleVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
+				string serverInfoUrl = PatchUrl + "v" + AppVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
 				// Obtained in libil2cpp.so via PacketTransfer.SetServerDataOK()
 				ServerInfo = JsonDocument.Parse(
 					Www.GetStringAsync( serverInfoUrl ).Result,
@@ -124,6 +130,19 @@ namespace Mffer {
 		static string GetServerUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr" ).GetString();
 		}
+		static JsonDocument GetWww( string url, Dictionary<string, string> formData ) {
+			url = url + "?cKey=" + GetUptime();
+			string param = url;
+			HttpRequestMessage request = GetWwwRequest( url, formData );
+			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
+			string key = GetAesKey() + GetAesKey();
+			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
+			byte[] decryptedBytes = DecryptBytes( responseBytes, keyBytes, keyBytes );
+			int decompressedLength = Snappy.GetUncompressedLength( decryptedBytes );
+			byte[] decompressedBytes = Snappy.DecompressToArray( decryptedBytes );
+			string text = Encoding.UTF8.GetString( decompressedBytes );
+			return JsonDocument.Parse( text );
+		}
 		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
@@ -142,9 +161,24 @@ namespace Mffer {
 		/// Reimplimentation and simplification of WWWUtil.Get(),
 		/// WWWUtil.GetRountine(), and affiliated methods
 		/// </remarks>
-		static HttpRequestMessage GetWwwRequest( string parameter ) {
+		static HttpRequestMessage GetWwwRequest( string parameter, Dictionary<string, string> formData = null ) {
 			HttpRequestMessage request = new HttpRequestMessage();
-			if ( !parameter.StartsWith( "http" ) ) {
+			if ( parameter.StartsWith( "http" ) ) {
+				StringBuilder urlBuilder = new StringBuilder( parameter );
+				if ( parameter.Contains( '?' ) ) {
+					urlBuilder.Append( '&' );
+				} else {
+					urlBuilder.Append( '?' );
+				}
+				urlBuilder.Append( "cKey=" );
+				urlBuilder.Append( GetUptime() );
+				request.RequestUri = new Uri( urlBuilder.ToString() );
+				if ( formData != null && formData.Count > 0 ) {
+					FormUrlEncodedContent form = new FormUrlEncodedContent( formData );
+					request.Method = HttpMethod.Post;
+					request.Content = form;
+				}
+			} else {
 				HttpContent form = BuildRequestContent( parameter );
 				request.Method = HttpMethod.Post;
 				request.RequestUri = new Uri( GetServerUrl() + "FF" );
@@ -272,7 +306,7 @@ namespace Mffer {
 			formData.Add( "cID", GetCID() );
 			formData.Add( "dID", GetDeviceId() );
 			formData.Add( "platform", "android" );
-			formData.Add( "ver", BundleVersion );
+			formData.Add( "ver", AppVersion );
 			formData.Add( "lang", "en" );
 			formData.Add( "country", "US" );
 			formData.Add( "ds", "1" );
@@ -439,6 +473,35 @@ namespace Mffer {
 				}
 			}
 		}
+		static byte[] DecryptBytes( byte[] text, byte[] key, byte[] iv ) {
+			using ( Aes rijAlg = Aes.Create() ) {
+				rijAlg.KeySize = key.Length << 3;
+				rijAlg.BlockSize = 128;
+				rijAlg.Mode = CipherMode.CBC;
+				rijAlg.Padding = PaddingMode.PKCS7;
+				rijAlg.Key = key;
+				rijAlg.IV = iv;
+				int chunkSize = 1000;
+				ICryptoTransform decryptor = rijAlg.CreateDecryptor( key, iv );
+				using ( MemoryStream msDecrypt = new MemoryStream( text ) ) {
+					using ( CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Read ) ) {
+						using ( BinaryReader srDecrypt = new BinaryReader( csDecrypt ) ) {
+							byte[] newBytes;
+							List<byte> decryptedBytes = new List<byte>();
+							while ( true ) {
+								newBytes = srDecrypt.ReadBytes( chunkSize );
+								if ( newBytes.Length > 0 ) {
+									decryptedBytes.AddRange( newBytes );
+								} else {
+									break;
+								}
+							}
+							return decryptedBytes.ToArray();
+						}
+					}
+				}
+			}
+		}
 		static string GetAccessToken() {
 			if ( String.IsNullOrEmpty( AccessToken ) ) {
 				SignIn();
@@ -503,6 +566,13 @@ namespace Mffer {
 				}
 			}
 			return UserID;
+		}
+		static string GetVersion() {
+			JsonDocument info = GetServerInfo();
+			if ( info.RootElement.TryGetProperty( "download_version", out JsonElement versionJson ) && !String.IsNullOrEmpty( versionJson.GetString() ) ) {
+				AppVersion = versionJson.GetString();
+			}
+			return AppVersion;
 		}
 		static void SetPacketKey( string protoPacketKey = null ) {
 			PacketKey = protoPacketKey;
@@ -621,6 +691,81 @@ namespace Mffer {
 				}
 				return alliances;
 			}
+		}
+		/// <summary>
+		/// Obtain the downloadable content from NetMarble servers
+		/// </summary>
+		/// Based on the PatchSystem methods from the game
+		static public void DownloadFiles() {
+			Console.WriteLine( "Checking for files to download..." );
+
+			Dictionary<string, string> formData = new Dictionary<string, string> {
+				{ "platform", "0"},
+				{ "ver", GetVersion() }
+			};
+			string url = GetServerUrl() + "GetVersion";
+			JsonElement ver = GetWww( url, formData ).RootElement.GetProperty( "desc" ).GetProperty( "ver" );
+			List<DownloadFile> fileList = new List<DownloadFile>();
+			List<DownloadFile> downloadList = new List<DownloadFile>();
+			List<DownloadFile> retryList, newList = new List<DownloadFile>();
+			foreach ( JsonElement item in ver.EnumerateArray() ) {
+				DownloadFile file = new DownloadFile( item );
+				fileList.Add( file );
+				/*
+				if ( file.serviceType == 1 ) {
+					excludeList.Add( file.name );
+				} else if ( file.name.StartsWith( "Local" ) && !file.name.Contains( "_en" ) ) {
+					excludeList.Add( file.name );
+				} else {
+					downloadList.Add( file );
+				}
+				*/
+			}
+			Console.WriteLine( $"Downloading {fileList.Count} files..." );
+			foreach ( DownloadFile file in fileList ) {
+				try {
+					file.Download();
+				} catch {
+					newList.Add( file );
+				}
+			}
+			while ( newList.Count > 0 ) {
+				Console.WriteLine( $"Retrying {newList.Count} files..." );
+				retryList = newList;
+				newList.Clear();
+				foreach ( DownloadFile file in retryList ) {
+					try {
+						file.Download();
+					} catch {
+						newList.Add( file );
+					}
+				}
+			}
+			Console.WriteLine( "Unzipping files..." );
+			foreach ( DownloadFile file in fileList ) {
+				file.Unzip();
+			}
+			Console.WriteLine( "Done." );
+		}
+		/// <summary>
+		/// Attempts to download a given file from the NetMarble servers
+		/// </summary>
+		/// <param name="url">URL of the file to download</param>
+		/// <param name="file">Local filename of the downloaded file; will be
+		/// overwritten if exists.</param>
+		/// <returns><c>true</c> if the file is successfully downloaded and
+		/// written to disk, <c>false</c> otherwise.</returns>
+		static public bool TryDownloadFile( string url, string file ) {
+			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Get, url );
+			request.Headers.Add( "Range", "bytes=0-" );
+			try {
+				using ( FileStream localFile = new FileStream( file, FileMode.Create ) ) {
+					Www.Send( request ).Content.CopyTo( localFile, null, new System.Threading.CancellationToken() );
+				}
+			} catch {
+				return false;
+			}
+			return true;
 		}
 	}
 }
