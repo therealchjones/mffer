@@ -1110,3 +1110,23 @@ ConfigUIGamePanel_OnClickDownloadStage()
 BatchDownloadPopup_Show()
 BatchDownloadPopup_OnClickDownload()
 PatchSystem.BatchDownload()
+
+Serially checked the filesystems for android emulator at different stages and compared them to the above.
+After installation, but before running:
+/data/app/*/com.netmarble.mherosgb-*/
+/data/misc/profiles/cur/0/com.netmarble.mherosgb/primary.prof
+After running, before downloading any patches:
++/data/data/com.netmarble.mherosgb/{app_webview, databases, files, no_backup, shared_prefs}
++/data/media/0/Android/data/com.netmarble.mherosgb/files/{Cookies,il2cpp}
++/data/system_ce/0/shortcut_service/packages/com.netmarble.mherosgb.xml
+After installing the mandatory starting patches and the auto-downloads at the beginning:
++/data/data/com.netmarble.mherosgb/files/Netmarble_Fail_Log
++/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle{,_each}, but
+bundle_each has only the bgm_stage_downtown file and bundle has 707 files, including all playable characters, Temp, and text
+After completing the batch download (e.g., the usual output from autoextract):
+more in bundle/ and bundle_each, but no additional playable characters
+All of bundle/ is available from mffer (without autoextract) currently
+- need to figure out how to get the version available/downloaded, maybe just from the Google Play Store, or some download from NM? (Doesn't ServerInfo have a max-version or something?)
+- not currently using anything not downloaded by mffer except maybe player_prefs
+- may be able to only download content without using the play store at all for most things, just use that with autoanalyze (or equivalent)?
+- consider moving autoextract to tools/, moving the download of the apks to autoanalyze, and getting everything needed via mffer (until autoanalyze can be moved in there as well)

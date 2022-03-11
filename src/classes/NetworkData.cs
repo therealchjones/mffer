@@ -708,6 +708,7 @@ namespace Mffer {
 			List<DownloadFile> fileList = new List<DownloadFile>();
 			List<DownloadFile> downloadList = new List<DownloadFile>();
 			List<DownloadFile> retryList, newList = new List<DownloadFile>();
+			Directory.CreateDirectory( "files/bundle/" );
 			foreach ( JsonElement item in ver.EnumerateArray() ) {
 				DownloadFile file = new DownloadFile( item );
 				fileList.Add( file );
