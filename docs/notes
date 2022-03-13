@@ -1130,3 +1130,8 @@ All of bundle/ is available from mffer (without autoextract) currently
 - not currently using anything not downloaded by mffer except maybe player_prefs
 - may be able to only download content without using the play store at all for most things, just use that with autoanalyze (or equivalent)?
 - consider moving autoextract to tools/, moving the download of the apks to autoanalyze, and getting everything needed via mffer (until autoanalyze can be moved in there as well)
+- Can probably just download "text" and "localization_en" when needed and avoid everything else except when doing more exploration
+- probably useful to do more accepting and reporting of errors from NM servers like needs app update or similar
+- probably just abandon 0.1.0 in favor of current changes and move toward next version
+- may need: mkmacvm as separate project, port of google-play-api to c# package as separate project
+- would like: testing without sudo (which may not be possible with Xcode command line tools, but could probably use "insecure" sudo), everything except testing integrated into mffer, maybe old stuff that could still be useful (like autoextract using emulators) still in tools/
