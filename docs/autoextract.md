@@ -41,10 +41,13 @@ output that includes echoing all shell commands in `autoextract` and printing
 the verbose output from each individual tool called. Adding further `-v` options
 has no effect.
 
-The final product created by `autoextract` is a directory named
-`mff-device-files-`_`version`_ within _`output_directory`_. This contains a copy
-of all Marvel Future Fight files installed by the game on Android devices in a
-directory hierarchy copied directly from the Android emulator's filesystem.
+The final product created by `autoextract` are directories named
+`mff-device-files-`_`version`_ and `apks` within _`output_directory`_. The
+former contains a copy of all Marvel Future Fight files installed by the game on
+Android devices in a directory hierarchy copied directly from the Android
+emulator's filesystem. The latter contains only the installation packages used
+to install the software, downloaded separately without using the Android
+emulators for testing and further development of `mffer`.
 
 ## Requirements
 
@@ -55,6 +58,7 @@ directory hierarchy copied directly from the Android emulator's filesystem.
     Parallels or VirtualBox.
 -   Internet connection with access to Google developer tools, Google
     Play Store, and Netmarble servers
+-   Python 3 (required to download MFF without Android tools)
 -   Java (required by Android command-line tools)
 -   A Google account (to log into the Play store)
 -   A reasonable machine upon which to run these; see also the

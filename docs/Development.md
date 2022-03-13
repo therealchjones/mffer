@@ -139,6 +139,7 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)
+-   Python 3
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
 
@@ -154,6 +155,7 @@ requirements for running the programs themselves additionally include:
     (required for `autoanalyze`)
 -   Java 11 runtime or SDK (required for `autoextract` and Ghidra); consider
     [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+-   Python 3 (required for `autoextract`)
 
 ### Recommendations
 
