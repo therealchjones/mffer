@@ -24,7 +24,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required files should be named in the keys of <see
 		/// cref="BackingData"/> when the derived instance is initialized. When
-		/// the parent <see cref="Version"/> loads data into the <see
+		/// the parent <see cref="Game.Version"/> loads data into the <see
 		/// cref="Component"/>, it must first load the named files and place
 		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
@@ -36,7 +36,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required <see cref="Component"/>s should be named in the keys of
 		/// <see cref="Component.Dependencies"/> when the derived instance
-		/// is initialized. When the parent <see cref="Version"/> loads data
+		/// is initialized. When the parent <see cref="Game.Version"/> loads data
 		/// into this <see cref="Component"/>, it must first load the named
 		/// <see cref="Component"/>s and place them into the associated values of
 		/// <see cref="Dependencies"/>.
@@ -190,7 +190,7 @@ namespace Mffer {
 		/// <returns><c>true</c> if the <see cref="Component"/> contains
 		/// loaded data, <c>false</c> otherwise</returns>
 		public virtual bool IsLoaded() {
-			return true;
+			return false;
 		}
 	}
 }
