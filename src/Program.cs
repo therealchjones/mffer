@@ -57,36 +57,35 @@ namespace Mffer {
 			Game.WriteCSVs( saveDir );
 		}
 		static RootCommand SetupCommandLine() {
-			// Due to a limitation of System.CommandLine in evaluating empty
-			// strings, we first parse options as strings then re-parse properly
-			// as DirectoryInfo objects.
-			var command = new RootCommand( Description );
-			ParseArgument<DirectoryInfo> DirectoryInfoParser = result => {
-				if ( String.IsNullOrEmpty( result.ToString() ) ) throw new ArgumentException( "Directory name must not be an empty string" );
-				return new DirectoryInfo( result.ToString() );
+			RootCommand command = new RootCommand( Description );
+			Option<DirectoryInfo> dataDirOption = new Option<DirectoryInfo>(
+				"--datadir", "source directory"
+			) {
+				IsRequired = true,
+				Arity = ArgumentArity.ExactlyOne
 			};
-			foreach ( var entry in Options ) {
-				Option option = new Option<DirectoryInfo>( entry.Key, DirectoryInfoParser, false, entry.Value ) { IsRequired = true, };
-				option.AddValidator(
-					optionResult => {
-						IEnumerable<string> emptyStrings =
-							optionResult.Tokens
-								.Select( t => t.Value )
-								.Where( s => String.IsNullOrEmpty( s ) );
-						if ( emptyStrings.Count() == 0 ) {
-							return null;
-						} else {
-							return $"Option '{entry.Key[0]}' must not be empty.";
-						}
-					}
-				);
-				// if ( entry.Key[0] == "--datadir" ) option.ExistingOnly();
-				if ( entry.Key[0] == "--outputdir" ) option.LegalFilePathsOnly();
-				command.AddOption( option );
-			}
+			dataDirOption.ExistingOnly();
+			Option<DirectoryInfo> outputDirOption = new Option<DirectoryInfo>(
+				name: "--outputdir",
+				description: "output directory"
+			) {
+				IsRequired = true,
+				Arity = ArgumentArity.ExactlyOne,
+			};
+			outputDirOption.AddValidator( ( OptionResult result ) => {
+				// Thanks to the above Arity setting of ExactlyOne, we know that if we've
+				// made it to this point this token exists:
+				if ( String.IsNullOrEmpty( result.Children[0].Tokens[0].Value ) )
+					result.ErrorMessage = "Output directory name must not be empty.";
+			} );
+			outputDirOption.LegalFilePathsOnly();
+			command.AddOption( dataDirOption );
+			command.AddOption( outputDirOption );
 			command.SetHandler(
-				( DirectoryInfo dataDir, DirectoryInfo outputDir ) => OptionsHandler( dataDir, outputDir ), command.Options
-				);
+				( DirectoryInfo dataDir, DirectoryInfo outputDir ) =>
+					OptionsHandler( dataDir, outputDir ),
+					dataDirOption, outputDirOption
+			);
 			return command;
 		}
 	}
