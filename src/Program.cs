@@ -57,10 +57,9 @@ namespace Mffer {
 				return dirCommand.Invoke( args );
 			} );
 			Game = new Game();
-			// NetworkData.DownloadFiles();
+			NetworkData.DownloadFiles();
 			Alliances.GetProspectiveAlliances();
-			return 0;
-			// return stringCommand.Invoke( args );
+			return stringCommand.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
 			LoadAll( dataDir );

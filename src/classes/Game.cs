@@ -55,7 +55,7 @@ namespace Mffer {
 			foreach ( string versionName in versionNames ) {
 				Version version = new Version( versionName );
 				version.Data = dataSource.GetData( versionName );
-				// version.LoadData();
+				version.LoadData();
 				version.LoadComponents();
 				Versions.Add( version );
 			}
