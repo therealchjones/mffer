@@ -26,11 +26,15 @@ namespace Mffer {
 		/// Gets or sets the included versions of the game
 		/// </summary>
 		public List<Version> Versions { get; set; }
+		List<Player> Players { get; set; }
+		List<Alliance> Alliances { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class
 		/// </summary>
 		public Game() : base() {
 			Versions = new List<Version>();
+			Players = new List<Player>();
+			Alliances = new List<Alliance>();
 		}
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class and
