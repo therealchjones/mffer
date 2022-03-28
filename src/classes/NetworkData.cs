@@ -46,7 +46,7 @@ namespace Mffer {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
-		static JsonDocument ServerInfo = null;
+		static JsonElement ServerInfo = new JsonElement();
 		static float Uptime = 0;
 		static bool PreLoginInProgress = false;
 		static string PacketKey = null;
@@ -66,7 +66,7 @@ namespace Mffer {
 		/// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
 		/// varies by version
 		/// </remarks>
-		public static string AppVersion = "7.8.0";
+		public static string AppVersion = "7.9.0";
 		/// <summary>
 		/// Initializes the static <see cref="NetworkData"/> class
 		/// </summary>
@@ -83,17 +83,66 @@ namespace Mffer {
 		/// steps.
 		/// </remarks>
 		/// <returns></returns>
-		static JsonDocument GetServerInfo() {
-			if ( ServerInfo == null ) {
-				// Obtained in libil2cpp.so via ServerInfo.GetRemoteFilePath()
-				string serverInfoUrl = PatchUrl + "v" + AppVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
+		static JsonElement GetServerInfo() {
+			if ( ServerInfo.ValueKind == JsonValueKind.Undefined ) {
 				// Obtained in libil2cpp.so via PacketTransfer.SetServerDataOK()
-				ServerInfo = JsonDocument.Parse(
-					Www.GetStringAsync( serverInfoUrl ).Result,
+				JsonDocument info = JsonDocument.Parse(
+					Www.GetStringAsync( GetServerInfoUrl() ).Result,
 					JsonOptions
 				);
+				ServerInfo = info.RootElement.Clone();
+				info.Dispose();
 			}
 			return ServerInfo;
+		}
+		/// <summary>
+		/// Returns the URL from which to download NetMarble server information
+		/// </summary>
+		/// <remarks>
+		/// Remake of `libil2cpp.so`'s `ServerInfo.GetRemoteFilePath()`
+		/// </remarks>
+		/// <param name="appVersion">The version of MFF. If not provided, empty,
+		/// or only whitespace, uses <see cref="NetworkData"/>.AppVersion</param>
+		/// <returns>A <see cref="String"/> representation of the URL</returns>
+		/// <exception cref="ArgumentException">if <see
+		/// paramref="appVersion"/>is not a usable version string</exception>
+		static string GetServerInfoUrl( string appVersion = "" ) {
+			if ( String.IsNullOrEmpty( appVersion ) ) appVersion = AppVersion;
+			if ( String.IsNullOrWhiteSpace( appVersion ) ) throw new ArgumentException( "Version must be a valid string", appVersion );
+			return PatchUrl + "v" + appVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
+		}
+		static string GetLatestAppVersion() {
+			if ( String.IsNullOrEmpty( AppVersion ) ) {
+				AppVersion = GetTimeBasedAppVersion();
+			}
+			int[] versionArray = ParseAppVersion( AppVersion );
+			return "foo";
+		}
+		static int[] ParseAppVersion( string version ) {
+			int major, minor, patch;
+			string[] splitVersion = AppVersion.Split( '.', 3 );
+			if ( version.Length < 3 || !Int32.TryParse( splitVersion[2], out patch ) ) patch = 0;
+			if ( version.Length < 2 || !Int32.TryParse( splitVersion[1], out minor ) ) minor = 0;
+			if ( !Int32.TryParse( splitVersion[0], out major ) ) {
+				throw new ArgumentException( "Unable to parse version number", version );
+			}
+			return new int[3] { major, minor, patch };
+		}
+		/// <summary>
+		/// Obtain an approximate current app version
+		/// </summary>
+		/// <remarks>Determines a naive first guess for the current version
+		/// based on the current date. MFF makes 10 "minor" releases each year
+		/// and increases the "major" version every April historically.
+		/// </remarks>
+		/// <returns>A <see cref="String"/> representation of an estimated
+		/// current app version</returns>
+		static string GetTimeBasedAppVersion() {
+			int days = ( DateTimeOffset.UtcNow - new DateTimeOffset( 2014, 5, 1, 0, 0, 0, TimeSpan.Zero ) ).Days;
+			int major = days / 365;
+			int minor = Math.Min( ( days - ( major * 365 ) ) / 30, 9 );
+			int patch = 0;
+			return major.ToString() + '.' + minor.ToString() + '.' + patch.ToString();
 		}
 		/// <summary>
 		/// Returns settings for the NetMarble server in use
@@ -103,8 +152,8 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns></returns>
 		static JsonElement GetServerData() {
-			string selectServerType = GetServerInfo().RootElement.GetProperty( "select_server" ).GetProperty( "type" ).GetString();
-			JsonElement serverList = GetServerInfo().RootElement.GetProperty( "server_list" );
+			string selectServerType = GetServerInfo().GetProperty( "select_server" ).GetProperty( "type" ).GetString();
+			JsonElement serverList = GetServerInfo().GetProperty( "server_list" );
 			JsonElement selectedServer = new JsonElement();
 			foreach ( JsonElement server in serverList.EnumerateArray() ) {
 				if ( server.GetProperty( "type" ).GetString() == selectServerType ) {
@@ -568,8 +617,8 @@ namespace Mffer {
 			return UserID;
 		}
 		static string GetVersion() {
-			JsonDocument info = GetServerInfo();
-			if ( info.RootElement.TryGetProperty( "download_version", out JsonElement versionJson ) && !String.IsNullOrEmpty( versionJson.GetString() ) ) {
+			JsonElement info = GetServerInfo();
+			if ( info.TryGetProperty( "download_version", out JsonElement versionJson ) && !String.IsNullOrEmpty( versionJson.GetString() ) ) {
 				AppVersion = versionJson.GetString();
 			}
 			return AppVersion;
