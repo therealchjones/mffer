@@ -594,7 +594,6 @@ testAutoanalyze() {
 	resetVm || return 1
 	echo "Testing autoanalyze on $VM_NAME..." >"$VERBOSEOUT"
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoanalyze \
-		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
 		"$MFFER_TEST_TMPDIR"/mffer-download.tar \
 		"$VM_HOSTNAME": \
 		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
@@ -609,7 +608,6 @@ testAutoextract() {
 	notify "Reconfiguring VM..."
 
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
-		"$MFFER_TEST_TMPDIR"/mffer-macos/common.sh \
 		"$VM_HOSTNAME":; then
 		warnError "Unable to configure virtual machine to test autoextract."
 		return 1
