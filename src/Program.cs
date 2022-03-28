@@ -5,14 +5,19 @@ using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
 	/// The primary user-facing program class
 	/// </summary>
-	public static class Program {
+	/// <remarks>
+	/// Methods for working with specific areas are in separate <see cref="Program"/> subclasses.
+	/// </remarks>
+	/// <seealso cref="Program.Alliances"/>
+	public static partial class Program {
 		static Game Game { get; set; }
-		static readonly string Description = "Marvel Future Fight extraction & reporting";
+		const string Description = "Marvel Future Fight extraction & reporting";
 		static readonly Dictionary<string[], string> Options = new Dictionary<string[], string> {
 			{new[]{"--datadir","-d"}, "directory containing Marvel Future Fight data files"},
 			{new[]{"--outputdir","-o"}, "directory in which to place created files"}
@@ -51,6 +56,9 @@ namespace Mffer {
 				dirCommand.Handler = CommandHandler.Create<DirectoryInfo, DirectoryInfo>( OptionsHandler );
 				return dirCommand.Invoke( args );
 			} );
+			Game = new Game();
+			NetworkData.DownloadFiles();
+			Alliances.GetProspectiveAlliances();
 			return stringCommand.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
@@ -68,7 +76,6 @@ namespace Mffer {
 		/// within those versions) will be loaded.
 		/// </remarks>
 		static void LoadAll( DirectoryInfo dataDir ) {
-			Game = new Game();
 			Game.LoadAll( dataDir.FullName );
 		}
 		/// <summary>
