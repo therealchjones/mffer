@@ -18,11 +18,11 @@ Android device, and downloading the game-related files that can be processed by
 
 ## Options
 
-|                           |                                                                                                                   |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `-o `_`output_directory`_ | Specify the directory in which to place the extracted files. Existing files of the same name will be overwritten. |
-| `-v`                      | Output more information when running. May be specified 0, 1, or 2 times.                                          |
-| `-h`                      | Output brief usage instructions but take no other action.                                                         |
+|                           |                                                                          |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `-o `_`output_directory`_ | Specify the directory in which to place the extracted files.             |
+| `-v`                      | Output more information when running. May be specified 0, 1, or 2 times. |
+| `-h`                      | Output brief usage instructions but take no other action.                |
 
 ## Extended Description
 
@@ -42,9 +42,10 @@ the verbose output from each individual tool called. Adding further `-v` options
 has no effect.
 
 The final product created by `autoextract` is a directory named
-`mff-device-files-`_`version`_ within _`output_directory`_. This contains a copy
-of all Marvel Future Fight files installed by the game on Android devices in a
-directory hierarchy copied directly from the Android emulator's filesystem.
+`mff-device-files-`_`version`_ within _`output_directory`_. This
+contains a copy of all Marvel Future Fight files installed by the game on
+Android devices in a directory hierarchy copied directly from the Android
+emulator's filesystem.
 
 ## Requirements
 
@@ -63,5 +64,5 @@ directory hierarchy copied directly from the Android emulator's filesystem.
 
 ## See Also
 
-Other concepts, examples, and workflows including `autoexec` are in the
-[usage guide](USAGE.md).
+`autoextract` has been largely superseded by [apkdl](apkdl.md) and functionality
+built into [`mffer`](mffer.md).
