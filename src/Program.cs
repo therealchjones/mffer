@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -26,40 +25,11 @@ namespace Mffer {
 		/// Primary entry point of the program
 		/// </summary>
 		static int Main( string[] args ) {
-			// Due to a limitation of System.CommandLine in evaluating empty
-			// strings, we first parse options as strings then re-parse properly
-			// as DirectoryInfo objects.
-			var stringCommand = new RootCommand( Description );
-			var dirCommand = new RootCommand( Description );
-			foreach ( var entry in Options ) {
-				Option<string> stringOption = new Option<string>( entry.Key, entry.Value ) { IsRequired = true };
-				stringOption.AddValidator(
-					optionResult => {
-						IEnumerable<string> emptyStrings =
-							optionResult.Tokens
-								.Select( t => t.Value )
-								.Where( s => String.IsNullOrEmpty( s ) );
-						if ( emptyStrings.Count() == 0 ) {
-							return null;
-						} else {
-							return $"Option '{entry.Key[0]}' must not be empty.";
-						}
-					}
-				);
-				Option<DirectoryInfo> dirOption = new Option<DirectoryInfo>( entry.Key, entry.Value ) { IsRequired = true };
-				if ( entry.Key[0] == "--datadir" ) dirOption.ExistingOnly();
-				else if ( entry.Key[0] == "--outputdir" ) dirOption.LegalFilePathsOnly();
-				stringCommand.AddOption( stringOption );
-				dirCommand.AddOption( dirOption );
-			}
-			stringCommand.Handler = CommandHandler.Create<string, string>( ( datadir, outputdir ) => {
-				dirCommand.Handler = CommandHandler.Create<DirectoryInfo, DirectoryInfo>( OptionsHandler );
-				return dirCommand.Invoke( args );
-			} );
+			RootCommand command = SetupCommandLine();
 			Game = new Game();
 			NetworkData.DownloadFiles();
 			Alliances.GetProspectiveAlliances();
-			return stringCommand.Invoke( args );
+			return command.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
 			LoadAll( dataDir );
@@ -91,6 +61,38 @@ namespace Mffer {
 		static void WriteAll( DirectoryInfo saveDir ) {
 			Game.ToJsonFiles( saveDir );
 			Game.WriteCSVs( saveDir );
+		}
+		static RootCommand SetupCommandLine() {
+			RootCommand command = new RootCommand( Description );
+			Option<DirectoryInfo> dataDirOption = new Option<DirectoryInfo>(
+				"--datadir", "source directory"
+			) {
+				IsRequired = true,
+				Arity = ArgumentArity.ExactlyOne
+			};
+			dataDirOption.ExistingOnly();
+			Option<DirectoryInfo> outputDirOption = new Option<DirectoryInfo>(
+				name: "--outputdir",
+				description: "output directory"
+			) {
+				IsRequired = true,
+				Arity = ArgumentArity.ExactlyOne,
+			};
+			outputDirOption.AddValidator( ( OptionResult result ) => {
+				// Thanks to the above Arity setting of ExactlyOne, we know that if we've
+				// made it to this point this token exists:
+				if ( String.IsNullOrEmpty( result.Children[0].Tokens[0].Value ) )
+					result.ErrorMessage = "Output directory name must not be empty.";
+			} );
+			outputDirOption.LegalFilePathsOnly();
+			command.AddOption( dataDirOption );
+			command.AddOption( outputDirOption );
+			command.SetHandler(
+				( DirectoryInfo dataDir, DirectoryInfo outputDir ) =>
+					OptionsHandler( dataDir, outputDir ),
+					dataDirOption, outputDirOption
+			);
+			return command;
 		}
 	}
 }
