@@ -29,10 +29,10 @@ bytecode, to prepare for further (manual) code exploration and analysis.
 
 `autoanalyze` uses [Il2CppInspector](https://github.com/djkaty/Il2CppInspector)
 to prepare data structure information (C types and function signatures) from the
-device files extracted by [`autoextract`](autoextract.md). It then creates a
+device files extracted by [`apkdl`](apkdl.md) or similar tools. It then creates a
 new [ghidra](https://ghidra-sre.org) project, imports the binary application
 data, applies the information from Il2CppInspector, and performs a ghidra
-auto-analysis. Finally, `autoextract` uses
+auto-analysis. Finally, `autoanalyze` uses
 [JADX](https://github.com/skylot/jadx) to decompile the Java bytecode used for
 small parts of the Marvel Future Fight package into source files.
 
@@ -56,9 +56,15 @@ option again enables "debug" output that includes echoing all shell commands in
 Adding further `-v` options has no effect.
 
 `autoanalyze` evaluates files within _`input_directory`_, which is expected to
-contain some subset of an Android filesystem as created by the `autoextract`
-program, and is likely named `mff-device-files-`_`version`_ for the version of
-Marvel Future Fight it contains.
+contain somewhere beneath it files named `base.apk` and
+`config.`_`abi`_`.apk` (for some ABI name). This may be a simple directory
+containing these files, such as the `mff-apks-`_`date`_ directory made by
+`apkdl`, some subset of an Android filesystem such as the
+`mff-device-files-`_`version`_ directory created by the `autoextract` program,
+or any other searchable file hierarchy containing these two files. If more than
+one of each type of file is located, an error message is printed; the easiest
+way to fix this is to choose a better subdirectory or relocate the files you
+wish to analyze into a directory of their own.
 
 The final products created by `autoanalyze` are directories named
 `mff-ghidra-`_`version`_ and `mff-jadx-`_`version`_ within the directory
@@ -83,6 +89,6 @@ the decompiled Java code from the device-independent portion of the application.
 
 ## See also
 
--   [`autoextract`](autoextract.md)
+-   [`apkdl`](apkdl.md)
 -   Other concepts, examples, and workflows including `autoanalyze` are in the
     [User Guide](USAGE.md).

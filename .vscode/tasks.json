@@ -44,9 +44,9 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
-			"label": "autoextract",
+			"label": "apkdl",
 			"type": "shell",
-			"command": "${workspaceFolder}/src/autoextract",
+			"command": "${workspaceFolder}/src/scripts/apkdl",
 			"args": [
 				"-v",
 				"-o",

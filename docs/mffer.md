@@ -10,13 +10,11 @@ $ mffer -h
 ## Description
 
 `mffer` is the command-line workhorse of the
-[`mffer` project](https://github.com/therealchjones/mffer). Given files
-extracted from an installation of
-[Marvel Future Fight](http://www.marvelfuturefight.com) (i.e., by
-[`autoextract`](autoextract.md)), `mffer` will parse the files into
+[`mffer`project](https://github.com/therealchjones/mffer). It can obtain the
+Marvel Future Fight data files from NetMarble, parse the files into
 JSON-formatted data files that (though quite large) are human-readable and
-machine-evaluable. `mffer` additionally produces CSV files of limited data for
-each version that can be viewed in spreadsheet applications (such as
+machine-evaluable, and produce CSV files of limited data for each version that
+can be viewed in spreadsheet applications (such as
 [Google Sheets](https://sheets.google.com)) or used in the
 [`mffer` webapp](webapp.md).
 
@@ -35,8 +33,8 @@ _`data_directory`_. Though some flexibility is tolerated, the directory
 hierarchy beneath _`data_directory`_ is expected to consist of one or more
 directories named for a version of Marvel Future Fight, each of which is a
 subset of an Android device filesystem where Marvel Future Fight is installed.
-(Not coincidentally, this corresponds to the directory tree created by
-[`autoextract`](autoextract.md).)
+(Not coincidentally, this corresponds to the directory trees created by `mffer`
+when obtaining data files or by [`autoextract`](autoextract.md).)
 
 Importing and processing the data can take a long time. Once completed, `mffer`
 will create _`version`_`.json` in _`output_directory`_, a JSON-formatted file
@@ -51,11 +49,7 @@ files will overwrite any files in _`output_directory`_ with the same names.
 
 `mffer` is built with .NET 5 and requires a system on which the
 [.NET 5 runtime](https://dotnet.microsoft.com/download/dotnet/5.0) will work,
-though the runtime itself does not need to be installed. Additionally, `mffer`
-is most useful in processing output from `autoextract`. While `autoextract` is
-not strictly required for the functionality of `mffer` (and thus neither are its
-many requirements), obtaining the data from a Marvel Future Fight installation
-without using `autoextract` is outside the scope of this document.
+though the runtime itself does not need to be installed.
 
 ## See Also
 

@@ -21,6 +21,8 @@ Existentially Inconsequential Things I Learned
 		- [Roster & Character model](#roster--character-model)
 		- [Character ID models](#character-id-models)
 		- [Localization changes](#localization-changes)
+- [Exploration tools](#exploration-tools)
+	- [`autoextract`](#autoextract)
 - [Various notes](#various-notes)
 
 ## Introduction
@@ -549,6 +551,23 @@ hashed version of the internal string rather than the raw string value as the
 key. We assume that if the hash algorithm or dictionary structure changes again,
 loading the `Localization` component will simply fail with an exception rather
 than having a more subtle error.
+
+## Exploration tools
+
+Multiple tools have been used to explore Marvel Future Fight. Most are not
+directly associated with the `mffer` project, but a few were used historically
+or continue to be used to promote its ongoing development and further
+exploration of the game. These remain in the `tools/` directory of the `mffer`
+git repository.
+
+### `autoextract`
+
+Formerly a part of the `mffer` workflow, `autoextract` uses Android device
+emulation and user interaction to obtain game program and data files. This may
+work when other completely automated methods for downloading the data no longer
+succeed due to Marvel Future Fight changes. It requires Java and cannot be
+reliably run within a virtual machine. See the
+[`autoextract` instructions](autoextract.md) for more information.
 
 ## Various notes
 

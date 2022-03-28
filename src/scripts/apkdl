@@ -1,0 +1,262 @@
+#!/bin/sh
+
+summary() {
+	echo "$(basename "$0"): download MFF program files"
+}
+
+usage() {
+	echo "usage: $(basename "$0") [-v] -o output_directory"
+	echo "       $(basename "$0") -h"
+}
+
+description() {
+	echo "mandatory arguments:"
+	echo "	-o output_directory"
+	echo '		place game program files in an apks-<date>/ directory'
+	echo '		within output_directory'
+	echo "options:"
+	echo "	-h	print this summarized help message and quit"
+	echo "	-v	print more information; specify twice for debug output"
+}
+
+# Prints an absolute pathname corresponding to path $1
+#
+# This is done by changing to the directory $1, so is best done in a
+# subshell, as in:
+# NEWDIR="$(getdir "../new_dir")"
+# (Otherwise, changing back to the previous directory creates its own
+# set of problems.) Additionally, this requires the directory to exist, so it
+# should be created before calling getdir if necessary.
+#
+# TODO: #91 Consider whether we need to deal with paths ending in /
+# Can probably implement algorithm used by cd, as in:
+# https://pubs.opengroup.org/onlinepubs/9699919799/
+getdir() {
+	if [ "$#" != "1" ]; then
+		echo 'Usage: getdir dirname' >&2
+		return 1
+	fi
+	cd -- "$1" || {
+		echo "Unable to access directory '$1'" >&2
+		return 1
+	}
+	dirname "$PWD/."
+}
+
+getexec() {
+	if [ "$#" = 0 ]; then
+		echo 'Usage: getexec filename [altfile... ]' >&2
+		return 1
+	fi
+	for filename in "$@"; do
+		if type "$filename" >/dev/null 2>&1; then
+			echo "$filename"
+			return 0
+		fi
+	done
+	return 1
+}
+
+throwfatal() {
+	if [ "$#" -gt 0 ]; then
+		echo "$0": "$@" >&2
+	fi
+	exit 1
+}
+
+cleanup() {
+	if [ "$#" -gt "1" ]; then
+		echo 'Usage: cleanup [signal]' >&2
+		return 1
+	fi
+	case "$1" in
+		"" | HUP | INT | QUIT | TERM) ;;
+		*)
+			echo "'$1' is an unsupported signal" >&2
+			return 1
+			;;
+	esac
+	echo "Cleaning up" >"$VERBOSEOUT"
+	# Temp directories may still be in use by child processes
+	trap '' EXIT HUP INT QUIT TERM
+	if [ -n "$1" ]; then
+		kill -s "$1" 0
+	else
+		kill 0
+	fi
+	# Allow cancelling further if, e.g., someone hits Ctrl-C while cleanup is
+	# happening
+	trap - EXIT HUP INT QUIT TERM
+	wait
+	[ -n "$MFFTEMPDIR" ] && {
+		rm -rf -- "$MFFTEMPDIR" || echo "Unable to complete cleanup" >&2
+	}
+	if [ -n "$1" ]; then
+		kill -s "$1" 0
+		# Shells do not portably exit despite POSIX specification
+		# on some of the above signals (e.g., bash ignores SIGQUIT)
+		exit 1
+	fi
+	exit
+}
+signal() {
+	if [ "$#" != "1" ]; then
+		echo 'Usage: signal signalname' >&2
+		return 1
+	fi
+	signal=""
+	case "$1" in
+		"HUP" | "INT" | "QUIT" | "TERM")
+			signal="$1"
+			;;
+		"EXIT") ;;
+		*)
+			echo 'Usage: signal signalname' >&2
+			return 1
+			;;
+	esac
+	trap '' EXIT
+	echo "Processing $1 signal" >"$VERBOSEOUT"
+	if [ -n "$signal" ]; then
+		cleanup "$signal"
+	else
+		cleanup
+	fi
+}
+trapforcleanup() {
+	trap cleanup EXIT
+	trap 'signal HUP' HUP
+	trap 'signal INT' INT
+	trap 'signal QUIT' QUIT
+	trap 'signal TERM' TERM
+}
+
+DEBUG=""
+VERBOSE=""
+
+while getopts 'hvo:' option; do
+	case "$option" in
+		h)
+			if [ "$#" = "1" ]; then
+				summary
+				usage
+				description
+				exit 0
+			else
+				usage >&2
+				exit 1
+			fi
+			;;
+		v)
+			if [ "Y" = "$VERBOSE" ]; then
+				DEBUG=Y
+			fi
+			VERBOSE=Y
+			;;
+		o)
+			MFFOUTPUTDIR="$OPTARG"
+			;;
+		?)
+			usage >&2
+			exit 1
+			;;
+	esac
+done
+shift $((OPTIND - 1))
+if [ "$#" != "0" ]; then
+	usage >&2
+	exit 1
+fi
+
+DEBUGOUT=/dev/null
+VERBOSEOUT=/dev/null
+if [ "$DEBUG" = "Y" ]; then
+	set -x
+	DEBUGOUT=/dev/stdout
+	VERBOSE=Y
+fi
+if [ "$VERBOSE" = "Y" ]; then
+	VERBOSEOUT=/dev/stdout
+fi
+
+MFFTEMPDIR="$(mktemp -d)" \
+	|| throwfatal 'Unable to create temporary directory. Exiting.'
+
+if [ -d "$MFFTEMPDIR" ]; then
+	if [ -n "$(find "$MFFTEMPDIR" ! -path "$MFFTEMPDIR")" ]; then
+		throwfatal "Temporary directory '$MFFTEMPDIR' is not empty. Exiting."
+	fi
+	trapforcleanup
+else
+	throwfatal "Unable to create temporary directory. Exiting."
+fi
+
+if [ -z "${MFFOUTPUTDIR+1}" ]; then
+	echo "Error: Output directory not set" >&2
+	usage >&2
+	exit 1
+fi
+if [ -z "$MFFOUTPUTDIR" ]; then
+	echo "Error: Output directory name must not be null" >&2
+	usage >&2
+	exit 1
+fi
+if ! mkdir -p -- "$MFFOUTPUTDIR" >"$DEBUGOUT" 2>&1; then
+	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
+	usage >&2
+	exit 1
+fi
+MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
+
+echo "Getting MFF from the Google Play Store..." >"$VERBOSEOUT"
+if ! PYTHON3="$(which python3)" >"$DEBUGOUT" 2>&1; then
+	echo "Error: unable to locate python3 executable" >&2
+	exit 1
+fi
+if ! "$PYTHON3" -m venv "$MFFTEMPDIR/python"; then
+	echo "Error: unable to create temporary python environment" >&2
+	exit 1
+fi
+if [ -r "$MFFTEMPDIR/python/bin/activate" ]; then
+	# shellcheck disable=SC1091
+	. "$MFFTEMPDIR"/python/bin/activate
+	if ! python; then
+		echo "Error: could not run python3." >&2
+		exit 1
+	fi <<EOF
+import string
+import sys
+if sys.prefix == sys.base_prefix:
+    print( "Not in a virtual environment", file=sys.stderr)
+    exit(1)
+if not sys.prefix.startswith( "$MFFTEMPDIR" ) and not sys.prefix.startswith( "/private$MFFTEMPDIR" ):
+    print( "Not running in $MFFTEMPDIR", file=sys.stderr)
+    print( "(sys.prefix=" + sys.prefix +")")
+    exit(1)
+if sys.version_info.major != 3:
+    print( "Not running in Python 3", file=sys.stderr)
+    exit(1)
+EOF
+fi
+
+if ! pip3 install --upgrade --force-reinstall gplaydl==1.3.5 >"$DEBUGOUT" 2>&1 \
+	|| ! echo "Enter a Google account username and password to download MFF." \
+	|| ! echo "(You'll need an app password to allow access to this program.)" \
+	|| ! printf 'Google Email: ' \
+	|| ! gplaydl configure >"$DEBUGOUT" \
+	|| ! gplaydl download --packageId com.netmarble.mherosgb --path "$MFFTEMPDIR" >"$DEBUGOUT"; then
+	echo "Unable to download MFF" >&2
+	exit 1
+fi
+BASEAPK="$MFFTEMPDIR"/com.netmarble.mherosgb.apk
+for file in "$MFFTEMPDIR"/com.netmarble.mherosgb/config.*.apk; do
+	SPLITAPK="$file"
+done
+if [ ! -f "$BASEAPK" ] || [ ! -f "$SPLITAPK" ]; then
+	echo "MFF download files are invalid" >&2
+	exit 1
+fi
+MFFAPKDIR="$MFFOUTPUTDIR"/apks-"$(date '+%Y%m%d')"
+mkdir -p "$MFFAPKDIR"
+mv "$BASEAPK" "$MFFAPKDIR"/base.apk
+mv "$SPLITAPK" "$MFFAPKDIR"/

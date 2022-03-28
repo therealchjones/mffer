@@ -37,11 +37,11 @@ This project is intended to facilitate analysis of [Marvel Future Fight](#marvel
 
 The project currently includes multiple components:
 
--   a [shell script](docs/autoextract.md) to obtain the Marvel Future Fight data files
--   a [shell script](docs/../autoanalyze.md) to decompile and evaluate the
+-   a [shell script](apkdl.md) to obtain the Marvel Future Fight program files
+-   a [shell script](autoanalyze.md) to decompile and evaluate the
     program files
--   a [.NET console app](docs/mffer.md) to parse the data files into an open and usable format
--   a [web app](docs/webapp.md) to present and use the game data
+-   a [.NET console app](mffer.md) to obtain and parse the Marvel Future Fight data files into an open and usable format
+-   a [web app](webapp.md) to present and use the game data
 
 The objectives of this umbrella project are:
 
@@ -93,14 +93,13 @@ described in the [Development guide](./Development.md).
 The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer), with an overall workflow in [USAGE](USAGE.md). Briefly:
 
 ```shell
-$ autoextract [-v] -o data_directory
-$ mffer --datadir data_directory --outputdir output_directory
+$ mffer --outputdir output_directory
 ```
 
 Then import the resulting CSV file into the webapp.
 
 Full options and further descriptions of individual commands can be found in
-their corresponding pages: [`autoextract`](autoextract.md),
+their corresponding pages: [`apkdl`](apkdl.md),
 [`autoanalyze`](autoanalyze.md), [`mffer`](mffer.md), and
 [the webapp](webapp.md).
 
