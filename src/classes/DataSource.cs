@@ -13,7 +13,7 @@ namespace Mffer {
 	/// <para>All filesystem interaction (with the possible exception of
 	/// validating command-line arguments) should be performed via this class. A
 	/// <see cref="DataSource"/> is built from <see cref="DataBundle"/>
-	/// objects that are each associated with a given <see cref="Version"/> of
+	/// objects that are each associated with a given version of
 	/// the <see cref="Game"/>. Data from each <see cref="DeviceDirectory"/> are
 	/// loaded into the <see cref="DataBundle"/> associated with the same
 	/// version when requested by the a <see cref="Game"/> instance.</para>
@@ -46,7 +46,7 @@ namespace Mffer {
 		/// <summary>
 		/// Adds a directory to the <see cref="DataSource"/>
 		/// </summary>
-		/// <remarks>he <paramref name="pathName"/> is validated and examined
+		/// <remarks>The <paramref name="pathName"/> is validated and examined
 		/// for appropriate directories to import. The given <paramref
 		/// name="pathName"/> may be a <see cref="DeviceDirectory"/> or a parent
 		/// of one or more <see cref="DeviceDirectory"/>s.</remarks>.

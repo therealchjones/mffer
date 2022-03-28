@@ -8,6 +8,7 @@
     <PackageReference Include="MessagePack" Version="2.2.85" />
     <PackageReference Include="AssetsTools" Version="0.1.2" />
 	<PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22114.1" />
+	<PackageReference Include="Snappier" Version="1.0.0" />
   </ItemGroup>
 
   <!-- custom project properties -->
@@ -102,7 +103,7 @@
 	  ContinueOnError="false" />
   </Target>
   <Target Name="GetVersion" DependsOnTargets="CheckGit" Condition="'$(VersionString)' == '' and '$(Configuration)' == 'Release'">
-	<Exec Command='"$(GitPath)" tag --list --contains HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
+	<Exec Command='"$(GitPath)" tag --list --points-at HEAD' ConsoleToMsBuild="true" WorkingDirectory="$(MSBuildProjectDirectory)">
 	  <Output TaskParameter="ConsoleOutput" PropertyName="GitTagName" />
 	</Exec>
 	<PropertyGroup Condition="'$(GitTagName)' != '' and ( $(GitTagName.StartsWith(`v`)) == 'true' or $(GitTagName.StartsWith(`V`)) == 'true' )" >

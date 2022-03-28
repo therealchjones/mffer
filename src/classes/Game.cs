@@ -26,11 +26,15 @@ namespace Mffer {
 		/// Gets or sets the included versions of the game
 		/// </summary>
 		public List<Version> Versions { get; set; }
+		List<Player> Players { get; set; }
+		List<Alliance> Alliances { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class
 		/// </summary>
 		public Game() : base() {
 			Versions = new List<Version>();
+			Players = new List<Player>();
+			Alliances = new List<Alliance>();
 		}
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class and
@@ -117,6 +121,7 @@ namespace Mffer {
 				Name = "";
 				Components = new Dictionary<string, Component>();
 				Data = null;
+				AddComponent( new Catalog() );
 				AddComponent( new Localization() );
 				AddComponent( new Roster() );
 			}
@@ -131,7 +136,7 @@ namespace Mffer {
 			}
 			dynamic GetData( string objectName, string dataFile ) {
 				if ( dataFile is null ) {
-					throw new ArgumentNullException( "assetFile" );
+					throw new ArgumentNullException( "dataFile" );
 				}
 				if ( !Data.DataFiles.ContainsKey( dataFile ) ) {
 					throw new KeyNotFoundException( $"Unable to find asset file named {dataFile}" );
@@ -188,6 +193,7 @@ namespace Mffer {
 			/// <param name="component"><see cref="Component"/> to associate with
 			/// this <see cref="Version"/></param>
 			void AddComponent( Component component ) {
+				if ( String.IsNullOrEmpty( component.Name ) ) throw new Exception( "The name of the component must be set" );
 				Components.Add( component.Name, component );
 			}
 			/// <summary>

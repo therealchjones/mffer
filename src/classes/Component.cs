@@ -24,7 +24,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required files should be named in the keys of <see
 		/// cref="BackingData"/> when the derived instance is initialized. When
-		/// the parent <see cref="Version"/> loads data into the <see
+		/// the parent <see cref="Game.Version"/> loads data into the <see
 		/// cref="Component"/>, it must first load the named files and place
 		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
@@ -36,7 +36,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required <see cref="Component"/>s should be named in the keys of
 		/// <see cref="Component.Dependencies"/> when the derived instance
-		/// is initialized. When the parent <see cref="Version"/> loads data
+		/// is initialized. When the parent <see cref="Game.Version"/> loads data
 		/// into this <see cref="Component"/>, it must first load the named
 		/// <see cref="Component"/>s and place them into the associated values of
 		/// <see cref="Dependencies"/>.
@@ -45,7 +45,7 @@ namespace Mffer {
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
 		/// </summary>
-		public Component() {
+		public Component() : base() {
 			BackingData = new Dictionary<string, GameObject>();
 			Dependencies = new Dictionary<string, Component>();
 		}
@@ -187,10 +187,9 @@ namespace Mffer {
 		/// <see cref="Dependencies"/> have been loaded, so the property
 		/// loading should be reproducible at any point afterward.
 		/// </remarks>
-		/// <returns><c>true</c> if the <see cref="Component"/> contains
-		/// loaded data, <c>false</c> otherwise</returns>
+		/// <returns><c>true</c>; derived classes should override this</returns>
 		public virtual bool IsLoaded() {
-			return true;
+			return false;
 		}
 	}
 }

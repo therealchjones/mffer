@@ -12,34 +12,37 @@ $ autoanalyze -h
 ## Description
 
 `autoanalyze` automates the complicated process of extracting data structure
-information from the Marvel Future Fight program code, importing it
-into a new ghidra project and performing ghidra auto-analysis, as well as
-decompiling Java bytecode, to prepare for
-further (manual) code exploration and analysis.
+information from the Marvel Future Fight program code, importing it into a new
+ghidra project and performing ghidra auto-analysis, as well as decompiling Java
+bytecode, to prepare for further (manual) code exploration and analysis.
 
 ## Options
 
-|                            |                                                                          |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `-i` _`input_directory`_   | Specify the directory in which device files are stored.                  |
-| `-o ` _`output_directory`_ | Specify the directory in which to store the new ghidra project.          |
-| `-v`                       | Output more information when running. May be specified 0, 1, or 2 times. |
-| `-h`                       | Output brief usage instructions but take no other action.                |
+|                           |                                                                          |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `-i` _`input_directory`_  | Specify the directory in which device files are stored.                  |
+| `-o` _`output_directory`_ | Specify the directory in which to store the new ghidra project.          |
+| `-v`                      | Output more information when running. May be specified 0, 1, or 2 times. |
+| `-h`                      | Output brief usage instructions but take no other action.                |
 
 ## Extended Description
 
 `autoanalyze` uses [Il2CppInspector](https://github.com/djkaty/Il2CppInspector)
 to prepare data structure information (C types and function signatures) from the
-device files extracted by [`autoextract`](autoextract.md). It then creates a
+device files extracted by [`apkdl`](apkdl.md) or similar tools. It then creates a
 new [ghidra](https://ghidra-sre.org) project, imports the binary application
 data, applies the information from Il2CppInspector, and performs a ghidra
-auto-analysis. Finally, `autoextract` uses
+auto-analysis. Finally, `autoanalyze` uses
 [JADX](https://github.com/skylot/jadx) to decompile the Java bytecode used for
 small parts of the Marvel Future Fight package into source files.
 
-`autoanalyze` uses ghidra's `analyzerHeadless` mode to perform these processes
+`autoanalyze` uses ghidra's `analyzeHeadless` mode to perform these processes
 without a GUI, and this ends up being significantly faster than importing these
-items manually, even if the point-and-click tasks themselves are minimal.
+items manually, even if the point-and-click tasks themselves are minimal. If
+Ghidra is installed somewhere (and in only one place) under `/usr/local`, this
+will be found automatically; otherwise, set the `GHIDRA` environment variable to
+the path of the `analyzeHeadless` script (which, in most releases, is in the
+`support/` subdirectory).
 
 With a minimum of pre-installed software, `autoanalyze` will obtain the
 remainder of necessary software. `autoanalyze` installs software into temporary
@@ -53,29 +56,39 @@ option again enables "debug" output that includes echoing all shell commands in
 Adding further `-v` options has no effect.
 
 `autoanalyze` evaluates files within _`input_directory`_, which is expected to
-contain some subset of an Android filesystem as created by the `autoextract`
-program, and is likely named `mff-device-files-`_`version`_ for the version of
-Marvel Future Fight it contains.
+contain somewhere beneath it files named `base.apk` and
+`config.`_`abi`_`.apk` (for some ABI name). This may be a simple directory
+containing these files, such as the `mff-apks-`_`date`_ directory made by
+`apkdl`, some subset of an Android filesystem such as the
+`mff-device-files-`_`version`_ directory created by the `autoextract` program,
+or any other searchable file hierarchy containing these two files. If more than
+one of each type of file is located, an error message is printed; the easiest
+way to fix this is to choose a better subdirectory or relocate the files you
+wish to analyze into a directory of their own.
 
-The final product created by `autoanalyze` are directories named
+The final products created by `autoanalyze` are directories named
 `mff-ghidra-`_`version`_ and `mff-jadx-`_`version`_ within the directory
 _`output_directory`_, where _`version`_ is determined from the version of Marvel
 Future Fight evaluated. Within `mff-ghidra-`_`version`_ are files and
 directories used by the new ghidra project, as well as multiple log files
-created during the import and processing steps. `mff-jadx-`_`version`_ contains the
-decompiled Java code from the device-independent portion of the application.
+created during the import and processing steps. `mff-jadx-`_`version`_ contains
+the decompiled Java code from the device-independent portion of the application.
 
 ## Requirements
 
--   POSIX-compliant Unix-like environment for which all the used
-    programs are available (likely macOS/OS X, Windows with Cygwin or
-    another POSIX layer, or Linux).
+-   POSIX-like environment for which all the used programs are available (likely
+    macOS/OS X, Windows with Cygwin or another POSIX layer, or Linux).
+-   `git`
+-   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (required
+    for building automatically downloaded tools)
 -   [ghidra](https://ghidra-sre.org)
 -   Java runtime (required by ghidra); consider
-    [AdoptOpenJDK](https://adoptopenjdk.net)
+    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 -   A reasonable machine upon which to run these; ghidra can be quite resource
     intensive.
 
 ## See also
 
--   [`autoextract`](autoextract.md)
+-   [`apkdl`](apkdl.md)
+-   Other concepts, examples, and workflows including `autoanalyze` are in the
+    [User Guide](USAGE.md).

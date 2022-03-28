@@ -1,4 +1,4 @@
-# `mffer` Development
+# Developing `mffer`
 
 ## Highlights
 
@@ -14,7 +14,8 @@
 - [Introduction](#introduction)
 - [Copyright & licensing](#copyright--licensing)
 - [Setting up a development environment](#setting-up-a-development-environment)
-	- [Requirements](#requirements)
+	- [Build requirements](#build-requirements)
+	- [Program requirements](#program-requirements)
 	- [Recommendations](#recommendations)
 	- [Setup](#setup)
 		- [In Visual Studio Code](#in-visual-studio-code)
@@ -46,10 +47,17 @@
 - [The `mffer` APIs](#the-mffer-apis)
 - [Building `mffer`](#building-mffer)
 	- [Building a release](#building-a-release)
+- [Testing `mffer`](#testing-mffer)
+	- [Testing environments](#testing-environments)
+	- [Testing on macOS](#testing-on-macos)
+	- [Linux](#linux)
+	- [Windows](#windows)
+	- [Testing releases](#testing-releases)
+- [Releasing `mffer`](#releasing-mffer)
 - [The `mffer` webapp](#the-mffer-webapp)
 	- [Description](#description)
 	- [Deploying the webapp](#deploying-the-webapp)
-		- [Requirements](#requirements-1)
+		- [Requirements](#requirements)
 		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
 		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
 - [See also](#see-also)
@@ -122,7 +130,7 @@ running the programs.
 Details regarding the specific uses or purposes of the below are also documented
 in the [Tools](#tools) section of [Writing code](#writing-code).
 
-### Requirements
+### Build requirements
 
 -   a vaguely POSIX-compatible development environment (and some near-ubiquitous
     POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
@@ -131,8 +139,23 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)
+-   Python 3
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
+
+Specific configurations on which the build process is tested are noted in the
+[Testing `mffer` section](#testing-mffer).
+
+### Program requirements
+
+Though not strictly required for development of the `mffer` tools, the
+requirements for running the programs themselves additionally include:
+
+-   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
+    (required for `autoanalyze`)
+-   Java 11 runtime or SDK (required for `autoextract` and Ghidra); consider
+    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+-   Python 3 (required for `apkdl`)
 
 ### Recommendations
 
@@ -144,7 +167,7 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 
 If you choose to use Visual Studio Code, open the Source Control (SCM) panel and
 choose "Clone Repository" and enter https://github.com/therealchjones/mffer.git.
-Choose a folder to place the new `mffer` directory within it. Open it when
+Choose a folder to place the new `mffer` directory within. Open it when
 prompted, read the warning and choose the option to enable all features.
 
 When prompted to "execute the restore command to continue", press "Restore". (If
@@ -601,7 +624,7 @@ in the code itself.
 
 ## Building `mffer`
 
-1. `autoextract` is a shell script and requires no building.
+1. `apkdl` and `autoanalyze` are shell scripts and require no building.
 2. Building the dotnet app: from within the root `mffer` directory,
     ```shell
     $ dotnet build mffer.csproj
@@ -632,14 +655,154 @@ $ git tag v0.1.0-pre
 The name must be a string that starts with `v`. Official releases use the
 [Semantic Versioning](README.md#versioning) conventions, but you can use any
 string starting with `v`. (If you don't want to tag the git repository, you can
-alternatively set the environment variable `VersionString` to any string you
-wish.)
+alternatively set the environment variable `VersionString`.)
 
-To build the release packages in the `release` directory, use
+To build the release packages, use
 
 ```shell
 $ dotnet publish -c release
 ```
+
+The result will be files placed in the `release` directory of the source tree.
+There are files are named `mffer-`_`version`_`-`_`platform`_`.zip` for each of the
+built platforms (by default, `win-x64`, `osx-x64`, and `linux-x64`). These files
+contain the `mffer` executable file and its associated scripts, `apkdl`
+and `autoanalyze`, and may contain other supporting files. A
+platform-independent file `mffer-`_`version`_`-net5.0.zip` includes several
+other files needed to run the `mffer` program using the .NET 5.0 runtime (not
+included).
+
+## Testing `mffer`
+
+### Testing environments
+
+In order to ensure [software requirements](USAGE.md#requirements) are minimal
+and known, formal testing of `mffer` is performed on basic virtual machines
+created in a reproducible way. Where possible, output is then compared to "known
+good" output from prior builds. There are standardized methods for creating the
+virtual machines and for testing `mffer` on them. Scripts are provided to create
+virtual machines for Parallels Desktop and test `mffer` on the virtual machines,
+all running on a macOS host machine with only the addition of Parallels Desktop
+Pro required to build the virtual machines. These scripts are available in the
+`tools/` directory.
+
+(Further information on using the command line to build and interact with
+Paralells Desktop is available
+[on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
+the latest version should be available
+[here](https://www.parallels.com/products/desktop/resources/).)
+
+### Testing on macOS
+
+Software used to fulfill the [build requirements](#build-requirements) and
+runtime requirements is installed automatically on the virtual machine as needed
+for the various phases of testing. The current testing environment on macOS
+uses:
+
+-   macOS 12.2.1 Monterey
+-   Xcode Command Line Tools
+-   Node.js 16.13.2
+-   .NET 5.0 SDK
+-   Temurin JRE 11.0.14.1_1
+-   Ghidra
+
+```shell
+sh tools/testmac.sh
+```
+
+This script:
+
+1. Creates a macOS virtual machine if needed
+2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
+3. Builds `mffer`
+4. Resets the virtual machine
+5. Tests `apkdl` (which requires manual interaction)
+6. Resets the virtual machine
+7. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
+8. Tests `autoanalyze`
+9. Tests `mffer`
+
+### Linux
+
+1. Install Ubuntu 20.04 & apply all available updates
+2. Install Parallels Tools
+3. Test `mffer`
+4. Test `apkdl`
+5. Test `autoanalyze`
+
+### Windows
+
+1. Install Windows 10 & apply all available updates
+2. Install Parallels Tools
+3. Test `mffer`
+4. Install
+   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
+5. Install Git (with Git Bash)
+6. Test `apkdl`
+7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
+8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
+9. Test `autoanalyze`
+
+### Testing releases
+
+"Semi-automated" testing of [releases](#building-a-release) is currently done
+using virtual machines as noted above. Testing is simply ensuring the programs
+run as expected; output files are not strictly compared due to expected minor
+variations.
+
+In order to ensure bugs are not the result of building on different systems, and
+to ensure the minimum of additional software is sufficient, the aforementioned
+scripts are each used to build the virtual machines and then build the candidate
+release versions of the software on each system. Each of those builds is then
+tested on each reference system, resulting in a testing checklist such as:
+
+> #### `apkdl`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### `autoanalyze`
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### `mffer`
+>
+> |                | build on windows | build on macOS | build on linux |
+> | -------------- | ---------------- | -------------- | -------------- |
+> | run on windows | [ ]              | [ ]            | [ ]            |
+> | run on macOS   | [ ]              | [ ]            | [ ]            |
+> | run on linux   | [ ]              | [ ]            | [ ]            |
+>
+> #### webapp deployment
+>
+> -   [ ] windows
+> -   [ ] macOS
+> -   [ ] linux
+>
+> #### webapp setup
+>
+> -   [ ] gmail
+> -   [ ] google workspace
+
+## Releasing `mffer`
+
+1. Merge all code for the release into the main branch
+2. Declare a "feature freeze" and create a new branch from main named for the release
+3. Serially test and modify the release branch, building with the environment
+   variable `VersionString=`_`releasename`_`-pre`.
+4. Once testing is complete (including full testing _one last time_), `git tag -a `_`releasename`_ on the release branch.
+5. Test yet again, this time without the environment variable. If more needs to
+   be changed, increment the release name appropriately until a tagged commit
+   completes testing as expected.
+6. If appropriate (e.g., there are no intervening changes to main), merge the
+   version branch back into main with this tag.
+7. Create a GitHub release from the final tagged commit.
+8. If later patches need to be made, apply them (separately to multiple release
+   branches, if supported), test, and increment the tag on the branch as needed,
+   then create the new release on GitHub.
 
 ## The `mffer` webapp
 
