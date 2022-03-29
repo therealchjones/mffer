@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.IO;
-using System.Linq;
-using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -27,8 +25,8 @@ namespace Mffer {
 		static int Main( string[] args ) {
 			RootCommand command = SetupCommandLine();
 			Game = new Game();
-			NetworkData.DownloadFiles();
-			Alliances.GetProspectiveAlliances();
+			// NetworkData.DownloadFiles();
+			// Alliances.GetProspectiveAlliances();
 			return command.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {

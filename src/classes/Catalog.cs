@@ -14,7 +14,7 @@ namespace Mffer {
 		/// </summary>
 		public Catalog() : base() {
 			Name = "Catalog";
-			AddBackingData( "ExchangeItemDataList" );
+			AddBackingData( "ExchangeItemDataList||text/data/exchange_item.asset" );
 		}
 
 		/// <summary>
