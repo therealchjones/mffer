@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Parsing;
 using System.IO;
+using AssetsTools.NET;
+using AssetsTools.NET.Extra;
 
 namespace Mffer {
 	/// <summary>
@@ -27,6 +29,7 @@ namespace Mffer {
 			Game = new Game();
 			// NetworkData.DownloadFiles();
 			// Alliances.GetProspectiveAlliances();
+			TestNewFormat();
 			return command.Invoke( args );
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
@@ -91,6 +94,16 @@ namespace Mffer {
 					dataDirOption, outputDirOption
 			);
 			return command;
+		}
+		static void TestNewFormat() {
+			AssetsManager manager = new AssetsManager();
+			BundleFileInstance text = manager.LoadBundleFile( "data/bundle/text" );
+			if ( text.file.NumFiles == 1 ) {
+				AssetsFileInstance textAsset = manager.LoadAssetsFileFromBundle( text, 0 );
+				if ( !textAsset.file.typeTree.hasTypeTree ) {
+					throw new Exception( "Type tree not found" );
+				}
+			}
 		}
 	}
 }

@@ -108,7 +108,7 @@ namespace Mffer {
 	/// Represents a collection of data associated with a single <see cref="Version"/>
 	/// </summary>
 	/// <remarks>
-	/// An <see cref="DataBundle"/> includes all parsed (or parseable) files
+	/// A <see cref="DataBundle"/> includes all parsed (or parseable) files
 	/// from a given <see cref="DeviceDirectory"/>, and therefore all associated
 	/// with a given <see cref="Version"/>.
 	/// </remarks>
