@@ -22,6 +22,7 @@ namespace Mffer {
 	/// <c>mff-device-files-7.0.1-170126-20210423</c>.</para>
 	/// </remarks>
 	public class DeviceDirectory : GameObject {
+		IAssetReader assetReader;
 		/// <summary>
 		/// The files within the <see cref="RootDirectory"/> that will be loaded
 		/// </summary>
@@ -70,6 +71,7 @@ namespace Mffer {
 		/// </summary>
 		DeviceDirectory() : base() {
 			DataFiles = new Dictionary<string, GameObject>();
+			assetReader = new AssetsToolsReader();
 		}
 		/// <summary>
 		/// Creates an instance of the <see cref="DeviceDirectory"/> class from
@@ -100,7 +102,7 @@ namespace Mffer {
 				if ( file.Name.EndsWith( ".xml", true, null ) ) {
 					dataFile = new PreferenceFile( file );
 				} else {
-					dataFile = new AssetFile( file );
+					dataFile = assetReader.LoadAssetBundle( file.FullName );
 				}
 				DataFiles.Add( file.Name, dataFile );
 			}

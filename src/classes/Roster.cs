@@ -541,10 +541,9 @@ namespace Mffer {
 		/// <summary>
 		/// Loads data into this <see cref="AbilityGroup"/> instance
 		/// </summary>
-		/// <param name="assetObject"><see cref="AssetObject"/> containing the
+		/// <param name="assetObject"><see cref="GameObject"/> containing the
 		/// data to be loaded</param>
 		public void Load( dynamic assetObject ) {
-			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
 			dynamic abilityGroup = assetObject.Properties["data"];
 			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
 			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );

@@ -9,7 +9,7 @@ namespace Mffer {
 	/// Major game content is represented by derivatives of the
 	/// <see cref="Component"/> class. This class includes the base properties
 	/// and methods applicable to all derivatives, including lists of the
-	/// <see cref="AssetFile"/>s and other <see cref="Component"/>s required
+	/// <see cref="AssetBundle"/>s and other <see cref="Component"/>s required
 	/// for loading data into the instance or evaluating or reporting the data.
 	/// </remarks>
 	public class Component : GameObject {
@@ -73,7 +73,7 @@ namespace Mffer {
 		/// cref="Asset"/> name to the <see cref="BackingData"/> list. This
 		/// is deferred until attempting to load data into the <see
 		/// cref="Component"/> as the <see cref="BackingData"/> list may be
-		/// created before all <see cref="AssetFile"/>s are loaded.</para>
+		/// created before all <see cref="AssetBundle"/>s are loaded.</para>
 		/// </remarks>
 		/// <param name="assetName">The name of the <see cref="Asset"/> to
 		/// add, or multiple alternatives separated by '||'</param>

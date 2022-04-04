@@ -93,9 +93,9 @@ namespace Mffer {
 		/// Different versions of a game may vary in
 		/// nearly all data; almost all game data are contained within a
 		/// <see cref="Version"/>, including the various <see cref="Component"/>s
-		/// and <see cref="AssetFile"/>s. Methods allow loading data from a
+		/// and <see cref="AssetBundle"/>s. Methods allow loading data from a
 		/// <see cref="DataSource"/>, writing the version's
-		/// <see cref="AssetObject"/> and <see cref="Component"/> data to an existing
+		/// <see cref="Asset"/> and <see cref="Component"/> data to an existing
 		/// stream, and writing individual <see cref="Component"/> data in CSV
 		/// format to an existing stream.
 		/// </remarks>
@@ -142,8 +142,8 @@ namespace Mffer {
 					throw new KeyNotFoundException( $"Unable to find asset file named {dataFile}" );
 				}
 				GameObject file = Data.DataFiles[dataFile];
-				if ( file is AssetFile ) {
-					return ( (AssetFile)file ).GetAsset( objectName );
+				if ( file is AssetBundle bundle ) {
+					return bundle.GetAsset( objectName );
 				} else if ( file is PreferenceFile && objectName == ( (PreferenceFile)file ).Name ) {
 					return (PreferenceFile)file;
 				} else {
@@ -180,7 +180,7 @@ namespace Mffer {
 			/// including data which is not required by any defined
 			/// <see cref="Component"/>s,
 			/// from the <see cref="DataSource"/>'s identified
-			/// <see cref="AssetFile"/>s. This is usually necessary only for
+			/// <see cref="AssetBundle"/>s. This is usually necessary only for
 			/// extensive cataloging and exploration rather than for creating
 			/// usable data for the <see cref="Component"/>s.
 			/// </remarks>
@@ -231,14 +231,14 @@ namespace Mffer {
 			/// </summary>
 			/// <remarks>
 			/// Will load available data into <paramref name="component"/> from
-			/// <see cref="AssetFile"/>s named in
+			/// <see cref="AssetBundle"/>s named in
 			/// <see cref="Component.BackingData"/>. (The assets will be loaded
 			/// if they aren't already.) If data has already been loaded into
 			/// <paramref name="component"/>, it will not be changed.
 			/// </remarks>
 			/// <param name="component">The <see cref="Component"/> to load with data</param>
 			/// <exception cref="System.ApplicationException">Thrown if a required
-			/// <see cref="AssetFile"/> from <paramref name="component"/>'s
+			/// <see cref="AssetBundle"/> from <paramref name="component"/>'s
 			/// <see cref="Component.BackingData"/> or a required <see cref="Component"/>
 			/// from <see cref="Component.Dependencies"/> is not found or cannot be
 			/// loaded.</exception>

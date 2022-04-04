@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -18,11 +19,11 @@ namespace Mffer {
 	/// cref="GameObject"/> can be easily represented in JSON format; a <see
 	/// cref="GameObject"/> is analagous to a JSON document (though more
 	/// restrictive). <see cref="GameObject"/>s form the base from which other
-	/// game data such as <see cref="AssetObject"/>s are derived. This class
+	/// game data such as <see cref="Asset"/>s are derived. This class
 	/// contains the basic structure and simple methods for manipulation of the
 	/// objects that can be further extended as needed.
 	/// </remarks>
-	/// <seealso cref="AssetObject"/>
+	/// <seealso cref="Asset"/>
 	/// <seealso cref="PreferenceObject"/>
 	/// <seealso href="https://json.org/"/>
 	public class GameObject {
@@ -70,7 +71,7 @@ namespace Mffer {
 		/// Derived classes should implement <see cref="LoadAll()"/> to parse
 		/// data from other associated objects into appropriate class members. This would typically
 		/// call an appropriate <c>Load</c> method for each of the included associated objects. (See, for instance,
-		/// <see cref="AssetFile.LoadAll()"/>.)
+		/// <see cref="AssetBundle.LoadAll()"/>.)
 		/// </remarks>
 		public virtual void LoadAll() {
 			return;
@@ -310,35 +311,35 @@ namespace Mffer {
 		/// <summary>
 		///	Obtains a value from a nested <see cref="GameObject"/>
 		/// </summary>
-		/// <param name="key">The optional name of <see cref="GameObject"/>
+		/// <param name="key">The optional name of the value
 		/// for which to search</param>
 		/// <returns>The value associated with this <see cref="GameObject"/>
 		/// and (optionally) <paramref name="key"/></returns>
 		/// <remarks>This method is not yet fully implemented.</remarks>
 		public string GetValue( string key = null ) {
 			switch ( Value ) {
-				case List<GameObject>:
-					if ( Value.Count == 1 ) {
-						return Value[0].GetValue( key );
+				case List<GameObject> list:
+					if ( list.Count == 1 ) {
+						return list[0].GetValue( key );
 					} else {
-						throw new Exception( "Unable to get unique value: Array has multiple items." );
+						throw new Exception( "Unable to get unique value: List has multiple items." );
 					}
-				case Dictionary<string, GameObject>:
+				case Dictionary<string, GameObject> dictionary:
 					if ( key != null ) {
-						if ( Value.ContainsKey( key ) ) {
-							return Value[key].GetValue();
-						} else if ( Value.Count() > 1 ) {
+						if ( dictionary.ContainsKey( key ) ) {
+							return dictionary[key].GetValue();
+						} else if ( dictionary.Count > 1 ) {
 							throw new Exception( $"Unable to get unique value: Object has no property '{key}'." );
 						}
 					}
-					if ( Value.Count() == 1 ) {
-						return Value.First().Value.GetValue( key );
+					if ( dictionary.Count == 1 ) {
+						return dictionary.First().Value.GetValue( key );
 					} else {
 						throw new Exception( "Unable to get unique value: Object has multiple properties." );
 					}
 				default:
 					if ( key != null ) {
-						throw new Exception( $"Unable to get a unique value: identfied string before any key '{key}'." );
+						throw new KeyNotFoundException( $"Unable to get a value: there is no key '{key}'." );
 					} else {
 						return Value;
 					}
