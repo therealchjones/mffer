@@ -53,6 +53,9 @@
 	"markdown.extension.toc.omittedFromToc": {
 		"docs/README.md": [
 			"## Contents"
+		],
+		"CONTRIBUTING.md": [
+			"## Table of Contents"
 		]
 	},
 	"markdown.extension.toc.levels": "2..6",
@@ -60,5 +63,8 @@
 	"shellformat.flag": "-bn -ci -i 0",
 	"shellcheck.customArgs": [
 		"-x"
-	]
+	],
+	"files.associations": {
+		"notes": "plaintext"
+	},
 }
