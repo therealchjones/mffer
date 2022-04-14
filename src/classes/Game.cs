@@ -121,7 +121,7 @@ namespace Mffer {
 				Name = "";
 				Components = new Dictionary<string, Component>();
 				Data = null;
-				AddComponent( new Catalog() );
+				// AddComponent( new Catalog() );
 				AddComponent( new Localization() );
 				AddComponent( new Roster() );
 			}
