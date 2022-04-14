@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using AssetsTools.Dynamic;
+using System.Linq;
 
 namespace Mffer {
 	/// <summary>
@@ -58,15 +58,10 @@ namespace Mffer {
 			if ( BackingData.Count != 1 ) {
 				throw new InvalidDataException();
 			}
-			DynamicAssetArray asset = null;
-			foreach ( Asset entry in BackingData.Values ) {
-				asset = entry.Value;
-			}
-			int assetLength = asset.Count();
+			Asset asset = (Asset)BackingData.First().Value;
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
-			for ( int i = 0; i < assetLength; i++ ) {
-				dynamic entry = asset[i];
+			foreach ( dynamic entry in (List<GameObject>)asset.Value ) {
 				if ( entry.isVisible == 1 ) {
 					Character character;
 					string groupId = entry.groupId.ToString();

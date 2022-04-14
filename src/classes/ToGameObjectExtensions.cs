@@ -81,10 +81,14 @@ namespace Mffer {
 					gameObject.Value = gameObjectList;
 					break;
 				case DynamicAssetArray assetArray:
-					int assetArrayLength = assetArray.Count();
 					List<GameObject> assetList = new List<GameObject>();
-					for ( int i = 0; i < assetArrayLength; i++ ) {
-						assetList.Add( assetArray[i].ToGameObject( GetElementNodes( nodes ) ) );
+					int i = 0;
+					while ( true ) {
+						try {
+							assetList.Add( assetArray[i].ToGameObject( GetElementNodes( nodes ) ) );
+						} catch ( IndexOutOfRangeException ) {
+							break;
+						}
 					}
 					gameObject.Value = assetList;
 					break;

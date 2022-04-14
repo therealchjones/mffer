@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -26,7 +27,8 @@ namespace Mffer {
 	/// <seealso cref="Asset"/>
 	/// <seealso cref="PreferenceObject"/>
 	/// <seealso href="https://json.org/"/>
-	public class GameObject {
+	public class GameObject : DynamicObject {
+		private dynamic _value = null;
 		/// <summary>
 		/// Gets or sets the value of the object, which may be a string,
 		/// array, dictionary of <see cref="GameObject"/>s indexed by strings,
@@ -45,15 +47,84 @@ namespace Mffer {
 				}
 			}
 		}
-		private dynamic _value = null;
+		public GameObject this[int index] => this.GetObject( index );
+		public GameObject this[string key] => this.GetObject( key );
 		/// <summary>
 		/// Initializes a new <see cref="GameObject"/> instance
 		/// </summary>
-		public GameObject() {
+		public GameObject() : base() {
 			Value = null;
 		}
-		public GameObject this[int index] => this.GetObject( index );
-		public GameObject this[string key] => this.GetObject( key );
+		/// <summary>
+		///	Obtains a value from a nested <see cref="GameObject"/>
+		/// </summary>
+		/// <remarks>
+		/// When it is possible to definitively select a <see cref="String"/> or
+		/// null value that is represented by the <see cref="GameObject.Value"/>
+		/// property or its descendants, optionally with a single level of
+		/// branching where a branch can be chosen with the <see
+		/// paramref="key"/> parameter, <see cref="GetValue"/> will return the value.
+		/// </remarks>
+		/// <param name="key">The optional name of the value for which to
+		/// search</param>
+		/// <returns>The value associated with this <see cref="GameObject"/> and
+		/// (optionally) <paramref name="key"/></returns>
+		/// <throws><see cref="KeyNotFoundException"/> if no single value can be definitively chosen</throws>
+		public string GetValue( string key = null ) {
+			if ( key is null ) {
+				if ( IsString() || _value is null ) return Value;
+				else if ( IsArray() ) {
+					List<GameObject> array = Value as List<GameObject>;
+					if ( array.Count == 0 ) return null;
+					else if ( array.Count == 1 ) return array[0].GetValue();
+					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
+				} else if ( IsDictionary() ) {
+					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
+					if ( dictionary.Count == 0 ) return null;
+					else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue();
+					else throw new KeyNotFoundException( "Unable to get unique value: Dictionary has multiple items." );
+				} else {
+					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
+				}
+			} else {
+				if ( IsString() || _value is null ) {
+					throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+				} else if ( IsArray() ) {
+					List<GameObject> array = Value as List<GameObject>;
+					if ( array.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+					else if ( array.Count == 1 ) return array[0].GetValue( key );
+					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
+				} else if ( IsDictionary() ) {
+					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
+					if ( dictionary.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+					else {
+						if ( dictionary.ContainsKey( key ) ) return dictionary[key].GetValue();
+						else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue( key );
+						else return dictionary[key].GetValue(); // which will throw a KeyNotFoundException
+					}
+				} else {
+					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
+				}
+			}
+		}
+		public override IEnumerable<string> GetDynamicMemberNames() {
+			if ( IsDictionary() ) return ( (Dictionary<string, GameObject>)Value ).Keys.AsEnumerable();
+			else return new List<string>();
+		}
+		public override bool TryGetMember( GetMemberBinder binder, out object result ) {
+			try {
+				result = GetObject( binder.Name );
+				return true;
+			} catch ( InvalidOperationException ) {
+				try {
+					result = GetValue( binder.Name );
+					return true;
+				} catch ( Exception e ) when ( e is InvalidOperationException || e is KeyNotFoundException ) {
+					result = null;
+					return false;
+				}
+			}
+		}
 		GameObject GetObject( int? index = null ) {
 			if ( index is null ) return this;
 			if ( IsArray() ) return Value[index];
@@ -93,7 +164,7 @@ namespace Mffer {
 		}
 		bool IsValidValue( dynamic obj ) {
 			if ( obj is null || obj is string || IsArray( obj ) || IsDictionary( obj ) ) return true;
-			return false;
+			else return false;
 		}
 		/// <summary>
 		/// Loads associated data into the appropriate members
@@ -338,58 +409,6 @@ namespace Mffer {
 			jsonArray = jsonArray.TrimEnd( new char[] { ',', ' ', '\t' } );
 			jsonArray += " ]";
 			return jsonArray;
-		}
-		/// <summary>
-		///	Obtains a value from a nested <see cref="GameObject"/>
-		/// </summary>
-		/// <remarks>
-		/// When it is possible to definitively select a <see cref="String"/> or
-		/// null value that is represented by the <see cref="GameObject.Value"/>
-		/// property or its descendants, optionally with a single level of
-		/// branching where a branch can be chosen with the <see
-		/// paramref="key"/> parameter, <see cref="GetValue"/> will return the value.
-		/// </remarks>
-		/// <param name="key">The optional name of the value for which to
-		/// search</param>
-		/// <returns>The value associated with this <see cref="GameObject"/> and
-		/// (optionally) <paramref name="key"/></returns>
-		/// <throws><see cref="KeyNotFoundException"/> if no single value can be definitively chosen</throws>
-		public string GetValue( string key = null ) {
-			if ( key is null ) {
-				if ( IsString() || _value is null ) return Value;
-				else if ( IsArray() ) {
-					List<GameObject> array = Value as List<GameObject>;
-					if ( array.Count == 0 ) return null;
-					else if ( array.Count == 1 ) return array[0].GetValue();
-					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
-				} else if ( IsDictionary() ) {
-					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
-					if ( dictionary.Count == 0 ) return null;
-					else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue();
-					else throw new KeyNotFoundException( "Unable to get unique value: Dictionary has multiple items." );
-				} else {
-					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
-				}
-			} else {
-				if ( IsString() || _value is null ) {
-					throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-				} else if ( IsArray() ) {
-					List<GameObject> array = Value as List<GameObject>;
-					if ( array.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-					else if ( array.Count == 1 ) return array[0].GetValue( key );
-					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
-				} else if ( IsDictionary() ) {
-					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
-					if ( dictionary.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-					else {
-						if ( dictionary.ContainsKey( key ) ) return dictionary[key].GetValue();
-						else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue( key );
-						else return dictionary[key].GetValue(); // which will throw a KeyNotFoundException
-					}
-				} else {
-					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
-				}
-			}
 		}
 		/// <summary>
 		/// Writes the <see cref="GameObject"/> in JSON format to a <see

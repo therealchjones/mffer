@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using AssetsTools.Dynamic;
 
 namespace Mffer {
 	/// <summary>
@@ -96,8 +95,8 @@ namespace Mffer {
 			/// </summary>
 			/// <param name="dynamicAsset">Asset containing
 			/// <see cref="FuturePassReward"/> data</param>
-			public void Load( DynamicAsset dynamicAsset ) {
-				dynamic asset = dynamicAsset.AsDynamic();
+			public void Load( Asset newAsset ) {
+				dynamic asset = newAsset as dynamic;
 				this.rewardId = Int32.Parse( asset.data.rewardId );
 				this.rewardGroupId = Int32.Parse( asset.data.rewardGroupId );
 				this.Type = Int32.Parse( asset.data.rewardType );
@@ -127,10 +126,10 @@ namespace Mffer {
 			/// <summary>
 			/// Loads data into this instance of <see cref="FuturePassSeason"/>
 			/// </summary>
-			/// <param name="dynamicAsset">Asset containing
+			/// <param name="newAsset">Asset containing
 			/// <see cref="FuturePassSeason"/> data</param>
-			public void Load( DynamicAsset dynamicAsset ) {
-				dynamic asset = dynamicAsset.AsDynamic();
+			public void Load( Asset newAsset ) {
+				dynamic asset = (dynamic)newAsset;
 				this.endTime = asset.data.endTime_unused;
 				this.startTime = asset.data.startTime_unused;
 				this.rewardGroupId = Int32.Parse( asset.data.rewardGroupId );
