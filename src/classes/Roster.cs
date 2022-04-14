@@ -60,7 +60,7 @@ namespace Mffer {
 			}
 			DynamicAssetArray asset = null;
 			foreach ( Asset entry in BackingData.Values ) {
-				asset = entry.RawAsset.AsDynamic().values;
+				asset = entry.Value;
 			}
 			int assetLength = asset.Count();
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];

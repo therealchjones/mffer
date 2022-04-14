@@ -52,16 +52,47 @@ namespace Mffer {
 		public GameObject() {
 			Value = null;
 		}
-		static bool IsValidValue( dynamic type ) {
-			if ( type is null ) return true;
-			if ( type is string ) return true;
+		public GameObject this[int index] => this.GetObject( index );
+		public GameObject this[string key] => this.GetObject( key );
+		GameObject GetObject( int? index = null ) {
+			if ( index is null ) return this;
+			if ( IsArray() ) return Value[index];
+			throw new InvalidOperationException( $"Unable to get an object at index {index}: value is not an array." );
+		}
+		GameObject GetObject( string key = null ) {
+			if ( key is null ) return this;
+			if ( IsDictionary() ) return Value[key];
+			throw new InvalidOperationException( $"Unable to get an object with key {key}: value is not a dictionary." );
+		}
+		bool IsDictionary( dynamic obj = null ) {
+			Type type;
+			if ( obj is null ) type = _value.GetType();
+			else type = obj.GetType();
+			if ( type.IsGenericType &&
+				type.GetGenericTypeDefinition() == typeof( Dictionary<,> ) &&
+				type.GenericTypeArguments[0] == typeof( String ) &&
+				typeof( GameObject ).IsAssignableFrom( type.GenericTypeArguments[1] ) ) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		bool IsArray( dynamic obj = null ) {
+			Type type;
+			if ( obj is null ) type = _value.GetType();
+			else type = obj.GetType();
 			if ( type.GetType().IsGenericType &&
 				type.GetType().GetGenericTypeDefinition() == typeof( List<> ) &&
 				typeof( GameObject ).IsAssignableFrom( type.GetType().GenericTypeArguments[0] ) ) return true;
-			if ( type.GetType().IsGenericType &&
-				type.GetType().GetGenericTypeDefinition() == typeof( Dictionary<,> ) &&
-				type.GetType().GenericTypeArguments[0] == typeof( string ) &&
-				typeof( GameObject ).IsAssignableFrom( type.GetType().GenericTypeArguments[1] ) ) return true;
+			else
+				return false;
+		}
+		bool IsString() {
+			if ( _value is string ) return true;
+			else return false;
+		}
+		bool IsValidValue( dynamic obj ) {
+			if ( obj is null || obj is string || IsArray( obj ) || IsDictionary( obj ) ) return true;
 			return false;
 		}
 		/// <summary>
@@ -311,38 +342,53 @@ namespace Mffer {
 		/// <summary>
 		///	Obtains a value from a nested <see cref="GameObject"/>
 		/// </summary>
-		/// <param name="key">The optional name of the value
-		/// for which to search</param>
-		/// <returns>The value associated with this <see cref="GameObject"/>
-		/// and (optionally) <paramref name="key"/></returns>
-		/// <remarks>This method is not yet fully implemented.</remarks>
+		/// <remarks>
+		/// When it is possible to definitively select a <see cref="String"/> or
+		/// null value that is represented by the <see cref="GameObject.Value"/>
+		/// property or its descendants, optionally with a single level of
+		/// branching where a branch can be chosen with the <see
+		/// paramref="key"/> parameter, <see cref="GetValue"/> will return the value.
+		/// </remarks>
+		/// <param name="key">The optional name of the value for which to
+		/// search</param>
+		/// <returns>The value associated with this <see cref="GameObject"/> and
+		/// (optionally) <paramref name="key"/></returns>
+		/// <throws><see cref="KeyNotFoundException"/> if no single value can be definitively chosen</throws>
 		public string GetValue( string key = null ) {
-			switch ( Value ) {
-				case List<GameObject> list:
-					if ( list.Count == 1 ) {
-						return list[0].GetValue( key );
-					} else {
-						throw new Exception( "Unable to get unique value: List has multiple items." );
+			if ( key is null ) {
+				if ( IsString() || _value is null ) return Value;
+				else if ( IsArray() ) {
+					List<GameObject> array = Value as List<GameObject>;
+					if ( array.Count == 0 ) return null;
+					else if ( array.Count == 1 ) return array[0].GetValue();
+					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
+				} else if ( IsDictionary() ) {
+					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
+					if ( dictionary.Count == 0 ) return null;
+					else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue();
+					else throw new KeyNotFoundException( "Unable to get unique value: Dictionary has multiple items." );
+				} else {
+					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
+				}
+			} else {
+				if ( IsString() || _value is null ) {
+					throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+				} else if ( IsArray() ) {
+					List<GameObject> array = Value as List<GameObject>;
+					if ( array.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+					else if ( array.Count == 1 ) return array[0].GetValue( key );
+					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
+				} else if ( IsDictionary() ) {
+					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
+					if ( dictionary.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
+					else {
+						if ( dictionary.ContainsKey( key ) ) return dictionary[key].GetValue();
+						else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue( key );
+						else return dictionary[key].GetValue(); // which will throw a KeyNotFoundException
 					}
-				case Dictionary<string, GameObject> dictionary:
-					if ( key != null ) {
-						if ( dictionary.ContainsKey( key ) ) {
-							return dictionary[key].GetValue();
-						} else if ( dictionary.Count > 1 ) {
-							throw new Exception( $"Unable to get unique value: Object has no property '{key}'." );
-						}
-					}
-					if ( dictionary.Count == 1 ) {
-						return dictionary.First().Value.GetValue( key );
-					} else {
-						throw new Exception( "Unable to get unique value: Object has multiple properties." );
-					}
-				default:
-					if ( key != null ) {
-						throw new KeyNotFoundException( $"Unable to get a value: there is no key '{key}'." );
-					} else {
-						return Value;
-					}
+				} else {
+					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
+				}
 			}
 		}
 		/// <summary>

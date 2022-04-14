@@ -51,7 +51,7 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).RawAsset.AsDynamic();
+			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).Value;
 			GameObject asset = BackingData.First().Value;
 			if ( asset is null ) throw new InvalidOperationException( $"Unable to load localization; no asset loaded." );
 			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {

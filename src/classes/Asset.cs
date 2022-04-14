@@ -11,11 +11,6 @@ namespace Mffer {
 	/// </remarks>
 	public class Asset : GameObject {
 		/// <summary>
-		/// Gets or sets the <see cref="DynamicAsset"/> containing unparsed data
-		/// for the <see cref="Asset"/>
-		/// </summary>
-		public DynamicAsset RawAsset { get; set; }
-		/// <summary>
 		/// Gets or sets the <see cref="Asset"/>'s path ID
 		/// </summary>
 		public long PathID { get; set; }
