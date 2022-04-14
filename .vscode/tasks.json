@@ -16,7 +16,15 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"dependsOrder": "sequence"
+			"dependsOrder": "sequence",
+			"isBuildCommand": true,
+			"osx": {
+				"options": {
+					"env": {
+						"PATH": "${config:terminal.integrated.env.osx.PATH}"
+					}
+				}
+			}
 		},
 		{
 			"label": "publish",
@@ -28,7 +36,14 @@
 				"-c",
 				"Release"
 			],
-			"problemMatcher": "$msCompile"
+			"problemMatcher": "$msCompile",
+			"osx": {
+				"options": {
+					"env": {
+						"PATH": "${config:terminal.integrated.env.osx.PATH}"
+					}
+				}
+			}
 		},
 		{
 			"label": "watch",
@@ -55,7 +70,14 @@
 			"detail": "Download and extract the latest version of Marvel Future Fight",
 			"isBackground": false,
 			"promptOnClose": true,
-			"problemMatcher": []
+			"problemMatcher": [],
+			"osx": {
+				"options": {
+					"env": {
+						"PATH": "${config:terminal.integrated.env.osx.PATH}"
+					}
+				}
+			}
 		}
 	]
 }
