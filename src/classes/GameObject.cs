@@ -55,6 +55,26 @@ namespace Mffer {
 		public GameObject() : base() {
 			Value = null;
 		}
+		public int Count() {
+			if ( IsArray() || IsDictionary() ) {
+				return Value.Count;
+			} else {
+				throw new InvalidOperationException( "Unable to count; value is not an array or dictionary." );
+			}
+		}
+		public override IEnumerable<string> GetDynamicMemberNames() {
+			if ( IsDictionary() ) return ( (Dictionary<string, GameObject>)Value ).Keys.AsEnumerable();
+			else return new List<string>();
+		}
+		GameObject GetObject( int index ) {
+			if ( IsArray() ) return Value[index];
+			throw new InvalidOperationException( $"Unable to get an object at index {index}: value is not an array." );
+		}
+		GameObject GetObject( string key = null ) {
+			if ( key is null ) return this;
+			if ( IsDictionary() ) return Value[key];
+			throw new InvalidOperationException( $"Unable to get an object with key {key}: value is not a dictionary." );
+		}
 		/// <summary>
 		///	Obtains a value from a nested <see cref="GameObject"/>
 		/// </summary>
@@ -107,33 +127,15 @@ namespace Mffer {
 				}
 			}
 		}
-		public override IEnumerable<string> GetDynamicMemberNames() {
-			if ( IsDictionary() ) return ( (Dictionary<string, GameObject>)Value ).Keys.AsEnumerable();
-			else return new List<string>();
-		}
-		public override bool TryGetMember( GetMemberBinder binder, out object result ) {
-			try {
-				result = GetObject( binder.Name );
-				return true;
-			} catch ( InvalidOperationException ) {
-				try {
-					result = GetValue( binder.Name );
-					return true;
-				} catch ( Exception e ) when ( e is InvalidOperationException || e is KeyNotFoundException ) {
-					result = null;
-					return false;
-				}
-			}
-		}
-		GameObject GetObject( int? index = null ) {
-			if ( index is null ) return this;
-			if ( IsArray() ) return Value[index];
-			throw new InvalidOperationException( $"Unable to get an object at index {index}: value is not an array." );
-		}
-		GameObject GetObject( string key = null ) {
-			if ( key is null ) return this;
-			if ( IsDictionary() ) return Value[key];
-			throw new InvalidOperationException( $"Unable to get an object with key {key}: value is not a dictionary." );
+		bool IsArray( dynamic obj = null ) {
+			Type type;
+			if ( obj is null ) type = _value.GetType();
+			else type = obj.GetType();
+			if ( type.IsGenericType &&
+				type.GetGenericTypeDefinition() == typeof( List<> ) &&
+				typeof( GameObject ).IsAssignableFrom( type.GenericTypeArguments[0] ) ) return true;
+			else
+				return false;
 		}
 		bool IsDictionary( dynamic obj = null ) {
 			Type type;
@@ -148,16 +150,6 @@ namespace Mffer {
 				return false;
 			}
 		}
-		bool IsArray( dynamic obj = null ) {
-			Type type;
-			if ( obj is null ) type = _value.GetType();
-			else type = obj.GetType();
-			if ( type.GetType().IsGenericType &&
-				type.GetType().GetGenericTypeDefinition() == typeof( List<> ) &&
-				typeof( GameObject ).IsAssignableFrom( type.GetType().GenericTypeArguments[0] ) ) return true;
-			else
-				return false;
-		}
 		bool IsString() {
 			if ( _value is string ) return true;
 			else return false;
@@ -165,6 +157,20 @@ namespace Mffer {
 		bool IsValidValue( dynamic obj ) {
 			if ( obj is null || obj is string || IsArray( obj ) || IsDictionary( obj ) ) return true;
 			else return false;
+		}
+		public override bool TryGetMember( GetMemberBinder binder, out object result ) {
+			try {
+				result = GetObject( binder.Name );
+				return true;
+			} catch ( InvalidOperationException ) {
+				try {
+					result = GetValue( binder.Name );
+					return true;
+				} catch ( Exception e ) when ( e is InvalidOperationException || e is KeyNotFoundException ) {
+					result = null;
+					return false;
+				}
+			}
 		}
 		/// <summary>
 		/// Loads associated data into the appropriate members
@@ -434,6 +440,10 @@ namespace Mffer {
 				serializerOptions.Converters.Add( new GameObjectJsonConverter() );
 			}
 			JsonSerializer.Serialize( utf8Writer, this, this.GetType(), serializerOptions );
+		}
+		public override string ToString() {
+			if ( IsString() || _value is null ) return Value;
+			else return base.ToString();
 		}
 	}
 }

@@ -1,5 +1,3 @@
-using AssetsTools.Dynamic;
-
 namespace Mffer {
 	/// <summary>
 	/// Represents a single asset used by Marvel Future Fight

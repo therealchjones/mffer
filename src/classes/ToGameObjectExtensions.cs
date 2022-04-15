@@ -86,6 +86,7 @@ namespace Mffer {
 					while ( true ) {
 						try {
 							assetList.Add( assetArray[i].ToGameObject( GetElementNodes( nodes ) ) );
+							i++;
 						} catch ( IndexOutOfRangeException ) {
 							break;
 						}

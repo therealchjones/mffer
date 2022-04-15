@@ -51,8 +51,7 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			dynamic DictionaryAsset = ( (Asset)BackingData.First().Value ).Value;
-			GameObject asset = BackingData.First().Value;
+			dynamic asset = BackingData.First().Value;
 			if ( asset is null ) throw new InvalidOperationException( $"Unable to load localization; no asset loaded." );
 			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
 				if ( asset.GetValue( "m_Script" ) is String csv ) {
@@ -67,16 +66,20 @@ namespace Mffer {
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();
 				Dictionary<string, string> values = new Dictionary<string, string>();
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.keyTable.keys.Length ) ) {
-					keys.Add( DictionaryAsset.keyTable.keys[keyNum].ToString(),
-						DictionaryAsset.keyTable.values[keyNum].ToString() );
+				GameObject assetKeys = asset.keyTable.keys;
+				GameObject assetValues = asset.keyTable.values;
+				foreach ( int keyNum in Enumerable.Range( 0, assetKeys.Count() ) ) {
+					keys.Add( assetKeys[keyNum].ToString(),
+						assetValues[keyNum].ToString() );
 				}
-				foreach ( int keyNum in Enumerable.Range( 0, DictionaryAsset.valueTable.keys.Length ) ) {
-					values.Add( DictionaryAsset.valueTable.keys[keyNum].ToString(),
-						DictionaryAsset.valueTable.values[keyNum].ToString() );
+				assetKeys = asset.valueTable.keys;
+				assetValues = asset.valueTable.values;
+				foreach ( int keyNum in Enumerable.Range( 0, assetKeys.Count() ) ) {
+					values.Add( assetKeys[keyNum].ToString(),
+						assetValues[keyNum].ToString() );
 				}
-				if ( new HashSet<string>( keys.Values ).Count() == values.Count() ) {
-					LocalDictionary = Enumerable.Range( 0, keys.Count() ).ToDictionary(
+				if ( new HashSet<string>( keys.Values ).Count == values.Count ) {
+					LocalDictionary = Enumerable.Range( 0, keys.Count ).ToDictionary(
 						i => keys.Keys.ToList()[i],
 						i => values[keys.Values.ToList()[i]] );
 				} else {
