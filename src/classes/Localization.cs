@@ -66,8 +66,8 @@ namespace Mffer {
 			} else {
 				Dictionary<string, string> keys = new Dictionary<string, string>();
 				Dictionary<string, string> values = new Dictionary<string, string>();
-				GameObject assetKeys = asset.keyTable.keys;
-				GameObject assetValues = asset.keyTable.values;
+				dynamic assetKeys = asset.keyTable.keys;
+				dynamic assetValues = asset.keyTable.values;
 				foreach ( int keyNum in Enumerable.Range( 0, assetKeys.Count() ) ) {
 					keys.Add( assetKeys[keyNum].ToString(),
 						assetValues[keyNum].ToString() );

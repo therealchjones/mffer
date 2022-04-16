@@ -104,19 +104,19 @@ namespace Mffer {
 						if ( entry.ability_raid.ToString() != "0" ) {
 							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_raid.ToString() );
 						}
-						foreach ( int ability in entry.abilitys ) {
-							if ( ability != 0 ) {
-								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.ToString() ) );
+						foreach ( GameObject ability in entry.abilitys.Value ) {
+							if ( ability.GetValue() != "0" ) {
+								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.GetValue().ToString() ) );
 							}
 						}
-						if ( entry.ability_hidden.ToString() != "0" ) {
+						if ( entry.ability_hidden.GetValue().ToString() != "0" ) {
 							uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_hidden.ToString() ) );
 						}
 					}
 					uniform.CharacterLevels.Add( heroId, newLevel );
 					newLevel.Skills.Add( new Skill( entry.leaderSkillId.ToString() ) );
-					foreach ( int skill in entry.skillIds ) {
-						Skill newSkill = new Skill( skill.ToString() );
+					foreach ( GameObject skill in entry.skillIds.Value ) {
+						Skill newSkill = new Skill( skill.GetValue().ToString() );
 						newLevel.Skills.Add( newSkill );
 					}
 					newLevel.Skills.Add( new Skill( entry.uniformSkillId.ToString() ) );
@@ -127,7 +127,7 @@ namespace Mffer {
 					}
 					try {
 						newLevel.Instinct = LocalDictionary.GetString( "SPECIAL_TYPE_" + entry.specialType.ToString() );
-					} catch ( Microsoft.CSharp.RuntimeBinder.RuntimeBinderException ) {
+					} catch ( KeyNotFoundException ) {
 						newLevel.Instinct = "";
 					}
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );

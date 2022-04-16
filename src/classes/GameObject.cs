@@ -47,8 +47,6 @@ namespace Mffer {
 				}
 			}
 		}
-		public GameObject this[int index] => this.GetObject( index );
-		public GameObject this[string key] => this.GetObject( key );
 		/// <summary>
 		/// Initializes a new <see cref="GameObject"/> instance
 		/// </summary>
@@ -173,6 +171,21 @@ namespace Mffer {
 				} catch ( Exception e ) when ( e is InvalidOperationException || e is KeyNotFoundException ) {
 					result = null;
 					return false;
+				}
+			}
+		}
+		public override bool TryGetIndex( GetIndexBinder binder, object[] indexes, out object result ) {
+			result = null;
+			if ( !IsArray() ) {
+				return false;
+			} else {
+				if ( indexes.Length != 1 ) throw new NotSupportedException();
+				if ( indexes[0] is not int ) throw new NotFiniteNumberException();
+				int index = (int)indexes[0];
+				if ( ( (List<GameObject>)Value ).Count <= index ) return false;
+				else {
+					result = ( (List<GameObject>)Value )[index];
+					return true;
 				}
 			}
 		}
