@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -66,8 +65,10 @@ namespace Mffer {
 		/// <param name="directory">Name of a directory into which to write the files</param>
 		public void ToJsonFiles( DirectoryInfo directory ) {
 			if ( !directory.Exists ) directory.Create();
-			JsonSerializerOptions serialOptions = new JsonSerializerOptions( JsonSerializerDefaults.General );
-			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = true };
+			JsonSerializerOptions serialOptions = new JsonSerializerOptions() {
+				ReferenceHandler = ReferenceHandler.Preserve
+			};
+			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = false };
 			foreach ( Version version in Versions ) {
 				string fileName = Path.Join( directory.FullName, version.Name + ".json" );
 				using ( Stream file = new FileStream( fileName, FileMode.Create ) ) {
