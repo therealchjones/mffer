@@ -59,7 +59,7 @@ namespace Mffer {
 		/// <returns>The asset named <paramref name="assetName"/></returns>
 		public Asset GetAsset( string name ) {
 			if ( String.IsNullOrEmpty( name ) ) throw new ArgumentNullException( nameof( name ) );
-			if ( !Assets.ContainsKey( name ) || Assets[name] is null ) Assets[name] = assetReader.GetAsset( name, this );
+			if ( !Assets.ContainsKey( name ) || Assets[name] is null || Assets[name].Value is null ) Assets[name] = assetReader.GetAsset( name, this );
 			return Assets[name];
 		}
 		public List<Asset> GetAllAssets() {

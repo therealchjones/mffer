@@ -53,7 +53,7 @@ namespace Mffer {
 		/// <seealso href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-polymorphism"/>
 		public static void Test() {
 			Game game = new Game( "test game" );
-			Game.Version version = new Game.Version( "test-version" );
+			Version version = new Version( "test-version" );
 			Localization localization = new Localization();
 			localization.LocalDictionary = new Dictionary<string, string>();
 			localization.LocalDictionary.Add( "foo", "bar" );

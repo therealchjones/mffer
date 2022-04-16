@@ -149,15 +149,9 @@ namespace Mffer {
 		/// before running <see cref="Load()"/></exception>
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
-			if ( BackingData.Count != 0 ) {
-				foreach ( KeyValuePair<string, GameObject> item in BackingData ) {
-					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
-						BackingData.Remove( item.Key );
-					} else {
-						if ( item.Value == null ) {
-							throw new Exception( $"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed." );
-						}
-					}
+			foreach ( KeyValuePair<string, GameObject> item in BackingData ) {
+				if ( item.Value == null ) {
+					throw new Exception( $"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed." );
 				}
 			}
 			if ( Dependencies.Count != 0 ) {
@@ -187,7 +181,7 @@ namespace Mffer {
 		/// <see cref="Dependencies"/> have been loaded, so the property
 		/// loading should be reproducible at any point afterward.
 		/// </remarks>
-		/// <returns><c>true</c>; derived classes should override this</returns>
+		/// <returns><c>false</c>; derived classes should override this</returns>
 		public virtual bool IsLoaded() {
 			return false;
 		}

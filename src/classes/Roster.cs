@@ -58,11 +58,12 @@ namespace Mffer {
 			if ( BackingData.Count != 1 ) {
 				throw new InvalidDataException();
 			}
-			Asset asset = (Asset)BackingData.First().Value;
+			dynamic asset = (Asset)BackingData.First().Value;
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
-			foreach ( dynamic entry in (List<GameObject>)asset.Value ) {
-				if ( entry.isVisible == 1 ) {
+			List<GameObject> entries = asset.values.Value;
+			foreach ( dynamic entry in entries ) {
+				if ( entry.isVisible.ToString() == "1" ) {
 					Character character;
 					string groupId = entry.groupId.ToString();
 					if ( Characters.ContainsKey( groupId ) ) {

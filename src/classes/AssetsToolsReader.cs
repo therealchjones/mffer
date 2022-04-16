@@ -56,9 +56,8 @@ namespace Mffer {
 			}
 			LoadAssetBundleManifest( assetBundle );
 			if ( !assetBundle.Assets.ContainsKey( newAssetName ) ) throw new KeyNotFoundException( $"Asset '{assetName}' was not found in asset bundle '{assetBundle.Path}'" );
-			Asset asset = assetBundle.Assets[newAssetName];
 			LoadAsset( newAssetName, assetBundle );
-			return asset;
+			return assetBundle.Assets[newAssetName];
 		}
 		/// <summary>
 		/// Initializes the information in the <see cref="Assets"/> catalog with

@@ -129,8 +129,10 @@ namespace Mffer {
 		}
 		bool IsArray( dynamic obj = null ) {
 			Type type;
-			if ( obj is null ) type = _value.GetType();
-			else type = obj.GetType();
+			if ( obj is null ) {
+				if ( _value is null ) return false;
+				else type = _value.GetType();
+			} else type = obj.GetType();
 			if ( type.IsGenericType &&
 				type.GetGenericTypeDefinition() == typeof( List<> ) &&
 				typeof( GameObject ).IsAssignableFrom( type.GenericTypeArguments[0] ) ) return true;
@@ -139,8 +141,10 @@ namespace Mffer {
 		}
 		bool IsDictionary( dynamic obj = null ) {
 			Type type;
-			if ( obj is null ) type = _value.GetType();
-			else type = obj.GetType();
+			if ( obj is null ) {
+				if ( _value is null ) return false;
+				else type = _value.GetType();
+			} else type = obj.GetType();
 			if ( type.IsGenericType &&
 				type.GetGenericTypeDefinition() == typeof( Dictionary<,> ) &&
 				type.GenericTypeArguments[0] == typeof( String ) &&
