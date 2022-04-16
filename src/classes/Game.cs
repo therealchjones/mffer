@@ -65,9 +65,7 @@ namespace Mffer {
 		/// <param name="directory">Name of a directory into which to write the files</param>
 		public void ToJsonFiles( DirectoryInfo directory ) {
 			if ( !directory.Exists ) directory.Create();
-			JsonSerializerOptions serialOptions = new JsonSerializerOptions() {
-				ReferenceHandler = ReferenceHandler.Preserve
-			};
+			JsonSerializerOptions serialOptions = new JsonSerializerOptions();
 			JsonWriterOptions writeOptions = new JsonWriterOptions() { Indented = true, SkipValidation = false };
 			foreach ( Version version in Versions ) {
 				string fileName = Path.Join( directory.FullName, version.Name + ".json" );
