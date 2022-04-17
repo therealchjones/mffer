@@ -121,7 +121,7 @@ namespace Mffer {
 				writer.WriteStartObject();
 				Type type = value.GetType();
 				PropertyInfo[] properties = type.GetProperties( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static );
-				Array.Sort( properties );
+				Array.Sort( properties, new PropertyComparer() );
 				foreach ( PropertyInfo property in properties ) {
 					if ( property.IsDefined( typeof( JsonIgnoreAttribute ) ) ) continue;
 					writer.WritePropertyName( property.Name );
@@ -208,6 +208,11 @@ namespace Mffer {
 				if ( x.Key.IsAssignableFrom( y.Key ) && !y.Key.IsAssignableFrom( x.Key ) ) return 1;
 				if ( y.Key.IsAssignableFrom( x.Key ) && !x.Key.IsAssignableFrom( y.Key ) ) return -1;
 				return 0;
+			}
+		}
+		class PropertyComparer : IComparer<PropertyInfo> {
+			public int Compare( PropertyInfo a, PropertyInfo b ) {
+				return StringComparer.InvariantCulture.Compare( a.Name, b.Name );
 			}
 		}
 	}
