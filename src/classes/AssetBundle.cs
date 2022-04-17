@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -16,6 +17,7 @@ namespace Mffer {
 	/// to those members expected to be useful in this project.</para>
 	/// </remarks>
 	public class AssetBundle : GameObject {
+		[JsonIgnore]
 		internal IAssetReader assetReader { get; set; }
 		public string Path { get; set; }
 		public string Name { get; set; }

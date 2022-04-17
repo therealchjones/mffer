@@ -120,7 +120,10 @@ namespace Mffer {
 			public override void Write( Utf8JsonWriter writer, T value, JsonSerializerOptions options ) {
 				writer.WriteStartObject();
 				Type type = value.GetType();
-				foreach ( PropertyInfo property in type.GetProperties( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static ) ) {
+				PropertyInfo[] properties = type.GetProperties( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static );
+				Array.Sort( properties );
+				foreach ( PropertyInfo property in properties ) {
+					if ( property.IsDefined( typeof( JsonIgnoreAttribute ) ) ) continue;
 					writer.WritePropertyName( property.Name );
 					if ( property.GetIndexParameters().Length == 0 ) {
 						JsonSerializer.Serialize( writer, property.GetValue( value ), property.PropertyType, options );

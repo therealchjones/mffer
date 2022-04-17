@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json.Serialization;
 using System.Xml;
 
 namespace Mffer {
@@ -24,6 +25,7 @@ namespace Mffer {
 		/// <summary>
 		/// Gets or sets the file from which preferences are obtained
 		/// </summary>
+		[JsonIgnore]
 		FileInfo File { get; set; }
 		/// <summary>
 		/// Gets the name of the file from which preferences are obtained

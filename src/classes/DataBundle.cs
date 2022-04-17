@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -25,6 +26,7 @@ namespace Mffer {
 		/// cref="DataBundle.BackingDirectory"/>'s <see
 		/// cref="DeviceDirectory.DataFiles"/> property for convenience.
 		/// </remarks>
+		[JsonIgnore] // Found in this.BackingDirectory instead
 		public Dictionary<string, GameObject> DataFiles {
 			get => BackingDirectory.DataFiles;
 		}
