@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -28,6 +29,7 @@ namespace Mffer {
 		/// cref="Component"/>, it must first load the named files and place
 		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
+		[JsonIgnore]
 		public Dictionary<string, GameObject> BackingData { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
@@ -41,6 +43,7 @@ namespace Mffer {
 		/// <see cref="Component"/>s and place them into the associated values of
 		/// <see cref="Dependencies"/>.
 		/// </remarks>
+		[JsonIgnore]
 		public Dictionary<string, Component> Dependencies { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
