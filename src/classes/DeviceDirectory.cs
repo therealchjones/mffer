@@ -75,7 +75,7 @@ namespace Mffer {
 		/// </summary>
 		DeviceDirectory() : base() {
 			DataFiles = new Dictionary<string, GameObject>();
-			assetReader = new AssetsToolsReader();
+			assetReader = new AssetsToolsNETReader(); // AssetsToolsReader works only for versions somewhere below 7.9
 		}
 		/// <summary>
 		/// Creates an instance of the <see cref="DeviceDirectory"/> class from

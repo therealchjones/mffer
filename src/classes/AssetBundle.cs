@@ -31,7 +31,7 @@ namespace Mffer {
 		/// cref="AssetBundle.GetAsset(string)"/> or <see
 		/// cref="AssetBundle.GetAllAssets()"/> methods instead.
 		/// </remarks>
-		internal Dictionary<string, Asset> Assets { get; set; }
+		internal SortedDictionary<string, Asset> Assets { get; set; }
 		internal AssetBundle( IAssetReader reader ) : base() {
 			if ( reader is null ) throw new ArgumentNullException( nameof( reader ) );
 			assetReader = reader;

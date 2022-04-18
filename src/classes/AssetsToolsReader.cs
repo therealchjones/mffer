@@ -73,7 +73,7 @@ namespace Mffer {
 				throw new FileLoadException( $"Multiple AssetBundle manifests found" );
 			}
 			dynamic manifest = GetDynamicAsset( assetBundle, manifests[0] ).AsDynamic();
-			Dictionary<string, Asset> assets = assetBundle.Assets;
+			SortedDictionary<string, Asset> assets = assetBundle.Assets;
 			if ( assets is null ) assets = new();
 			foreach ( string assetName in manifest.m_Container.Keys ) {
 				if ( !assets.ContainsKey( assetName ) || assets[assetName] is null ) {
