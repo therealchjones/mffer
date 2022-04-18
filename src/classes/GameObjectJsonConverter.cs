@@ -121,6 +121,7 @@ namespace Mffer {
 				writer.WriteStartObject();
 				Type type = value.GetType();
 				PropertyInfo[] properties = type.GetProperties( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static );
+				// this could be problematic if there's ever a large number of properties
 				Array.Sort( properties, new PropertyComparer() );
 				foreach ( PropertyInfo property in properties ) {
 					if ( property.IsDefined( typeof( JsonIgnoreAttribute ) ) ) continue;
