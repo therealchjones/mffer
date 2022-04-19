@@ -3,28 +3,28 @@
 Or, On the Many Details of How I Wasted Massive Amounts of Time and the
 Existentially Inconsequential Things I Learned
 
--   [Introduction](#introduction)
--   [Exploration Techniques](#exploration-techniques)
-    -   [Static analysis](#static-analysis)
-        -   [External files](#external-files)
-            -   [File changes](#file-changes)
--   [Unity](#unity)
-    -   [Assets & Asset Bundles](#assets--asset-bundles)
-        -   [Example: data for a Unity game](#example-data-for-a-unity-game)
-        -   [AssetsTools & AssetsTools.NET](#assetstools--assetstoolsnet)
-    -   [IL2CPP](#il2cpp)
--   [Android](#android)
--   [Marvel Future Fight](#marvel-future-fight)
-    -   [Useful functions](#useful-functions)
--   [The `mffer` Model](#the-mffer-model)
-    -   [Assumptions in `mffer`](#assumptions-in-mffer)
-        -   [Asset and AssetBundle Files](#asset-and-assetbundle-files)
-        -   [Roster & Character model](#roster--character-model)
-        -   [Character ID models](#character-id-models)
-        -   [Localization changes](#localization-changes)
--   [Exploration tools](#exploration-tools)
-    -   [`autoextract`](#autoextract)
--   [Various notes](#various-notes)
+- [Introduction](#introduction)
+- [Exploration Techniques](#exploration-techniques)
+	- [Static analysis](#static-analysis)
+		- [External files](#external-files)
+			- [File changes](#file-changes)
+- [Unity](#unity)
+	- [Assets & Asset Bundles](#assets--asset-bundles)
+		- [Example: data for a Unity game](#example-data-for-a-unity-game)
+		- [AssetsTools.NET](#assetstoolsnet)
+	- [IL2CPP](#il2cpp)
+- [Android](#android)
+- [Marvel Future Fight](#marvel-future-fight)
+	- [Useful functions](#useful-functions)
+- [The `mffer` Model](#the-mffer-model)
+	- [Assumptions in `mffer`](#assumptions-in-mffer)
+		- [Asset and AssetBundle Files](#asset-and-assetbundle-files)
+		- [Roster & Character model](#roster--character-model)
+		- [Character ID models](#character-id-models)
+		- [Localization changes](#localization-changes)
+- [Exploration tools](#exploration-tools)
+	- [`autoextract`](#autoextract)
+- [Various notes](#various-notes)
 
 ## Introduction
 
@@ -407,8 +407,7 @@ an _asset file_, or a _file_. However, when Unity packages the game to be
 downloaded, most of the thousands such files are packed together much like
 source code is packed into zip or .tar.gz files---or perhaps more like how the
 code is compiled into a running executable. `text/data/hero_list.asset` is
-combined with `text/data/exchange_item.asset`,
-`localiztion/localization_en.asset` and others into a single _AssetBundle_ (or
+combined with `text/data/exchange_item.asset` and others into a single _AssetBundle_ (or
 _AssetBundle File_) named `text` that gets downloaded with a bunch of other
 assetbundles the first time you run Future Fight on your device (as well as when
 there's an update). `text` also includes information about the associated
@@ -424,7 +423,7 @@ pluralization). `mffer` generally tries to encapsulate this away within an
 `IAssetReader` implementation, but it may be necessary to make note of it
 (especially if trying to create such an implementation).
 
-#### AssetsTools & AssetsTools.NET
+#### AssetsTools.NET
 
 ### IL2CPP
 
