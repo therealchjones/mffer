@@ -38,9 +38,9 @@ namespace Mffer {
 		public List<Asset> GetAllAssets( AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			LoadAssetBundleManifest( assetBundle );
-			foreach ( KeyValuePair<string, Asset> entry in assetBundle.Assets ) {
-				if ( entry.Value is null || entry.Value.Value is null ) {
-					assetBundle.Assets[entry.Key] = GetAsset( entry.Key, assetBundle );
+			foreach ( string key in assetBundle.Assets.Keys ) {
+				if ( assetBundle.Assets[key] is null || assetBundle.Assets[key].Value is null ) {
+					LoadAsset( key, assetBundle );
 				}
 			}
 			return assetBundle.Assets.Values.ToList();
@@ -73,7 +73,7 @@ namespace Mffer {
 				throw new FileLoadException( $"Multiple AssetBundle manifests found" );
 			}
 			dynamic manifest = GetDynamicAsset( assetBundle, manifests[0] ).AsDynamic();
-			Dictionary<string, Asset> assets = assetBundle.Assets;
+			SortedDictionary<string, Asset> assets = assetBundle.Assets;
 			if ( assets is null ) assets = new();
 			foreach ( string assetName in manifest.m_Container.Keys ) {
 				if ( !assets.ContainsKey( assetName ) || assets[assetName] is null ) {

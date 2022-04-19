@@ -76,7 +76,7 @@ namespace Mffer {
 		public Asset GetAsset( string assetName, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			if ( !assetBundle.Contains( assetName ) )
-				throw new KeyNotFoundException( $"Asset bundle '{assetBundle.Name}' does not contain an asset named '{assetName}'." );
+				throw new KeyNotFoundException( $"Asset bundle {assetBundle.Path} does not contain an asset named '{assetName}'." );
 			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null ) {
 				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundle.Path].AssetInfo[assetName].index );
 			}
@@ -85,11 +85,11 @@ namespace Mffer {
 			AssetTypeInstance assetInstance = assetsManager.GetTypeInstance( assetsFileInstance, assetBundles[assetBundle.Path].AssetInfo[assetName] );
 			asset.Name = assetInstance.GetBaseField().Get( "m_Name" ).GetValue().AsString();
 			asset.PathID = assetBundles[assetBundle.Path].AssetInfo[assetName].index;
-			Dictionary<string, GameObject> children = new();
+			SortedDictionary<string, GameObject> children = new();
 			foreach ( AssetTypeValueField child in assetInstance.GetBaseField().GetChildrenList() ) {
 				children.Add( child.GetName(), child.ToGameObject() );
 			}
-			asset.Value = children;
+			asset.Value = children.ToGameObject().Value;
 			return asset;
 		}
 		public List<string> GetAllAssetNames( AssetBundle assetBundle ) {
@@ -109,11 +109,11 @@ namespace Mffer {
 					AssetTypeInstance assetInstance = assetsManager.GetTypeInstance( assetsFileInstance, entry.Value );
 					asset.Name = assetInstance.GetBaseField().Get( "m_Name" ).GetValue().AsString();
 					asset.PathID = entry.Value.index;
-					Dictionary<string, GameObject> assetDictionary = new Dictionary<string, GameObject>();
+					SortedDictionary<string, GameObject> assetDictionary = new SortedDictionary<string, GameObject>();
 					foreach ( AssetTypeValueField child in assetInstance.GetBaseField().GetChildrenList() ) {
 						assetDictionary.Add( child.GetName(), child.ToGameObject() );
 					}
-					asset.Value = assetDictionary;
+					asset.Value = assetDictionary.ToGameObject().Value;
 				}
 			}
 			return assetBundle.Assets.Values.ToList();
@@ -130,7 +130,6 @@ namespace Mffer {
 			internal Dictionary<string, AssetFileInfoEx> AssetInfo { get; }
 			internal AssetsToolsNETBundle( string path, BundleFileInstance bundleFileInstance, AssetBundle assetBundle ) {
 				AssetBundle = assetBundle;
-				AssetBundle.Name = bundleFileInstance.name;
 				AssetBundle.Path = path;
 				AssetBundleInstance = bundleFileInstance;
 				AssetInfo = new();
@@ -156,7 +155,7 @@ namespace Mffer {
 			} else if ( assetField.GetChildrenCount() == 1 && assetField.GetChildrenList()[0].templateField.isArray == true ) {
 				return assetField.GetChildrenList()[0].ToGameObject();
 			} else {
-				Dictionary<string, GameObject> dictionary = new();
+				SortedDictionary<string, GameObject> dictionary = new();
 				foreach ( AssetTypeValueField child in assetField.GetChildrenList() ) {
 					dictionary.Add( child.GetName(), child.ToGameObject() );
 				}
