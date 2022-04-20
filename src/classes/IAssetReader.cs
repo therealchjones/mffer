@@ -32,11 +32,11 @@ namespace Mffer {
 		/// <returns></returns>
 		public Asset GetAsset( string assetName, AssetBundle assetBundle );
 		/// <summary>
-		/// Obtain a <see cref="List{string}"/> of the names of all <see
+		/// Obtain a <see cref="List{String}"/> of the names of all <see
 		/// cref="Asset"/>s in the given <see cref="AssetBundle"/>
 		/// </summary>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> to read</param>
-		/// <returns><see cref="List{string}"/> of the names of all <see
+		/// <returns><see cref="List{String}"/> of the names of all <see
 		/// cref="Asset"/>s in <see paramref="assetBundle"/></returns>
 		public List<string> GetAllAssetNames( AssetBundle assetBundle );
 		/// <summary>

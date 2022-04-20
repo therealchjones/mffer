@@ -25,7 +25,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required files should be named in the keys of <see
 		/// cref="BackingData"/> when the derived instance is initialized. When
-		/// the parent <see cref="Game.Version"/> loads data into the <see
+		/// the parent <see cref="Version"/> loads data into the <see
 		/// cref="Component"/>, it must first load the named files and place
 		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
@@ -38,7 +38,7 @@ namespace Mffer {
 		/// <remarks>
 		/// Required <see cref="Component"/>s should be named in the keys of
 		/// <see cref="Component.Dependencies"/> when the derived instance
-		/// is initialized. When the parent <see cref="Game.Version"/> loads data
+		/// is initialized. When the parent <see cref="Version"/> loads data
 		/// into this <see cref="Component"/>, it must first load the named
 		/// <see cref="Component"/>s and place them into the associated values of
 		/// <see cref="Dependencies"/>.
@@ -137,10 +137,10 @@ namespace Mffer {
 		/// cref="Component.Dependencies"/> to load data into <see
 		/// cref="Component"/>'s other properties. As the <see
 		/// cref="Component"/> does not have access to the overall sets of <see
-		/// cref="Game.Version.Data"/> and <see
-		/// cref="Game.Version.Components"/>, both <see cref="BackingData"/> and
+		/// cref="Version.Data"/> and <see
+		/// cref="Version.Components"/>, both <see cref="BackingData"/> and
 		/// <see cref="Dependencies"/> must be loaded by an ancestor instance
-		/// (e.g., via <see cref="Game.Version.LoadComponent(Component)"/>)
+		/// (e.g., via <see cref="Version.LoadComponent(Component)"/>)
 		/// before <see cref="Component.Load()"/> can successfully run.</para>
 		/// <para>Note that the base <see cref="Component.Load()"/> only checks
 		/// to ensure that backing data and dependencies are loaded; individual

@@ -93,7 +93,7 @@ namespace Mffer {
 			/// <summary>
 			/// Load data into this <see cref="FuturePassReward"/> instance
 			/// </summary>
-			/// <param name="dynamicAsset">Asset containing
+			/// <param name="newAsset">Asset containing
 			/// <see cref="FuturePassReward"/> data</param>
 			public void Load( Asset newAsset ) {
 				dynamic asset = newAsset as dynamic;

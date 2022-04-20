@@ -15,8 +15,8 @@ namespace Mffer {
 	/// </summary>
 	/// <remarks>
 	/// Each <see cref="GameObject"/> is a simple object containing data that
-	/// can be formatted as a string, an array of <see cref="GameObject"/>s, or
-	/// a dictionary of named <see cref="GameObject"/>s. A <see
+	/// can be formatted as a string, an array of <see cref="GameObject"/>s,
+	/// a dictionary of named <see cref="GameObject"/>s, or <c>null</c>. A <see
 	/// cref="GameObject"/> can be easily represented in JSON format; a <see
 	/// cref="GameObject"/> is analagous to a JSON document (though more
 	/// restrictive). <see cref="GameObject"/>s form the base from which other
@@ -53,6 +53,22 @@ namespace Mffer {
 		public GameObject() : base() {
 			Value = null;
 		}
+		/// <summary>
+		/// Obtains the number of items represented by this <see
+		/// cref="GameObject"/>
+		/// </summary>
+		/// <remarks>
+		/// If the <see cref="GameObject"/> represents a collection of items
+		/// (i.e., is equivalent to a <see cref="List{GameObject}"/> or a <see
+		/// cref="Dictionary{String,GameObject}"/>), then <see cref="Count()"/>
+		/// returns the number of items in the collection.
+		/// </remarks>
+		/// <returns>The number of items represented by this <see
+		/// cref="GameObject"/></returns>
+		/// <exception cref="InvalidOperationException"> if this <see
+		/// cref="GameObject"/> has a simple <see cref="String"/> value or
+		/// <c>null</c>, i.e., is not a collection of other <see
+		/// cref="GameObject"/>s</exception>
 		public int Count() {
 			if ( IsArray() || IsDictionary() ) {
 				return Value.Count;
@@ -60,6 +76,10 @@ namespace Mffer {
 				throw new InvalidOperationException( "Unable to count; value is not an array or dictionary." );
 			}
 		}
+		/// <summary>
+		/// Obtains the names of properties that can be accessed if this <see cref="GameObject"/> is cast as <c>dynamic</c>
+		/// </summary>
+		/// <returns><see cref="IEnumerable{String}"/> list of <c>dynamic</c> property names</returns>
 		public override IEnumerable<string> GetDynamicMemberNames() {
 			if ( IsDictionary() ) return ( (Dictionary<string, GameObject>)Value ).Keys.AsEnumerable();
 			else return new List<string>();
@@ -160,6 +180,23 @@ namespace Mffer {
 			if ( obj is null || obj is string || IsArray( obj ) || IsDictionary( obj ) ) return true;
 			else return false;
 		}
+		/// <summary>
+		/// Attempts to access this <see cref="GameObject"/>'s children using a
+		/// string key
+		/// </summary>
+		/// <remarks>
+		/// This method is seldom needed directly; it is used when
+		/// <c>dynamic</c>ly accessing a <see cref="GameObject"/> that
+		/// represents a dictionary of other <see cref="GameObject"/>s indexed
+		/// by strings, such as <c>gameObject["Property1"]</c>.
+		/// </remarks>
+		/// <param name="binder"><see cref="GetMemberBinder"/> used by the
+		/// <c>dynamic</c> call</param>
+		/// <param name="result"><see cref="GameObject"/> in which to store the
+		/// result if successful</param>
+		/// <returns><c>true</c> if this <see cref="GameObject"/> is a
+		/// dictionary type and can retrieve an item with the requested key,
+		/// <c>false</c> otherwise</returns>
 		public override bool TryGetMember( GetMemberBinder binder, out object result ) {
 			try {
 				result = GetObject( binder.Name );
@@ -174,13 +211,34 @@ namespace Mffer {
 				}
 			}
 		}
+		/// <summary>
+		/// Attempts to access this <see cref="GameObject"/>'s children by
+		/// integer index
+		/// </summary>
+		/// <remarks>
+		/// This method is seldom needed directly; it is used when
+		/// <c>dynamic</c>ly accessing a <see cref="GameObject"/> that
+		/// represents a list of other <see cref="GameObject"/>s by index, such
+		/// as <c>gameObject[2]</c>.
+		/// </remarks>
+		/// <param name="binder"><see cref="GetIndexBinder"/> associated with
+		/// the <c>dynamic</c> call</param>
+		/// <param name="indexes"><see cref="Array"/> of the requested
+		/// indexes</param>
+		/// <param name="result"><see cref="GameObject"/> in which to store the
+		/// result if successful</param>
+		/// <returns><c>true</c> if this <see cref="GameObject"/> is a list type
+		/// and can retrieve an item at the requested index, <c>false</c>
+		/// otherwise</returns>
+		/// <exception cref="NotSupportedException"> if there is more than one
+		/// index or it is not an integer</exception>
 		public override bool TryGetIndex( GetIndexBinder binder, object[] indexes, out object result ) {
 			result = null;
 			if ( !IsArray() ) {
 				return false;
 			} else {
 				if ( indexes.Length != 1 ) throw new NotSupportedException();
-				if ( indexes[0] is not int ) throw new NotFiniteNumberException();
+				if ( indexes[0] is not int ) throw new NotSupportedException();
 				int index = (int)indexes[0];
 				if ( ( (List<GameObject>)Value ).Count <= index ) return false;
 				else {
@@ -458,6 +516,13 @@ namespace Mffer {
 			}
 			JsonSerializer.Serialize( utf8Writer, this, this.GetType(), serializerOptions );
 		}
+		/// <summary>
+		/// Obtains this <see ref="GameObject"/> formatted as a string
+		/// </summary>
+		/// <returns>a <see cref="String"/> representing this <see
+		/// cref="GameObject"/> that is the simple string the <see
+		/// cref="GameObject"/> represents if it is a simple type or null, or
+		/// <see cref="Object.ToString()"/> otherwise.</returns>
 		public override string ToString() {
 			if ( IsString() || _value is null ) return Value;
 			else return base.ToString();

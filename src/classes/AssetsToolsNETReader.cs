@@ -10,22 +10,40 @@ namespace Mffer {
 	/// <see cref="IAssetReader"/> implementation using AssetsTools.NET
 	/// </summary>
 	public class AssetsToolsNETReader : IAssetReader {
+		/// <summary>
+		/// Gets or sets the <see cref="AssetsTools.NET.Extra.AssetsManager"/>
+		/// instance used by this <see cref="AssetsToolsNETReader"/>
+		/// </summary>
 		private AssetsManager assetsManager { get; set; }
 		/// <summary>
-		/// A dictionary of <see cref="AssetBundle"/> objects loaded by this <see cref="AssetsToolsNETReader"/>
+		/// Gets or sets the dictionary of <see cref="AssetBundle"/> objects
+		/// loaded by this <see cref="AssetsToolsNETReader"/> and indexed by the
+		/// full path names of their files
 		/// </summary>
 		private Dictionary<string, AssetsToolsNETBundle> assetBundles { get; set; }
+		/// <summary>
+		/// Creates a new instance of an <see cref="AssetsToolsNETReader"/>
+		/// </summary>
 		public AssetsToolsNETReader() {
 			assetsManager = new AssetsManager();
 			assetBundles = new();
 		}
+		/// <inheritdoc/>
 		public bool Contains( string name, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			return assetBundles[assetBundle.Path].AssetInfo.ContainsKey( name );
 		}
+		/// <inheritdoc/>
+		/// <exception cref="ArgumentNullException"> if <see paramref="path"/>
+		/// is null or the empty string</exception>
+		/// <exception cref="FileNotFoundException"> if <see paramref="path"/>
+		/// is not a path to an existing file</exception>
+		/// <exception cref="NotSupportedException"> if the asset bundle at <see
+		/// paramref="path"/> is in a format that is not readable by this <see
+		/// cref="AssetsToolsNETReader"/></exception>
 		public AssetBundle LoadAssetBundle( string path ) {
 			if ( String.IsNullOrEmpty( path ) ) throw new ArgumentNullException( "path" );
-			if ( !File.Exists( path ) ) throw new ArgumentException( "The file does not exist.", nameof( path ) );
+			if ( !File.Exists( path ) ) throw new FileNotFoundException( "The file does not exist.", path );
 			// AssetsTools.NET's AssetManager already caches loaded assets by
 			// case-insensitive full path name, but requires opening a file
 			// stream before checking, so we add our own caching layer without
@@ -66,13 +84,10 @@ namespace Mffer {
 			}
 			return assetBundles[path].AssetBundle;
 		}
-		/// <summary>
-		///
-		/// </summary>
-		/// <param name="assetName"></param>
-		/// <param name="assetBundle"></param>
-		/// <returns></returns>
-		/// <exception cref="KeyNotFoundException"></exception>
+		/// <inheritdoc/>
+		/// <exception cref="KeyNotFoundException"> if <see
+		/// paramref="assetName"/> is not the name of an <see cref="Asset"/>
+		/// within the provided <see cref="AssetBundle"/></exception>
 		public Asset GetAsset( string assetName, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			if ( !assetBundle.Contains( assetName ) )
@@ -92,10 +107,12 @@ namespace Mffer {
 			asset.Value = children.ToGameObject().Value;
 			return asset;
 		}
+		/// <inheritdoc/>
 		public List<string> GetAllAssetNames( AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			return assetBundles[assetBundle.Path].AssetInfo.Keys.ToList();
 		}
+		/// <inheritdoc/>
 		public List<Asset> GetAllAssets( AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
 			AssetsFileInstance assetsFileInstance =
@@ -136,7 +153,18 @@ namespace Mffer {
 			}
 		}
 	}
+	/// <summary>
+	/// Class containing methods extending classes in <see
+	/// cref="AssetsTools.NET"/> and <see cref="AssetsTools.NET.Extra"/>
+	/// </summary>
 	public static class AssetsToolsNETExtensions {
+		/// <summary>
+		/// Converts the given <see cref="AssetsTools.NET.AssetTypeValueField"/>
+		/// into a <see cref="GameObject"/>
+		/// </summary>
+		/// <param name="assetField">The <see cref="AssetsTools.NET.AssetTypeValueField"/> to convert</param>
+		/// <returns>a <see cref="GameObject"/> representation of <see paramref="assetField"/></returns>
+		/// <exception cref="ApplicationException"> if the field cannot be converted to a <see cref="GameObject"/></exception>
 		public static GameObject ToGameObject( this AssetTypeValueField assetField ) {
 			if ( assetField.templateField.isArray == true ) {
 				List<GameObject> array = new();
@@ -151,7 +179,7 @@ namespace Mffer {
 					return assetField.GetValue().AsString().ToGameObject();
 				}
 			} else if ( assetField.GetChildrenCount() < 0 ) {
-				throw new InvalidOperationException( $"Unable to convert field '{assetField.GetName()}' to a GameObject" );
+				throw new ApplicationException( $"Unable to convert field '{assetField.GetName()}' to a GameObject" );
 			} else if ( assetField.GetChildrenCount() == 1 && assetField.GetChildrenList()[0].templateField.isArray == true ) {
 				return assetField.GetChildrenList()[0].ToGameObject();
 			} else {
