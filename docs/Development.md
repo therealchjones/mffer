@@ -11,8 +11,10 @@
 
 - [Introduction](#introduction)
 - [Copyright & licensing](#copyright--licensing)
+- [Versioning](#versioning)
 - [Setting up a development environment](#setting-up-a-development-environment)
 	- [Build requirements](#build-requirements)
+	- [Cloning the GitHub Repository](#cloning-the-github-repository)
 	- [Program requirements](#program-requirements)
 	- [Recommendations](#recommendations)
 	- [Setup](#setup)
@@ -112,6 +114,22 @@ code and want to contribute it _back_ into `mffer`, it should be similarly
 released into the public domain. Pull requests with more restrictive licensing
 are complicated.
 
+Wherever possible, code from `mffer` is in the public domain; see [the CC0 License](../LICENSE) for details. However, there are a few files that are adapted from projects with more restrictive licenses. These files contain the appropriate license notifications within the files themselves, and are also listed below with links to the license requirements.
+
+| file                                              | original project                                                                     | license                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| [picker.html](../src/webapp/Subpages/picker.html) | [Google Apps Script Samples](https://github.com/googleworkspace/apps-script-samples) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)             |
+| all others                                        | [`mffer`](../)                                                                       | [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) |
+
+## Versioning
+
+`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version
+numbers. While no stable release (and thus no stable API) has been completed,
+the major version will remain 0. The minor version will continue to be
+incremented for any changes to what is _expected to be_ the API. The patch
+version will change with any other "releases". The first (unstable) release
+(without a stable API) will be version 0.1.0.
+
 ## Setting up a development environment
 
 Using exactly the same development tools as other developers is neither
@@ -146,6 +164,12 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
 
 Specific configurations on which the build process is tested are noted in the
 [Testing `mffer` section](#testing-mffer).
+
+### Cloning the GitHub Repository
+
+The most up-to-date changes can be obtained by cloning the git repository and
+building the software yourself. Details and requirements for doing so are
+described in the [Development guide](./Development.md).
 
 ### Program requirements
 
