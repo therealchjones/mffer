@@ -3,20 +3,15 @@
 Marvel Future Fight exploration & reporting
 
 This project develops software that creates and updates the
-[mffer webapp](https://mffer.org). It is not necessary to review any of this to
-[use the webapp](https://mffer.org).
-
-This is a brief overview of the
-[`mffer`](https://github.com/therealchjones/mffer) project. A more
-comprehensive [User Guide](docs/USAGE.md) is available in the
-[docs directory](docs/).
+[mffer webapp](https://mffer.org).
 
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile game
-for Android and iOS created with Java, C#, Unity, and IL2CPP. It uses Facebook
-and proprietary servers for data storage and communication. Techniques used in
-this project may be useful for exploring similar software.
+for Android and iOS created with Java, C#, Unity, and IL2CPP. It uses multiple
+common services for authentication and proprietary servers for data storage and
+communication. Techniques used in this project may be useful for exploring
+similar software.
 
 ## About `mffer`
 
@@ -47,9 +42,9 @@ for your platform and unzip the files into a convenient directory.
     ```
 2.  Upload the resulting CSV file into the webapp.
 
-Detailed usage instructions for the individual components are documented in
-[the above component documents](#about-mffer). More detailed instructions and
-workflows are in the [User Guide](docs/USAGE.md).
+More detailed instructions and other workflows are in the
+[User Guide](docs/USAGE.md). Information about modifying the program is in the
+[Development Guide](docs/Development.md).
 
 ## Contributing
 

@@ -9,8 +9,6 @@
 
 ## Full contents
 
-- [Highlights](#highlights)
-- [Full contents](#full-contents)
 - [Introduction](#introduction)
 - [Copyright & licensing](#copyright--licensing)
 - [Setting up a development environment](#setting-up-a-development-environment)

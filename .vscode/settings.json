@@ -36,6 +36,12 @@
 	"json.schemas": [
 		{
 			"fileMatch": [
+				"tsconfig.json"
+			],
+			"url": "http://json.schemastore.org/tsconfig"
+		},
+		{
+			"fileMatch": [
 				"appsscript.json"
 			],
 			"url": "http://json.schemastore.org/appsscript"
@@ -58,8 +64,9 @@
 		"docs/README.md": [
 			"## Contents"
 		],
-		"CONTRIBUTING.md": [
-			"## Table of Contents"
+		"docs/Development.md": [
+			"## Highlights",
+			"## Full contents"
 		]
 	},
 	"omnisharp.enableEditorConfigSupport": true,
