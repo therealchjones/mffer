@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -22,6 +23,7 @@ namespace Mffer {
 	/// <c>mff-device-files-7.0.1-170126-20210423</c>.</para>
 	/// </remarks>
 	public class DeviceDirectory : GameObject {
+		IAssetReader assetReader;
 		/// <summary>
 		/// The files within the <see cref="RootDirectory"/> that will be loaded
 		/// </summary>
@@ -34,6 +36,7 @@ namespace Mffer {
 		/// The filesystem directory in which this <see cref="DeviceDirectory"/>
 		/// is rooted
 		/// </summary>
+		[JsonIgnore]
 		DirectoryInfo RootDirectory { get; set; }
 		/// <summary>
 		/// Gets or sets the individual files containing data to evaluate,
@@ -60,16 +63,19 @@ namespace Mffer {
 		/// <summary>
 		/// Gets the name of the <see cref="DeviceDirectory"/>
 		/// </summary>
+		[JsonIgnore]
 		public string Name { get => RootDirectory.Name; }
 		/// <summary>
 		/// Gets the full pathname of the <see cref="DeviceDirectory"/>
 		/// </summary>
+		[JsonIgnore]
 		public string FullName { get => RootDirectory.FullName; }
 		/// <summary>
 		/// Initializes a new <see cref="DeviceDirectory"/> instance
 		/// </summary>
 		DeviceDirectory() : base() {
 			DataFiles = new Dictionary<string, GameObject>();
+			assetReader = new AssetsToolsNETReader();
 		}
 		/// <summary>
 		/// Creates an instance of the <see cref="DeviceDirectory"/> class from
@@ -100,7 +106,7 @@ namespace Mffer {
 				if ( file.Name.EndsWith( ".xml", true, null ) ) {
 					dataFile = new PreferenceFile( file );
 				} else {
-					dataFile = new AssetFile( file );
+					dataFile = assetReader.LoadAssetBundle( file.FullName );
 				}
 				DataFiles.Add( file.Name, dataFile );
 			}

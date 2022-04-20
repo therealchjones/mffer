@@ -120,7 +120,11 @@ namespace Mffer {
 			public override void Write( Utf8JsonWriter writer, T value, JsonSerializerOptions options ) {
 				writer.WriteStartObject();
 				Type type = value.GetType();
-				foreach ( PropertyInfo property in type.GetProperties() ) {
+				PropertyInfo[] properties = type.GetProperties( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static );
+				// this could be problematic if there's ever a large number of properties
+				Array.Sort( properties, new PropertyComparer() );
+				foreach ( PropertyInfo property in properties ) {
+					if ( property.IsDefined( typeof( JsonIgnoreAttribute ) ) ) continue;
 					writer.WritePropertyName( property.Name );
 					if ( property.GetIndexParameters().Length == 0 ) {
 						JsonSerializer.Serialize( writer, property.GetValue( value ), property.PropertyType, options );
@@ -205,6 +209,11 @@ namespace Mffer {
 				if ( x.Key.IsAssignableFrom( y.Key ) && !y.Key.IsAssignableFrom( x.Key ) ) return 1;
 				if ( y.Key.IsAssignableFrom( x.Key ) && !x.Key.IsAssignableFrom( y.Key ) ) return -1;
 				return 0;
+			}
+		}
+		class PropertyComparer : IComparer<PropertyInfo> {
+			public int Compare( PropertyInfo a, PropertyInfo b ) {
+				return StringComparer.InvariantCulture.Compare( a.Name, b.Name );
 			}
 		}
 	}

@@ -216,7 +216,7 @@ itself. In addition to the VS Code extensions installed in the
 -   xmldocmd
 -   clasp
 -   MessagePack
--   AssetsTools
+-   AssetsTools.NET
 -   @types/google-apps-script
 -   stream-json
 

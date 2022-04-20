@@ -61,6 +61,7 @@ namespace Mffer {
 			serviceType = item.GetProperty( "service" ).GetInt32();
 			simpleHash = item.GetProperty( "simple_hash" ).GetString();
 			zipSize = item.GetProperty( "zip_size" ).GetUInt64();
+			bundleEach = false;
 		}
 		/// <summary>
 		/// Downloads the data this <see cref="DownloadFile"/> represents and saves it to the local filesystem

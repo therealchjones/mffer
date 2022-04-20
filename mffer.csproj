@@ -3,10 +3,11 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
 	<RollForward>Major</RollForward>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.2.85" />
-    <PackageReference Include="AssetsTools" Version="0.1.2" />
+	<PackageReference Include="AssetsTools.NET" Version="2.0.11" />
 	<PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22114.1" />
 	<PackageReference Include="Snappier" Version="1.0.0" />
   </ItemGroup>
@@ -88,7 +89,6 @@
 	<DebugSymbols>false</DebugSymbols>
 	<DebugType>None</DebugType>
 	<RuntimeIdentifiers>osx-x64;win-x64;linux-x64</RuntimeIdentifiers>
-	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Release' ">
 	<ReleasePlatform Include="$(RuntimeIdentifiers)" />

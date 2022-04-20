@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Mffer {
 	/// <summary>
@@ -9,7 +10,7 @@ namespace Mffer {
 	/// Major game content is represented by derivatives of the
 	/// <see cref="Component"/> class. This class includes the base properties
 	/// and methods applicable to all derivatives, including lists of the
-	/// <see cref="AssetFile"/>s and other <see cref="Component"/>s required
+	/// <see cref="AssetBundle"/>s and other <see cref="Component"/>s required
 	/// for loading data into the instance or evaluating or reporting the data.
 	/// </remarks>
 	public class Component : GameObject {
@@ -24,10 +25,11 @@ namespace Mffer {
 		/// <remarks>
 		/// Required files should be named in the keys of <see
 		/// cref="BackingData"/> when the derived instance is initialized. When
-		/// the parent <see cref="Game.Version"/> loads data into the <see
+		/// the parent <see cref="Version"/> loads data into the <see
 		/// cref="Component"/>, it must first load the named files and place
 		/// them into the associated values of <see cref="BackingData"/>.
 		/// </remarks>
+		[JsonIgnore]
 		public Dictionary<string, GameObject> BackingData { get; set; }
 		/// <summary>
 		/// Gets or sets a collection of <see cref="Component"/>s referred to
@@ -36,11 +38,12 @@ namespace Mffer {
 		/// <remarks>
 		/// Required <see cref="Component"/>s should be named in the keys of
 		/// <see cref="Component.Dependencies"/> when the derived instance
-		/// is initialized. When the parent <see cref="Game.Version"/> loads data
+		/// is initialized. When the parent <see cref="Version"/> loads data
 		/// into this <see cref="Component"/>, it must first load the named
 		/// <see cref="Component"/>s and place them into the associated values of
 		/// <see cref="Dependencies"/>.
 		/// </remarks>
+		[JsonIgnore]
 		public Dictionary<string, Component> Dependencies { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Component"/> class
@@ -73,7 +76,7 @@ namespace Mffer {
 		/// cref="Asset"/> name to the <see cref="BackingData"/> list. This
 		/// is deferred until attempting to load data into the <see
 		/// cref="Component"/> as the <see cref="BackingData"/> list may be
-		/// created before all <see cref="AssetFile"/>s are loaded.</para>
+		/// created before all <see cref="AssetBundle"/>s are loaded.</para>
 		/// </remarks>
 		/// <param name="assetName">The name of the <see cref="Asset"/> to
 		/// add, or multiple alternatives separated by '||'</param>
@@ -134,10 +137,10 @@ namespace Mffer {
 		/// cref="Component.Dependencies"/> to load data into <see
 		/// cref="Component"/>'s other properties. As the <see
 		/// cref="Component"/> does not have access to the overall sets of <see
-		/// cref="Game.Version.Data"/> and <see
-		/// cref="Game.Version.Components"/>, both <see cref="BackingData"/> and
+		/// cref="Version.Data"/> and <see
+		/// cref="Version.Components"/>, both <see cref="BackingData"/> and
 		/// <see cref="Dependencies"/> must be loaded by an ancestor instance
-		/// (e.g., via <see cref="Game.Version.LoadComponent(Component)"/>)
+		/// (e.g., via <see cref="Version.LoadComponent(Component)"/>)
 		/// before <see cref="Component.Load()"/> can successfully run.</para>
 		/// <para>Note that the base <see cref="Component.Load()"/> only checks
 		/// to ensure that backing data and dependencies are loaded; individual
@@ -149,15 +152,9 @@ namespace Mffer {
 		/// before running <see cref="Load()"/></exception>
 		public virtual void Load() {
 			if ( IsLoaded() ) return;
-			if ( BackingData.Count != 0 ) {
-				foreach ( KeyValuePair<string, GameObject> item in BackingData ) {
-					if ( String.IsNullOrWhiteSpace( item.Key ) ) {
-						BackingData.Remove( item.Key );
-					} else {
-						if ( item.Value == null ) {
-							throw new Exception( $"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed." );
-						}
-					}
+			foreach ( KeyValuePair<string, GameObject> item in BackingData ) {
+				if ( item.Value == null ) {
+					throw new Exception( $"Unable to load {Name}: backing asset {item.Key} not loaded. Preload needed." );
 				}
 			}
 			if ( Dependencies.Count != 0 ) {
@@ -187,7 +184,7 @@ namespace Mffer {
 		/// <see cref="Dependencies"/> have been loaded, so the property
 		/// loading should be reproducible at any point afterward.
 		/// </remarks>
-		/// <returns><c>true</c>; derived classes should override this</returns>
+		/// <returns><c>false</c>; derived classes should override this</returns>
 		public virtual bool IsLoaded() {
 			return false;
 		}

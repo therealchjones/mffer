@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using AssetsTools.Dynamic;
+using System.Linq;
 
 namespace Mffer {
 	/// <summary>
@@ -58,16 +58,12 @@ namespace Mffer {
 			if ( BackingData.Count != 1 ) {
 				throw new InvalidDataException();
 			}
-			DynamicAssetArray asset = null;
-			foreach ( Asset entry in BackingData.Values ) {
-				asset = entry.RawAsset.AsDynamic().values;
-			}
-			int assetLength = asset.Count();
+			dynamic asset = (Asset)BackingData.First().Value;
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
-			for ( int i = 0; i < assetLength; i++ ) {
-				dynamic entry = asset[i];
-				if ( entry.isVisible == 1 ) {
+			List<GameObject> entries = asset.values.Value;
+			foreach ( dynamic entry in entries ) {
+				if ( entry.isVisible.ToString() == "1" ) {
 					Character character;
 					string groupId = entry.groupId.ToString();
 					if ( Characters.ContainsKey( groupId ) ) {
@@ -108,19 +104,19 @@ namespace Mffer {
 						if ( entry.ability_raid.ToString() != "0" ) {
 							uniform.RaidAbility = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_raid.ToString() );
 						}
-						foreach ( int ability in entry.abilitys ) {
-							if ( ability != 0 ) {
-								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.ToString() ) );
+						foreach ( GameObject ability in entry.abilitys.Value ) {
+							if ( ability.GetValue() != "0" ) {
+								uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + ability.GetValue().ToString() ) );
 							}
 						}
-						if ( entry.ability_hidden.ToString() != "0" ) {
+						if ( entry.ability_hidden.GetValue().ToString() != "0" ) {
 							uniform.Abilities.Add( LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.ability_hidden.ToString() ) );
 						}
 					}
 					uniform.CharacterLevels.Add( heroId, newLevel );
 					newLevel.Skills.Add( new Skill( entry.leaderSkillId.ToString() ) );
-					foreach ( int skill in entry.skillIds ) {
-						Skill newSkill = new Skill( skill.ToString() );
+					foreach ( GameObject skill in entry.skillIds.Value ) {
+						Skill newSkill = new Skill( skill.GetValue().ToString() );
 						newLevel.Skills.Add( newSkill );
 					}
 					newLevel.Skills.Add( new Skill( entry.uniformSkillId.ToString() ) );
@@ -131,7 +127,7 @@ namespace Mffer {
 					}
 					try {
 						newLevel.Instinct = LocalDictionary.GetString( "SPECIAL_TYPE_" + entry.specialType.ToString() );
-					} catch ( Microsoft.CSharp.RuntimeBinder.RuntimeBinderException ) {
+					} catch ( KeyNotFoundException ) {
 						newLevel.Instinct = "";
 					}
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );
@@ -541,10 +537,9 @@ namespace Mffer {
 		/// <summary>
 		/// Loads data into this <see cref="AbilityGroup"/> instance
 		/// </summary>
-		/// <param name="assetObject"><see cref="AssetObject"/> containing the
+		/// <param name="assetObject"><see cref="GameObject"/> containing the
 		/// data to be loaded</param>
 		public void Load( dynamic assetObject ) {
-			// List<AssetObject> assetObjects = Program.Assets.AssetFiles["text/data/action_ability.asset"].Properties["values"].Array;
 			dynamic abilityGroup = assetObject.Properties["data"];
 			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
 			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );

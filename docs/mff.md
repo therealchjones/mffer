@@ -10,7 +10,8 @@ Existentially Inconsequential Things I Learned
 			- [File changes](#file-changes)
 - [Unity](#unity)
 	- [Assets & Asset Bundles](#assets--asset-bundles)
-		- [AssetsTools](#assetstools)
+		- [Example: data for a Unity game](#example-data-for-a-unity-game)
+		- [AssetsTools.NET](#assetstoolsnet)
 	- [IL2CPP](#il2cpp)
 - [Android](#android)
 - [Marvel Future Fight](#marvel-future-fight)
@@ -360,9 +361,69 @@ directory, something that's not currently being done anyway.
 
 Unity programs store much of their data as "assets", either in individual files
 or in "asset bundles". These bundles are packed binaries that can be read from
-disk (or a stream), in a defined format.
+disk (or a stream), in a defined format. Though it's marked as "deprecated",
+[Unity's Assets, Resources and AssetBundles tutorial](https://learn.unity.com/tutorial/assets-resources-and-assetbundles)
+is a useful guide to this confusing (and often contradictory) terminology. The
+tutorial itself notes that some words it uses even differs from the
+terminology used in Unity's public APIs. In order to clarify as much as
+possible, consider the following example and tables.
 
-#### AssetsTools
+#### Example: data for a Unity game
+
+In your glamorous job as a NetMarble Marvel Future Fight creative developer,
+you've had the honor of designing a new uniform (with a whole new set of
+skills!) for Captain Marvel herself. There's already a huge database of
+information on the other characters and uniforms in the game, and it's time to
+add this new data. You'll need information on all the different skills, the
+stats for the character at different levels and tiers, and (of course) the name
+of the new uniform, not to mention all the beautiful graphics and animations to
+go with it.
+
+Let's just concentrate on your most interesting work, the text-based
+information. That huge database of all the other characters and uniforms can be
+updated by adding lines for the new uniform at different levels, ranks, and
+tiers. To get those lines into the giant Unity project that is Marvel Future
+Fight, you put those lines at then end of your spreadsheet named
+`HERO_LIST.csv`. You then import the spreadsheet to the Unity project (to
+overwrite the older version), and Unity saves it as an _asset_. You can probably
+still see it just as `HERO_LIST.csv`, but Unity has changed it in the background
+to something called `text/data/hero_list.asset`, maybe converting it from a
+comma-delimited file to some other kind of storage along the way. You can do
+something similar with the graphics, sounds, and so on.
+
+To get the new information integrated into the game, however, the software has
+to parse the CSV-equivalent file. Since most of your programing for the game
+will be in C#, using spreadsheet functions and `A1` notation to look up
+character information is probably not the most efficient way to refer to the
+data. Instead, the Unity framework parses the _asset_ into an _object_, in this
+case called `IntHeroDataDictionary` since it's a dictionary used to look up
+`HeroData` instances (each representing lines of the original CSV) indexed by
+`int`s (which we'll later find out are also called `HeroId`s). Of course, any
+modern programmer knows `HeroData`, `HeroId`, and even `int` (in some languages)
+are also objects, and now you know why this terminology gets confusing.
+
+`HERO_LIST.csv` and `text/data/hero_list.asset` may each be called an _asset_,
+an _asset file_, or a _file_. However, when Unity packages the game to be
+downloaded, most of the thousands such files are packed together much like
+source code is packed into zip or .tar.gz files---or perhaps more like how the
+code is compiled into a running executable. `text/data/hero_list.asset` is
+combined with `text/data/exchange_item.asset` and others into a single _AssetBundle_ (or
+_AssetBundle File_) named `text` that gets downloaded with a bunch of other
+assetbundles the first time you run Future Fight on your device (as well as when
+there's an update). `text` also includes information about the associated
+_object_ structures, a catalog of all the individual files, and other _resource_
+information.
+
+Let's make it more complicated. The layout of the AssetBundle file may include
+another layer, a single file that in turn contains all the assets. This may be
+invisible to Unity programmers, but especially when trying to open AssetBundle
+files with other tools may become more apparent. Between an _AssetBundle_ and an
+_Asset_ (or _AssetFile_), then, is this _AssetsFile_ (note the extra
+pluralization). `mffer` generally tries to encapsulate this away within an
+`IAssetReader` implementation, but it may be necessary to make note of it
+(especially if trying to create such an implementation).
+
+#### AssetsTools.NET
 
 ### IL2CPP
 
@@ -461,8 +522,8 @@ Important functions with lots of info to explore:
         -   `AssetBundle`s, each based upon a `DeviceDirectory` also associated
             with the given `Version` name, and each of which uses `AssetFile`s and/or
             `PreferenceFile`s to load multiple
-            -   `AssetObject`s or `PreferenceObject`s, which may recursively
-                contain further `AssetObject`s or `PreferenceObject`s
+            -   `GameObject`s or `PreferenceObject`s, which may recursively
+                contain further `GameObject`s or `PreferenceObject`s
 
 A detailed description of the types (and their associated members) is
 available in the API reference. Of note, while these are quite clearly arranged

@@ -1,6 +1,6 @@
 namespace Mffer {
 	/// <summary>
-	/// Represents a reward given by this <see cref="Game.Version"/> of the
+	/// Represents a reward given by this <see cref="Version"/> of the
 	/// <see cref="Game"/>
 	/// </summary>
 	public class Reward {
