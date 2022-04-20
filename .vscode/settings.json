@@ -14,6 +14,9 @@
 	/****************************************/
 	// File formatting
 	/****************************************/
+	"files.associations": {
+		"notes": "plaintext"
+	},
 	// Mild (potential) conflict with EditorConfig:
 	// trimFinalNewlines removes all at the end (not
 	// just after the last one as Settings suggests),
@@ -30,9 +33,6 @@
 	"[jsonc]": {
 		"editor.defaultFormatter": "vscode.json-language-features"
 	},
-	"[markdown]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
 	"json.schemas": [
 		{
 			"fileMatch": [
@@ -47,9 +47,13 @@
 			"url": "http://json.schemastore.org/clasp"
 		}
 	],
+	"[markdown]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
 	/****************************************/
 	// Extension settings
 	/****************************************/
+	"markdown.extension.toc.levels": "2..6",
 	"markdown.extension.toc.omittedFromToc": {
 		"docs/README.md": [
 			"## Contents"
@@ -58,13 +62,9 @@
 			"## Table of Contents"
 		]
 	},
-	"markdown.extension.toc.levels": "2..6",
 	"omnisharp.enableEditorConfigSupport": true,
-	"shellformat.flag": "-bn -ci -i 0",
 	"shellcheck.customArgs": [
 		"-x"
 	],
-	"files.associations": {
-		"notes": "plaintext"
-	},
+	"shellformat.flag": "-bn -ci -i 0"
 }

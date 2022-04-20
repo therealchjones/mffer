@@ -46,19 +46,6 @@
 			}
 		},
 		{
-			"label": "watch",
-			"command": "dotnet",
-			"type": "process",
-			"args": [
-				"watch",
-				"run",
-				"${workspaceFolder}/mffer.csproj",
-				"/property:GenerateFullPaths=true",
-				"/consoleloggerparameters:NoSummary"
-			],
-			"problemMatcher": "$msCompile"
-		},
-		{
 			"label": "apkdl",
 			"type": "shell",
 			"command": "${workspaceFolder}/src/scripts/apkdl",

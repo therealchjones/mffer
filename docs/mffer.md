@@ -1,6 +1,6 @@
 # `mffer`
 
-Marvel Future Fight extraction & reporting
+Marvel Future Fight exploration & reporting
 
 ```shell
 $ mffer --datadir data_directory --outputdir output_directory

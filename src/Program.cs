@@ -14,7 +14,7 @@ namespace Mffer {
 	/// <seealso cref="Program.Alliances"/>
 	public static partial class Program {
 		static Game Game { get; set; }
-		const string Description = "Marvel Future Fight extraction & reporting";
+		const string Description = "Marvel Future Fight exploration & reporting";
 		static readonly Dictionary<string[], string> Options = new Dictionary<string[], string> {
 			{new[]{"--datadir","-d"}, "directory containing Marvel Future Fight data files"},
 			{new[]{"--outputdir","-o"}, "directory in which to place created files"}

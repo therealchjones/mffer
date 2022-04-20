@@ -1,6 +1,6 @@
 # `mffer`
 
-Marvel Future Fight extraction & reporting
+Marvel Future Fight exploration & reporting
 
 This project develops software that creates and updates the
 [mffer webapp](https://mffer.org). It is not necessary to review any of this to

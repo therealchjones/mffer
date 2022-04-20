@@ -71,7 +71,7 @@ function buildPage_(
 			"viewport",
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
 		)
-		.setTitle("mffer: Marvel Future Fight Extraction & Reporting");
+		.setTitle("mffer: Marvel Future Fight exploration & reporting");
 	page.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 	return page;
 }
