@@ -70,6 +70,18 @@ reverse engineering of the game and development of automatic processing of
 extracted information to present data intuitively and understandably, enhancing
 player decision making.
 
+The `mffer` tools facilitate extracting information from and about MFF, and can
+be used without a great deal of knowledge of the game's technical aspects and
+inner workings. However, developing the tools may require more understanding of
+software created with Unity in general and of Marvel Future Fight in particular.
+That information---and how it was gathered---is explored in [The Structure of
+Marvel Future Fight](mff.md).
+
+Additionally, `mffer` code may be useful to those trying to explore Marvel
+Future Fight, explore similar apps, deploy a custom version of the webapp, or
+contribute to `mffer` itself. For these topics, refer to the [development
+guide](Development.md).
+
 These goals are ongoing ones and may never be reached. They may change. The
 game may be discontinued by its publisher at any time, or its creators could
 implement protections against extracting data that are not feasible to work
@@ -100,6 +112,20 @@ skill levels will benefit from their own research into topics with which they
 have less experience and more interest. In addition, please ask questions on the
 [issues list](https://github.com/therealchjones/mffer/issues) anytime; it
 doesn't have to be a "real issue" (though those are welcome as well).
+
+It is made with many industry-standard tools, including programming in Java and
+C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for
+Android from the Google Play Store, and using Facebook and NetMarble servers for
+user and game data storage. As such, even if you don't play MFF, the
+descriptions of techniques used in this project for exploring those many
+components may contain some useful knowledge.
+
+The objectives of this umbrella project are:
+
+-   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
+-   make the data easily usable for decision making necessary to play the game effectively and efficiently
+-   compare changes in the data between different releases/versions of the game
+-   easily track important player-specific data to evaluate progress and plan modifications
 
 ## Copyright & licensing
 
@@ -170,6 +196,16 @@ Specific configurations on which the build process is tested are noted in the
 The most up-to-date changes can be obtained by cloning the git repository and
 building the software yourself. Details and requirements for doing so are
 described in the [Development guide](./Development.md).
+
+Alternatively, cloning the GitHub repository into
+a directory _`mffer`_ and building the tools results in the individual tools residing at the following
+paths:
+
+|               |                                      |
+| ------------- | ------------------------------------ |
+| `apkdl`       | _`mffer`_`/src/scripts/apkdl`        |
+| `autoanalyze` | _`mffer`_`/src/scripts/autoanalyze`  |
+| `mffer`       | _`mffer`_`/bin/Debug/net5/mffer.dll` |
 
 ### Program requirements
 
