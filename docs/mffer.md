@@ -10,8 +10,8 @@ $ mffer -h
 ## Description
 
 `mffer` is the command-line workhorse of the
-[`mffer`project](https://github.com/therealchjones/mffer). It can obtain the
-Marvel Future Fight data files from NetMarble, parse the files into
+[`mffer` project](https://github.com/therealchjones/mffer). It can obtain the
+Marvel Future Fight program and data files from NetMarble, parse the files into
 JSON-formatted data files that (though quite large) are human-readable and
 machine-evaluable, and produce CSV files of limited data for each version that
 can be viewed in spreadsheet applications (such as
@@ -36,10 +36,10 @@ subset of an Android device filesystem where Marvel Future Fight is installed.
 (Not coincidentally, this corresponds to the directory trees created by `mffer`
 when obtaining data files or by [`autoextract`](autoextract.md).)
 
-Importing and processing the data can take a long time. Once completed, `mffer`
-will create _`version`_`.json` in _`output_directory`_, a JSON-formatted file
-including the usable data from each version's data files. This file is very
-large, but is human-readable. `mffer` will also create
+Importing and processing the data takes some time (minutes to hours). Once
+completed, `mffer` will create _`version`_`.json` in _`output_directory`_, a
+JSON-formatted file including the usable data from each version's data files.
+This file is very large, but is human-readable. `mffer` will also create
 `Roster-`_`version`_`.csv` for each version, character-delimited files including
 the data for the playable characters in the game. The CSV files can be imported
 for use into the [`mffer` webapp](webapp.md). Both the JSON files and the CSV

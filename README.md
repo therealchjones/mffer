@@ -48,7 +48,7 @@ More detailed instructions and other workflows are in the
 
 ## Contributing
 
-Contributions of all kinds are welcome. [CONTRIBUTING](docs/CONTRIBUTING.md) has
+Contributions of all kinds are welcome. [CONTRIBUTING](CONTRIBUTING.md) has
 information for contributors with any level or variety of experience. Use
 [the issues tracker](https://github.com/therealchjones/mffer/issues) for any
 and all questions and comments, or email <chjones@aleph0.com>.

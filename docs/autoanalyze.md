@@ -1,6 +1,6 @@
 # `mffer` `autoanalyze`
 
-Creating a framework for further Marvel Future Fight exploration
+Creating a framework for Marvel Future Fight exploration
 
 ## Synopsis
 
@@ -13,7 +13,7 @@ $ autoanalyze -h
 
 `autoanalyze` automates the complicated process of extracting data structure
 information from the Marvel Future Fight program code, importing it into a new
-ghidra project and performing ghidra auto-analysis, as well as decompiling Java
+Ghidra project and performing Ghidra auto-analysis, as well as decompiling Java
 bytecode, to prepare for further (manual) code exploration and analysis.
 
 ## Options
@@ -21,7 +21,7 @@ bytecode, to prepare for further (manual) code exploration and analysis.
 |                           |                                                                          |
 | ------------------------- | ------------------------------------------------------------------------ |
 | `-i` _`input_directory`_  | Specify the directory in which device files are stored.                  |
-| `-o` _`output_directory`_ | Specify the directory in which to store the new ghidra project.          |
+| `-o` _`output_directory`_ | Specify the directory in which to store the output files.                |
 | `-v`                      | Output more information when running. May be specified 0, 1, or 2 times. |
 | `-h`                      | Output brief usage instructions but take no other action.                |
 
@@ -30,13 +30,13 @@ bytecode, to prepare for further (manual) code exploration and analysis.
 `autoanalyze` uses [Il2CppInspector](https://github.com/djkaty/Il2CppInspector)
 to prepare data structure information (C types and function signatures) from the
 device files extracted by [`apkdl`](apkdl.md) or similar tools. It then creates a
-new [ghidra](https://ghidra-sre.org) project, imports the binary application
-data, applies the information from Il2CppInspector, and performs a ghidra
+new [Ghidra](https://ghidra-sre.org) project, imports the binary application
+data, applies the information from Il2CppInspector, and performs a Ghidra
 auto-analysis. Finally, `autoanalyze` uses
 [JADX](https://github.com/skylot/jadx) to decompile the Java bytecode used for
 small parts of the Marvel Future Fight package into source files.
 
-`autoanalyze` uses ghidra's `analyzeHeadless` mode to perform these processes
+`autoanalyze` uses Ghidra's `analyzeHeadless` mode to perform these processes
 without a GUI, and this ends up being significantly faster than importing these
 items manually, even if the point-and-click tasks themselves are minimal. If
 Ghidra is installed somewhere (and in only one place) under `/usr/local`, this
@@ -70,7 +70,7 @@ The final products created by `autoanalyze` are directories named
 `mff-ghidra-`_`version`_ and `mff-jadx-`_`version`_ within the directory
 _`output_directory`_, where _`version`_ is determined from the version of Marvel
 Future Fight evaluated. Within `mff-ghidra-`_`version`_ are files and
-directories used by the new ghidra project, as well as multiple log files
+directories used by the new Ghidra project, as well as multiple log files
 created during the import and processing steps. `mff-jadx-`_`version`_ contains
 the decompiled Java code from the device-independent portion of the application.
 
@@ -81,10 +81,10 @@ the decompiled Java code from the device-independent portion of the application.
 -   `git`
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (required
     for building automatically downloaded tools)
--   [ghidra](https://ghidra-sre.org)
--   Java runtime (required by ghidra); consider
+-   [Ghidra](https://ghidra-sre.org)
+-   Java runtime (required by Ghidra); consider
     [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
--   A reasonable machine upon which to run these; ghidra can be quite resource
+-   A reasonable machine upon which to run these; Ghidra can be quite resource
     intensive.
 
 ## See also

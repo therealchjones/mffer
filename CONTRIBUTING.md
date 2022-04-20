@@ -112,7 +112,7 @@ And maybe you have another idea...
 
 `mffer` is released into the "public domain" where such a thing exists; for the
 sake of formality, see [the CC0 license](../LICENSE). Further details about how
-this may effect your contributions are in the
+this may affect your contributions are in the
 [Copyright section of the Development Guide](Development.md#copyright--licensing).
 
 ## Contact
