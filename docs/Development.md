@@ -107,7 +107,10 @@ restrictive licensing, most of `mffer` is in the public domain. (See
 without other copyright restrictions or requirements of your own work, unless
 you adapt one of those other files; they are clearly identified in the contents
 of the affected files themselves and are additionally
-[listed in the README](README.md).
+[listed in the README](README.md). However, if you adapt some of the `mffer`
+code and want to contribute it _back_ into `mffer`, it should be similarly
+released into the public domain. Pull requests with more restrictive licensing
+are complicated.
 
 ## Setting up a development environment
 
