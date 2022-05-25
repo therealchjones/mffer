@@ -2,8 +2,10 @@
 .clasprc.json
 creds.json
 /.jython_cache/
+/.venv
 /bin/
 /data/
+/docs/_build/
 /obj/
 /output/
 /release/

@@ -12,7 +12,7 @@ This document includes information ranging from
 [appropriate behavoirs when contributing to the project](#behavioral-expectations) to the
 [general instructions for contributing](#so-youve-got-this-idea). It does not include
 many technical details, such as the project design, coding styles, and
-recommended tools. (For those, try the [see also section](#see-also) or dive
+recommended tools. (For those, dive
 right into [the development guide](Development.md).) For information about the
 `mffer` project that's not directly related to making contributions, check
 [the comprehensive README.md](README.md).

@@ -4,6 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
 	<RollForward>Major</RollForward>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DefaultItemExcludes>$(DefaultItemExcludes);docs/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.2.85" />

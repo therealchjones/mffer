@@ -7,61 +7,6 @@
 -   [`Component`s](#making-a-custom-component)
 -   [APIs](#the-mffer-apis)
 
-## Full contents
-
-- [Highlights](#highlights)
-- [Full contents](#full-contents)
-- [Introduction](#introduction)
-- [Copyright & licensing](#copyright--licensing)
-- [Setting up a development environment](#setting-up-a-development-environment)
-	- [Build requirements](#build-requirements)
-	- [Program requirements](#program-requirements)
-	- [Recommendations](#recommendations)
-	- [Setup](#setup)
-		- [In Visual Studio Code](#in-visual-studio-code)
-		- [At the command line](#at-the-command-line)
-	- [Included tools](#included-tools)
-- [Writing documentation](#writing-documentation)
-	- [Source tree](#source-tree)
-	- [README](#readme)
-		- [At-a-glance README](#at-a-glance-readme)
-		- [Comprehensive README](#comprehensive-readme)
-		- [More about READMEs](#more-about-readmes)
-	- [CONTRIBUTING](#contributing)
-- [Writing code](#writing-code)
-	- [Coding Style](#coding-style)
-		- [Whitespace](#whitespace)
-		- [Code Style](#code-style)
-		- [Comments](#comments)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Making a custom `Program.cs`](#making-a-custom-programcs)
-- [Making a custom `Component`](#making-a-custom-component)
-- [Changing `mffer` internals](#changing-mffer-internals)
-	- [`mffer` best practices](#mffer-best-practices)
-	- [Models & designs](#models--designs)
-		- [The repository directory tree](#the-repository-directory-tree)
-		- [Code structure](#code-structure)
-- [The `mffer` APIs](#the-mffer-apis)
-- [Building `mffer`](#building-mffer)
-	- [Building a release](#building-a-release)
-- [Testing `mffer`](#testing-mffer)
-	- [Testing environments](#testing-environments)
-	- [Testing on macOS](#testing-on-macos)
-	- [Linux](#linux)
-	- [Windows](#windows)
-	- [Testing releases](#testing-releases)
-- [Releasing `mffer`](#releasing-mffer)
-- [The `mffer` webapp](#the-mffer-webapp)
-	- [Description](#description)
-	- [Deploying the webapp](#deploying-the-webapp)
-		- [Requirements](#requirements)
-		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
-		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
-- [See also](#see-also)
-
 ## Introduction
 
 The `mffer` project obtains, extracts, parses, and reports data from Marvel
@@ -280,7 +225,7 @@ For both versions,
 
 #### Comprehensive README
 
--   anything from [At-a-glance](#at-a-glance)
+-   anything from [At-a-glance README](#at-a-glance-readme)
 -   name the thing ([How to write a kickass
     README](https://dev.to/scottydocs/how-to-write-a-kickass-readme-5af9))
 -   introduction or summary (2 or 3 lines, what it does and who it is for,
@@ -633,7 +578,8 @@ in the code itself.
     ```shell
     $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
     ```
-4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
+4. The web app must be uploaded but there's nothing to build; see
+   [Deploying the webapp](#deploying-the-webapp)
 
 ### Building a release
 
@@ -825,7 +771,7 @@ Google's OAuth 2.0 authentication.
     [Google Apps Script](https://script.google.com), Google Drive, and Google
     Cloud Platform (the free tiers are all acceptable).
 -   POSIX-like development system (such as macOS, Linux, or Windows with Cygwin)
--   [Node.js](Node.js) & npm
+-   [Node.js](https://nodejs.org) & npm
 
 #### Setting Up Google Cloud Platform
 

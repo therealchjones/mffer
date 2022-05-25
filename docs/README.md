@@ -4,25 +4,6 @@ This project develops software that creates and updates the [`mffer` webapp](htt
 
 This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project with references to other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
 
-## Contents
-
-- [Marvel Future Fight](#marvel-future-fight)
-- [This Project](#this-project)
-- [Versioning](#versioning)
-- [Requirements](#requirements)
-- [Installation](#installation)
-	- [Downloading a Release](#downloading-a-release)
-	- [Cloning the GitHub Repository](#cloning-the-github-repository)
-- [Usage](#usage)
-	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
-	- [Exploring the Data](#exploring-the-data)
-	- [Exploring the Code](#exploring-the-code)
-	- [Using and Presenting the Data](#using-and-presenting-the-data)
-- [Copyright](#copyright)
-- [Contributing](#contributing)
-- [Problems & possible workarounds](#problems--possible-workarounds)
-	- [Android emulator does not recognize internet connection](#android-emulator-does-not-recognize-internet-connection)
-
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
@@ -90,7 +71,7 @@ described in the [Development guide](./Development.md).
 
 ## Usage
 
-The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer), with an overall workflow in [USAGE](USAGE.md). Briefly:
+The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#this-project), with an overall workflow in [USAGE](USAGE.md). Briefly:
 
 ```shell
 $ mffer --outputdir output_directory
