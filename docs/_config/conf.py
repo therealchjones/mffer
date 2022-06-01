@@ -60,7 +60,7 @@ author = 'Christian Jones'
 extensions = [
 	'myst_parser',
 	'sphinx_rtd_theme',
-	'breathe',
+	#'breathe',
 	#'sphinx_csharp',
 ]
 
