@@ -62,7 +62,6 @@ SRCDIR="$(setdir "$ROOTDIR/src")"
 if [ ! -e "$ROOTDIR/mffer.csproj" ] \
 	|| [ ! -e "$DOCDIR/README.md" ] \
 	|| [ ! -e "$TOOLSDIR/.nuget" ] \
-	|| [ ! -e "$PYTHONDIR/bin/python" ] \
 	|| [ ! -e "$SRCDIR/Program.cs" ] \
 	|| [ ! -e "$CONFIGDIR/Doxyfile" ]; then
 	echo "Directory structure of this project is unexpected. Exiting." >&2
