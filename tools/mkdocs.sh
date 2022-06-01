@@ -55,12 +55,11 @@ setdir() {
 TOOLSDIR="$(setdir "$(dirname "$0")")"
 ROOTDIR="$(setdir "$TOOLSDIR/..")"
 DOCDIR="$(setdir "$ROOTDIR/docs")"
-PYTHONDIR="$(setdir "$TOOLSDIR/python")"
 CONFIGDIR="$(setdir "$DOCDIR/_config")"
 BUILDDIR="$(setdir "$ROOTDIR/build")"
 SRCDIR="$(setdir "$ROOTDIR/src")"
 if [ ! -e "$ROOTDIR/mffer.csproj" ] \
-	|| [ ! -e "$DOCDIR/README.md" ] \
+	|| [ ! -e "$DOCDIR/index.rst" ] \
 	|| [ ! -e "$TOOLSDIR/requirements.txt" ] \
 	|| [ ! -e "$SRCDIR/Program.cs" ] \
 	|| [ ! -e "$CONFIGDIR/Doxyfile" ]; then
@@ -71,18 +70,6 @@ fi
 set -e
 
 mkdir -p "$BUILDDIR"/doxygen "$BUILDDIR"/sphinx
-
-if [ -z "${VIRTUAL_ENV}" ]; then
-	if [ -r "$PYTHONDIR/bin/activate" ]; then
-		# shellcheck disable=SC1091
-		. "$PYTHONDIR/bin/activate"
-	else
-		echo "'$PYTHONDIR' is not a valid python virtual environment" >&2
-		exit 1
-	fi
-else
-	PYTHONDIR="$VIRTUAL_ENV"
-fi
 
 if [ "True" = "$READTHEDOCS" ]; then # running on the ReadTheDocs servers
 	mv "$CONFIGDIR/conf.py" "$DOCDIR"/conf.py

@@ -18,7 +18,7 @@ build:
     jobs:
         # run from the root directory of the repository
         pre_build:
-            - sh -x tools/mkdocs.sh --prebuild
+            - sh tools/mkdocs.sh --prebuild
 
 # If using Sphinx, optionally build your docs in additional formats such as PDF
 # formats: all
