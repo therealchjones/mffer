@@ -16,7 +16,7 @@ build:
     apt_packages:
         - doxygen
     jobs:
-		# run from the root directory of the repository
+        # run from the root directory of the repository
         pre_build:
             - sh tools/mkdocs.sh --prebuild
 
