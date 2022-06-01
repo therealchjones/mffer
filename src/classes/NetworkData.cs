@@ -836,7 +836,6 @@ class NetworkDataOld {
 	string textKey; // demangled text key (maybe the same as tek), for use decrypting TextAssets
 	string textKey_; // stored text key, mangled from tek, which must be demangled before use
 	string tek = "3&?f(7F>"; // initial key downloaded from PreLogin() ("tek" field in result JSON)
-	/*
 		void CheckAssets() {
 			string assetBundleDir = "Z:\\APK\\Marvel Future Fight\\device\\data\\media\\0\\Android\\data\\com.netmarble.mherosgb\\files\\";
 			System.Collections.Generic.IEnumerable<string> assetBundleFiles =
@@ -863,8 +862,7 @@ class NetworkDataOld {
 				assetBundleFile.Unload( true );
 			}
 			File.WriteAllBytes( "Z:\\APK\\Marvel Future Fight\\assets", System.Text.Encoding.UTF8.GetBytes( output.ToString() ) );
-		} */
-/*
+		}
 	void GetCSVs() {
 		var myLoadedAssetBundle = AssetBundle.LoadFromFile( testAssetFile );
 		//// Debug.Log( "Loaded asset bundle" + testAssetFile );
@@ -942,11 +940,6 @@ string AesDecrypt( string encrypted, string key ) {
 	return unicodeEncoding.GetString( decryptedBytes );
 }
 
-
-
-
-
-
 string getTextKey() {
 	// CryptUtil__get_textKey
 	if ( String.IsNullOrEmpty( textKey_ ) ) {
@@ -1020,7 +1013,7 @@ string GetVersion() {
 
 	return VersionResponseDecrypt();
 }
-/*	void LoadTestAsset() {
+	void LoadTestAsset() {
 		var myLoadedAssetBundle = AssetBundle.LoadFromFile( testAssetFile );
 		// Debug.Log( "Loaded asset bundle" + testAssetFile );
 		TextAsset myAsset = (TextAsset)myLoadedAssetBundle.LoadAsset( testAssetName, typeof( TextAsset ) );

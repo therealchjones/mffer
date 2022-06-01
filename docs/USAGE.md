@@ -18,20 +18,6 @@ Future Fight, explore similar apps, deploy a custom version of the webapp, or
 contribute to `mffer` itself. For these topics, refer to the [development
 guide](Development.md).
 
-- [Introduction](#introduction)
-- [Using the `mffer` webapp](#using-the-mffer-webapp)
-- [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
-	- [Obtaining the `mffer` command line tools](#obtaining-the-mffer-command-line-tools)
-	- [Installation](#installation)
-	- [Requirements](#requirements)
-	- [Data Workflow](#data-workflow)
-	- [Analysis Workflow](#analysis-workflow)
-- [Using the `mffer` library](#using-the-mffer-library)
-- [Reviewing & changing `mffer` code](#reviewing--changing-mffer-code)
-- [See also](#see-also)
-	- [Brief manuals](#brief-manuals)
-	- [Guides & References](#guides--references)
-
 ## Using the `mffer` webapp
 
 The `mffer` webapp is at https://mffer.org.
@@ -145,6 +131,9 @@ programs, though the programs themselves do not need to be separately installed.
 
     ```shell
     $ ./apkdl -v -o ../data
+    ```
+
+    ```
     Getting MFF from the Google Play Store...
     Enter a Google account username and password to download MFF.
     (You'll need an app password to allow access to this program.)

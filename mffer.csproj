@@ -4,6 +4,7 @@
     <TargetFramework>net5.0</TargetFramework>
 	<RollForward>Major</RollForward>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DefaultItemExcludes>$(DefaultItemExcludes);docs/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MessagePack" Version="2.2.85" />
@@ -60,7 +61,7 @@
 	  Condition="'$(OS)' == 'Windows_NT'" />
   </Target>
   <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
-	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)"/>
+	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)" Condition="Exists('$(ToolsDirectory)/.config')" />
   </Target>
   <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpmPath" AfterTargets="Restore">
 	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' != 'Windows_NT'" />
@@ -133,25 +134,6 @@
 			PublishSingleFile=true;
 			PublishTrimmed=true;
 			IncludeAllContentForSelfExtract=true;" />
-  </Target>
-  <Target Name="CheckXmlDocMd" DependsOnTargets="RestoreDotnetTools">
-    <PropertyGroup>
-	  <XmlDocMdPath Condition="'$(XmlDocMdPath)' == ''">$(ToolsDirectory)/.nuget/packages/xmldocmd/2.5.2/tools/$(TargetFramework)/any/xmldocmd.dll</XmlDocMdPath>
-	</PropertyGroup>
-	<Error Condition="!Exists('$(XmlDocMdPath)')" Text="Unable to locate XmlDocMd at '$(XmlDocMdPath)'" />
-  </Target>
-  <Target Name="BuildDocs"
-	AfterTargets="Publish"
-	BeforeTargets="ZipRelease"
-	DependsOnTargets="CheckXmlDocMd;CheckDotnetPath;Publish;GetVersion"
-	Condition=" '$(RuntimeIdentifier)' == ''">
-	<PropertyGroup>
-	  <DeployablesDirectory>$(ReleaseDirectory)/deployables</DeployablesDirectory>
-	  <DeployablesDirectory Condition="'$(VersionString)' != ''">$(DeployablesDirectory)-$(VersionString)</DeployablesDirectory>
-	</PropertyGroup>
-	<Exec
-		Command='"$(DOTNET_HOST_PATH)" "$(XmlDocMdPath)" "$(PublishDir)/mffer.dll" "$(DeployablesDirectory)/docs/api" --visibility private --source "https://github.com/therealchjones/mffer" --clean --quiet --permalink pretty --namespace-pages'
-		WorkingDirectory="$(ToolsDirectory)" />
   </Target>
   <Target Name="CopyScripts" AfterTargets="Publish" DependsOnTargets="Publish">
 	<Copy SourceFiles="@(ReleaseableScripts)" DestinationFolder="$(PublishDir)"/>
