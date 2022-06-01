@@ -9,13 +9,13 @@ Any questions, comments, or concerns can be posted in the [GitHub repository's i
 Thank you for your interest in this project. Contributions of any kind are welcome, but most useful to the project are bug reports and possible fixes. Whether you find a problem that you can fix or not, however, you can send feedback; follow, fork, or star the project on [GitHub](https://github.com); tell others about the project; or just use the project yourself.
 
 This document includes information ranging from
-[appropriate behavoirs when contributing to the project](#behavioral-expectations) to the
+[appropriate behaviors when contributing to the project](#behavioral-expectations) to the
 [general instructions for contributing](#so-youve-got-this-idea). It does not include
 many technical details, such as the project design, coding styles, and
 recommended tools. (For those, dive
 right into [the development guide](Development.md).) For information about the
 `mffer` project that's not directly related to making contributions, check
-[the comprehensive README.md](README.md).
+[the User guide](USAGE.md).
 
 ## Quick Questions & Answers
 
@@ -25,7 +25,11 @@ The [GitHub issues page](https://github.com/therealchjones/mffer/issues/) is jus
 
 ### I don't know how to program, so how can I help?
 
-Answer questions on the [GitHub issues page](https://github.com/therealchjones/mffer/issues/), make edits to [documentation](README.md), or just offer a kind word.
+Answer questions on the
+[GitHub issues page](https://github.com/therealchjones/mffer/issues/), make
+edits to
+[documentation](https://github.com/therealchjones/mffer/issues/), or just offer
+a kind word.
 
 ### What format should I use for a pull request?
 
@@ -40,7 +44,7 @@ Ah, you're new to git and its style of shared development. Welcome! I'm glad you
 
 The abilities needed to effectively contribute to an open source project are complex, intertwined, and widely varying. None, however, is more important than the ability to work with others kindly. People are different. Respect and celebrate those differences. Failure to do so will result in being asked to cease interactions with the project and reporting your account to [GitHub](https://github.com). Disrespectful comments will be edited or removed. Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
 
-While this is the guiding spirit of the contributions to the project, the project has formally adopted the [Contributor Covenant 2.0](../CODE_OF_CONDUCT.md). In addition, users and visitors are expected to follow the [GitHub Community Guidelines](https://docs.github.com/en/github/site-policy/github-community-guidelines) and the [GitHub Terms of Service](https://docs.github.com/en/github/site-policy/github-terms-of-service). None of these documents is intended to allow or encourage behavior disallowed or discouraged by the others.
+While this is the guiding spirit of the contributions to the project, the project has formally adopted the [Contributor Covenant 2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html). In addition, users and visitors are expected to follow the [GitHub Community Guidelines](https://docs.github.com/en/github/site-policy/github-community-guidelines) and the [GitHub Terms of Service](https://docs.github.com/en/github/site-policy/github-terms-of-service). None of these documents is intended to allow or encourage behavior disallowed or discouraged by the others.
 
 Let's do better.
 
@@ -50,7 +54,12 @@ Wonderful! Think about it a bit. Try to explicitly define (even if just mentally
 
 Post an issue yourself talking about your idea. Start discussing it openly; there's not a great benefit in "saving up" until your idea is near completion (or you're stuck). Even if you don't know exactly how to do what you want, others may be able to point you in the right direction.
 
-Take a look at the [development guide](Development.md), and figure out how your idea best fits into the project: should you edit some documentation, write a program that uses the `mffer` library, or write a better algorithm for reading from the filesystem? This may also lead you to browsing the [source code](https://github.com/therealchjones/mffer/) or reviewing the [API](api/).
+Take a look at the [Development guide](Development.md), and figure out how your
+idea best fits into the project: should you edit some documentation, write a
+program that uses the `mffer` library, or write a better algorithm for reading
+from the filesystem? This may also lead you to browsing the
+[source code](https://github.com/therealchjones/mffer/) or reviewing the
+[API](https://dev.mffer.org/api/).
 
 Fork the project, make the changes you want, ensure it works the way you think it should (and doesn't break anything else) and submit a pull request to merge your new code with the main project. It's okay if it's not perfect or even finished; once you submit a PR the code can be reviewed by others and you can make more changes before the final version is added to `main`.
 
@@ -60,7 +69,13 @@ And maybe you have another idea...
 
 ## Copyright
 
-`mffer` is released into the "public domain" where such a thing exists; for the sake of formality, see [the CC0 license](../LICENSE). Further details about how this may effect your contributions are in the [Copyright section of the Development guide](Development.md#copyright--licensing). Additionally, please review the [comprehensive README](README.md) for contents which are not included in the public domain release.
+`mffer` is released into the "public domain" where such a thing exists; for the
+sake of formality, see
+[the CC0 license](https://creativecommons.org/publicdomain/zero/1.0/). Further
+details about how this may effect your contributions are in the
+[Copyright section of the Development guide](Development.md#copyright--licensing);
+this section also lists any parts of the project which cannot be included in the
+public domain release.
 
 ## Contact
 

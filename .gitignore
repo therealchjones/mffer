@@ -4,11 +4,12 @@ creds.json
 /.jython_cache/
 /.venv
 /bin/
+/build/
 /data/
-/docs/_build/
 /obj/
 /output/
 /release/
 /tools/.nuget/*
 /tools/node_modules/*
 /tools/package-lock.json
+/tools/python/*

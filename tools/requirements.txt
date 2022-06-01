@@ -1,5 +1,6 @@
 alabaster==0.7.12
 Babel==2.10.1
+breathe==4.33.1
 certifi==2022.5.18.1
 charset-normalizer==2.0.12
 docutils==0.17.1

@@ -22,8 +22,11 @@ mffer
    :caption: Developing mffer
 
    CONTRIBUTING
-   Development
+   conduct
+   license
    mff
+   Development
+   api/index
 
 Indices and tables
 ==================

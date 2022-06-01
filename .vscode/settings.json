@@ -53,18 +53,10 @@
 	/****************************************/
 	// Extension settings
 	/****************************************/
-	"markdown.extension.toc.levels": "2..6",
-	"markdown.extension.toc.omittedFromToc": {
-		"docs/README.md": [
-			"## Contents"
-		],
-		"CONTRIBUTING.md": [
-			"## Table of Contents"
-		]
-	},
 	"omnisharp.enableEditorConfigSupport": true,
 	"shellcheck.customArgs": [
 		"-x"
 	],
-	"shellformat.flag": "-bn -ci -i 0"
+	"shellformat.flag": "-bn -ci -i 0",
+	"python.defaultInterpreterPath": "${workspaceFolder}/tools/python/bin/python",
 }

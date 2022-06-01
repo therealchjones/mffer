@@ -4,15 +4,35 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# make 'srcdir' point to the proper place for the source file root,
-# either in the current directory or in some parent directory
+# This configuration file also runs as a python module, and all variables in
+# the resulting namespace are then accessible to sphinx when it is running.
+# In addition to the variables/options defined by sphinx, we set:
+# rootdir: the root workspace/project folder
+# srcdir: topmost directory containing source code to be documented (src)
+# docdir: topmost directory containing documentation (docs)
+# configdir: directory containing this file (and possibly other config files)
+# builddir:
+
+# Note that this does *not* set the "root directory" that sphinx-build
+# uses (which is set at the command line), but rather the directories
+# described above.
+from pathlib import Path
 import os
-srcdir = os.path.abspath('.')
-while ( not os.path.exists( os.path.join(srcdir,'index.rst') ) ):
-	newsrcdir = os.path.join(srcdir,'..')
-	if ( os.path.samefile(srcdir,newsrcdir)):
-		raise Exception("Unable to find index.rst")
-	srcdir = newsrcdir
+
+if __file__ is None:
+	raise Exception("Unable to determine the path of conf.py")
+configdir = Path(__file__).parent
+rootdir = configdir
+while ( len(sorted(rootdir.glob('*.csproj'))) == 0 ) :
+	parentdir = rootdir.parent
+	if ( parentdir is None or parentdir.samefile(rootdir)) :
+		raise Exception("Unable to find dotnet project file.")
+	rootdir=parentdir
+srcdir = next(rootdir.glob('src'))
+docdir = next(rootdir.glob('docs'))
+builddir = next(rootdir.glob('build'))
+doxygendir = next(builddir.glob('doxygen'))
+sphinxdir = next(builddir.glob('sphinx'))
 
 # -- Path setup --------------------------------------------------------------
 
@@ -39,18 +59,33 @@ author = 'Christian Jones'
 # ones.
 extensions = [
 	'myst_parser',
-	'sphinx_rtd_theme'
+	'sphinx_rtd_theme',
+	'breathe',
+	#'sphinx_csharp',
 ]
+
+#breathe_projects = {
+#	"api": doxygendir.as_posix(),
+#}
+#breathe_default_project = "api"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = [
-	os.path.join( srcdir, '_templates'),
+	os.path.join( docdir, '_templates'),
 	]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'README.md']
+exclude_patterns = [
+	'_build',
+	'Thumbs.db',
+	'.DS_Store',
+	'README.md',
+	'**/README.md',
+	'Doxyfile',
+	'conf.py'
+	]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -64,7 +99,11 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = [
-	os.path.join(srcdir,'_static')
+	os.path.join(docdir,'_static')
 	]
+
+html_extra_path = [
+	doxygendir.as_posix(),
+]
 
 myst_heading_anchors = 4
