@@ -2,7 +2,9 @@
 .clasprc.json
 creds.json
 /.jython_cache/
+/.venv
 /bin/
+/build/
 /data/
 /obj/
 /output/
@@ -10,3 +12,4 @@ creds.json
 /tools/.nuget/*
 /tools/node_modules/*
 /tools/package-lock.json
+/tools/python/*

@@ -517,7 +517,7 @@ namespace Mffer {
 			JsonSerializer.Serialize( utf8Writer, this, this.GetType(), serializerOptions );
 		}
 		/// <summary>
-		/// Obtains this <see ref="GameObject"/> formatted as a string
+		/// Obtains this <see cref="GameObject"/> formatted as a string
 		/// </summary>
 		/// <returns>a <see cref="String"/> representing this <see
 		/// cref="GameObject"/> that is the simple string the <see

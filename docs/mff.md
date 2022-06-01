@@ -3,29 +3,6 @@
 Or, On the Many Details of How I Wasted Massive Amounts of Time and the
 Existentially Inconsequential Things I Learned
 
-- [Introduction](#introduction)
-- [Exploration Techniques](#exploration-techniques)
-	- [Static analysis](#static-analysis)
-		- [External files](#external-files)
-			- [File changes](#file-changes)
-- [Unity](#unity)
-	- [Assets & Asset Bundles](#assets--asset-bundles)
-		- [Example: data for a Unity game](#example-data-for-a-unity-game)
-		- [AssetsTools.NET](#assetstoolsnet)
-	- [IL2CPP](#il2cpp)
-- [Android](#android)
-- [Marvel Future Fight](#marvel-future-fight)
-	- [Useful functions](#useful-functions)
-- [The `mffer` Model](#the-mffer-model)
-	- [Assumptions in `mffer`](#assumptions-in-mffer)
-		- [Asset and AssetBundle Files](#asset-and-assetbundle-files)
-		- [Roster & Character model](#roster--character-model)
-		- [Character ID models](#character-id-models)
-		- [Localization changes](#localization-changes)
-- [Exploration tools](#exploration-tools)
-	- [`autoextract`](#autoextract)
-- [Various notes](#various-notes)
-
 ## Introduction
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS and

@@ -1,22 +1,5 @@
 # Using `mffer`
 
-- [Introduction](#introduction)
-- [Marvel Future Fight](#marvel-future-fight)
-- [The `mffer` project](#the-mffer-project)
-- [Using the `mffer` webapp](#using-the-mffer-webapp)
-- [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
-	- [Obtaining the `mffer` command line tools](#obtaining-the-mffer-command-line-tools)
-	- [Installation](#installation)
-	- [Requirements](#requirements)
-- [Usage](#usage)
-	- [Obtaining and processing the data files](#obtaining-and-processing-the-data-files)
-	- [Exploring the data](#exploring-the-data)
-	- [Using and presenting the data](#using-and-presenting-the-data)
-	- [Exploring the code](#exploring-the-code)
-- [See also](#see-also)
-	- [Brief manuals](#brief-manuals)
-	- [Guides](#guides)
-
 ## Introduction
 
 The `mffer` project develops software that creates and updates the
@@ -66,6 +49,24 @@ The project currently includes multiple components:
     into an open and usable format
 -   a [web app](webapp.md) to present and use the game data for game play
     decision making
+
+## Introduction
+
+There are several possible uses for the `mffer` project. A few are readily
+apparent, and the workflows for those are described here, with references to
+related documents as needed. In brief, these are:
+
+-   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future
+    Fight data
+-   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
+    to extract, analyze, or summarize Marvel Future Fight data
+-   [Using the `mffer` library](#using-the-mffer-library) to develop a custom
+    program
+
+Additionally, `mffer` code may be useful to those trying to explore Marvel
+Future Fight, explore similar apps, deploy a custom version of the webapp, or
+contribute to `mffer` itself. For these topics, refer to the [development
+guide](Development.md).
 
 ## Using the `mffer` webapp
 
@@ -192,6 +193,9 @@ evaluate it further:
 
     ```shell
     $ ./apkdl -v -o ../data
+    ```
+
+    ```
     Getting MFF from the Google Play Store...
     Enter a Google account username and password to download MFF.
     (You'll need an app password to allow access to this program.)
