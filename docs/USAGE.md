@@ -60,8 +60,6 @@ related documents as needed. In brief, these are:
     Fight data
 -   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
     to extract, analyze, or summarize Marvel Future Fight data
--   [Using the `mffer` library](#using-the-mffer-library) to develop a custom
-    program
 
 Additionally, `mffer` code may be useful to those trying to explore Marvel
 Future Fight, explore similar apps, deploy a custom version of the webapp, or

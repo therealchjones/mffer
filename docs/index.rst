@@ -13,7 +13,6 @@ mffer
    USAGE
    apkdl
    autoanalyze
-   autoextract
    mffer
    webapp
 

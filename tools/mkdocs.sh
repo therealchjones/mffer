@@ -85,4 +85,4 @@ if [ "Y" = "$PREBUILD_ONLY" ]; then
 	exit 0
 fi
 
-"$PYTHONDIR"/bin/sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"
+sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"

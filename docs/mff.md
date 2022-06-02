@@ -604,8 +604,7 @@ Formerly a part of the `mffer` workflow, `autoextract` uses Android device
 emulation and user interaction to obtain game program and data files. This may
 work when other completely automated methods for downloading the data no longer
 succeed due to Marvel Future Fight changes. It requires Java and cannot be
-reliably run within a virtual machine. See the
-[`autoextract` instructions](autoextract.md) for more information.
+reliably run within a virtual machine.
 
 ## Various notes
 

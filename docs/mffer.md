@@ -34,7 +34,7 @@ hierarchy beneath _`data_directory`_ is expected to consist of one or more
 directories named for a version of Marvel Future Fight, each of which is a
 subset of an Android device filesystem where Marvel Future Fight is installed.
 (Not coincidentally, this corresponds to the directory trees created by `mffer`
-when obtaining data files or by [`autoextract`](autoextract.md).)
+when obtaining data files or by the now-obsolete `autoextract`.)
 
 Importing and processing the data takes some time (minutes to hours). Once
 completed, `mffer` will create _`version`_`.json` in _`output_directory`_, a
