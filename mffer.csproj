@@ -21,6 +21,7 @@
   </PropertyGroup>
   <ItemGroup>
     <DeletableDirectory Include="$(ReleaseDirectory)"/>
+	<DeletableDirectory Include="$(MSBuildProjectDirectory)/build"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/bin"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/obj"/>
 	<ReleaseableScripts Include="$(ScriptDirectory)/*" CopyToPublishDirectory="PreseveNewest"/>
