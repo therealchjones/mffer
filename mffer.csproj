@@ -28,7 +28,7 @@
 
   <!-- dotnet clean -->
   <Target Name="Cleaning tools/" AfterTargets="Clean">
-    <RemoveDir Directories="$(ToolsDirectory)/.nuget;$(ToolsDirectory)/node_modules"/>
+    <RemoveDir Directories="$(ToolsDirectory)/nuget;$(ToolsDirectory)/node_modules"/>
 	<Delete Files="$(ToolsDirectory)/package-lock.json;$(ToolsDirectory)/.clasp.json"/>
   </Target>
   <Target Name="Deep cleaning" AfterTargets="Clean">
