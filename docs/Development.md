@@ -1,4 +1,4 @@
-# Developing `mffer`
+# Developing mffer
 
 ## Highlights
 
@@ -9,28 +9,28 @@
 
 ## Introduction
 
-The `mffer` project obtains, extracts, parses, and reports data from Marvel
+The mffer project obtains, extracts, parses, and reports data from Marvel
 Future Fight. Its scope ranges from providing basic game play tips to static
 reverse engineering of the game and development of automatic processing of
 extracted information to present data intuitively and understandably, enhancing
 player decision making.
 
-The `mffer` tools facilitate extracting information from and about MFF, and can
+The mffer tools facilitate extracting information from and about MFF, and can
 be used without a great deal of knowledge of the game's technical aspects and
 inner workings. However, developing the tools may require more understanding of
 software created with Unity in general and of Marvel Future Fight in particular.
 That information---and how it was gathered---is explored in [The Structure of
 Marvel Future Fight](mff.md).
 
-Additionally, `mffer` code may be useful to those trying to explore Marvel
+Additionally, mffer code may be useful to those trying to explore Marvel
 Future Fight, explore similar apps, deploy a custom version of the webapp, or
-contribute to `mffer` itself. For these topics, refer to the [development
+contribute to mffer itself. For these topics, refer to the [development
 guide](Development.md).
 
 These goals are ongoing ones and may never be reached. They may change. The
 game may be discontinued by its publisher at any time, or its creators could
 implement protections against extracting data that are not feasible to work
-around. Netmarble may decide that working on `mffer` is against their Terms of
+around. Netmarble may decide that working on mffer is against their Terms of
 Service and kick all the project's contributors from the game, or even claim
 criminality. One day, we will die.
 
@@ -45,9 +45,9 @@ their minds (or change their minds back) at any time. Abide by the
 community in which others can do the same.
 
 And, on a somewhat more technical note, read on for details on just a few of the
-myriad ways you can help develop the `mffer` project as part of that community.
+myriad ways you can help develop the mffer project as part of that community.
 
-The primary goal of this document is to inform development of the `mffer`
+The primary goal of this document is to inform development of the mffer
 project specifically, though many details will be applicable to other projects.
 However, the document is no more self-contained than GitHub contains the whole
 of knowledge on programming. A great deal of familiarity with a great many
@@ -60,7 +60,7 @@ doesn't have to be a "real issue" (though those are welcome as well).
 
 It is made with many industry-standard tools, including programming in Java and
 C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for
-Android from the Google Play Store, and using Facebook and NetMarble servers for
+Android from the Google Play Store, and using Facebook and Netmarble servers for
 user and game data storage. As such, even if you don't play MFF, the
 descriptions of techniques used in this project for exploring those many
 components may contain some useful knowledge.
@@ -75,7 +75,7 @@ The objectives of this umbrella project are:
 ## Copyright & licensing
 
 Though some files adapted from other projects are released under more
-restrictive licensing, most of `mffer` is in the public domain. (See
+restrictive licensing, most of mffer is in the public domain. (See
 [the license](license.rst).) This means that you're free to do with it what you want,
 without other copyright restrictions or requirements of your own work, unless
 you adapt one of those other files; they contain the appropriate license
@@ -86,8 +86,8 @@ to the license requirements.
 | ---- | ---------------- | ------- |
 | None |                  |         |
 
-If you adapt some of the `mffer` code and want to contribute it _back_ into
-`mffer`, it should be similarly released into the public domain. In addition,
+If you adapt some of the mffer code and want to contribute it _back_ into
+mffer, it should be similarly released into the public domain. In addition,
 contributing code to the project from other sources requires careful examination
 of the licensing of those sources, and contributing original code requires
 developers to specifically note the license (or release) under which their code
@@ -98,7 +98,7 @@ copyright-protected content, as included by the build process.
 
 ## Versioning
 
-`mffer` uses a (slightly restricted) version of
+mffer uses a (slightly restricted) version of
 [Semantic Versioning 2.0.0](https://semver.org) for version numbers.
 Specifically, mffer versions are all of the form _major_._minor_._patch_,
 without prefixes or suffixes of other formats.
@@ -121,7 +121,7 @@ the project has included data to somehow enhance the use of that tool---for
 instance, the many extensions recommended for Visual Studio Code are not at all
 required, but the recommendations and associated settings are in the repository
 itself, so they're recommended here as well. Finally, remember that these are
-requirements and recommendations for full development of `mffer`, not
+requirements and recommendations for full development of mffer, not
 necessarily just for building from source files, and certainly not just for
 running the programs.
 
@@ -142,7 +142,7 @@ in the [Tools](#tools) section of [Writing code](#writing-code).
     is probably several gigabytes
 
 Specific configurations on which the build process is tested are noted in the
-[Testing `mffer` section](#testing-mffer).
+[Testing mffer section](#testing-mffer).
 
 ### Cloning the GitHub Repository
 
@@ -151,18 +151,18 @@ building the software yourself. Details and requirements for doing so are
 described in the [Development guide](./Development.md).
 
 Alternatively, cloning the GitHub repository into
-a directory _`mffer`_ and building the tools results in the individual tools residing at the following
+a directory _mffer_ and building the tools results in the individual tools residing at the following
 paths:
 
-|               |                                      |
-| ------------- | ------------------------------------ |
-| `apkdl`       | _`mffer`_`/src/scripts/apkdl`        |
-| `autoanalyze` | _`mffer`_`/src/scripts/autoanalyze`  |
-| `mffer`       | _`mffer`_`/bin/Debug/net5/mffer.dll` |
+|               |                                    |
+| ------------- | ---------------------------------- |
+| `apkdl`       | _mffer_`/src/scripts/apkdl`        |
+| `autoanalyze` | _mffer_`/src/scripts/autoanalyze`  |
+| mffer         | _mffer_`/bin/Debug/net5/mffer.dll` |
 
 ### Program requirements
 
-Though not strictly required for development of the `mffer` tools, the
+Though not strictly required for development of the mffer tools, the
 requirements for running the programs themselves additionally include:
 
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
@@ -181,7 +181,7 @@ requirements for running the programs themselves additionally include:
 
 If you choose to use Visual Studio Code, open the Source Control (SCM) panel and
 choose "Clone Repository" and enter https://github.com/therealchjones/mffer.git.
-Choose a folder to place the new `mffer` directory within. Open it when
+Choose a folder to place the new mffer directory within. Open it when
 prompted, read the warning and choose the option to enable all features.
 
 When prompted to "execute the restore command to continue", press "Restore". (If
@@ -192,7 +192,7 @@ Recommendations". (If no such prompt appears, you can open the Command Palette
 to run "Extensions: Show Recommended Extensions" and install those listed under
 "Workspace Recommendations".) In contrast to the rest of the tools installed in
 this process, VS Code extensions will be installed globally, not within the
-`mffer` directory hierarchy.
+mffer directory hierarchy.
 
 #### At the command line
 
@@ -200,10 +200,10 @@ If you choose not to use Visual Studio Code, setting up the environment can be
 done at the command line. This will have the same results as
 [above](#in-visual-studio-code) with the exception of the installation of Visual
 Studio Code extensions and settings. All new tools will be installed within the
-`mffer` directory hierarchy (but may still have effects like including settings
+mffer directory hierarchy (but may still have effects like including settings
 outside this).
 
-1. Clone the `mffer` repository into a new directory:
+1. Clone the mffer repository into a new directory:
     ```shell
     $ git clone https://github.com/therealchjones/mffer.git
     ```
@@ -222,7 +222,7 @@ outside this).
 
 ### Included tools
 
-The setup process installs several tools not included within the `mffer` project
+The setup process installs several tools not included within the mffer project
 itself. In addition to the VS Code extensions installed in the
 [VS Code setup process](#in-visual-studio-code), some of the items added by
 "restore" are:
@@ -244,7 +244,7 @@ $ dotnet clean
 ## Writing documentation
 
 Documentation is important. Below are a few guidelines in writing the
-documentation associated with `mffer`.
+documentation associated with mffer.
 
 ### Source tree
 
@@ -255,7 +255,7 @@ should generally not be edited.
 
 ### README
 
-README files in `mffer` are designed to be read on GitHub with reference to the
+README files in mffer are designed to be read on GitHub with reference to the
 more formal documentation (and are not included in the formal documentation). In
 the root directory of the project, the `README` file is meant to be information
 used "at a glance", with several guidelines available. Other `README` files are
@@ -481,14 +481,14 @@ Linters recommended for this project include:
 
 ## Making a custom `Program.cs`
 
-`mffer` isn't (yet) built as a library, but you can still change the main entry
+mffer isn't (yet) built as a library, but you can still change the main entry
 point in `Program.cs` as you see fit, rather than using the
 default one with multiple command line options that automatically reads and
 reports all supported data.
 
 ## Making a custom `Component`
 
-The next step in customizing `mffer` for your own needs is to create a custom
+The next step in customizing mffer for your own needs is to create a custom
 derivative of the `Component` type. This
 can be done in a [Custom `Program.cs`](#making-a-custom-programcs) or in a
 separate file. The derivative type should include a
@@ -504,16 +504,16 @@ Accessing the newly designed component will typically involve
 `Version` type so that your component is loaded
 along with all the others.
 
-## Changing `mffer` internals
+## Changing mffer internals
 
-Changing the underlying workings of `mffer` may be necessary to alter
+Changing the underlying workings of mffer may be necessary to alter
 calculations, change how data is extracted or reported for existing
 `Component`s, or to improve performance or other conditions. Every attempt has
 been made to keep code appropriately encapsulated and abstracted so that
 modifying one area need not break another, but this must be assumed to be far
 from perfect.
 
-### `mffer` best practices
+### mffer best practices
 
 In an effort to "compartmentalize" the code and continue to make
 it customizable, please attempt to use the following "best practices":
@@ -580,7 +580,7 @@ mffer/
     node_modules/
 ```
 
-The root `mffer` directory contains project-specific settings like
+The root mffer directory contains project-specific settings like
 `.editorconfig` for formatting, `nuget.config` for tool and dependent package
 management, `mffer.csproj` for build settings, and the brief "at-a-glance" README.
 
@@ -603,7 +603,7 @@ tools.
 #### Code structure
 
 Corresponding to the above [best practices](#mffer-best-practices), the design
-of `mffer` is based on the principles of abstraction, encapsulation, and
+of mffer is based on the principles of abstraction, encapsulation, and
 polymorphism. Much of the code is arranged in a classic object oriented fashion
 with little functional or static typing.
 
@@ -618,7 +618,7 @@ structure of the included code is:
         the filesystem
 
 The `src` directory additionally includes the `autoextract` script and the
-`webapp` directory, which are planned to be internalized into the main `mffer`
+`webapp` directory, which are planned to be internalized into the main mffer
 code at some point.
 
 Due to the reverse-engineering nature of the software and what documentation is
@@ -627,19 +627,19 @@ have a starting point for programming. Generally these are tested when used in
 the code itself, but many are tested in the AssetFileTest class. More about the
 assumptions about how Marvel Future Fight works (from a programming perspective)
 are explicitly listed in [The Structure of Marvel Future Fight](mff.md), along
-with how they correspond to the design structures of `mffer`. Refer to that
+with how they correspond to the design structures of mffer. Refer to that
 document and the [API](api/index.rst) for further detils.
 
-## The `mffer` APIs
+## The mffer APIs
 
 All included types and members are included in the API documentation, generated
 as part of the build process from the triple-slash XML comments describing them
 in the code itself.
 
-## Building `mffer`
+## Building mffer
 
 1. `apkdl` and `autoanalyze` are shell scripts and require no building.
-2. Building the dotnet app: from within the root `mffer` directory,
+2. Building the dotnet app: from within the root mffer directory,
     ```shell
     $ dotnet build mffer.csproj
     ```
@@ -652,10 +652,10 @@ in the code itself.
 
 ### Building a release
 
-A "release" is a package of the `mffer` program and the associated scripts.
+A "release" is a package of the mffer program and the associated scripts.
 Creating a release builds the program from source as [above](#building-mffer),
 but intentionally leaves out extra debugging information and (in most cases)
-results in a single file `mffer` program that will only work on a specific
+results in a single file mffer program that will only work on a specific
 platform. While "official" releases are
 [available for download](https://github.com/therealchjones/mffer/releases/), you
 can build a customized version or test changes with your own copy of the source
@@ -681,22 +681,22 @@ $ dotnet publish -c release
 The result will be files placed in the `release` directory of the source tree.
 There are files are named `mffer-`_`version`_`-`_`platform`_`.zip` for each of the
 built platforms (by default, `win-x64`, `osx-x64`, and `linux-x64`). These files
-contain the `mffer` executable file and its associated scripts, `apkdl`
+contain the mffer executable file and its associated scripts, `apkdl`
 and `autoanalyze`, and may contain other supporting files. A
 platform-independent file `mffer-`_`version`_`-net5.0.zip` includes several
-other files needed to run the `mffer` program using the .NET 5.0 runtime (not
+other files needed to run the mffer program using the .NET 5.0 runtime (not
 included).
 
-## Testing `mffer`
+## Testing mffer
 
 ### Testing environments
 
 In order to ensure [software requirements](USAGE.md#requirements) are minimal
-and known, formal testing of `mffer` is performed on basic virtual machines
+and known, formal testing of mffer is performed on basic virtual machines
 created in a reproducible way. Where possible, output is then compared to "known
 good" output from prior builds. There are standardized methods for creating the
-virtual machines and for testing `mffer` on them. Scripts are provided to create
-virtual machines for Parallels Desktop and test `mffer` on the virtual machines,
+virtual machines and for testing mffer on them. Scripts are provided to create
+virtual machines for Parallels Desktop and test mffer on the virtual machines,
 all running on a macOS host machine with only the addition of Parallels Desktop
 Pro required to build the virtual machines. These scripts are available in the
 `tools/` directory.
@@ -729,19 +729,19 @@ This script:
 
 1. Creates a macOS virtual machine if needed
 2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
-3. Builds `mffer`
+3. Builds mffer
 4. Resets the virtual machine
 5. Tests `apkdl` (which requires manual interaction)
 6. Resets the virtual machine
 7. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
 8. Tests `autoanalyze`
-9. Tests `mffer`
+9. Tests mffer
 
 ### Linux
 
 1. Install Ubuntu 20.04 & apply all available updates
 2. Install Parallels Tools
-3. Test `mffer`
+3. Test mffer
 4. Test `apkdl`
 5. Test `autoanalyze`
 
@@ -749,7 +749,7 @@ This script:
 
 1. Install Windows 10 & apply all available updates
 2. Install Parallels Tools
-3. Test `mffer`
+3. Test mffer
 4. Install
    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 5. Install Git (with Git Bash)
@@ -783,7 +783,7 @@ tested on each reference system, resulting in a testing checklist such as:
 > -   [ ] macOS
 > -   [ ] linux
 >
-> #### `mffer`
+> #### mffer
 >
 > |                | build on windows | build on macOS | build on linux |
 > | -------------- | ---------------- | -------------- | -------------- |
@@ -802,7 +802,7 @@ tested on each reference system, resulting in a testing checklist such as:
 > -   [ ] gmail
 > -   [ ] google workspace
 
-## Releasing `mffer`
+## Releasing mffer
 
 1. Merge all code for the release into the main branch
 2. Declare a "feature freeze" and create a new branch from main named for the release
@@ -819,25 +819,25 @@ tested on each reference system, resulting in a testing checklist such as:
    branches, if supported), test, and increment the tag on the branch as needed,
    then create the new release on GitHub.
 
-### `mffer` versioning
+### mffer versioning
 
-`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version
+mffer uses [Semantic Versioning 2.0.0](https://semver.org) for version
 numbers. While no stable release (and thus no stable API) has been completed,
 the major version will remain 0. The minor version will continue to be
 incremented for any changes to what is _expected to be_ the API. The patch
 version will change with any other "releases". The first (unstable) release
 (without a stable API) will be version 0.1.0.
 
-## The `mffer` webapp
+## The mffer webapp
 
 ### Description
 
-The `mffer` webapp is based on Google Apps Script, uses Google Sheets/Google
+The mffer webapp is based on Google Apps Script, uses Google Sheets/Google
 Drive, and is deployed at https://mffer.org via the
 [Google Cloud Platform](https://cloud.google.com). This method of deployment is
 not especially straightforward, and other better options may be more readily
 available to other users. These will, however, require significant code
-modification, as the `mffer` webapp code makes heavy use of Apps Script
+modification, as the mffer webapp code makes heavy use of Apps Script
 (transpiled from TypeScript) and its associated APIs, the Google Picker, and
 Google's OAuth 2.0 authentication.
 
@@ -856,7 +856,7 @@ Google's OAuth 2.0 authentication.
 GCP is somewhat complex to configure, and configuration within an existing GCP
 account is beyond the scope of this document (and may be beyond the abilities of
 this author). However, you may be able to create a basic project usable for
-`mffer` webapp deployment in a few (relatively) simple steps. More in-depth
+mffer webapp deployment in a few (relatively) simple steps. More in-depth
 resources for setting up Apps Script in a Google Cloud Platform account include:
 
 -   https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
@@ -865,7 +865,7 @@ resources for setting up Apps Script in a Google Cloud Platform account include:
 -   https://cloud.google.com/resource-manager/docs/creating-managing-projects
 
 In an effort to consolidate the above into a simple(r) set of instructions,
-follow the below set of instructions to set up a project for `mffer`.
+follow the below set of instructions to set up a project for mffer.
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
    name (and other info if desired). Press "Create".
@@ -905,7 +905,7 @@ follow the below set of instructions to set up a project for `mffer`.
 1. In
    [Google Apps Script Settings](https://script.google.com/home/usersettings),
    enable "Google Apps Script API"
-2. In the `mffer` repository's `tools` directory, install `clasp` and its
+2. In the mffer repository's `tools` directory, install `clasp` and its
    dependencies:
     ```shell
     [mffer] $ cd tools
@@ -943,7 +943,7 @@ follow the below set of instructions to set up a project for `mffer`.
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
     If prompted for which deployment to use, press `<enter>` or `<return>`.
-10. Choose "Setup `mffer`", then enter the OAuth 2.0 Client ID and OAuth 2.0
+10. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
     secret you made a note of in the
     [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
     section (or obtain them again from
@@ -954,8 +954,8 @@ follow the below set of instructions to set up a project for `mffer`.
 12. Back on the webapp, use the "Authorize Google & save these settings" button to authenticate with Google once
     more; this will additionally lock the above settings and take the app out of
     "setup mode".
-13. When the app reloads, under "Upload new `mffer` data" select a CSV file
-    created by the `mffer` command line application and then "Confirm" it for upload.
+13. When the app reloads, under "Upload new mffer data" select a CSV file
+    created by the mffer command line application and then "Confirm" it for upload.
 14. To visit the deployed test version of the web app, use `clasp` at the
     command line:
     ```shell
@@ -971,5 +971,5 @@ GCP project, then submit your app for [verification](https://developers.google.c
 ## See also
 
 -   [The Structure of Marvel Future Fight](mff.md)
--   [Contributing to `mffer`](CONTRIBUTING.md)
--   [The `mffer` API](api/index.rst)
+-   [Contributing to mffer](CONTRIBUTING.md)
+-   [The mffer API](api/index.rst)

@@ -1,4 +1,4 @@
-# `mffer` `apkdl`
+# mffer `apkdl`
 
 Obtaining Marvel Future Fight program files
 
@@ -13,7 +13,7 @@ $ apkdl -h
 
 `apkdl` downloads the latest version of the Marvel Future Fight program from the
 Play Store. This is primarily useful for further analysis and exploration of the
-game program files; it does not download the game data used directly by `mffer`.
+game program files; it does not download the game data used directly by mffer.
 
 ## Options
 

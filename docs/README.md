@@ -1,16 +1,16 @@
-# `mffer` documentation
+# mffer documentation
 
 ## Marvel Future Fight
 
-[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
+[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [Netmarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and Netmarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
 
-[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [NetMarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to collect and modify with dozens of different resources, and enough game modes to make mastering all of them nigh impossible.
+[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [Netmarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to collect and modify with dozens of different resources, and enough game modes to make mastering all of them nigh impossible.
 
 As such, the game has a large amount of data about the characters, resources, stores, game modes and levels, and actions, even before taking into account the variations between individual players. Although there is information available from those who have significant experience playing the game, objective quantitative data is rarely documented well and is of uncertain provenance.
 
 ## This Project
 
-This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [NetMarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
+This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [Netmarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
 
 The project currently includes multiple components:
 
@@ -35,7 +35,7 @@ The objectives of this umbrella project are:
 
 ### Downloading a Release
 
-"Releases" of `mffer` correspond to sets of files that are designed to be
+"Releases" of mffer correspond to sets of files that are designed to be
 "complete" in that any changes in them are designed to work together, have
 documentation that appropriately describes them, and have pre-built
 [versions](#versioning) that can be downloaded and run without further building
@@ -70,7 +70,7 @@ Then import the resulting CSV file into the webapp.
 
 Full options and further descriptions of individual commands can be found in
 their corresponding pages: [`apkdl`](apkdl.md),
-[`autoanalyze`](autoanalyze.md), [`mffer`](mffer.md), and
+[`autoanalyze`](autoanalyze.md), [mffer](mffer.md), and
 [the webapp](webapp.md).
 
 ### Obtaining and Extracting the Data Files

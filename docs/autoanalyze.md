@@ -1,4 +1,4 @@
-# `mffer` `autoanalyze`
+# mffer `autoanalyze`
 
 Creating a framework for Marvel Future Fight exploration
 

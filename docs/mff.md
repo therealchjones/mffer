@@ -7,7 +7,7 @@ Existentially Inconsequential Things I Learned
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS and
 Android) online role playing game published by
-[NetMarble](http://netmarble.com). It is developed using
+[Netmarble](http://netmarble.com). It is developed using
 [Unity](https://unity.com) and compiled into native code for its platforms using
 [IL2CPP](https://docs.unity3d.com/Manual/IL2CPP.html). The Android version is
 available from the Play Store.
@@ -99,7 +99,7 @@ Steps & Results:
     Δ/data/data/com.netmarble.mherosgb/files/nmsslg.nmss
     ```
 
-    _unknown, likely regarding NetMarble Security System_
+    _unknown, likely regarding Netmarble Security System_
 
     ```
     Δ/data/data/com.netmarble.mherosgb/shared_prefs/NetmarbleS.CrashReport.xml
@@ -347,7 +347,7 @@ possible, consider the following example and tables.
 
 #### Example: data for a Unity game
 
-In your glamorous job as a NetMarble Marvel Future Fight creative developer,
+In your glamorous job as a Netmarble Marvel Future Fight creative developer,
 you've had the honor of designing a new uniform (with a whole new set of
 skills!) for Captain Marvel herself. There's already a huge database of
 information on the other characters and uniforms in the game, and it's time to
@@ -396,7 +396,7 @@ another layer, a single file that in turn contains all the assets. This may be
 invisible to Unity programmers, but especially when trying to open AssetBundle
 files with other tools may become more apparent. Between an _AssetBundle_ and an
 _Asset_ (or _AssetFile_), then, is this _AssetsFile_ (note the extra
-pluralization). `mffer` generally tries to encapsulate this away within an
+pluralization). mffer generally tries to encapsulate this away within an
 `IAssetReader` implementation, but it may be necessary to make note of it
 (especially if trying to create such an implementation).
 
@@ -470,7 +470,7 @@ varies by installation.
 
 There are various Unity assets and asset bundles throughout this tree (as well
 as within the `/data/app/*/*/base.apk` file), but the ones currently used in
-`mffer` are in
+mffer are in
 `/data/media/0/Android/data/com.netmarble.mherosgb/files/bundle/`. Additionally,
 "preferences" from `/data/data/com.netmarbe.mherosgb/shared_prefs/` are
 extracted, though these do not store true individualized preferences but rather
@@ -484,7 +484,7 @@ Important functions with lots of info to explore:
 
 -   `TableUtility$$LoadAll`
 
-## The `mffer` Model
+## The mffer Model
 
 -   `Game` (Marvel Future Fight)
     -   has zero or more `Player`s
@@ -504,19 +504,19 @@ Important functions with lots of info to explore:
 
 A detailed description of the types (and their associated members) is
 available in the API reference. Of note, while these are quite clearly arranged
-hierarchically in `mffer` conceptually, this does not imply that the types
+hierarchically in mffer conceptually, this does not imply that the types
 themselves are nested; they are generally not nested in Marvel Future Fight
 code.
 
-### Assumptions in `mffer`
+### Assumptions in mffer
 
 Best practices in evaluating the data available from Marvel Future Fight include
 answering questions the same way the game's code answers them. When there is a
 defined algorithm for converting one piece of information to another, that's
-what should be followed by `mffer` in making the same conversion. For instance,
+what should be followed by mffer in making the same conversion. For instance,
 the conversion from `heroId` to `baseId` in Marvel Future Fight code is an odd
 and highly specific calculation, but ensuring this same calculation is the one
-used in `mffer` makes sure the data remains consistent.
+used in mffer makes sure the data remains consistent.
 
 However, not all information is accessible in the Marvel Future Fight code, and
 some may not even be present. As such, multiple assumptions are needed when
@@ -542,7 +542,7 @@ fidelity, we report those assumptions in this section.
 #### Roster & Character model
 
 Marvel Future Fight's characters appear to primarily be differentiated via
-object properties rather than the hierarchy used in `mffer`, and we only assume
+object properties rather than the hierarchy used in mffer, and we only assume
 that the hierarchical model fits reality. Specifically, multiple character
 properties are associated with different levels in the hierarchy, and the
 assumptions we make in which property is associated with a given level is based
@@ -593,14 +593,14 @@ than having a more subtle error.
 ## Exploration tools
 
 Multiple tools have been used to explore Marvel Future Fight. Most are not
-directly associated with the `mffer` project, but a few were used historically
+directly associated with the mffer project, but a few were used historically
 or continue to be used to promote its ongoing development and further
-exploration of the game. These remain in the `tools/` directory of the `mffer`
+exploration of the game. These remain in the `tools/` directory of the mffer
 git repository.
 
 ### `autoextract`
 
-Formerly a part of the `mffer` workflow, `autoextract` uses Android device
+Formerly a part of the mffer workflow, `autoextract` uses Android device
 emulation and user interaction to obtain game program and data files. This may
 work when other completely automated methods for downloading the data no longer
 succeed due to Marvel Future Fight changes. It requires Java and cannot be

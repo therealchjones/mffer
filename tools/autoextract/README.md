@@ -1,4 +1,4 @@
-# `mffer` `autoextract`
+# mffer `autoextract`
 
 Obtaining and extracting Marvel Future Fight data files
 
@@ -14,7 +14,7 @@ $ autoextract -h
 `autoextract` semi-automates the process of installing the latest version of
 Marvel Future Fight from the Play Store, reinstalling it on a rootable emulated
 Android device, and downloading the game-related files that can be processed by
-`mffer` to extract usable data.
+mffer to extract usable data.
 
 ## Options
 
@@ -65,4 +65,4 @@ emulator's filesystem.
 ## See Also
 
 `autoextract` has been largely superseded by [apkdl](apkdl.md) and functionality
-built into [`mffer`](mffer.md).
+built into [mffer](mffer.md).

@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
-	/// Represents a file to download from NetMarble
+	/// Represents a file to download from Netmarble
 	/// </summary>
 	public class DownloadFile : GameObject {
 		int checkHashType;

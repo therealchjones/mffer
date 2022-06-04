@@ -1,4 +1,4 @@
-# Contributing to `mffer`
+# Contributing to mffer
 
 Guidelines, notes, and tips for maintaining and adding to the mffer project
 
@@ -19,7 +19,7 @@ This document includes information ranging from
 to [general instructions for contributing](#so-youve-got-this-idea). It does
 not include many technical details, such as the project design, coding styles,
 or recommended tools. (For those, dive into the
-[Development Guide](Development.md).) For information about the `mffer` project
+[Development Guide](Development.md).) For information about the mffer project
 that's not directly related to making contributions, check the
 [User Guide](USAGE.md).
 
@@ -92,7 +92,7 @@ others may be able to point you in the right direction.
 
 Take a look at the [Development Guide](Development.md), and figure out how your
 idea best fits into the project: should you edit some documentation, write a
-program that uses the `mffer` library, or write a better algorithm for reading
+program that uses the mffer library, or write a better algorithm for reading
 from the filesystem? This may also lead you to browsing the
 [source code](https://github.com/therealchjones/mffer/) or reviewing the API.
 
@@ -110,7 +110,7 @@ And maybe you have another idea...
 
 ## Copyright
 
-`mffer` is released into the "public domain" where such a thing exists; for the
+mffer is released into the "public domain" where such a thing exists; for the
 sake of formality, see [the CC0 license](../LICENSE). Further details about how
 this may affect your contributions are in the
 [Copyright section of the Development Guide](Development.md#copyright--licensing).

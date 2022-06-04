@@ -1,28 +1,28 @@
-# Using `mffer`
+# Using mffer
 
 ## Introduction
 
-The `mffer` project develops software that creates and updates the
-[`mffer` webapp](https://mffer.org). It is not necessary to review any of this
+The mffer project develops software that creates and updates the
+[mffer webapp](https://mffer.org). It is not necessary to review any of this
 to [use the webapp](https://mffer.org).
 
-The `mffer` tools obtain, extract, and analyze
+The mffer tools obtain, extract, and analyze
 [Marvel Future Fight](#marvel-future-fight) (MFF) program and data files,
 process the resulting information into formats that are easily read by humans,
 and presents that information interactively to assist with MFF game play. This
-`mffer` User Guide describes the `mffer` tools and how to use them.
+mffer User Guide describes the mffer tools and how to use them.
 
-While even using the `mffer` tools may be of interest only to software
+While even using the mffer tools may be of interest only to software
 developers, data analysts, and others inclined to take apart systems and see how
-they work, this guide does not discuss doing so with `mffer` itself. If you're
-interested in extending, modifying, or improving the `mffer` tools, you may
-prefer reading the [`mffer` Development Guide](Development.md).
+they work, this guide does not discuss doing so with mffer itself. If you're
+interested in extending, modifying, or improving the mffer tools, you may
+prefer reading the [mffer Development Guide](Development.md).
 
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile (iOS
 & Android) online role-playing game by
-[NetMarble](https://company.netmarble.com/). It's set in the extended
+[Netmarble](https://company.netmarble.com/). It's set in the extended
 [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to
 collect and modify with dozens of different resources, and enough game modes to
 make mastering all of them nigh impossible.
@@ -33,12 +33,12 @@ variations between individual players. Although there is information available
 from those who have significant experience playing the game, objective
 quantitative data is rarely documented well and is of uncertain provenance.
 
-## The `mffer` project
+## The mffer project
 
 This project is intended to facilitate analysis of
 [Marvel Future Fight](#marvel-future-fight) and provide access to the data it
 uses for game play. This is almost certainly against the
-[NetMarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en)
+[Netmarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en)
 as well as those of multiple affiliates.
 
 The project currently includes multiple components:
@@ -52,40 +52,40 @@ The project currently includes multiple components:
 
 ## Introduction
 
-There are several possible uses for the `mffer` project. A few are readily
+There are several possible uses for the mffer project. A few are readily
 apparent, and the workflows for those are described here, with references to
 related documents as needed. In brief, these are:
 
--   [Using the `mffer` webapp](#using-the-mffer-webapp) to review Marvel Future
+-   [Using the mffer webapp](#using-the-mffer-webapp) to review Marvel Future
     Fight data
--   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
+-   [Using the mffer command line tools](#using-the-mffer-command-line-tools)
     to extract, analyze, or summarize Marvel Future Fight data
 
-Additionally, `mffer` code may be useful to those trying to explore Marvel
+Additionally, mffer code may be useful to those trying to explore Marvel
 Future Fight, explore similar apps, deploy a custom version of the webapp, or
-contribute to `mffer` itself. For these topics, refer to the [development
+contribute to mffer itself. For these topics, refer to the [development
 guide](Development.md).
 
-## Using the `mffer` webapp
+## Using the mffer webapp
 
-The `mffer` webapp is at https://mffer.org.
+The mffer webapp is at https://mffer.org.
 
 The webapp should be intuitive. If additional explanation is required for proper
 use, that is due to limitations of the developers, not the users; please
 consider [filing an issue](https://github.com/therealchjones/mffer/issues) if
 something is unclear.
 
-## Using the `mffer` command line tools
+## Using the mffer command line tools
 
-The `mffer` command line tools obtain the latest version of Marvel Future Fight,
+The mffer command line tools obtain the latest version of Marvel Future Fight,
 extract its usable data, process the data into a format suitable for human
 review or computer use, and provide the data to the webapp. It is not necessary
 to use the command line tools to
 [just use the webapp yourself](https://mffer.org).
 
-### Obtaining the `mffer` command line tools
+### Obtaining the mffer command line tools
 
-"Releases" of `mffer` correspond to sets of files that are designed to be
+"Releases" of mffer correspond to sets of files that are designed to be
 "complete" in that any changes in them are designed to work together, they have
 documentation that appropriately describes them, and they have pre-built
 versions that can be downloaded and run without further building
@@ -107,7 +107,7 @@ files in a single directory. Unzip the package into a directory of your choice.
 
 ### Requirements
 
-The `mffer` tool itself does not require any other specific software. It will
+The mffer tool itself does not require any other specific software. It will
 run on a system that
 [supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
 but no .NET or Mono runtime needs to be separately installed.
@@ -152,14 +152,14 @@ and `mffer-`_`version`_`.json` for the current version of Marvel Future Fight.
 The first is a character-delimited spreadsheet of the many characters you can
 choose in MFF and their different uniforms, all with stats at different skill
 levels. The JSON file is a large human- and machine-readable file that includes
-all the data `mffer` knows how to process (such as characters, uniforms,
+all the data mffer knows how to process (such as characters, uniforms,
 dictionaries, and skills) as well as readable versions of all the other
 text-based data that is downloadable. The files in the
 _`output_directory`_`/files` subdirectory are the raw [Unity](https://unity.com)
 data files called
 "[AssetBundle](https://docs.unity3d.com/Manual/AssetBundlesIntro.html)s" used by
 Marvel Future Fight. Exploring these are the best way to identify previously
-unprocessed data. Those not processed by `mffer` (including graphics, level
+unprocessed data. Those not processed by mffer (including graphics, level
 data, and background music) can be explored with tools like [AssetStudio](https://github.com/Perfare/AssetStudio).
 
 ### Using and presenting the data
@@ -174,7 +174,7 @@ including algorithms and use of the data, are less easily evaluated directly.
 More details and specifics of how the program works are given in
 [The structure of Marvel Future Fight](mff.md), but much of the code you'll want to review is in a
 file deep within
-the program files' directory structure named `libil2cpp.so`. The `mffer` tools
+the program files' directory structure named `libil2cpp.so`. The mffer tools
 can help facilitate this review by processing this file before you manually
 evaluate it further:
 
@@ -213,10 +213,10 @@ evaluate it further:
 
 -   [`apkdl`](apkdl.md)
 -   [`autoanalyze`](autoanalyze.md)
--   [`mffer`](mffer.md)
--   [the `mffer` webapp](webapp.md)
+-   [mffer](mffer.md)
+-   [the mffer webapp](webapp.md)
 
 ### Guides
 
--   [`mffer` Development Guide](Development.md)
+-   [mffer Development Guide](Development.md)
 -   [The Structure of Marvel Future Fight](mff.md)
