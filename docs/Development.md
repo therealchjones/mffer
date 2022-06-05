@@ -156,7 +156,7 @@ paths:
 
 |               |                                    |
 | ------------- | ---------------------------------- |
-| `apkdl`       | _mffer_`/src/scripts/apkdl`        |
+| apkdl         | _mffer_`/src/scripts/apkdl`        |
 | `autoanalyze` | _mffer_`/src/scripts/autoanalyze`  |
 | mffer         | _mffer_`/bin/Debug/net5/mffer.dll` |
 
@@ -169,7 +169,7 @@ requirements for running the programs themselves additionally include:
     (required for `autoanalyze`)
 -   Java 11 runtime or SDK (required for `autoextract` and Ghidra); consider
     [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
--   Python 3 (required for `apkdl`)
+-   Python 3 (required for apkdl)
 
 ### Recommendations
 
@@ -638,7 +638,7 @@ in the code itself.
 
 ## Building mffer
 
-1. `apkdl` and `autoanalyze` are shell scripts and require no building.
+1. apkdl and `autoanalyze` are shell scripts and require no building.
 2. Building the dotnet app: from within the root mffer directory,
     ```shell
     $ dotnet build mffer.csproj
@@ -681,7 +681,7 @@ $ dotnet publish -c release
 The result will be files placed in the `release` directory of the source tree.
 There are files are named `mffer-`_`version`_`-`_`platform`_`.zip` for each of the
 built platforms (by default, `win-x64`, `osx-x64`, and `linux-x64`). These files
-contain the mffer executable file and its associated scripts, `apkdl`
+contain the mffer executable file and its associated scripts, apkdl
 and `autoanalyze`, and may contain other supporting files. A
 platform-independent file `mffer-`_`version`_`-net5.0.zip` includes several
 other files needed to run the mffer program using the .NET 5.0 runtime (not
@@ -731,7 +731,7 @@ This script:
 2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
 3. Builds mffer
 4. Resets the virtual machine
-5. Tests `apkdl` (which requires manual interaction)
+5. Tests apkdl (which requires manual interaction)
 6. Resets the virtual machine
 7. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
 8. Tests `autoanalyze`
@@ -742,7 +742,7 @@ This script:
 1. Install Ubuntu 20.04 & apply all available updates
 2. Install Parallels Tools
 3. Test mffer
-4. Test `apkdl`
+4. Test apkdl
 5. Test `autoanalyze`
 
 ### Windows
@@ -753,7 +753,7 @@ This script:
 4. Install
    [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 5. Install Git (with Git Bash)
-6. Test `apkdl`
+6. Test apkdl
 7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
 8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
 9. Test `autoanalyze`
@@ -771,7 +771,7 @@ scripts are each used to build the virtual machines and then build the candidate
 release versions of the software on each system. Each of those builds is then
 tested on each reference system, resulting in a testing checklist such as:
 
-> #### `apkdl`
+> #### apkdl
 >
 > -   [ ] windows
 > -   [ ] macOS

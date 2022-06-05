@@ -112,11 +112,11 @@ run on a system that
 [supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
 but no .NET or Mono runtime needs to be separately installed.
 
-The other tools, `apkdl` and `autoanalyze`, have a few other requirements:
+The other tools, apkdl and `autoanalyze`, have a few other requirements:
 
--   POSIX-like typical development environment (required for `apkdl` and
+-   POSIX-like typical development environment (required for apkdl and
     `autoanalyze`)
--   Python 3 (required for `apkdl`)
+-   Python 3 (required for apkdl)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
     (required for `autoanalyze`)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)
@@ -133,7 +133,7 @@ require installation of a Java runtime (or SDK); we recommend the "Temurin"
 OpenJDK 11 distribution freely available from
 [Adoptium.net](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot).
 
-Additionally, other programs are obtained and run by the `apkdl` and
+Additionally, other programs are obtained and run by the apkdl and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
 
@@ -178,7 +178,7 @@ the program files' directory structure named `libil2cpp.so`. The mffer tools
 can help facilitate this review by processing this file before you manually
 evaluate it further:
 
-1.  Use `apkdl` to download and extract the latest Marvel Future Fight program
+1.  Use apkdl to download and extract the latest Marvel Future Fight program
     files:
 
     ```shell
@@ -211,7 +211,7 @@ evaluate it further:
 
 ### Brief manuals
 
--   [`apkdl`](apkdl.md)
+-   [apkdl](apkdl.md)
 -   [`autoanalyze`](autoanalyze.md)
 -   [mffer](mffer.md)
 -   [the mffer webapp](webapp.md)

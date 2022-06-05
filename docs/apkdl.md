@@ -1,4 +1,4 @@
-# mffer `apkdl`
+# apkdl
 
 Obtaining Marvel Future Fight program files
 
@@ -11,9 +11,10 @@ $ apkdl -h
 
 ## Description
 
-`apkdl` downloads the latest version of the Marvel Future Fight program from the
-Play Store. This is primarily useful for further analysis and exploration of the
-game program files; it does not download the game data used directly by mffer.
+apkdl downloads the latest version of the Marvel Future Fight program from the
+Google Play Store. This is primarily useful for further analysis and exploration
+of the game program files; it does not download most of the game data used by
+mffer.
 
 ## Options
 
@@ -25,21 +26,21 @@ game program files; it does not download the game data used directly by mffer.
 
 ## Extended Description
 
-`apkdl` downloads the APK installation files for the latest
+apkdl downloads the APK installation files for the latest
 release of Marvel Future Fight. With a minimum of
-pre-installed software, `apkdl` will obtain the remainder of necessary
-software. `apkdl` installs software into temporary directories in an
+pre-installed software, apkdl will obtain the remainder of necessary
+software. apkdl installs software into temporary directories in an
 attempt to minimize changes to its host system, but does not use a `chroot` jail
 or other mechanisms to truly isolate itself.
 
-By default, `apkdl` prints information only when giving instructions for
+By default, apkdl prints information only when giving instructions for
 user interaction. To add brief informational messages about the current step in
 the process, add the `-v` option. Adding the `-v` option again enables "debug"
-output that includes echoing all shell commands in `apkdl` and printing
+output that includes echoing all shell commands in apkdl and printing
 the verbose output from each individual tool called. Adding further `-v` options
 has no effect.
 
-The final product created by `apkdl` is a directory named `mff-apks-`_`date`_
+The final product created by apkdl is a directory named `mff-apks-`_`date`_
 within _`output_directory`_. This directory contains the `.apk` installation
 files used to install the game onto an Android device.
 
@@ -49,9 +50,11 @@ files used to install the game onto an Android device.
     programs are available (macOS/OS X, Windows with Cygwin or
     another POSIX layer, or Linux).
 -   Internet connection with access to the Google Play Store
--   A Google account (to log into the Play store)
+-   A Google account with an
+    [app password](https://support.google.com/accounts/answer/185833) (to log
+    into the Play store)
 
 ## See Also
 
--   Other concepts, examples, and workflows including `apkdl` are in the
+-   Other concepts, examples, and workflows including apkdl are in the
     [User Guide](USAGE.md).

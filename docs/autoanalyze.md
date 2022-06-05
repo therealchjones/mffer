@@ -29,7 +29,7 @@ bytecode, to prepare for further (manual) code exploration and analysis.
 
 `autoanalyze` uses [Il2CppInspector](https://github.com/djkaty/Il2CppInspector)
 to prepare data structure information (C types and function signatures) from the
-device files extracted by [`apkdl`](apkdl.md) or similar tools. It then creates a
+device files extracted by [apkdl](apkdl.md) or similar tools. It then creates a
 new [Ghidra](https://ghidra-sre.org) project, imports the binary application
 data, applies the information from Il2CppInspector, and performs a Ghidra
 auto-analysis. Finally, `autoanalyze` uses
@@ -59,7 +59,7 @@ Adding further `-v` options has no effect.
 contain somewhere beneath it files named `base.apk` and
 `config.`_`abi`_`.apk` (for some ABI name). This may be a simple directory
 containing these files, such as the `mff-apks-`_`date`_ directory made by
-`apkdl`, some subset of an Android filesystem such as the
+apkdl, some subset of an Android filesystem such as the
 `mff-device-files-`_`version`_ directory created by the `autoextract` program,
 or any other searchable file hierarchy containing these two files. If more than
 one of each type of file is located, an error message is printed; the easiest
@@ -89,6 +89,6 @@ the decompiled Java code from the device-independent portion of the application.
 
 ## See also
 
--   [`apkdl`](apkdl.md)
+-   [apkdl](apkdl.md)
 -   Other concepts, examples, and workflows including `autoanalyze` are in the
     [User Guide](USAGE.md).

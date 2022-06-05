@@ -69,7 +69,7 @@ $ mffer --outputdir output_directory
 Then import the resulting CSV file into the webapp.
 
 Full options and further descriptions of individual commands can be found in
-their corresponding pages: [`apkdl`](apkdl.md),
+their corresponding pages: [apkdl](apkdl.md),
 [`autoanalyze`](autoanalyze.md), [mffer](mffer.md), and
 [the webapp](webapp.md).
 
