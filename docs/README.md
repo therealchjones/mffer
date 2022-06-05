@@ -4,25 +4,6 @@ This project develops software that creates and updates the [`mffer` webapp](htt
 
 This is a _detailed_ overview of the [`mffer`](https://github.com/therealchjones/mffer) project with references to other available documents in the project. A [more concise README document](../README.md) is available in the [root directory](../).
 
-## Contents
-
-- [Marvel Future Fight](#marvel-future-fight)
-- [This Project](#this-project)
-- [Versioning](#versioning)
-- [Requirements](#requirements)
-- [Installation](#installation)
-	- [Downloading a Release](#downloading-a-release)
-	- [Cloning the GitHub Repository](#cloning-the-github-repository)
-- [Usage](#usage)
-	- [Obtaining and Extracting the Data Files](#obtaining-and-extracting-the-data-files)
-	- [Exploring the Data](#exploring-the-data)
-	- [Exploring the Code](#exploring-the-code)
-	- [Using and Presenting the Data](#using-and-presenting-the-data)
-- [Copyright](#copyright)
-- [Contributing](#contributing)
-- [Problems & possible workarounds](#problems--possible-workarounds)
-	- [Android emulator does not recognize internet connection](#android-emulator-does-not-recognize-internet-connection)
-
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile role-playing game by [NetMarble](https://company.netmarble.com/) set in the extended [Marvel](https://www.marvel.com/) multiverse. It is made with many industry-standard tools, including programming in Java and C# for Unity (using il2cpp), packaged (or at least delivered) as split APKs for Android from the Google Play Store, and using Facebook and NetMarble servers for user and game data storage. As such, even if you don't play MFF, the descriptions of techniques used in this project for exploring those many components may contain some useful knowledge.
@@ -51,13 +32,6 @@ The objectives of this umbrella project are:
 -   easily track important player-specific data to evaluate progress and plan modifications
 
 ## Versioning
-
-`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version
-numbers. While no stable release (and thus no stable API) has been completed,
-the major version will remain 0. The minor version will continue to be
-incremented for any changes to what is _expected to be_ the API. The patch
-version will change with any other "releases". The first (unstable) release
-(without a stable API) will be version 0.1.0.
 
 ## Requirements
 
@@ -90,7 +64,7 @@ described in the [Development guide](./Development.md).
 
 ## Usage
 
-The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#about-mffer), with an overall workflow in [USAGE](USAGE.md). Briefly:
+The project is currently likely to be of utility only to developers (however you may define that). Detailed usage instructions and explanations for the individual components are documented in [the above component documents](#this-project), with an overall workflow in [USAGE](USAGE.md). Briefly:
 
 ```shell
 $ mffer --outputdir output_directory
@@ -125,15 +99,6 @@ evaluated.
 ### Using and Presenting the Data
 
 Upload the results using the webapp.
-
-## Copyright
-
-Wherever possible, code from `mffer` is in the public domain; see [the CC0 License](../LICENSE) for details. However, there are a few files that are adapted from projects with more restrictive licenses. These files contain the appropriate license notifications within the files themselves, and are also listed below with links to the license requirements.
-
-| file                                              | original project                                                                     | license                                                               |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| [picker.html](../src/webapp/Subpages/picker.html) | [Google Apps Script Samples](https://github.com/googleworkspace/apps-script-samples) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)             |
-| all others                                        | [`mffer`](../)                                                                       | [CC0](https://creativecommons.org/share-your-work/public-domain/cc0/) |
 
 ## Contributing
 

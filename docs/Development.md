@@ -7,61 +7,6 @@
 -   [`Component`s](#making-a-custom-component)
 -   [APIs](#the-mffer-apis)
 
-## Full contents
-
-- [Highlights](#highlights)
-- [Full contents](#full-contents)
-- [Introduction](#introduction)
-- [Copyright & licensing](#copyright--licensing)
-- [Setting up a development environment](#setting-up-a-development-environment)
-	- [Build requirements](#build-requirements)
-	- [Program requirements](#program-requirements)
-	- [Recommendations](#recommendations)
-	- [Setup](#setup)
-		- [In Visual Studio Code](#in-visual-studio-code)
-		- [At the command line](#at-the-command-line)
-	- [Included tools](#included-tools)
-- [Writing documentation](#writing-documentation)
-	- [Source tree](#source-tree)
-	- [README](#readme)
-		- [At-a-glance README](#at-a-glance-readme)
-		- [Comprehensive README](#comprehensive-readme)
-		- [More about READMEs](#more-about-readmes)
-	- [CONTRIBUTING](#contributing)
-- [Writing code](#writing-code)
-	- [Coding Style](#coding-style)
-		- [Whitespace](#whitespace)
-		- [Code Style](#code-style)
-		- [Comments](#comments)
-	- [Tools](#tools)
-		- [Visual Studio Code](#visual-studio-code)
-		- [Formatters](#formatters)
-		- [Linters](#linters)
-- [Making a custom `Program.cs`](#making-a-custom-programcs)
-- [Making a custom `Component`](#making-a-custom-component)
-- [Changing `mffer` internals](#changing-mffer-internals)
-	- [`mffer` best practices](#mffer-best-practices)
-	- [Models & designs](#models--designs)
-		- [The repository directory tree](#the-repository-directory-tree)
-		- [Code structure](#code-structure)
-- [The `mffer` APIs](#the-mffer-apis)
-- [Building `mffer`](#building-mffer)
-	- [Building a release](#building-a-release)
-- [Testing `mffer`](#testing-mffer)
-	- [Testing environments](#testing-environments)
-	- [Testing on macOS](#testing-on-macos)
-	- [Linux](#linux)
-	- [Windows](#windows)
-	- [Testing releases](#testing-releases)
-- [Releasing `mffer`](#releasing-mffer)
-- [The `mffer` webapp](#the-mffer-webapp)
-	- [Description](#description)
-	- [Deploying the webapp](#deploying-the-webapp)
-		- [Requirements](#requirements)
-		- [Setting Up Google Cloud Platform](#setting-up-google-cloud-platform)
-		- [Uploading and configuring the webapp](#uploading-and-configuring-the-webapp)
-- [See also](#see-also)
-
 ## Introduction
 
 The `mffer` project obtains, extracts, parses, and reports data from Marvel
@@ -84,7 +29,7 @@ completely) arbitrary guidelines in this document, enjoy the work or do
 something else. Respect others' rights to make the same choice, and to change
 their minds (or change their minds back) at any time. Abide by the
 [contributing guidelines](CONTRIBUTING.md) and the accompanying
-[Contributor Covenant](../CODE_OF_CONDUCT.md). Enjoy yourself, and provide a
+[Contributor Covenant](conduct.rst). Enjoy yourself, and provide a
 community in which others can do the same.
 
 And, on a somewhat more technical note, read on for details on just a few of the
@@ -105,11 +50,23 @@ doesn't have to be a "real issue" (though those are welcome as well).
 
 Though some files adapted from other projects are released under more
 restrictive licensing, most of `mffer` is in the public domain. (See
-[LICENSE](../LICENSE).) This means that you're free to do with it what you want,
+[the license](license.rst).) This means that you're free to do with it what you want,
 without other copyright restrictions or requirements of your own work, unless
-you adapt one of those other files; they are clearly identified in the contents
-of the affected files themselves and are additionally
-[listed in the README](README.md).
+you adapt one of those other files; they contain the appropriate license
+notifications within the files themselves, and are also listed below with links
+to the license requirements.
+
+| file | original project | license |
+| ---- | ---------------- | ------- |
+| None |                  |         |
+
+Note that the binary releases likely include a greater variety of
+copyright-protected content, as included by the build process.
+
+In addition, contributing code to the project from other sources requires
+careful examination of the licensing of those sources, and contributing original
+code requires developers to specifically note the license (or release) under
+which their code is provided.
 
 ## Setting up a development environment
 
@@ -234,19 +191,20 @@ documentation associated with `mffer`.
 
 ### Source tree
 
-With few exceptions (notably, a [brief README](../README.md), the
-[License](../LICENSE), and the [Contributor Covenant](../CODE_OF_CONDUCT.md)),
-documentation should be in the [`docs` directory](./). [`docs/api`](api/) is home
-to the auto-generated API reference and should generally not be edited.
+With few exceptions (notably, a brief `README`, the `LICENSE`, and the
+`CODE_OF_CONDUCT`), documentation sources should be in the `docs` directory.
+`docs/api/` is the placeholder home to the auto-generated API reference and
+should generally not be edited.
 
 ### README
 
-There are two different README files in the project:
-
--   An ["at-a-glance" version](../README.md) in [/](../)
--   A ["Comprehensive" version/index](README.md) in [docs](./)
-
-For both versions,
+README files in `mffer` are designed to be read on GitHub with reference to the
+more formal documentation (and are not included in the formal documentation). In
+the root directory of the project, the `README` file is meant to be information
+used "at a glance", with several guidelines available. Other `README` files are
+typically placeholders intended to notify the reader that the "real"
+documentation is elsewhere and that the directories in which they reside are
+used for source files, not for complete readable docs.
 
 -   [shields](https://shields.io)/badges etc are nice but not great for a
     readme, more "marketing"; would probably be good for a website though not
@@ -280,7 +238,7 @@ For both versions,
 
 #### Comprehensive README
 
--   anything from [At-a-glance](#at-a-glance)
+-   anything from [At-a-glance README](#at-a-glance-readme)
 -   name the thing ([How to write a kickass
     README](https://dev.to/scottydocs/how-to-write-a-kickass-readme-5af9))
 -   introduction or summary (2 or 3 lines, what it does and who it is for,
@@ -393,7 +351,7 @@ or struct definition, or other label associated with it. A space need not be
 between the function or method call label and its associated parentheses, but
 can be if it increases readability. More detailed descriptions of spacing
 associated with specific circumstances can be gathered from the
-[EditorConfig file](../.editorconfig); the nonstandard extension EditorConfig settings are
+EditorConfig file; the nonstandard extension EditorConfig settings are
 documented in Microsoft's
 [.NET & C# Formatting Rules Reference](https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules).
 
@@ -428,16 +386,15 @@ contributors. These are also covered in
 
 #### Visual Studio Code
 
-Much of the initial work on the project has been done in [Visual Studio
-Code](https://code.visualstudio.com). While this is in no way required for
-contributing to the project, it is relatively easy to use VS Code to set up an
-environment that automatically mimics much of the style used throughout the
-project. If you clone or fork the current project repository, your new one will
-include a [`.vscode` directory](.vscode/) that stores
-[settings](.vscode/settings.json) and
-[extension recommendations](.vscode/extensions.json) to use for this project in particular.
-If you use a different editor, you should use one that allows you to set formats
-that are applied automatically, and they should match those set in this project.
+Much of the initial work on the project has been done in
+[Visual Studio Code](https://code.visualstudio.com). While this is in no way
+required for contributing to the project, it is relatively easy to use VS Code
+to set up an environment that automatically mimics much of the style used
+throughout the project. If you clone or fork the current project repository,
+your new one will include a `.vscode` directory that stores settings and
+extension recommendations to use for this project in particular. If you use a
+different editor, you should use one that allows you to set formats that are
+applied automatically, and they should match those set in this project.
 
 #### Formatters
 
@@ -446,12 +403,12 @@ tools and as extensions for Visual Studio Code. Where appropriate, specific
 settings that are different than the defaults are kept in settings files
 included in the repository.
 
-| Formatter    | VS Code Extension                                                                                          | Configuration                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | [.editorconfig](../.editorconfig)                                                     |
-| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | [.editorconfig](../.editorconfig)                                                     |
-| Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                                                  |
-| shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in [VS Code Settings](../.vscode/settings.json): `"shellformat.flag": "-bn -ci -i 0"` |
+| Formatter    | VS Code Extension                                                                                          | Configuration                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| EditorConfig | [editorconfig.editorconfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig) | `.editorconfig`                                                  |
+| OmniSharp    | [ms-dotnettools.csharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)         | `.editorconfig`                                                  |
+| Prettier     | [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)       | None                                                             |
+| shfmt        | [foxundermoon.shell-format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format) | in `.vscode/settings.json`: `"shellformat.flag": "-bn -ci -i 0"` |
 
 #### Linters
 
@@ -468,26 +425,26 @@ Linters recommended for this project include:
 ## Making a custom `Program.cs`
 
 `mffer` isn't (yet) built as a library, but you can still change the main entry
-point in [Program.cs](../src/Program.cs) as you see fit, rather than using the
+point in `Program.cs` as you see fit, rather than using the
 default one with multiple command line options that automatically reads and
 reports all supported data.
 
 ## Making a custom `Component`
 
 The next step in customizing `mffer` for your own needs is to create a custom
-derivative of the [`Component` type](api//Mffer/ComponentType.md). This
+derivative of the `Component` type. This
 can be done in a [Custom `Program.cs`](#making-a-custom-programcs) or in a
 separate file. The derivative type should include a
-[constructor](api/mffer/../Mffer/Component/Component.md) that establishes the
+constructor that establishes the
 needed assets or other requirements and override a
-[Load() method](api/Mffer/Component/Load.md) that parses imported assets into
+`Load()` method that parses imported assets into
 the component members. More details are available in the
-[`Component` API entry](api//Mffer/ComponentType.md).
+`Component` [API](api/index.rst) entry.
 
 Accessing the newly designed component will typically involve
 [customizing `Program.cs`](#making-a-custom-programcs) or
 [changing more internals](#changing-mffer-internals) to customize the
-[`Version` type](api/Mffer/VersionType.md) so that your component is loaded
+`Version` type so that your component is loaded
 along with all the others.
 
 ## Changing `mffer` internals
@@ -614,7 +571,7 @@ the code itself, but many are tested in the AssetFileTest class. More about the
 assumptions about how Marvel Future Fight works (from a programming perspective)
 are explicitly listed in [The Structure of Marvel Future Fight](mff.md), along
 with how they correspond to the design structures of `mffer`. Refer to that
-document and the [API](api/) for further detils.
+document and the [API](api/index.rst) for further detils.
 
 ## The `mffer` APIs
 
@@ -633,7 +590,8 @@ in the code itself.
     ```shell
     $ dotnet xmldocmd ../bin/Debug/netcoreapp3.1/mffer.dll ../docs/api --visibility private --source https://github.com/therealchjones/mffer --clean --permalink pretty --namespace-pages
     ```
-4. The web app must be uploaded but there's nothing to build; see [Deploying & Releasing](#deploying--releasing)
+4. The web app must be uploaded but there's nothing to build; see
+   [Deploying the webapp](#deploying-the-webapp)
 
 ### Building a release
 
@@ -653,7 +611,7 @@ $ git tag v0.1.0-pre
 ```
 
 The name must be a string that starts with `v`. Official releases use the
-[Semantic Versioning](README.md#versioning) conventions, but you can use any
+[Semantic Versioning](#mffer-versioning) conventions, but you can use any
 string starting with `v`. (If you don't want to tag the git repository, you can
 alternatively set the environment variable `VersionString`.)
 
@@ -804,6 +762,15 @@ tested on each reference system, resulting in a testing checklist such as:
    branches, if supported), test, and increment the tag on the branch as needed,
    then create the new release on GitHub.
 
+### `mffer` versioning
+
+`mffer` uses [Semantic Versioning 2.0.0](https://semver.org) for version
+numbers. While no stable release (and thus no stable API) has been completed,
+the major version will remain 0. The minor version will continue to be
+incremented for any changes to what is _expected to be_ the API. The patch
+version will change with any other "releases". The first (unstable) release
+(without a stable API) will be version 0.1.0.
+
 ## The `mffer` webapp
 
 ### Description
@@ -825,7 +792,7 @@ Google's OAuth 2.0 authentication.
     [Google Apps Script](https://script.google.com), Google Drive, and Google
     Cloud Platform (the free tiers are all acceptable).
 -   POSIX-like development system (such as macOS, Linux, or Windows with Cygwin)
--   [Node.js](Node.js) & npm
+-   [Node.js](https://nodejs.org) & npm
 
 #### Setting Up Google Cloud Platform
 
@@ -948,4 +915,4 @@ GCP project, then submit your app for [verification](https://developers.google.c
 
 -   [The Structure of Marvel Future Fight](mff.md)
 -   [Contributing to `mffer`](CONTRIBUTING.md)
--   [`mffer` APIs](api/)
+-   [The `mffer` API](api/index.rst)
