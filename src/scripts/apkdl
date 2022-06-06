@@ -22,6 +22,9 @@ description() {
 GOOGLE_EMAIL=""
 GOOGLE_PASSWORD=""
 
+# Non-POSIX tools used in this script:
+# git, python3, pip3, mktemp
+
 # Prints an absolute pathname corresponding to path $1
 #
 # This is done by changing to the directory $1, so is best done in a
@@ -268,6 +271,13 @@ if ! OUTPUT="$(git clone https://github.com/marty0678/googleplay-api "$MFFTEMPDI
 elif [ -n "$DEBUG" ]; then
 	echo "$OUTPUT"
 fi
+
+# Order of installation is important. "Old" gpapi gets installed from pip, since
+# it includes the built protobuf files obviating the need for protoc to be
+# installed. Then install the requirements (with versions where needed) for the
+# "new" gpapi, so they're not overwritten by the old one's requirements, and
+# finally copy over the plain python files from the new one so they're the ones
+# actually used when importing.
 pip3 --disable-pip-version-check install gpapi >"$DEBUGOUT"
 pip3 --disable-pip-version-check install -r "$MFFTEMPDIR/googleplay-api/requirements.txt" >"$DEBUGOUT"
 GPAPIDIR="$(find "$MFFTEMPDIR/python" -type d -name "gpapi")"
@@ -278,13 +288,18 @@ fi
 cp -a "$MFFTEMPDIR/googleplay-api/gpapi/"* "$GPAPIDIR" || exit 1
 
 echo "Downloading files" >"$VERBOSEOUT"
-python3 <<EOF
+# Gets a version label formatted like "8.1.0-195390" while downloading the files
+if ! VERSION_LABEL="$(
+	python3 <<EOF
 import os
 from gpapi.googleplay import GooglePlayAPI
 
 server=GooglePlayAPI('en_US','America/New York','shamu')
 server.login('$GOOGLE_EMAIL','$GOOGLE_PASSWORD')
-download = server.download("com.netmarble.mherosgb")
+details = server.details("com.netmarble.mherosgb")
+versionString = details["details"]["appDetails"]["versionString"]
+versionCode = details["details"]["appDetails"]["versionCode"]
+download = server.download("com.netmarble.mherosgb",versionCode)
 name = download.get('docId')
 os.makedirs("$MFFTEMPDIR",exist_ok=True)
 filepath = os.path.join("$MFFTEMPDIR",name + ".apk")
@@ -296,7 +311,12 @@ for split in download.get('splits'):
 	with open (filepath, 'wb') as file:
 		for chunk in split.get('file').get('data'):
 			file.write(chunk)
+print(versionString+'-'+str(versionCode))
 EOF
+)"; then
+	echo "Unable to download MFF" >&2
+	exit 1
+fi
 
 BASEAPK="$MFFTEMPDIR"/com.netmarble.mherosgb.apk
 for file in "$MFFTEMPDIR"/config.*.apk; do
@@ -306,7 +326,7 @@ if [ ! -f "$BASEAPK" ] || [ ! -f "$SPLITAPK" ]; then
 	echo "MFF download files are invalid" >&2
 	exit 1
 fi
-MFFAPKDIR="$MFFOUTPUTDIR"/apks-"$(date '+%Y%m%d')"
+MFFAPKDIR="$MFFOUTPUTDIR"/mff-apks-"$VERSION_LABEL"
 mkdir -p "$MFFAPKDIR"
 mv "$BASEAPK" "$MFFAPKDIR"/base.apk
 mv "$SPLITAPK" "$MFFAPKDIR"/
