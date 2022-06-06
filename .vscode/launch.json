@@ -10,7 +10,7 @@
 			"request": "launch",
 			"preLaunchTask": "${defaultBuildTask}",
 			// If you have changed target frameworks, make sure to update the program path.
-			"program": "${workspaceFolder}/bin/Debug/net5.0/mffer.dll",
+			"program": "${workspaceFolder}/build/dotnet/bin/Debug/net5.0/mffer.dll",
 			"args": [
 				"--datadir",
 				"${workspaceFolder}/data",
