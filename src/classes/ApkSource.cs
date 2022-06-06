@@ -12,10 +12,14 @@ namespace Mffer {
 			if ( credentials is null ) throw new ArgumentNullException( "credentials" );
 			string email = credentials.GetValue( "Email" );
 			string androidId = credentials.GetValue( "AndroidId" );
-			string token = credentials.GetValue( "Token" );
-			string appName = "com.netmarble.mherosgb";
+			string token = credentials.GetValue( "OauthToken" );
+			string appName = "com.google.android.gm";
 
 			PlayStore = new GooglePlayStoreClient( email, androidId );
+			//token = PlayStore.GetGoogleToken( token ).GetAwaiter().GetResult();
+			token = "aas_et/" + token;
+			PlayStore.GetGoogleAuth( token ).Wait();
+
 			GooglePlayStore.DetailsResponse response = PlayStore.AppDetail( appName ).GetAwaiter().GetResult();
 			int versionCode = response.Item.Details.AppDetails.VersionCode;
 			string versionString = response.Item.Details.AppDetails.VersionString;
