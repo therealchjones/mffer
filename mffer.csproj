@@ -1,4 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- We limit this property group to properties that will be used by MSBuild
+       before starting its "implicit" process. -->
+  <PropertyGroup>
+  	<BaseIntermediateOutputPath>build/dotnet/obj</BaseIntermediateOutputPath>
+    <BaseOutputPath>build/dotnet/bin</BaseOutputPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
@@ -7,10 +14,12 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);docs/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MessagePack" Version="2.2.85" />
 	<PackageReference Include="AssetsTools.NET" Version="2.0.11" />
-	<PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22114.1" />
+	<PackageReference Include="Community.Archives.Apk" Version="1.2.0" />
+	<PackageReference Include="GooglePlayStoreApi" Version="1.0.7" />
+    <PackageReference Include="MessagePack" Version="2.2.85" />
 	<PackageReference Include="Snappier" Version="1.0.0" />
+	<PackageReference Include="System.CommandLine" Version="2.0.0-beta3.22114.1" />
   </ItemGroup>
 
   <!-- custom project properties -->
@@ -22,8 +31,8 @@
   <ItemGroup>
     <DeletableDirectory Include="$(ReleaseDirectory)"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/build"/>
-	<DeletableDirectory Include="$(MSBuildProjectDirectory)/bin"/>
-	<DeletableDirectory Include="$(MSBuildProjectDirectory)/obj"/>
+	<DeletableDirectory Include="$(BaseIntermediateOutputPath)"/>
+	<DeletableDirectory Include="$(BaseOutputPath)"/>
 	<ReleaseableScripts Include="$(ScriptDirectory)/*" CopyToPublishDirectory="PreseveNewest"/>
   </ItemGroup>
 
@@ -144,4 +153,5 @@
     <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(ReleaseDirectory)/$(ReleaseString).zip" Overwrite="true" Condition="'$(OS)' == 'Windows_NT' Or '$(RuntimeIdentifier)' == 'win-x64'"/>
 	<RemoveDir Directories="$(PublishDir)"/>
   </Target>
+    <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

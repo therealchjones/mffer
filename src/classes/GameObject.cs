@@ -108,7 +108,7 @@ namespace Mffer {
 		/// <returns>The value associated with this <see cref="GameObject"/> and
 		/// (optionally) <paramref name="key"/></returns>
 		/// <throws><see cref="KeyNotFoundException"/> if no single value can be definitively chosen</throws>
-		public string GetValue( string key = null ) {
+		public virtual string GetValue( string key = null ) {
 			if ( key is null ) {
 				if ( IsString() || _value is null ) return Value;
 				else if ( IsArray() ) {

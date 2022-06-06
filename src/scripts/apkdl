@@ -19,9 +19,11 @@ description() {
 	echo "	-v	print more information; specify twice for debug output"
 }
 
-# Specific versions of python packages to install via pip
-GPLAYDL='gplaydl==1.3.5'
-GPAPI='git+https://github.com/marty0678/googleplay-api.git@a64cb59f8c139f549b9650d66e68b1f03d158b7e'
+GOOGLE_EMAIL=""
+GOOGLE_PASSWORD=""
+
+# Non-POSIX tools used in this script:
+# git, python3, pip3, mktemp
 
 # Prints an absolute pathname corresponding to path $1
 #
@@ -101,6 +103,7 @@ cleanup() {
 		# on some of the above signals (e.g., bash ignores SIGQUIT)
 		exit 1
 	fi
+	echo Done >"$VERBOSEOUT"
 	exit
 }
 signal() {
@@ -183,6 +186,22 @@ if [ "$VERBOSE" = "Y" ]; then
 	VERBOSEOUT=/dev/stdout
 fi
 
+echo "Enter a Google account username and password to download MFF."
+echo "(You'll need an app password to allow access to this program.)"
+while [ -z "$GOOGLE_EMAIL" ]; do
+	printf 'Google Email: '
+	read -r GOOGLE_EMAIL
+done
+while [ -z "$GOOGLE_PASSWORD" ]; do
+	printf 'Password: '
+	# From https://stackoverflow.com/questions/2654009/how-to-make-bash-script-ask-for-a-password/2654048#2654048
+	stty_orig=$(stty -g)         # save original terminal setting.
+	stty -echo                   # turn-off echoing.
+	IFS= read -r GOOGLE_PASSWORD # read the password
+	stty "$stty_orig"
+	echo ""
+done
+
 MFFTEMPDIR="$(mktemp -d)" \
 	|| throwfatal 'Unable to create temporary directory. Exiting.'
 
@@ -212,7 +231,7 @@ if ! mkdir -p -- "$MFFOUTPUTDIR" >"$DEBUGOUT" 2>&1; then
 fi
 MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
 
-echo "Getting MFF from the Google Play Store..." >"$VERBOSEOUT"
+echo "Setting up temporary environment" >"$VERBOSEOUT"
 if ! PYTHON3="$(which python3)" >"$DEBUGOUT" 2>&1; then
 	echo "Error: unable to locate python3 executable" >&2
 	exit 1
@@ -224,8 +243,8 @@ fi
 if [ -r "$MFFTEMPDIR/python/bin/activate" ]; then
 	# shellcheck disable=SC1091
 	. "$MFFTEMPDIR"/python/bin/activate
-	if ! python; then
-		echo "Error: could not run python3." >&2
+	if ! python3; then # do *not* use the "$PYTHON3" variable, which points to system python
+		echo "Error: Unable to activate temporary python environment" >&2
 		exit 1
 	fi <<EOF
 import string
@@ -241,26 +260,73 @@ if sys.version_info.major != 3:
     print( "Not running in Python 3", file=sys.stderr)
     exit(1)
 EOF
+else
+	echo "Error: Unable to find temporary python environment" >&2
+	exit 1
+fi
+echo "Getting required software" >"$VERBOSEOUT"
+if ! OUTPUT="$(git clone https://github.com/marty0678/googleplay-api "$MFFTEMPDIR/googleplay-api" 2>&1)"; then
+	echo "$OUTPUT"
+	exit 1
+elif [ -n "$DEBUG" ]; then
+	echo "$OUTPUT"
 fi
 
-if ! pip3 install --upgrade --force-reinstall "$GPAPI" >"$DEBUGOUT" 2>&1 \
-	|| ! pip3 install --upgrade --force-reinstall "$GPLAYDL" >"$DEBUGOUT" 2>&1 \
-	|| ! echo "Enter a Google account username and password to download MFF." \
-	|| ! echo "(You'll need an app password to allow access to this program.)" \
-	|| ! gplaydl configure \
-	|| ! gplaydl download --packageId com.netmarble.mherosgb --path "$MFFTEMPDIR" >"$DEBUGOUT"; then
+# Order of installation is important. "Old" gpapi gets installed from pip, since
+# it includes the built protobuf files obviating the need for protoc to be
+# installed. Then install the requirements (with versions where needed) for the
+# "new" gpapi, so they're not overwritten by the old one's requirements, and
+# finally copy over the plain python files from the new one so they're the ones
+# actually used when importing.
+pip3 --disable-pip-version-check install gpapi >"$DEBUGOUT"
+pip3 --disable-pip-version-check install -r "$MFFTEMPDIR/googleplay-api/requirements.txt" >"$DEBUGOUT"
+GPAPIDIR="$(find "$MFFTEMPDIR/python" -type d -name "gpapi")"
+if [ -z "$GPAPIDIR" ]; then
+	echo "Error: Unable to upgrade googleplay-api." >&2
+	exit 1
+fi
+cp -a "$MFFTEMPDIR/googleplay-api/gpapi/"* "$GPAPIDIR" || exit 1
+
+echo "Downloading files" >"$VERBOSEOUT"
+# Gets a version label formatted like "8.1.0-195390" while downloading the files
+if ! VERSION_LABEL="$(
+	python3 <<EOF
+import os
+from gpapi.googleplay import GooglePlayAPI
+
+server=GooglePlayAPI('en_US','America/New York','shamu')
+server.login('$GOOGLE_EMAIL','$GOOGLE_PASSWORD')
+details = server.details("com.netmarble.mherosgb")
+versionString = details["details"]["appDetails"]["versionString"]
+versionCode = details["details"]["appDetails"]["versionCode"]
+download = server.download("com.netmarble.mherosgb",versionCode)
+name = download.get('docId')
+os.makedirs("$MFFTEMPDIR",exist_ok=True)
+filepath = os.path.join("$MFFTEMPDIR",name + ".apk")
+with open( filepath, 'wb') as file:
+	for chunk in download.get('file').get('data'):
+		file.write(chunk)
+for split in download.get('splits'):
+	filepath = os.path.join("$MFFTEMPDIR", split.get('name') + ".apk")
+	with open (filepath, 'wb') as file:
+		for chunk in split.get('file').get('data'):
+			file.write(chunk)
+print(versionString+'-'+str(versionCode))
+EOF
+)"; then
 	echo "Unable to download MFF" >&2
 	exit 1
 fi
+
 BASEAPK="$MFFTEMPDIR"/com.netmarble.mherosgb.apk
-for file in "$MFFTEMPDIR"/com.netmarble.mherosgb/config.*.apk; do
+for file in "$MFFTEMPDIR"/config.*.apk; do
 	SPLITAPK="$file"
 done
 if [ ! -f "$BASEAPK" ] || [ ! -f "$SPLITAPK" ]; then
 	echo "MFF download files are invalid" >&2
 	exit 1
 fi
-MFFAPKDIR="$MFFOUTPUTDIR"/apks-"$(date '+%Y%m%d')"
+MFFAPKDIR="$MFFOUTPUTDIR"/mff-apks-"$VERSION_LABEL"
 mkdir -p "$MFFAPKDIR"
 mv "$BASEAPK" "$MFFAPKDIR"/base.apk
 mv "$SPLITAPK" "$MFFAPKDIR"/
