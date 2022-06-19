@@ -10,8 +10,6 @@ related documents as needed. In brief, these are:
     Fight data
 -   [Using the `mffer` command line tools](#using-the-mffer-command-line-tools)
     to extract, analyze, or summarize Marvel Future Fight data
--   [Using the `mffer` library](#using-the-mffer-library) to develop a custom
-    program
 
 Additionally, `mffer` code may be useful to those trying to explore Marvel
 Future Fight, explore similar apps, deploy a custom version of the webapp, or
@@ -26,11 +24,6 @@ The webapp should be intuitive. If additional explanation is required here for
 proper use, that is due to limitations of the developers, not the users; please
 consider [filing an issue](https://github.com/therealchjones/mffer/issues) if
 something is unclear.
-
-Using a version of the webapp you deploy yourself (rather than the one at
-https://mffer.org) is described in the
-[Deploying the webapp](Development.md#deploying-the-webapp) section of the
-[Development guide](Development.md).
 
 Please see also the [brief `mffer` webapp manual](webapp.md)
 
@@ -48,20 +41,14 @@ underlying code. It is not necessary to use the command line tools to
 
 While the `mffer` command line tools can be downloaded from GitHub and built (see the
 [development guide](Development.md) for details), it is probably easier to
-download the [latest release of `mffer`](https://github.com/therealchjones/mffer/releases/latest) for your platform.
+download the
+[latest release of `mffer`](https://github.com/therealchjones/mffer/releases/latest)
+for your platform.
 
 ### Installation
 
 No installation is needed or provided. Release packages include all necessary
-files in a single directory. Alternatively, cloning the GitHub repository into
-a directory _`mffer`_ and building the tools results in the individual tools residing at the following
-paths:
-
-|               |                                      |
-| ------------- | ------------------------------------ |
-| `apkdl`       | _`mffer`_`/src/scripts/apkdl`        |
-| `autoanalyze` | _`mffer`_`/src/scripts/autoanalyze`  |
-| `mffer`       | _`mffer`_`/bin/Debug/net5/mffer.dll` |
+files in a single directory.
 
 ### Requirements
 
@@ -87,9 +74,9 @@ as Git Bash or Cygwin. (In addition to the defined
 `mktemp`, `git`, and other common utilities are used.) Most modern systems
 require installation of a Java runtime (or SDK); we recommend the "Temurin" OpenJDK 11
 distribution freely available from
-[Adoptium.net](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot).
+[Adoptium.net](https://adoptium.net/temurin/releases/?version=11).
 
-Additionally, other programs are obtained and run by the `apkdl` and
+Additionally, other programs are downloaded and run by the `apkdl` and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
 
@@ -117,58 +104,40 @@ programs, though the programs themselves do not need to be separately installed.
 
 ### Analysis Workflow
 
-1.  Use `apkdl` to download and extract the latest Marvel Future Fight program
+1.  Use [`apkdl`](apkdl.md) to download and extract the latest Marvel Future Fight program
     files:
 
-    ```shell
-    $ cd mffer/src
+    ```
+    $ cd mffer/
     $ ./apkdl -o ../data
     ```
 
-    It will likely be several minutes before any output is displayed in the
-    terminal; if you'd like a few brief "status" messages while waiting to report
-    the current steps in the process, add the `-v` option. For example:
+    It may be several minutes before you are prompted for a Google
+    username and
+    [app password](https://support.google.com/accounts/answer/185833).
 
-    ```shell
-    $ ./apkdl -v -o ../data
+2.  Use [`autoanalyze`](autoanalyze.md) to create and populate a ghidra project
+    with this version of Marvel Future Fight's program code:
+
+    ```
+    $ cd mffer/
+    $ ./autoanalyze -i ../data -o ../output
     ```
 
-    ```
-    Getting MFF from the Google Play Store...
-    Enter a Google account username and password to download MFF.
-    (You'll need an app password to allow access to this program.)
-    Google Email:
-    ```
+    This may take several hours to complete.
 
-    Adding `-v` again will add a great deal more output in the "debug" style,
-    including echoing all the shell commands and printing the output
-    of other utilities that are called.
-
-2.  Use `autoanalyze` to create and populate a ghidra project with this version
-    of Marvel Future Fight's program code. More details are available in [The
-    Structure of Marvel Future Fight](mff.md).
-
-## Using the `mffer` library
-
-`mffer` is not built as a shareable library, but the source can be used for
-development of other tools. See the [development guide](Development.md) for details.
-
-## Reviewing & changing `mffer` code
-
-Source code for the `mffer` project is available [on
-GitHub](https://github.com/therealchjones/mffer). Details regarding the code,
-from high-level design to appropriate indentation (tabs), are in the
-[Development guide](Development.md).
+3.  Reverse engineer as desired. Many more details are available in
+    [The Structure of Marvel Future Fight](mff.md) and elsewhere.
 
 ## See also
 
 ### Brief manuals
 
--   [`autoanalyze`](autoanalyze.md)
 -   [`apkdl`](apkdl.md)
 -   [`mffer`](mffer.md)
 -   [`mffer` webapp](webapp.md)
 
 ### Guides & References
 
+-   [The mffer Development Guide](Development.md)
 -   [The Structure of Marvel Future Fight](mff.md)
