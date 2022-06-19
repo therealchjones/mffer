@@ -97,7 +97,7 @@ signal() {
 			;;
 	esac
 	trap '' EXIT
-	echo "Processing $1 signal" >"$VERBOSEOUT"
+	echo "Processing $signal signal" >"$VERBOSEOUT"
 	if [ -n "$signal" ]; then
 		cleanup "$signal"
 	else
@@ -224,24 +224,23 @@ fi
 IMPORTSCRIPT="$(getdir "$(dirname "$0")")"/ImportC.py
 
 PROJECTNAME="mff-ghidra-$VERSIONSTRING"
-LIBIL2CPP="$(find "$DEVICEFILEDIR" -type f -name libil2cpp.so)"
-BASEAPK="$(find "$DEVICEFILEDIR" -type f -name base.apk)"
-SPLITAPK="$(find "$DEVICEFILEDIR" -type f -name 'split_config*.apk' | head -n 1)"
+BASEAPK="$(find "$DEVICEFILEDIR" -type f \( -name base.apk -o -name com.netmarble.mherosgb.apk \))"
+SPLITAPK="$(find "$DEVICEFILEDIR" -type f \( -name 'config*.apk' -o -name 'split_config*.apk' \) | head -n 1)"
+if [ -z "$BASEAPK" ] || [ -z "$SPLITAPK" ]; then
+	echo "Unable to find APK files in '$DEVICEFILEDIR'. Exiting." >&2
+	exit 1
+fi
+
 MFFABI="$(basename "$SPLITAPK")"
 MFFABI="${MFFABI%.apk}"
-MFFABI="${MFFABI#split_config.}"
-GLOBALMETADATA="$(find "$DEVICEFILEDIR" -type f -name global-metadata.dat)"
-SOURCEDIR="$(dirname "$LIBIL2CPP")"
+MFFABI="${MFFABI#split_}"
+MFFABI="${MFFABI#config.}"
 DESTDIR="$GHIDRAPROJECTS/$PROJECTNAME"
 if [ -d "$DESTDIR" ]; then
 	echo "The project directory '$DESTDIR' already exists; will not overwrite." >&2
 	echo "Remove $DESTDIR to attempt creating a new analysis project." >&2
 	exit 1
 fi
-
-cleanup() {
-	rm -rf "$MFFTEMPDIR"
-}
 
 MFFTEMPDIR="$(mktemp -d)" || {
 	echo 'Unable to create temporary directory. Exiting.' >&2
@@ -252,60 +251,102 @@ trapforcleanup
 echo "Downloading Il2CppInspector..." >"$VERBOSEOUT"
 I2CIDIR="$MFFTEMPDIR/Il2CppInspector"
 HEADERDIR="$I2CIDIR/Il2CppInspector.CLI/cpp/appdata"
-BINDIR="$I2CIDIR/Il2CppInspector.CLI/bin/Release/netcoreapp3.1/osx-x64"
 SCRIPTDIR="$I2CIDIR/Il2CppInspector.CLI"
-cd "$MFFTEMPDIR" || {
-	echo 'Unable to enter temporary directory. Exiting.' >&2
-	exit 1
-}
-git clone "$GITOPTS" -c advice.detachedHead=false --recursive -b 2021.1 https://github.com/djkaty/Il2CppInspector >"$DEBUGOUT" || {
+
+# Should really be pinning a specific version (or maybe forking my own)
+git clone "$GITOPTS" --recursive https://github.com/djkaty/Il2CppInspector "$I2CIDIR" >"$DEBUGOUT" || {
 	echo 'Unable to obtain Il2CppInspector. Exiting.' >&2
 	exit 1
 }
-cd "$I2CIDIR/Il2CppInspector.CLI" || {
-	echo 'Unable to enter Il2CppInspector directory. Exiting.' >&2
-	exit 1
-}
 echo 'Building Il2CppInspector...' >"$VERBOSEOUT"
-dotnet publish -r osx-x64 -c Release >"$DEBUGOUT" || {
-	echo 'Unable to build Il2CppInspector. Exiting.' >&2
+OS=""
+case "$(uname)" in
+	"Linux") OS="linux" ;;
+	"Darwin") OS="osx" ;;
+	*) OS="win" ;;
+esac
+OS="$OS"-x64
+# Il2CppInspector doesn't work if built from another directory
+(cd "$I2CIDIR/Il2CppInspector.CLI" \
+	&& dotnet publish -r "$OS" -c Release >"$DEBUGOUT") \
+	|| {
+		echo 'Unable to build Il2CppInspector. Exiting.' >&2
+		exit 1
+	}
+
+I2CIAPP="$(find "$SCRIPTDIR" -type f \( -name "Il2CppInspector.exe" -o -name "Il2CppInspector" \) | head -n 1)"
+if ! [ -r "$I2CIAPP" ]; then
+	echo "Unable to find Il2CppInspector runtime. Exiting." >&2
 	exit 1
-}
+fi
 
 echo 'Downloading jadx and decompiling java...' >"$VERBOSEOUT"
-curl "$CURLOPTS" -L -o "$MFFTEMPDIR/jadx.zip" "https://github.com/skylot/jadx/releases/download/v1.2.0/jadx-1.2.0.zip" >"$DEBUGOUT" \
+# Later versions of jadx don't work properly with resource-only files like the split armeabi file
+# see https://github.com/skylot/jadx/issues/1517
+curl "$CURLOPTS" -L -o "$MFFTEMPDIR/jadx.zip" "https://github.com/skylot/jadx/releases/download/v1.3.3/jadx-1.3.3.zip" >"$DEBUGOUT" \
 	&& mkdir "$MFFTEMPDIR/jadx" \
 	&& unzip -d "$MFFTEMPDIR/jadx" "$MFFTEMPDIR/jadx.zip" >"$DEBUGOUT" \
 	&& mkdir -p "$JADXDIR/base" "$JADXDIR/$MFFABI" \
 	&& "$MFFTEMPDIR/jadx/bin/jadx" -d "$JADXDIR/base" "$BASEAPK" >"$DEBUGOUT" \
 	&& "$MFFTEMPDIR/jadx/bin/jadx" -d "$JADXDIR/$MFFABI" "$SPLITAPK" >"$DEBUGOUT"
 
-mkdir -p "$DESTDIR" "$BINDIR/plugins"
+LIBIL2CPP="$(find "$JADXDIR" -type f -name libil2cpp.so)"
+SOURCEDIR="$(dirname "$LIBIL2CPP")"
+GLOBALMETADATA="$(find "$JADXDIR" -type f -name global-metadata.dat)"
+if [ ! -r "$LIBIL2CPP" ]; then
+	echo "Unable to find libil2cpp.so. Exiting." >&2
+	exit 1
+fi
+if [ ! -r "$GLOBALMETADATA" ]; then
+	echo "Unable to find global-metadata.dat. Exiting." >&2
+	exit 1
+fi
+
+BINDIR="$(dirname "$I2CIAPP")"
+mkdir -p "$DESTDIR" "$BINDIR/plugins" || exit 1
 
 echo 'Building ghidra project...' >"$VERBOSEOUT"
-"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -import "$SOURCEDIR/"* -noanalysis \
+if ! "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -import "$SOURCEDIR/"* -noanalysis \
 	-loader ElfLoader -loader-imagebase 0 \
-	-log "$DESTDIR"/"$PROJECTNAME"-import.log >"$DEBUGOUT" 2>&1
+	-log "$DESTDIR"/"$PROJECTNAME"-import.log >"$DEBUGOUT" 2>&1; then
+	echo "Unable to build ghidra project" >&2
+	exit 1
+fi
 
 echo 'Building data structures...' >"$VERBOSEOUT"
-"$BINDIR"/Il2CppInspector -p il2cpp.py -t Ghidra \
-	-i "$LIBIL2CPP" -m "$GLOBALMETADATA" >"$DEBUGOUT"
+"$I2CIAPP" \
+	--select-outputs \
+	-p "$SCRIPTDIR"/il2cpp.py \
+	-h "$SCRIPTDIR"/cpp \
+	-o "$SCRIPTDIR"/metadata.json \
+	-t Ghidra \
+	-i "$LIBIL2CPP" \
+	-m "$GLOBALMETADATA" >"$DEBUGOUT" || exit 1
 
 HEADERFILE="$HEADERDIR/il2cpp-types.h"
-sed '/^typedef struct Il2CppString Il2CppString;$/s/$/'"\n"'typedef struct Il2CppStringBuilder Il2CppStringBuilder;/' \
-	"$HEADERFILE" >"$HEADERFILE-new" && mv "$HEADERFILE-new" "$HEADERFILE"
 
 cp "$IMPORTSCRIPT" "$SCRIPTDIR"
 
+IMPORTLOG="$DESTDIR/$PROJECTNAME-il2cpp.log"
+SCRIPTLOG="$DESTDIR/$PROJECTNAME-scripts.log"
+SUCCESSSTRING="Successfully imported IL2CPP types"
 echo 'Importing data structures...' >"$VERBOSEOUT"
-"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" -noanalysis \
+if ! "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" -noanalysis \
 	-scriptPath "$SCRIPTDIR" \
-	-preScript "$(basename "$IMPORTSCRIPT")" "$HEADERFILE" -preScript il2cpp.py \
-	-log "$DESTDIR"/"$PROJECTNAME"-il2cpp.log \
-	-scriptlog "$DESTDIR"/"$PROJECTNAME"-scripts.log >"$DEBUGOUT" 2>&1
+	-preScript "$(basename "$IMPORTSCRIPT")" "$HEADERFILE" "$DESTDIR"/"$PROJECTNAME"-CParser.log "$SUCCESSSTRING" \
+	-preScript il2cpp.py \
+	-log "$IMPORTLOG" \
+	-scriptlog "$SCRIPTLOG" >"$DEBUGOUT" 2>&1 \
+	|| ! grep "$SUCCESSSTRING" "$SCRIPTLOG" >/dev/null; then
+	echo "Unable to import Il2CppInspector data into Ghidra." >&2
+	exit 1
+fi
 
 echo 'Analyzing binary...' >"$VERBOSEOUT"
-"$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
-	-log "$DESTDIR"/"$PROJECTNAME"-analysis.log >"$DEBUGOUT" 2>&1
+if ! "$GHIDRA" "$DESTDIR" "$PROJECTNAME" -process "libil2cpp.so" \
+	-log "$DESTDIR"/"$PROJECTNAME"-analysis.log >"$DEBUGOUT" 2>&1; then
+	echo "Unable to analyze libil2cpp.so." >&2
+	exit 1
+fi
 
 echo 'Done.' >"$VERBOSEOUT"

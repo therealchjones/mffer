@@ -59,4 +59,7 @@
 	],
 	"shellformat.flag": "-bn -ci -i 0",
 	"python.defaultInterpreterPath": "${workspaceFolder}/tools/python/bin/python",
+	"python.analysis.diagnosticSeverityOverrides": {
+		"reportMissingModuleSource": "information"
+	}
 }
