@@ -1,13 +1,14 @@
 .clasp.json
 .clasprc.json
 creds.json
-/.jython_cache/
+.jython_cache/
 /bin/
 /build/
 /data/
 /obj/
 /output/
 /release/
+/tools/jython/*
 /tools/node_modules/*
 /tools/nuget/*
 /tools/package-lock.json
