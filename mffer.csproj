@@ -33,7 +33,10 @@
 	<DeletableDirectory Include="$(BaseIntermediateOutputPath)"/>
 	<DeletableDirectory Include="$(BaseOutputPath)"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/.jython_cache"/>
+	<DeletableDirectory Include="$(ToolsDirectory)/.jython_cache"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/build"/>
+  </ItemGroup>
+  <ItemGroup>
 	<ReleaseableScripts Include="$(ScriptDirectory)/*" CopyToPublishDirectory="PreseveNewest"/>
   </ItemGroup>
 
