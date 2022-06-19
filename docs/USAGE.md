@@ -127,13 +127,13 @@ The other tools, apkdl and `autoanalyze`, have a few other requirements:
 macOS and most Linux distributions satisfy the needs for the "typical
 development environment"; Windows requires additional POSIX-like software such
 as Git Bash or Cygwin. (In addition to the defined
-[POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/),
-`tar`, `mktemp`, `git`, `python3`, and other common utilities are used.) Most modern systems
-require installation of a Java runtime (or SDK); we recommend the "Temurin"
-OpenJDK 11 distribution freely available from
-[Adoptium.net](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot).
+[POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar`,
+`mktemp`, `git`, and other common utilities are used.) Most modern systems
+require installation of a Java runtime (or SDK); we recommend the "Temurin" OpenJDK 11
+distribution freely available from
+[Adoptium.net](https://adoptium.net/temurin/releases/?version=11).
 
-Additionally, other programs are obtained and run by the apkdl and
+Additionally, other programs are downloaded and run by the `apkdl` and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
 
@@ -178,34 +178,29 @@ the program files' directory structure named `libil2cpp.so`. The mffer tools
 can help facilitate this review by processing this file before you manually
 evaluate it further:
 
-1.  Use apkdl to download and extract the latest Marvel Future Fight program
-    files:
-
-    ```shell
-    $ ./apkdl -o apk_directory
-    ```
-
-    It will likely be several minutes before any output is displayed in the
-    terminal; if you'd like a few brief "status" messages while waiting to report
-    the current steps in the process, add the `-v` option. For example:
-
-    ```shell
-    $ ./apkdl -v -o ../data
-    ```
+1.  Use [`apkdl`](apkdl.md) to download and extract the latest Marvel Future
+    Fight program files:
 
     ```
-    Getting MFF from the Google Play Store...
-    Enter a Google account username and password to download MFF.
-    (You'll need an app password to allow access to this program.)
-    Google Email:
+    $ cd mffer/
+    $ ./apkdl -o ../data
     ```
 
-    Adding `-v` again will add a great deal more output in the "debug" style,
-    including echoing all the shell commands and printing the output
-    of other utilities that are called.
+    It may be several minutes before you are prompted for a Google username and
+    [app password](https://support.google.com/accounts/answer/185833).
 
-2.  Use `autoanalyze` to create and populate a Ghidra project with this version
-    of Marvel Future Fight's program code.
+2.  Use [`autoanalyze`](autoanalyze.md) to create and populate a Ghidra project
+    with this version of Marvel Future Fight's program code:
+
+    ```
+    $ cd mffer/
+    $ ./autoanalyze -i ../data -o ../output
+    ```
+
+    This may take several hours to complete.
+
+3.  Reverse engineer as desired. Many more details are available in
+    [The Structure of Marvel Future Fight](mff.md) and elsewhere.
 
 ## See also
 
@@ -214,9 +209,9 @@ evaluate it further:
 -   [apkdl](apkdl.md)
 -   [`autoanalyze`](autoanalyze.md)
 -   [mffer](mffer.md)
--   [the mffer webapp](webapp.md)
+-   [`mffer` webapp](webapp.md)
 
 ### Guides
 
--   [mffer Development Guide](Development.md)
+-   [The mffer Development Guide](Development.md)
 -   [The Structure of Marvel Future Fight](mff.md)

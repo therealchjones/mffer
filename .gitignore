@@ -1,5 +1,7 @@
 .clasp.json
 .clasprc.json
+.jython_cache
+.venv
 creds.json
 .jython_cache/
 /bin/
