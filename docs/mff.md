@@ -51,7 +51,7 @@ files obtained after the prior step.
 Methods:
 
 mff_no_google_play AVD was created manually but with the same parameters as in
-`autoextract`, as was /sdcard/Download/getfiles. APK files for version
+autoextract, as was /sdcard/Download/getfiles. APK files for version
 7.2.0-174314-20210713 were obtained from a prior run of `autoextract` and
 installed on the AVD in the same fashion as in `autoextract`. Steps similar to
 the manual steps in `autoextract` (and listed below) were taken followed by

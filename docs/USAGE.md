@@ -3,7 +3,7 @@
 ## Introduction
 
 The mffer project develops software that creates and updates the
-[mffer webapp](https://mffer.org). It is not necessary to review any of this
+[mffer webapp](https://mffer.org). It is not necessary to read any of this
 to [use the webapp](https://mffer.org).
 
 The mffer tools obtain, extract, and analyze
@@ -18,25 +18,6 @@ they work, this guide does not discuss doing so with mffer itself. If you're
 interested in extending, modifying, or improving the mffer tools, you may
 prefer reading the [mffer Development Guide](Development.md).
 
-## This Project
-
-This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [Netmarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
-
-The project currently includes multiple components:
-
--   a [shell script](apkdl.md) to obtain the Marvel Future Fight program files
--   a [shell script](autoanalyze.md) to decompile and evaluate the
-    program files
--   a [.NET console app](mffer.md) to obtain and parse the Marvel Future Fight data files into an open and usable format
--   a web app to present and use the game data
-
-The objectives of this umbrella project are:
-
--   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
--   make the data easily usable for decision making necessary to play the game effectively and efficiently
--   compare changes in the data between different releases/versions of the game
--   easily track important player-specific data to evaluate progress and plan modifications
-
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile (iOS
@@ -45,14 +26,6 @@ The objectives of this umbrella project are:
 [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to
 collect and modify with dozens of different resources, and enough game modes to
 make mastering all of them nigh impossible.
-
-[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [Netmarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse, has more than 200 characters to collect and modify with dozens of different resources, and has enough game modes to make mastering all of them nigh impossible.
-
-As such, the game has a large amount of data about the characters, resources,
-stores, game modes and levels, and actions, even before taking into account the
-variations between individual players. Although there is information available
-from those who have significant experience playing the game, objective
-quantitative data is rarely documented well and is of uncertain provenance.
 
 As such, the game has a large amount of data about the characters, resources,
 stores, game modes and levels, and actions, even before taking into account the
@@ -64,9 +37,10 @@ quantitative data is rarely documented well and is of uncertain provenance.
 
 This project is intended to facilitate analysis of
 [Marvel Future Fight](#marvel-future-fight) and provide access to the data it
-uses for game play. This is almost certainly against the
+uses for game play. This may be against the
 [Netmarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en)
-as well as those of multiple affiliates.
+as well as those of multiple affiliates. The maintainer of this project has no
+affiliation with NetMarble or its affiliates.
 
 The project currently includes multiple components:
 
@@ -76,22 +50,6 @@ The project currently includes multiple components:
     into an open and usable format
 -   a web app to present and use the game data for game play
     decision making
-
-## Introduction
-
-There are several possible uses for the mffer project. A few are readily
-apparent, and the workflows for those are described here, with references to
-related documents as needed. In brief, these are:
-
--   [Using the mffer webapp](#using-the-mffer-webapp) to review Marvel Future
-    Fight data
--   [Using the mffer command line tools](#using-the-mffer-command-line-tools)
-    to extract, analyze, or summarize Marvel Future Fight data
-
-Additionally, mffer code may be useful to those trying to explore Marvel
-Future Fight, explore similar apps, deploy a custom version of the webapp, or
-contribute to mffer itself. For these topics, refer to the [development
-guide](Development.md).
 
 ## Using the mffer webapp
 
@@ -112,7 +70,7 @@ data store. It requires a web browser with robust JavaScript support for most
 functionality. An Internet connection is required to use the webapp; it does not
 have an "offline" mode.
 
-## See Also
+### See also
 
 For information about deploying the webapp rather than
 using it, see the [Development Guide](Development.md#deploying-the-webapp).
@@ -154,15 +112,15 @@ run on a system that
 [supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
 but no .NET or Mono runtime needs to be separately installed.
 
-The other tools, apkdl and `autoanalyze`, have a few other requirements:
+The other tools, apkdl and autoanalyze, have a few other requirements:
 
 -   POSIX-like typical development environment (required for apkdl and
-    `autoanalyze`)
+    autoanalyze)
 -   Python 3 (required for apkdl)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
-    (required for `autoanalyze`)
+    (required for autoanalyze)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)
-    (required for `autoanalyze`)
+    (required for autoanalyze)
 -   Java 11 runtime or SDK
     (required for Ghidra)
 
@@ -179,15 +137,15 @@ Additionally, other programs are downloaded and run by the `apkdl` and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
 
-## Usage
+### The mffer workflow
 
-### Obtaining and processing the data files
+#### Obtaining and processing the data files
 
-```shell
-$ mffer --outputdir output_directory
+```
+mffer --outputdir output_directory
 ```
 
-### Exploring the data
+#### Exploring the data
 
 Files in the _`output_directory`_ directory include `Roster-`_`version`_`.csv`
 and `mffer-`_`version`_`.json` for the current version of Marvel Future Fight.
@@ -202,41 +160,39 @@ data files called
 "[AssetBundle](https://docs.unity3d.com/Manual/AssetBundlesIntro.html)s" used by
 Marvel Future Fight. Exploring these are the best way to identify previously
 unprocessed data. Those not processed by mffer (including graphics, level
-data, and background music) can be explored with tools like [AssetStudio](https://github.com/Perfare/AssetStudio).
+data, and background music) can be explored with tools like
+[AssetStudio](https://github.com/Perfare/AssetStudio).
 
-### Using and presenting the data
+#### Using and presenting the data
 
 Upload the results using the webapp.
 
-### Exploring the code
+#### Exploring the code
 
 A great deal of information may be accessible via the raw files in
 _`output_directory`_`/files`, but the majority of code for running the game,
 including algorithms and use of the data, are less easily evaluated directly.
 More details and specifics of how the program works are given in
 [The structure of Marvel Future Fight](mff.md), but much of the code you'll want to review is in a
-file deep within
-the program files' directory structure named `libil2cpp.so`. The mffer tools
-can help facilitate this review by processing this file before you manually
+file that is part of MFF's installation named `libil2cpp.so`. The mffer tools
+can help facilitate this review by automatically processing this file before you manually
 evaluate it further:
 
-1.  Use [`apkdl`](apkdl.md) to download and extract the latest Marvel Future
+1.  Use [apkdl](apkdl.md) to download the latest Marvel Future
     Fight program files:
 
     ```
-    $ cd mffer/
-    $ ./apkdl -o ../data
+    apkdl -o output_directory
     ```
 
     It may be several minutes before you are prompted for a Google username and
     [app password](https://support.google.com/accounts/answer/185833).
 
-2.  Use [`autoanalyze`](autoanalyze.md) to create and populate a Ghidra project
+2.  Use [autoanalyze](autoanalyze.md) to create and populate a Ghidra project
     with this version of Marvel Future Fight's program code:
 
     ```
-    $ cd mffer/
-    $ ./autoanalyze -i ../data -o ../output
+    autoanalyze -i output_directory -o output_directory
     ```
 
     This may take several hours to complete.
@@ -249,7 +205,7 @@ evaluate it further:
 ### Brief manuals
 
 -   [apkdl](apkdl.md)
--   [`autoanalyze`](autoanalyze.md)
+-   [autoanalyze](autoanalyze.md)
 -   [mffer](mffer.md)
 
 ### Guides

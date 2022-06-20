@@ -25,6 +25,13 @@ reverse engineering of the game and development of automatic processing of
 extracted information to present data intuitively and understandably, enhancing
 player decision making.
 
+The objectives of this umbrella project are to:
+
+-   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
+-   make the data easily usable for decision making necessary to play the game effectively and efficiently
+-   compare changes in the data between different releases/versions of the game
+-   easily track important player-specific data to evaluate progress and plan modifications
+
 The mffer tools facilitate extracting information from and about MFF, and can
 be used without a great deal of knowledge of the game's technical aspects and
 inner workings. However, developing the tools may require more understanding of
@@ -158,14 +165,14 @@ Specific configurations on which the build process is tested are noted in the
 
 The most up-to-date changes can be obtained by cloning the git repository and
 building the software yourself. Cloning the GitHub repository into
-a directory _mffer_ and building the tools results in the individual tools residing at the following
+a directory _`mffer`_ and building the tools results in the individual tools residing at the following
 paths:
 
-|               |                                    |
-| ------------- | ---------------------------------- |
-| apkdl         | _mffer_`/src/scripts/apkdl`        |
-| `autoanalyze` | _mffer_`/src/scripts/autoanalyze`  |
-| mffer         | _mffer_`/bin/Debug/net5/mffer.dll` |
+|             |                                      |
+| ----------- | ------------------------------------ |
+| apkdl       | _`mffer`_`/src/scripts/apkdl`        |
+| autoanalyze | _`mffer`_`/src/scripts/autoanalyze`  |
+| mffer       | _`mffer`_`/bin/Debug/net5/mffer.dll` |
 
 ### Program requirements
 
@@ -173,8 +180,8 @@ Though not strictly required for development of the mffer tools, the
 requirements for running the programs themselves additionally include:
 
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
-    (required for `autoanalyze`)
--   Java 11 runtime or SDK (required for `autoextract` and Ghidra); consider
+    (required for autoanalyze)
+-   Java 11 runtime or SDK (required for Ghidra); consider
     [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
 -   Python 3 (required for apkdl)
 
