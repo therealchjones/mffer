@@ -9,6 +9,16 @@
 
 ## Introduction
 
+[Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile (iOS
+& Android) online role-playing game by
+[Netmarble](https://company.netmarble.com/). It is made with many
+industry-standard tools, including programming in Java and C# for Unity (using
+il2cpp), packaged (or at least delivered) as split APKs for Android from the
+Google Play Store, and using Facebook and Netmarble servers for user and game
+data storage. As such, even if you don't play MFF, the descriptions of
+techniques used in this project for exploring those many components may contain
+some useful knowledge.
+
 The mffer project obtains, extracts, parses, and reports data from Marvel
 Future Fight. Its scope ranges from providing basic game play tips to static
 reverse engineering of the game and development of automatic processing of
@@ -147,10 +157,7 @@ Specific configurations on which the build process is tested are noted in the
 ### Cloning the GitHub Repository
 
 The most up-to-date changes can be obtained by cloning the git repository and
-building the software yourself. Details and requirements for doing so are
-described in the [Development guide](./Development.md).
-
-Alternatively, cloning the GitHub repository into
+building the software yourself. Cloning the GitHub repository into
 a directory _mffer_ and building the tools results in the individual tools residing at the following
 paths:
 

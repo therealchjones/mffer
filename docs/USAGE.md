@@ -18,6 +18,25 @@ they work, this guide does not discuss doing so with mffer itself. If you're
 interested in extending, modifying, or improving the mffer tools, you may
 prefer reading the [mffer Development Guide](Development.md).
 
+## This Project
+
+This project is intended to facilitate analysis of [Marvel Future Fight](#marvel-future-fight) and provide access to the data it uses for game play. This is almost certainly against the [Netmarble Terms of Service](https://help.netmarble.com/terms/terms_of_service_en?locale=&lcLocale=en) as well as those of multiple affiliates.
+
+The project currently includes multiple components:
+
+-   a [shell script](apkdl.md) to obtain the Marvel Future Fight program files
+-   a [shell script](autoanalyze.md) to decompile and evaluate the
+    program files
+-   a [.NET console app](mffer.md) to obtain and parse the Marvel Future Fight data files into an open and usable format
+-   a web app to present and use the game data
+
+The objectives of this umbrella project are:
+
+-   obtain verifiable objective quantitative data about the game, typically using reverse engineering and related methods
+-   make the data easily usable for decision making necessary to play the game effectively and efficiently
+-   compare changes in the data between different releases/versions of the game
+-   easily track important player-specific data to evaluate progress and plan modifications
+
 ## Marvel Future Fight
 
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile (iOS
@@ -26,6 +45,14 @@ prefer reading the [mffer Development Guide](Development.md).
 [Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to
 collect and modify with dozens of different resources, and enough game modes to
 make mastering all of them nigh impossible.
+
+[Marvel Future Fight](http://www.marvelfuturefight.com/) is a mobile (iOS & Android) online role-playing game by [Netmarble](https://company.netmarble.com/). It's set in the extended [Marvel](https://www.marvel.com/) multiverse, has more than 200 characters to collect and modify with dozens of different resources, and has enough game modes to make mastering all of them nigh impossible.
+
+As such, the game has a large amount of data about the characters, resources,
+stores, game modes and levels, and actions, even before taking into account the
+variations between individual players. Although there is information available
+from those who have significant experience playing the game, objective
+quantitative data is rarely documented well and is of uncertain provenance.
 
 As such, the game has a large amount of data about the characters, resources,
 stores, game modes and levels, and actions, even before taking into account the
@@ -47,7 +74,7 @@ The project currently includes multiple components:
 -   a [shell script](autoanalyze.md) to decompile and evaluate the program files
 -   a [command line program](mffer.md) to obtain and parse the MFF data files
     into an open and usable format
--   a [web app](webapp.md) to present and use the game data for game play
+-   a web app to present and use the game data for game play
     decision making
 
 ## Introduction
@@ -70,10 +97,25 @@ guide](Development.md).
 
 The mffer webapp is at https://mffer.org.
 
+The mffer webapp presents [mffer](mffer.md)-extracted data in a format to
+help with in-game decision making.
+
 The webapp should be intuitive. If additional explanation is required for proper
 use, that is due to limitations of the developers, not the users; please
 consider [filing an issue](https://github.com/therealchjones/mffer/issues) if
 something is unclear.
+
+### Requirements
+
+The mffer webapp is built on Google Apps Script and uses Google Sheets as a
+data store. It requires a web browser with robust JavaScript support for most
+functionality. An Internet connection is required to use the webapp; it does not
+have an "offline" mode.
+
+## See Also
+
+For information about deploying the webapp rather than
+using it, see the [Development Guide](Development.md#deploying-the-webapp).
 
 ## Using the mffer command line tools
 
@@ -209,7 +251,6 @@ evaluate it further:
 -   [apkdl](apkdl.md)
 -   [`autoanalyze`](autoanalyze.md)
 -   [mffer](mffer.md)
--   [`mffer` webapp](webapp.md)
 
 ### Guides
 

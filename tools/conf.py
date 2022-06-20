@@ -95,10 +95,18 @@ exclude_patterns = [
 #
 html_theme = 'sphinx_rtd_theme'
 
+html_theme_options = {
+	'collapse_navigation': False,
+	'prev_next_buttons_location': 'both',
+	'style_external_links': True,
+}
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
+html_show_copyright = False
+html_show_sphinx = False
 
 if Path(os.path.join(docdir.as_posix(),'_static')).exists():
 	html_static_path.append( os.path.join(docdir.as_posix(),'_static'))

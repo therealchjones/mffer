@@ -16,7 +16,7 @@ JSON-formatted data files that (though quite large) are human-readable and
 machine-evaluable, and produce CSV files of limited data for each version that
 can be viewed in spreadsheet applications (such as
 [Google Sheets](https://sheets.google.com)) or used in the
-[mffer webapp](webapp.md).
+[mffer webapp](https://mffer.org).
 
 ## Options
 
@@ -42,7 +42,7 @@ JSON-formatted file including the usable data from each version's data files.
 This file is very large, but is human-readable. mffer will also create
 `Roster-`_`version`_`.csv` for each version, character-delimited files including
 the data for the playable characters in the game. The CSV files can be imported
-for use into the [mffer webapp](webapp.md). Both the JSON files and the CSV
+into the mffer webapp. Both the JSON files and the CSV
 files will overwrite any files in _`output_directory`_ with the same names.
 
 ## Requirements
