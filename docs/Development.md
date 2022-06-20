@@ -50,7 +50,7 @@ rather than merely a path to the goals. Regardless of the many relatively (or
 completely) arbitrary guidelines in this document, enjoy the work or do
 something else. Respect others' rights to make the same choice, and to change
 their minds (or change their minds back) at any time. Abide by the
-[contributing guidelines](CONTRIBUTING.md) and the accompanying
+[contributing guidelines](contributing.rst) and the accompanying
 [Contributor Covenant](conduct.rst). Enjoy yourself, and provide a
 community in which others can do the same.
 
@@ -978,5 +978,5 @@ GCP project, then submit your app for [verification](https://developers.google.c
 ## See also
 
 -   [The Structure of Marvel Future Fight](mff.md)
--   [Contributing to mffer](CONTRIBUTING.md)
+-   [Contributing to mffer](contributing.rst)
 -   [The mffer API](api/index.rst)

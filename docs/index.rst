@@ -19,7 +19,7 @@ mffer
    :caption: Developing mffer
 
    development guide <Development>
-   contributing to mffer <CONTRIBUTING>
+   contributing to mffer <contributing>
    code of conduct <conduct>
    license & copyright <license>
    mff
