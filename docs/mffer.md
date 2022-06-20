@@ -2,9 +2,9 @@
 
 Marvel Future Fight exploration & reporting
 
-```shell
-$ mffer --datadir data_directory --outputdir output_directory
-$ mffer -h
+```
+mffer --datadir data_directory --outputdir output_directory
+mffer -h
 ```
 
 ## Description
@@ -23,7 +23,7 @@ can be viewed in spreadsheet applications (such as
 |                                        |                                                                 |
 | -------------------------------------- | --------------------------------------------------------------- |
 | `--datadir ` _`data_directory`_        | Specify the directory containing Marvel Future Fight data files |
-| `--outputdir ` _`output_directory`_    | Specify the directory in which to place created files.          |
+| `--outputdir ` _`output_directory`_    | Specify the directory in which to place created files           |
 | `-h`, `--help`, `-?`, `/?`, `/h`, `/H` | Print brief usage instructions.                                 |
 
 ## Extended Description
@@ -34,7 +34,7 @@ hierarchy beneath _`data_directory`_ is expected to consist of one or more
 directories named for a version of Marvel Future Fight, each of which is a
 subset of an Android device filesystem where Marvel Future Fight is installed.
 (Not coincidentally, this corresponds to the directory trees created by mffer
-when obtaining data files or by the now-obsolete `autoextract`.)
+when obtaining data files or by the now-obsolete autoextract.)
 
 Importing and processing the data takes some time (minutes to hours). Once
 completed, mffer will create _`version`_`.json` in _`output_directory`_, a

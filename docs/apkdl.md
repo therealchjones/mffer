@@ -4,9 +4,9 @@ Obtaining Marvel Future Fight program files
 
 ## Synopsis
 
-```shell
-$ apkdl [-v] [-v] -o output_directory
-$ apkdl -h
+```
+apkdl [-v] [-v] -o output_directory
+apkdl -h
 ```
 
 ## Description
@@ -40,15 +40,15 @@ output that includes echoing all shell commands in apkdl and printing
 the verbose output from each individual tool called. Adding further `-v` options
 has no effect.
 
-The final product created by `apkdl` is a directory named `mff-apks-`_`version`_
+The final product created by apkdl is a directory named `mff-apks-`_`version`_
 within _`output_directory`_. This directory contains the `.apk` installation
 files used to install the game onto an Android device.
 
 ## Requirements
 
--   POSIX-like environment (macOS/OS X, Windows with Cygwin or
-    another POSIX layer, or Linux).
--   Python
+-   POSIX-like environment (Linux, macOS/OS X, or Windows with Cygwin or
+    another POSIX layer)
+-   Python 3
 -   git
 -   Internet connection with access to the Google Play Store
 -   A Google account with an
