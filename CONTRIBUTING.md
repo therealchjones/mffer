@@ -18,7 +18,7 @@ This document includes information ranging from
 to [general instructions for contributing](#so-youve-got-this-idea). It does
 not include many technical details, such as the project design, coding styles,
 or recommended tools. (For those, dive into the
-[Development Guide](Development.md).) For full information about
+[Development Guide](https://dev.mffer.org/devguide).) For full information about
 the mffer project, visit https://dev.mffer.org.
 
 ## Quick Questions & Answers
@@ -33,14 +33,14 @@ the mffer project, visit https://dev.mffer.org.
 
     Answer questions on the
     [GitHub issues page](https://github.com/therealchjones/mffer/issues/), make
-    edits to [documentation](index.rst), or just offer a kind word.
+    edits to [documentation](https://dev.mffer.org/), or just offer a kind word.
 
 -   What format should I use for a pull request?
 
     The best format is "submitted"! Ask questions, expect feedback and changes, and
     please submit PRs even when you're still working on them. For the nitty-gritty
     details of coding style, merge types, and so on, please refer to the
-    [development guide](Development.md).
+    [development guide](https://dev.mffer.org/devguide).
 
 -   What's a "pull request"?
 
@@ -63,7 +63,7 @@ Any concerns may be addressed to the project maintainer, <chjones@aleph0.com>.
 
 While this is the guiding spirit of the contributions to the project, the
 project has formally adopted the
-[Contributor Covenant 2.0](conduct.rst). In addition, users and
+[Contributor Covenant 2.0](https://www.contributor-covenant.org/version/2/0/code_of_conduct/). In addition, users and
 visitors are expected to follow the
 [GitHub Community Guidelines](https://docs.github.com/en/github/site-policy/github-community-guidelines)
 and the
@@ -88,12 +88,12 @@ there's not a great benefit in "saving up" until your idea is near completion
 (or you're stuck). Even if you don't know exactly how to do what you want,
 others may be able to point you in the right direction.
 
-Take a look at the [Development Guide](Development.md), and
+Take a look at the [Development Guide](https://dev.mffer.org/devguide), and
 figure out how your idea best fits into the project: should you edit some
 documentation, write a program that uses the mffer as a library, or write a
 better algorithm for reading from the filesystem? This may also lead you to
 browsing the [source code](https://github.com/therealchjones/mffer/) or
-reviewing the [API](api/index.rst).
+reviewing the [API](https://dev.mffer.org/api).
 
 Fork the project, make the changes you want, ensure it works the way you think
 it should (and doesn't break anything else) and submit a pull request to merge
@@ -110,9 +110,9 @@ And maybe you have another idea...
 ## Copyright
 
 mffer is released into the "public domain" where such a thing exists; for the
-sake of formality, see [the CC0 license](license.rst). Further details about how
+sake of formality, see [the CC0 license](https://creativecommons.org/publicdomain/zero/1.0/). Further details about how
 this may affect your contributions are in the
-[Copyright section of the Development Guide](Development.md#copyright--licensing).
+[Copyright section of the Development Guide](https://dev.mffer.org/Development#copyright--licensing).
 
 ## Contact
 
