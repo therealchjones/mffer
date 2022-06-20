@@ -1,6 +1,6 @@
 # Contributing to mffer
 
-Guidelines, notes, and tips for maintaining and adding to the mffer project
+Guidelines, notes, and tips for adding to the mffer project
 
 Any questions, comments, or concerns can be posted in the
 [GitHub repository's issues list](https://github.com/therealchjones/mffer/issues).
@@ -11,14 +11,14 @@ Thank you for your interest in this project. Contributions of any kind are
 welcome, but most useful to the project are bug reports and possible fixes.
 Whether you find a problem that you can fix or not, however, you can send
 feedback; follow, fork, or star the project on [GitHub](https://github.com);
-tell others about the project; or just use the project yourself.
+tell others about the project; or just use the programs yourself.
 
 This document includes information ranging from
-[appropriate behavoirs when contributing to the project](#behavioral-expectations)
+[appropriate behaviors when contributing to the project](#behavioral-expectations)
 to [general instructions for contributing](#so-youve-got-this-idea). It does
 not include many technical details, such as the project design, coding styles,
-or recommended tools. (For those, dive into the
-[Development Guide](https://dev.mffer.org/devguide).) For full information about
+or recommended tools. For those, dive into the
+[Development Guide](https://dev.mffer.org/devguide). For other information about
 the mffer project, visit https://dev.mffer.org.
 
 ## Quick Questions & Answers
