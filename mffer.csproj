@@ -30,7 +30,6 @@
   </PropertyGroup>
   <ItemGroup>
     <DeletableDirectory Include="$(ReleaseDirectory)"/>
-	<DeletableDirectory Include="$(MSBuildProjectDirectory)/build"/>
 	<DeletableDirectory Include="$(BaseIntermediateOutputPath)"/>
 	<DeletableDirectory Include="$(BaseOutputPath)"/>
 	<DeletableDirectory Include="$(MSBuildProjectDirectory)/.jython_cache"/>

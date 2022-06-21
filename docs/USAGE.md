@@ -73,7 +73,7 @@ have an "offline" mode.
 ### See also
 
 For information about deploying the webapp rather than
-using it, see the [Development Guide](Development.md#deploying-the-webapp).
+using it, see [Deploying the webapp](#deploying-the-webapp).
 
 ## Using the mffer command line tools
 

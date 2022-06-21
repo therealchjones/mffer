@@ -540,7 +540,7 @@ in the code itself.
     sh tools/mkdocs.sh
     ```
 4. The web app must be uploaded but there's nothing to build; see
-   [Deploying the webapp](#deploying-the-webapp)
+   [Deploying the webapp](USAGE.md#deploying-the-webapp)
 
 ## Testing mffer
 
