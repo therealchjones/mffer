@@ -13,7 +13,7 @@ Android) online role playing game published by
 available from the Play Store.
 
 The programming and delivery of Marvel Future Fight are complex but accessible,
-and this document attempts to gather a great deal of information describing the
+and this document attempts to conglomerate a great deal of information describing the
 exploration of Marvel Future Fight code, as well as to explicitly list some
 assumptions made in the development of
 [mffer](https://github.com/therealchjones/mffer). Where information is unknown
@@ -29,8 +29,8 @@ understanding the programmed mechanics of the game.
 ## Exploration Techniques
 
 Reverse engineering techniques are varied. Some are described here, with
-findings noted both here and in the [Marvel Future Fight
-section](#marvel-future-fight).
+findings noted both here and in the
+[Marvel Future Fight section](#marvel-future-fight).
 
 ### Static analysis
 
@@ -44,7 +44,7 @@ the large number of changes that can quickly happen, however, controlling this
 experiment as much as possible is important. Among other changes, simply
 reinstalling the app may change some tokens, essentially without importance, so
 where possible testing should even be done on the same installation. The steps
-below describe at which point in the `autoextract` process (or its equivalent)
+below describe at which point in the autoextract process (or its equivalent)
 files were retrieved; the changes listed with each step are in comparison to the
 files obtained after the prior step.
 
@@ -52,9 +52,9 @@ Methods:
 
 mff_no_google_play AVD was created manually but with the same parameters as in
 autoextract, as was /sdcard/Download/getfiles. APK files for version
-7.2.0-174314-20210713 were obtained from a prior run of `autoextract` and
-installed on the AVD in the same fashion as in `autoextract`. Steps similar to
-the manual steps in `autoextract` (and listed below) were taken followed by
+7.2.0-174314-20210713 were obtained from a prior run of autoextract and
+installed on the AVD in the same fashion as in autoextract. Steps similar to
+the manual steps in autoextract (and listed below) were taken followed by
 running `getfiles` and downloading the resulting file hierarchies into
 individual directories. `dfdiff -v` was used to identify changes from each step to
 the next, and changed files were manually reviewed to identify interesting or
