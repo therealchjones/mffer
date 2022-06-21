@@ -3,6 +3,7 @@
 .jython_cache
 .venv
 creds.json
+.jython_cache/
 /bin/
 /build/
 /data/

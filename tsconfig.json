@@ -1,7 +1,15 @@
 {
+	"extends": "./tools/node_modules/@tsconfig/recommended/tsconfig.json",
 	"compilerOptions": {
 		"typeRoots": [
-			"tools/node_modules/@types"
-		]
-	}
+			"./tools/node_modules/@types"
+		],
+		"lib": [
+			"esnext"
+		],
+		"target": "ES2019"
+	},
+	"include": [
+		"src/webapp/**.ts"
+	]
 }

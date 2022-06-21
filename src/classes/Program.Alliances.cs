@@ -162,7 +162,7 @@ namespace Mffer {
 			/// <see cref="FindProspectiveAlliances(int)"/> attempts to identify
 			/// a number of alliances without any weekly contribution points.
 			/// (Weekly contribution points reset to 0 at the weekly reset at
-			/// 0100 Friday UTC.) Alliances are obtained from NetMarble servers
+			/// 0100 Friday UTC.) Alliances are obtained from Netmarble servers
 			/// without an obvious order or meeting configurable properties, and
 			/// include previously returned alliances, so increasing the number
 			/// of alliances to be sought can increase the number of alliances

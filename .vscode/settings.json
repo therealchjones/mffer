@@ -36,6 +36,12 @@
 	"json.schemas": [
 		{
 			"fileMatch": [
+				"tsconfig.json"
+			],
+			"url": "http://json.schemastore.org/tsconfig"
+		},
+		{
+			"fileMatch": [
 				"appsscript.json"
 			],
 			"url": "http://json.schemastore.org/appsscript"

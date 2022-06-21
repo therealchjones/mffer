@@ -55,14 +55,14 @@ setdir() {
 TOOLSDIR="$(setdir "$(dirname "$0")")"
 ROOTDIR="$(setdir "$TOOLSDIR/..")"
 DOCDIR="$(setdir "$ROOTDIR/docs")"
-CONFIGDIR="$(setdir "$DOCDIR/_config")"
+CONFIGDIR="$(setdir "$TOOLSDIR")"
 BUILDDIR="$(setdir "$ROOTDIR/build")"
 SRCDIR="$(setdir "$ROOTDIR/src")"
 if [ ! -e "$ROOTDIR/mffer.csproj" ] \
 	|| [ ! -e "$DOCDIR/index.rst" ] \
 	|| [ ! -e "$TOOLSDIR/requirements.txt" ] \
 	|| [ ! -e "$SRCDIR/Program.cs" ] \
-	|| [ ! -e "$CONFIGDIR/Doxyfile" ]; then
+	|| [ ! -e "$CONFIGDIR/conf.py" ]; then
 	echo "Directory structure of this project is unexpected. Exiting." >&2
 	exit 1
 fi
@@ -85,4 +85,4 @@ if [ "Y" = "$PREBUILD_ONLY" ]; then
 	exit 0
 fi
 
-"$PYTHONDIR"/bin/sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"
+sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"

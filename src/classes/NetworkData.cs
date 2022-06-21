@@ -73,10 +73,10 @@ namespace Mffer {
 		static NetworkData() {
 		}
 		/// <summary>
-		/// Obtains data about the NetMarble servers
+		/// Obtains data about the Netmarble servers
 		/// </summary>
 		/// <remarks>
-		/// Downloads the NetMarble server data and loads it into
+		/// Downloads the Netmarble server data and loads it into
 		/// <see cref="NetworkData.ServerInfo"/> if necessary, and returns that
 		/// server info. Re-implementation of libil2cpp.so's
 		/// <c>PacketTransfer.SetServerData()</c> and the following processing
@@ -96,7 +96,7 @@ namespace Mffer {
 			return ServerInfo;
 		}
 		/// <summary>
-		/// Returns the URL from which to download NetMarble server information
+		/// Returns the URL from which to download Netmarble server information
 		/// </summary>
 		/// <remarks>
 		/// Remake of `libil2cpp.so`'s `ServerInfo.GetRemoteFilePath()`
@@ -145,7 +145,7 @@ namespace Mffer {
 			return major.ToString() + '.' + minor.ToString() + '.' + patch.ToString();
 		}
 		/// <summary>
-		/// Returns settings for the NetMarble server in use
+		/// Returns settings for the Netmarble server in use
 		/// </summary>
 		/// <remarks>
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_data()
@@ -170,7 +170,7 @@ namespace Mffer {
 			return selectedServer;
 		}
 		/// <summary>
-		/// Obtains the URL of the primary NetMarble HTTP server to use
+		/// Obtains the URL of the primary Netmarble HTTP server to use
 		/// </summary>
 		/// <remarks>
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_URL()
@@ -574,7 +574,7 @@ namespace Mffer {
 			return GetAccessToken();
 		}
 		/// <summary>
-		/// Obtains the URL to use for secure NetMarble HTTP requests
+		/// Obtains the URL to use for secure Netmarble HTTP requests
 		/// </summary>
 		/// <remarks>
 		/// Re-implementation of libil2cpp.so's ServerInfo.get_SslURL()
@@ -742,7 +742,7 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Obtain the downloadable content from NetMarble servers
+		/// Obtain the downloadable content from Netmarble servers
 		/// </summary>
 		/// Based on the PatchSystem methods from the game
 		static public void DownloadFiles() {
@@ -798,7 +798,7 @@ namespace Mffer {
 			Console.WriteLine( "Done." );
 		}
 		/// <summary>
-		/// Attempts to download a given file from the NetMarble servers
+		/// Attempts to download a given file from the Netmarble servers
 		/// </summary>
 		/// <param name="url">URL of the file to download</param>
 		/// <param name="file">Local filename of the downloaded file; will be

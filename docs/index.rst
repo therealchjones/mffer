@@ -7,30 +7,20 @@ mffer
 =====
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
    :caption: Using mffer
 
-   USAGE
-   apkdl
-   autoanalyze
-   autoextract
-   mffer
-   webapp
+   user guide <USAGE>
+   command line reference <commandline>
+
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
    :caption: Developing mffer
 
-   CONTRIBUTING
-   conduct
-   license
+   development guide <Development>
+   contributing to mffer <contributing>
+   code of conduct <conduct>
+   license & copyright <license>
    mff
-   Development
-   api/index
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   api reference <api/index>
