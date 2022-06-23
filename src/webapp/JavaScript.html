@@ -563,7 +563,9 @@
 		}
 	}
 	function showAdminContent() {
-		$("#mffer-contents-li-admin").add("#menu-item-admin").show();
+		$("#mffer-contents-li-admin")
+			.add("#menu-item-admin")
+			.removeClass("start-inactive");
 	}
 	function hideAdminContent() {
 		if ($("#mffer-admin").is(":visible")) {
