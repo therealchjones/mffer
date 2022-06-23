@@ -773,7 +773,8 @@ follow the below set of instructions to set up a project for mffer.
    "Project Info" card and make a note of it.
 3. Enable necessary APIs for your project by visiting the following links,
    ensuring the correct project is selected in the project drop-down, and
-   pressing the "Enable" button:
+   pressing the "Enable" button. If prompted to create credentials, you don't
+   need to do that at this time; we'll do so in a later step.
     - [Apps Script API](https://console.cloud.google.com/apis/library/script.googleapis.com)
     - [Drive API](https://console.developers.google.com/apis/library/drive.googleapis.com)
     - [Picker API](https://console.cloud.google.com/apis/library/picker.googleapis.com)
@@ -784,7 +785,7 @@ follow the below set of instructions to set up a project for mffer.
    for the "App information" and "Developer contact information", and press
    "Save and continue". Choose "Add or remove scopes" and enter "https://www.googleapis.com/auth/drive.appdata",
    "https://www.googleapis.com/auth/drive.file", and "openid" under "Manually add
-   scopes". Again press "Update" and "Save and continue". Add your own account
+   scopes". Press "Add to table" and "Update", then press "Save and continue". Add your own account
    as a "Test user", then press "Save and continue" one more time.
 5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
    ensure the correct project is shown in the project drop-down. First choose
@@ -793,7 +794,10 @@ follow the below set of instructions to set up a project for mffer.
    continue". For the "OAuth Client ID" section's "Application
    type", choose "Web application", and enter a name like "mffer". Press
    "Create" and make a note of the Client ID before pressing "Done".
-6. Return to https://console.cloud.google.com/apis/credentials/wizard and again
+6. Visit https://console.cloud.google.com/apis/credentials and click on the name
+   of your newly-created OAuth 2.0 Client ID. Make a note of the "client secret"
+   on the right side of the screen.
+7. Return to https://console.cloud.google.com/apis/credentials/wizard and again
    ensure the correct project is shown in the project drop-down. Choose
    "Google Picker API" for "Which API are you using?" and select "Public data"
    before pressing "Next". Make a note of the API Key and press "Done".
@@ -813,7 +817,7 @@ follow the below set of instructions to set up a project for mffer.
     [mffer] $ git checkout -b new-deployment v0.2.1
     ```
 3. `dotnet restore` will install all the needed development tools as noted in
-   the [development environment](#setting-up-a-development-environment) secion.
+   the [development environment](#setting-up-a-development-environment) section.
    However, if you are only interested in deploying the webapp, most aren't
    necessary, and if desired you can install only the needed `clasp` tool and
    its dependencies:
@@ -859,10 +863,14 @@ follow the below set of instructions to set up a project for mffer.
     section (or obtain them again from
     https://console.cloud.google.com/apis/credentials using the provided
     links).
-12. Visit the OAuth client ID page, and in the "Authorized redirect
-    URIs" section, add the URI given in the webapp; press "Save".
+12. Visit the OAuth client ID page using the provided link, and in the
+    "Authorized redirect URIs" section, add the URI given in the webapp; press
+    "Save".
 13. Back on the webapp, use the "Authorize Google & save these settings" button to authenticate with Google once
-    more; this will additionally lock the above settings and take the app out of
+    more, again "Continue" if the "Google hasn't verified this app" propt
+    appears, and when prompted authorize the access to the app's files in Google
+    Drive. This will lock the above settings and take the app
+    out of
     "setup mode".
 14. When the app reloads, under "Upload new mffer data" select a CSV file
     created by the mffer command line application and then "Confirm" it for upload.
@@ -874,9 +882,43 @@ follow the below set of instructions to set up a project for mffer.
 
 The webapp is now set up for access but is
 [available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment),
-and will therefore work only for the test users you designated.
+and will therefore work only for the test users you designate.
 To deploy widely, first ensure privacy, restrictions, and access are secured in the
 GCP project, then submit your app for [verification](https://developers.google.com/apps-script/guides/client-verification) by Google.
+
+### Changing the webapp
+
+Make the changes you desire to the webapp in the files and directories under the
+repository's `src/webapp/` directory. To push a new version of the webapp to
+Google's servers for testing, again in the `tools/` directory, run
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
+```
+
+If there are major changes to the code, the new deployment may require that you
+re-verify permissions for the webapp as the developer. This can be done by again
+opening the Apps Script console
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
+```
+
+and then in the IDE, open "Editor" (the `<>` icon), select "Code.gs" from the
+file list and press the "Run" button, which if necessary will prompt you to
+"Review Permissions" and approve access to your Google account.
+
+You can then visit the new version of the webapp just like the old one:
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+```
+
+If prompted for which deployment to use, press `<enter>` or `<return>`.
+
+To deploy multiple versions (for instance, a "production" one and another for
+testing), see [Create and manage deployments](https://developers.google.com/apps-script/concepts/deployments)
+and the [clasp deployment instructions](https://developers.google.com/apps-script/guides/clasp#deploy_a_published_project).
 
 ## See also
 
