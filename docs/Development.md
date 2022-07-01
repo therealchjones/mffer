@@ -880,11 +880,30 @@ follow the below set of instructions to set up a project for mffer.
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
 
-The webapp is now set up for access but is
-[available only for testing, not to the general public](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment),
-and will therefore work only for the test users you designate.
-To deploy widely, first ensure privacy, restrictions, and access are secured in the
-GCP project, then submit your app for [verification](https://developers.google.com/apps-script/guides/client-verification) by Google.
+### Testing the webapp
+
+The webapp is now available for testing, but is not fully usable by everyone.
+Site configuration settings (like the API key) are stored in your Google
+account, and everyone who accesses the webapp must be able to access these, so
+the webapp "runs as" you. However, you don't want everyone using the webapp to
+have access to your Google Drive, so this is very limited access; further access
+requires the user to authorize the mffer webapp to connect to their own account.
+
+While the app is in "test mode", anyone can access it, but only users you
+specifically designate as "test users" will be allowed to log in (see
+"[Test a web app
+deployment](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment)").
+To end this restriction, the webapp must be submitted for
+[verification](https://developers.google.com/apps-script/guides/client-verification)
+by Google.
+
+There are other restrictions as well that are tangentially related; most
+notably, Google will check login status whenever the "test" URL is visited, and
+this prevents the web app from running within an `iframe` hosted on another
+site. This is because the app is under a "test deployment"; deploying a version
+of the webapp is required to ease this restriction, which can be as easy as
+using the "Deploy" button in the Apps Script IDE. (See also the end of the
+"[changing the webapp](#changing-the-webapp)" section.)
 
 ### Changing the webapp
 
@@ -919,6 +938,93 @@ If prompted for which deployment to use, press `<enter>` or `<return>`.
 To deploy multiple versions (for instance, a "production" one and another for
 testing), see [Create and manage deployments](https://developers.google.com/apps-script/concepts/deployments)
 and the [clasp deployment instructions](https://developers.google.com/apps-script/guides/clasp#deploy_a_published_project).
+
+### Hosting the webapp at a custom domain
+
+Visiting the webapp for testing during development is most easily done from the
+command line via
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+```
+
+The webapp can also be visited by entering the URL this command uses into the
+browser or bookmarking it. However, if you wish to share the site with others, a
+more user-friendly address may be beneficial. If you have access to a web server
+that allows you to upload an HTML document that will be served at a URL of your
+choice, use the following steps to use that address to access the webapp.
+
+1. Create a "fixed" version of the Google Apps Script code that won't be changed
+   each time you modify the code:
+
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp version "first version"
+    Created version 1.
+    ```
+
+2. Make a formal "deployment" of this version to get an unchanging public URL
+   for it:
+
+    ```shell
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp deploy -V 1 -d "first deployment"
+    - pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk @1.
+    ```
+
+3. Open the site in your browser, choose the deployment you just made, and copy the URL:
+
+    ```shell
+    ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+    ```
+
+4. Edit `tools/iframe.html` and change the URL in the iframe `src` attribute to
+   the one you just copied; upload the file to the URL of your choice.
+
+5. Add the copied URL and your newly uploaded URL to the "Authorized Redirects"
+   list for your OAuth client ID.
+
+To update to a new version of the webapp code at your custom domain (without
+repeating the above steps), first create a new version from the latest code:
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp version "second version"
+Created version 2.
+```
+
+Then, redeploy using the same deployment ID as before so the Apps Script URL
+stays the same:
+
+```shell
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp deploy -i pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk -V 2 -d "second deployment"
+- pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk @2.
+```
+
+### Webapp limitations
+
+The mffer webapp has some limitations imposed by using Google Apps Script and
+associated services. Some can be mitigated with additional deployment changes,
+but others may require changes to the underlying code.
+
+#### Persistent storage
+
+Google Apps Scripts serves user-developed content from
+[within a sandboxed iframe](https://developers.google.com/apps-script/guides/html/restrictions#top.html),
+that uses the domain googleusercontent.com rather than google.com. This may
+improve security for Google and its users. However, this means cookies and
+other persistent storage used by the webapp is considered "third-party content"
+and is blocked or quickly removed by some browsers. This means user logins for
+the webapp won't last restarting the browser, and may even be deleted before the
+browser is restarted. User information is stored in their Google Drive, so it's
+not lost, but frequent logins may be annoying.
+
+This annoyance can be bypassed if users disable "block 3rd-party cookies" or
+similar settings in their browsers, or even if they allow explicitly for the
+domain googleusercontent.com. However, guiding users through making these
+changes may itself be difficult. The other option is to use a different "first
+party" domain (such as mffer.org) and include the Google Apps Script app in yet
+another iframe. The instructions for
+[hosting the webapp at a custom domain](#hosting-the-webapp-at-a-custom-domain)
+describe the steps to set this up, and will fix the third-party storage problem
+as an added benefit.
 
 ## See also
 

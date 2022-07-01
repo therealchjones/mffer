@@ -296,7 +296,7 @@ function getUserAuthService_(storage: VolatileProperties = null) {
 	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
 	if (storage == null) storage = new VolatileProperties();
-	return OAuth2.createService("userLogin")
+	let oauth2Service = OAuth2.createService("userLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
 		.setClientId(oauthId)
@@ -308,6 +308,16 @@ function getUserAuthService_(storage: VolatileProperties = null) {
 		)
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
+	if (storage.getProperty("callbackUrl")) {
+		console.log(
+			"Changing callback from default to " +
+				storage.getProperty("callbackUrl")
+		);
+		oauth2Service.setRedirectUri(storage.getProperty("callbackUrl"));
+	} else {
+		console.log("Using default callback url");
+	}
+	return oauth2Service;
 }
 function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 	let storage = new VolatileProperties(pageStorage);
@@ -330,7 +340,7 @@ function processUserAuthResponse_(response) {
 	}
 	return buildPage_(storage);
 }
-function getUserSpreadsheetId_(userId: string): string {
+function getUserSpreadsheetId_(userId: string): string | null {
 	if (userId == null)
 		throw new Error("Unable to obtain spreadsheet for a null user ID");
 	let users: { userId: string; userFileId: string }[] = getUsers_();

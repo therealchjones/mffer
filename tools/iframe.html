@@ -8,9 +8,152 @@
 		/>
 	</head>
 	<body>
+		<script id="mffer-frame-settings">
+			// Edit this value to use a custom deployment of the mffer webapp at
+			// your own domain. See the mffer development guide at
+			// https://dev.mffer.org/devguide for details.
+			var deploymentId =
+				"AKfycbzBqqyy68YVQ-PqPYEcKiCVkLQ9jHYnamNM65bJKm-MYnHrBsgDvn4fQkMkwmmuI-dK";
+
+			var debug = true; // true will output more info to console
+
+			// standard Google Apps Script settings
+			var webappBase = "https://script.google.com/macros/s/";
+			var webappUrl = webappBase + deploymentId + "/exec";
+			var webappCallbackUrl = webappBase + deploymentId + "/usercallback";
+		</script>
+		<noscript>mffer requires javascript</noscript>
 		<iframe
-			src="[Google Apps Script URL]"
-			style="border: none; width: 100%; height: 100%"
+			id="mffer-webapp-iframe"
+			title="mffer webapp"
+			src="about:blank"
+			style="
+				position: fixed;
+				border: none;
+				top: 0;
+				left: 0;
+				bottom: 0;
+				right: 0;
+				width: 100%;
+				height: 100%;
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			"
 		></iframe>
+		<script id="mffer-frame-script">
+			"use strict";
+			if (debug) debugLog("Enabling debug output");
+			var frameStorage = null;
+			document.addEventListener("DOMContentLoaded", start);
+
+			function start(event) {
+				debugLog("Starting page script flow for " + location.origin);
+				window.removeEventListener("DOMContentLoaded", start);
+				window.addEventListener("message", receiveMessage);
+				debugLog("Added cross-frame messaging listener");
+				if (!hasLocalStorage())
+					debugLog(
+						"Unable to access local storage; data will not persist"
+					);
+
+				let webappQueryString = window.location.search;
+				let iframeSrc = webappUrl;
+				if (webappQueryString) {
+					iframeSrc = webappCallbackUrl + webappQueryString;
+					debugLog(
+						"Using Apps Script callback URL with query '" +
+							webappQueryString +
+							"'"
+					);
+				} else {
+					debugLog("Requesting Apps Script in iframe");
+				}
+				document
+					.getElementById("mffer-webapp-iframe")
+					.setAttribute("src", iframeSrc);
+			}
+			function debugLog(message) {
+				if (debug) console.log(message);
+			}
+			function hasLocalStorage() {
+				if (window.localStorage == null) return false;
+				else return true;
+			}
+			function receiveMessage(messageEvent) {
+				if (messageEvent == null || messageEvent.data == null) return;
+				let messageName = null;
+				if (messageEvent.data.name == null)
+					messageName = messageEvent.data;
+				else messageName = messageEvent.data.name;
+				debugLog("Received cross-frame message of type " + messageName);
+				switch (messageName) {
+					case "frameStorageSetup":
+						if (frameStorage == null) {
+							frameStorage = {};
+							frameStorage.client = messageEvent.source;
+							frameStorage.origin =
+								messageEvent.origin.toString();
+							let frameStorageMessage = {
+								name: "frameStorageSetup",
+								storage: { ...localStorage },
+								callbackUrl: window.location.origin,
+							};
+							frameStorage.client.postMessage(
+								frameStorageMessage,
+								frameStorage.origin
+							);
+						} else {
+							debugLog(
+								"Frame storage client is already configured"
+							);
+						}
+						break;
+					case "frameStorageStore":
+						if (
+							messageEvent.data.key === undefined ||
+							messageEvent.data.value === undefined
+						) {
+							debugLog(
+								"Frame storage 'store' message has no data"
+							);
+						}
+						window.localStorage.setItem(key, value);
+						break;
+					case "frameStorageRetrieve":
+						if (messageEvent.data.key === undefined) {
+							debugLog(
+								"Frame storage 'retrieve' message has no data"
+							);
+						}
+						let value = window.localStorage.getItem(key);
+						if (
+							frameStorage == null ||
+							frameStorage.origin == null
+						) {
+							debugLog("Frame storage is not configured.");
+						}
+						frameStorage.client.postMessage(
+							{
+								name: "frameStorageRetrieve",
+								key: key,
+								value: value,
+							},
+							frameStorage.origin
+						);
+						break;
+					default:
+						debugLog(
+							"Unknown message type received: '" +
+								messageName +
+								"'"
+						);
+						break;
+				}
+			}
+			function save(key, value) {
+				window.localStorage.setItem(domain, JSON.stringify(object));
+			}
+		</script>
 	</body>
 </html>
