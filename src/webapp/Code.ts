@@ -64,7 +64,7 @@ function doGet(): GoogleAppsScript.HTML.HtmlOutput {
  * @returns Apps Script-compatible web page
  */
 function buildPage_(
-	storage: VolatileProperties = null
+	storage: VolatileProperties | null = null
 ): GoogleAppsScript.HTML.HtmlOutput {
 	let properties = getProperties_();
 	let contents = include("Index.html", storage);
@@ -133,7 +133,7 @@ function setProperty_(propertyName: string, propertyValue: string) {
 	}
 	properties.setProperty(propertyName, propertyValue);
 }
-function getAdminAuthService_(storage: VolatileProperties = null) {
+function getAdminAuthService_(storage: VolatileProperties | null = null) {
 	let callbackFunction: string,
 		oauthId: string | null,
 		oauthSecret: string | null = null;
@@ -293,7 +293,7 @@ function processAdminAuthResponse_(response) {
 		return buildPage_(storage);
 	}
 }
-function getUserAuthService_(storage: VolatileProperties = null) {
+function getUserAuthService_(storage: VolatileProperties | null = null) {
 	let oauthId: string | null = getOauthId_();
 	let callbackFunction: string = "processUserAuthResponse_";
 	if (isFalseOrEmpty_(oauthId))
@@ -410,7 +410,10 @@ function getUserLoginStatus(pageStorageJson: string): string | null {
  * @param {string} filename Name of file containing HTML contents or template
  * @returns {string} Displayable HTML suitable for including within HTML output
  */
-function include(filename: string, storage: VolatileProperties = null): string {
+function include(
+	filename: string,
+	storage: VolatileProperties | null = null
+): string {
 	let template = HtmlService.createTemplateFromFile(filename);
 	if (storage == null) storage = new VolatileProperties();
 	template.storage = storage;

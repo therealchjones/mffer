@@ -10,6 +10,8 @@
 		"target": "ES2019"
 	},
 	"include": [
+		// include the class definitions first
+		"src/webapp/Subcode/**.ts",
 		"src/webapp/**.ts"
 	]
 }
