@@ -36,7 +36,9 @@ function resetAllProperties_(): void {
 function getProperties_(): GoogleAppsScript.Properties.Properties {
 	return PropertiesService.getUserProperties();
 }
-function setProperties_(properties: { [index: string]: string } = null): void {
+function setProperties_(
+	properties: { [index: string]: string } | null = null
+): void {
 	if (properties == null) properties = {};
 	if (!isFalseOrEmpty_(properties.oauthId))
 		setProperty_("oauthId", properties.oauthId);
@@ -91,7 +93,7 @@ function isConfigured(): boolean {
 		!isFalseOrEmpty_(getUsersFileId_())
 	);
 }
-function getProperty_(propertyName: string): string {
+function getProperty_(propertyName: string): string | null {
 	var properties = getProperties_();
 	if (properties === null) {
 		return null;
@@ -106,22 +108,22 @@ function getProperty_(propertyName: string): string {
 function getSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
 	return SpreadsheetApp.getActiveSpreadsheet();
 }
-function getOauthId_(): string {
+function getOauthId_(): string | null {
 	return getProperty_("oauthId");
 }
-function getOauthSecret_(): string {
+function getOauthSecret_(): string | null {
 	return getProperty_("oauthSecret");
 }
-function getPickerApiKey_(): string {
+function getPickerApiKey_(): string | null {
 	return getProperty_("pickerApiKey");
 }
 function hasOauthSecret_(): boolean {
 	return getOauthSecret_() != null;
 }
-function getAdminId_(): string {
+function getAdminId_(): string | null {
 	return getProperty_("adminId");
 }
-function getHostUri_(): string {
+function getHostUri_(): string | null {
 	return getProperty_("hostUri");
 }
 function setProperty_(propertyName: string, propertyValue: string) {
@@ -133,8 +135,8 @@ function setProperty_(propertyName: string, propertyValue: string) {
 }
 function getAdminAuthService_(storage: VolatileProperties = null) {
 	let callbackFunction: string,
-		oauthId: string,
-		oauthSecret: string = null;
+		oauthId: string | null,
+		oauthSecret: string | null = null;
 	if (storage == null) storage = new VolatileProperties();
 	oauthId = storage.getProperty("oauthId");
 	oauthSecret = storage.getProperty("oauthSecret");
@@ -150,6 +152,7 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 			"Unable to create admin service: OAuth ID and OAuth secret are required."
 		);
 	}
+	if (oauthId == null || oauthSecret == null) throw new Error();
 	return OAuth2.createService("adminLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
@@ -163,7 +166,7 @@ function getAdminAuthService_(storage: VolatileProperties = null) {
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 }
-function isFalseOrEmpty_(check: string | boolean): boolean {
+function isFalseOrEmpty_(check: string | boolean | null): boolean {
 	if (
 		!check ||
 		check.toString().trim() === "" ||
@@ -172,8 +175,10 @@ function isFalseOrEmpty_(check: string | boolean): boolean {
 		return true;
 	return false;
 }
-function getAdminAuthUrl(propertiesJson: string = null) {
-	let properties: { [index: string]: string } = JSON.parse(propertiesJson);
+function getAdminAuthUrl(propertiesJson: string | null = null) {
+	let properties: { [index: string]: string };
+	if (propertiesJson == null) properties = {};
+	else properties = JSON.parse(propertiesJson);
 	if (properties == null) properties = {};
 	if (!isConfigured()) {
 		if (
@@ -232,7 +237,9 @@ function processNewAdminAuthResponse_(response) {
 		setProperty_("oauthId", oauthId);
 		storage.deleteProperty("oauthId");
 		storage.deleteProperty("oauthSecret");
-		let adminId: string = getUserId_(service.getIdToken());
+		let token = service.getIdToken();
+		if (!token) throw new Error("Unable to find administrator token");
+		let adminId: string = getUserId_(token);
 		if (isFalseOrEmpty_(adminId)) {
 			throw new Error("Unable to determine administrator ID");
 		} else {
@@ -253,10 +260,9 @@ function processAdminAuthResponse_(response) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(response)) {
-		if (
-			getUserId_(service.getIdToken()) == null ||
-			getUserId_(service.getIdToken()) != getAdminId_()
-		) {
+		let token = service.getIdToken();
+		if (!token) throw new Error("Unable to get token");
+		if (getUserId_(token) == null || getUserId_(token) != getAdminId_()) {
 			storage.setProperties(
 				{ adminAuthError: "Logged in user is not an administrator." },
 				true
@@ -288,14 +294,15 @@ function processAdminAuthResponse_(response) {
 	}
 }
 function getUserAuthService_(storage: VolatileProperties = null) {
-	let oauthId: string = getOauthId_();
+	let oauthId: string | null = getOauthId_();
 	let callbackFunction: string = "processUserAuthResponse_";
 	if (isFalseOrEmpty_(oauthId))
 		throw new Error("OAuth 2.0 Client ID is not set");
-	let oauthSecret: string = getOauthSecret_();
+	let oauthSecret: string | null = getOauthSecret_();
 	if (isFalseOrEmpty_(oauthSecret))
 		throw new Error("OAuth 2.0 Client secret is not set");
 	if (storage == null) storage = new VolatileProperties();
+	if (oauthId == null || oauthSecret == null) throw new Error();
 	let oauth2Service = OAuth2.createService("userLogin")
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
@@ -327,7 +334,9 @@ function processUserAuthResponse_(response) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
 	if (service.handleCallback(response)) {
-		let userId: string = getUserId_(service.getIdToken());
+		let token = service.getIdToken();
+		if (!token) throw new Error("Unable to get ID token");
+		let userId: string = getUserId_(token);
 		if (userId == null) throw new Error("Unable to obtain user ID");
 		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
 		createUserFile_(userId, storage);
@@ -343,7 +352,7 @@ function processUserAuthResponse_(response) {
 function getUserSpreadsheetId_(userId: string): string | null {
 	if (userId == null)
 		throw new Error("Unable to obtain spreadsheet for a null user ID");
-	let users: { userId: string; userFileId: string }[] = getUsers_();
+	let users: { userId: string; userFileId: string }[] | null = getUsers_();
 	if (users == null || users.length == 0) return null;
 	let userEntries: { userId: string; userFileId: string }[] = users.filter(
 		function (entry) {
@@ -356,8 +365,12 @@ function getUserSpreadsheetId_(userId: string): string | null {
 	return userEntries[0].userFileId;
 }
 function getUserId_(id_token: string): string {
-	if (id_token == null || id_token.match(/\./g).length != 2)
-		throw new Error("Invalid ID token: " + id_token);
+	if (id_token == null) throw new Error("ID token is null");
+	else {
+		let match = id_token.match(/\./g);
+		if (!match || match.length != 2)
+			throw new Error("Invalid ID token: " + id_token);
+	}
 	let id_body = id_token.split(/\./)[1];
 	let id = JSON.parse(
 		Utilities.newBlob(Utilities.base64Decode(id_body)).getDataAsString()
@@ -375,12 +388,14 @@ function getUserId_(id_token: string): string {
 	// TODO #146: validate signature of id_token
 	return id.sub;
 }
-function getUserLoginStatus(pageStorageJson: string): string {
+function getUserLoginStatus(pageStorageJson: string): string | null {
 	let pageStorage: { [key: string]: string } = JSON.parse(pageStorageJson);
 	let storage = new VolatileProperties(pageStorage);
 	let service = getUserAuthService_(storage);
 	if (service.hasAccess()) {
-		let userId: string = getUserId_(service.getIdToken());
+		let token = service.getIdToken();
+		if (!token) throw new Error("Unable to get ID token");
+		let userId: string = getUserId_(token);
 		if (userId == null) throw new Error("Unable to obtain user ID");
 		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
 		createUserFile_(userId, storage);
@@ -505,7 +520,9 @@ function setAdminToUser_(storage: VolatileProperties): void {
 		);
 		let service = getAdminAuthService_(storage);
 		if (service.hasAccess()) {
-			if (getUserId_(service.getIdToken()) == getAdminId_()) return;
+			let token = service.getIdToken();
+			if (!token) throw new Error("Unable to get ID token");
+			if (getUserId_(token) == getAdminId_()) return;
 		}
 	}
 	storage
@@ -518,8 +535,8 @@ function setAdminToUser_(storage: VolatileProperties): void {
  * number 1
  * @returns the A1-formatted column label; the first column is A, the 28th is AB
  */
-function numToCol_(colNum: number): string {
-	let colName: string = null;
+function numToCol_(colNum: number): string | null {
+	let colName: string | null = null;
 	let colBaseLabels: string = "ABFCDEFGHIJKLMNOPQRSTUVWXYZ";
 	let colGroup = Math.floor(colNum / colBaseLabels.length);
 	if (colGroup > 0) {
@@ -545,7 +562,7 @@ function importNewData(newText: string, storageJson: string): void {
 		dataSheet.copyTo(spreadsheet);
 		dataSheet.clear();
 	} else {
-		let dataSheet = spreadsheet.insertSheet(1);
+		dataSheet = spreadsheet.insertSheet(1);
 		spreadsheet.addDeveloperMetadata(
 			"mffer-data-sheet",
 			dataSheet.getSheetId().toString(),
@@ -658,7 +675,8 @@ function createUsersFile_(): void {
 }
 function addUserFile_(userId: string, userFileId: string) {
 	let usersFileId = getUsersFileId_();
-	let userData: { userId: string; userFileId: string }[] = getUsers_();
+	let userData: { userId: string; userFileId: string }[] | null = getUsers_();
+	if (!userData) userData = [];
 	let existingUsers = userData.filter(function (entry) {
 		return entry.userId == userId;
 	});
@@ -696,7 +714,10 @@ function addUserFile_(userId: string, userFileId: string) {
 		throw new Error("Unable to update users file:\n" + errorData);
 	}
 }
-function createUserFile_(userId: string, storage: VolatileProperties): string {
+function createUserFile_(
+	userId: string,
+	storage: VolatileProperties
+): string | null {
 	let auth = getUserAuthService_(storage);
 	if (
 		auth.hasAccess() &&
@@ -745,6 +766,7 @@ function createUserFile_(userId: string, storage: VolatileProperties): string {
 			throw new Error("Unable to create user file:\n" + errorData);
 		}
 		userFileId = JSON.parse(uploadResponse.getContentText()).id;
+		if (!userFileId) userFileId = "";
 		addUserFile_(userId, userFileId);
 		return userFileId;
 	} else {
@@ -765,7 +787,7 @@ function getScopes_(storage: VolatileProperties): string[] {
 function getSheetById_(
 	spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
 	gid: number
-): GoogleAppsScript.Spreadsheet.Sheet {
+): GoogleAppsScript.Spreadsheet.Sheet | null {
 	if (!spreadsheet) {
 		spreadsheet = getSpreadsheet_();
 	}
@@ -826,8 +848,8 @@ function getSheetById_(
  * 30 Sheet Opponent Choice
  * 31 Sheet Teammembers
  */
-function getWebappDatabase(): any[][] {
-	var sheet: GoogleAppsScript.Spreadsheet.Sheet = getDataSheet_();
+function getWebappDatabase(): any[][] | null {
+	var sheet: GoogleAppsScript.Spreadsheet.Sheet | null = getDataSheet_();
 	if (sheet == null) return null;
 	var rows: number = sheet.getDataRange().getHeight();
 	var range: any[][] = sheet.getSheetValues(1, 33, rows, 32);
@@ -844,7 +866,9 @@ function getWebappDatabase(): any[][] {
 		});
 	});
 }
-function getSheet_(mfferSheet: string): GoogleAppsScript.Spreadsheet.Sheet {
+function getSheet_(
+	mfferSheet: string
+): GoogleAppsScript.Spreadsheet.Sheet | null {
 	let spreadsheet = getSpreadsheet_();
 	if (spreadsheet == null) return null;
 	let metadata = spreadsheet
@@ -855,32 +879,28 @@ function getSheet_(mfferSheet: string): GoogleAppsScript.Spreadsheet.Sheet {
 		.withVisibility(SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT)
 		.withKey(mfferSheet)
 		.find();
-	if (
-		metadata == null ||
-		metadata.length == 0 ||
-		metadata[0] == null ||
-		metadata[0].getValue() == null ||
-		metadata[0].getValue().trim() == ""
-	)
+	if (metadata == null || metadata.length == 0 || metadata[0] == null)
 		return null;
-	let sheet: GoogleAppsScript.Spreadsheet.Sheet = null;
+	let value = metadata[0].getValue();
+	if (value == null || value.trim() == "") return null;
+	let sheet: GoogleAppsScript.Spreadsheet.Sheet | null = null;
 	try {
-		sheet = getSheetById_(spreadsheet, Number(metadata[0].getValue()));
+		sheet = getSheetById_(spreadsheet, Number(value));
 	} catch (exception) {
 		return null;
 	}
 	return sheet;
 }
-function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
+function getDataSheet_(): GoogleAppsScript.Spreadsheet.Sheet | null {
 	return getSheet_("mffer-data-sheet");
 }
-function getUsersSheet_(): GoogleAppsScript.Spreadsheet.Sheet {
+function getUsersSheet_(): GoogleAppsScript.Spreadsheet.Sheet | null {
 	return getSheet_("mffer-users-sheet");
 }
-function getUsersFileId_(): string {
+function getUsersFileId_(): string | null {
 	return getProperty_("usersFileId");
 }
-function getUsers_(): { userId: string; userFileId: string }[] {
+function getUsers_(): { userId: string; userFileId: string }[] | null {
 	let usersFileId = getUsersFileId_();
 	if (!usersFileId) return null;
 	let response = UrlFetchApp.fetch(
@@ -908,9 +928,9 @@ function getUsers_(): { userId: string; userFileId: string }[] {
  * use the working sheet.)
  */
 function saveNewPreferences(preferences) {
-	getSheetById_(getSpreadsheet_(), 1315797114)
-		.getRange(15, 3, 5)
-		.setValues(preferences);
+	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
+	if (!sheet) throw new Error("Unable to find sheet");
+	else sheet.getRange(15, 3, 5).setValues(preferences);
 }
 
 /**
@@ -922,7 +942,9 @@ function saveNewPreferences(preferences) {
 function saveShadowlandEntry(entry) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
-	getSheetById_(getSpreadsheet_(), 1930936724).appendRow(entry);
+	let sheet = getSheetById_(getSpreadsheet_(), 1930936724);
+	if (!sheet) throw new Error("Unable to get sheet");
+	else sheet.appendRow(entry);
 }
 
 /**
@@ -930,14 +952,14 @@ function saveShadowlandEntry(entry) {
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
 function saveFloorNumber(floorNumber) {
-	getSheetById_(getSpreadsheet_(), 1315797114)
-		.getRange("A2")
-		.setValue(floorNumber);
+	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
+	if (!sheet) throw new Error("Unable to get sheet");
+	else sheet.getRange("A2").setValue(floorNumber);
 }
 
 function csvToTable(text: string, storageJson: string) {
 	let storage = new VolatileProperties(JSON.parse(storageJson));
-	let returnContent: string = null;
+	let returnContent: string | null = null;
 	setAdminToUser_(storage);
 	let adminService = getAdminAuthService_(storage);
 
