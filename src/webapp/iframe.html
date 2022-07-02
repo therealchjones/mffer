@@ -20,7 +20,6 @@
 			// standard Google Apps Script settings
 			var webappBase = "https://script.google.com/macros/s/";
 			var webappUrl = webappBase + deploymentId + "/exec";
-			var webappCallbackUrl = webappBase + deploymentId + "/usercallback";
 		</script>
 		<noscript>mffer requires javascript</noscript>
 		<iframe
@@ -60,11 +59,10 @@
 				let webappQueryString = window.location.search;
 				let iframeSrc = webappUrl;
 				if (webappQueryString) {
-					iframeSrc = webappCallbackUrl + webappQueryString;
 					debugLog(
-						"Using Apps Script callback URL with query '" +
+						"Passing along query '" +
 							webappQueryString +
-							"'"
+							"' to iframed apps script"
 					);
 				} else {
 					debugLog("Requesting Apps Script in iframe");
