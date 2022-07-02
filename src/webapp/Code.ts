@@ -215,10 +215,10 @@ function getRedirectUri(): string {
 		"/usercallback"
 	);
 }
-function processNewAdminAuthResponse_(response) {
+function processNewAdminAuthResponse_(response: any) {
 	let noOauthMessage: string =
 		"Admin authorization response did not include OAuth 2.0 client information.";
-	if (response.parameter == null) throw new Error(noOauthMessage);
+	if (!response || !response.parameter) throw new Error(noOauthMessage);
 	let oauthId: string = response.parameter.oauthId;
 	let oauthSecret: string = response.parameter.oauthSecret;
 	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
@@ -256,7 +256,7 @@ function processNewAdminAuthResponse_(response) {
 		return buildPage_(storage);
 	}
 }
-function processAdminAuthResponse_(response) {
+function processAdminAuthResponse_(response: any) {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(response)) {
@@ -269,7 +269,7 @@ function processAdminAuthResponse_(response) {
 			);
 			return buildPage_(storage);
 		}
-		if (response.parameter != null) {
+		if (response != null && response.parameter != null) {
 			let newProperties: { [index: string]: string } = {};
 			for (let property in response.parameter) {
 				switch (property) {
@@ -330,9 +330,10 @@ function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 	let storage = new VolatileProperties(pageStorage);
 	return getUserAuthService_(storage).getAuthorizationUrl();
 }
-function processUserAuthResponse_(response) {
+function processUserAuthResponse_(response: any) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
+	if (!response) throw new Error("No response was given");
 	if (service.handleCallback(response)) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to get ID token");
@@ -930,7 +931,7 @@ function getUsers_(): { userId: string; userFileId: string }[] | null {
  * the preferences between instantiations. TODO: At some point can likely just
  * use the working sheet.)
  */
-function saveNewPreferences(preferences) {
+function saveNewPreferences(preferences: any) {
 	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
 	if (!sheet) throw new Error("Unable to find sheet");
 	else sheet.getRange(15, 3, 5).setValues(preferences);
@@ -942,7 +943,7 @@ function saveNewPreferences(preferences) {
  * [ floor, mode, opponent team 1, opponent team 2, opponent team 3, selected opponent team,
  *   winning team ]
  */
-function saveShadowlandEntry(entry) {
+function saveShadowlandEntry(entry: any) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
 	let sheet = getSheetById_(getSpreadsheet_(), 1930936724);
@@ -954,7 +955,7 @@ function saveShadowlandEntry(entry) {
  * Sets the "current floor" in the database
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
-function saveFloorNumber(floorNumber) {
+function saveFloorNumber(floorNumber: any) {
 	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
 	if (!sheet) throw new Error("Unable to get sheet");
 	else sheet.getRange("A2").setValue(floorNumber);
