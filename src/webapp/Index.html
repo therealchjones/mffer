@@ -2,7 +2,204 @@
 <html lang="en">
 	<head>
 		<base target="_top" />
-		<?!= include('StyleSheet.html'); ?>
+		<link
+			id="bootstrap-css"
+			href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+			rel="stylesheet"
+			integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We"
+			crossorigin="anonymous"
+		/>
+		<link
+			id="google-font-exo-2"
+			href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600&display=swap"
+			rel="stylesheet"
+		/>
+		<style id="mffer-css">
+			body {
+				font-family: "Exo 2", sans-serif;
+				text-align: center;
+				padding-top: 4rem;
+				padding-bottom: 2rem;
+			}
+			.start-inactive {
+				display: none;
+			}
+			#mffer-navbar-brand {
+				margin: 0;
+			}
+			#mffer-admin form {
+				text-align: left;
+			}
+			[id^="mffer-admin-instructions-"] {
+				text-align: right;
+				font-size: 75%;
+				margin: 0;
+				height: calc(1em * var(--bs-body-line-height));
+			}
+			.form-floating .spinner-border {
+				position: absolute;
+				bottom: calc(1.5em + 5px);
+				right: 1.5em;
+			}
+			#mffer-admin-listitem-login {
+				padding-left: calc(1.75rem + 1px);
+			}
+			[id^="mffer-admin-input-"] {
+				text-overflow: ellipsis;
+			}
+			#mffer-admin-button-authorize {
+				width: 100%;
+			}
+			.disabled {
+				color: gray;
+			}
+			.disabled * {
+				color: inherit;
+			}
+			#mffer-shadowland fieldset {
+				width: 100%;
+				margin: 0;
+				padding: 0;
+			}
+			#mffer-shadowland legend {
+				display: none;
+				box-sizing: border-box;
+				width: 100%;
+				margin: 0;
+			}
+			#shadowland-floor {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				width: 100%;
+			}
+			#shadowland-floor label {
+				max-width: 20%;
+				text-align: right;
+				margin: 0.5em;
+				font-size: smaller;
+			}
+			#shadowland-floor input {
+				max-width: 8em;
+				float: left;
+				display: block;
+			}
+			#shadowland-floor button {
+				display: inline;
+				max-width: 3em;
+			}
+			#shadowland-floortype {
+				max-width: 20%;
+				text-align: left;
+				margin: 0.5em;
+				font-size: larger;
+				font-style: italic;
+			}
+			input#shadowland-basefloor,
+			label[for="shadowland-basenumber"] {
+				display: none;
+			}
+			#shadowland-opponents label,
+			#shadowland-opponents p {
+				display: inline;
+			}
+			#shadowland-opponents p {
+				font-size: smaller;
+				font-style: italic;
+				margin-left: 1em;
+			}
+			#shadowland-opponents legend {
+				margin-top: 0.5ex;
+				margin-bottom: 0.1ex;
+			}
+			#shadowland-opponents .ui-controlgroup {
+				margin-top: 0;
+				margin-bottom: 0;
+				width: 100%;
+			}
+			#shadowland-opponents select {
+				width: 85%;
+				display: inline-block;
+				margin: 0;
+			}
+			#shadowland-opponents input[type="radio"] {
+				width: 15%;
+				margin: 0;
+				padding: 0;
+				display: inline-block;
+			}
+			#shadowland-opponents label[for="opponent-choice-*"] {
+				box-sizing: border-box;
+				width: 15%;
+				padding-left: 0;
+				padding-right: 0;
+				text-align: center;
+				display: inline-block;
+				margin: 0;
+			}
+			#shadowland-opponents input[type="radio"] {
+				display: inline-block;
+				width: 22px;
+				height: 22px;
+				margin-top: -2px;
+				border: 0;
+			}
+			#shadowland-team legend {
+				margin-top: 0.5ex;
+				margin-bottom: 0.1ex;
+			}
+			#shadowland-team select {
+				margin-top: 0;
+				margin-bottom: 0;
+			}
+			#shadowland-preferences,
+			#shadowland-priors,
+			#shadowland-recommendations {
+				margin: 0;
+				padding: 0;
+			}
+			legend {
+				font-size: 13px;
+				padding-right: 0.2em;
+				padding-top: 0.2em;
+				padding-bottom: 0.2em;
+				border-width: 1px;
+				border-style: solid;
+			}
+			#mffer-statusbar {
+				height: 1.5rem;
+				font-size: 0.75rem;
+				padding-top: 0;
+				padding-bottom: 0;
+				text-align: right;
+			}
+			#progress-bar-text {
+				display: inline;
+				margin-top: 0;
+				margin-bottom: 0;
+				margin-left: 0;
+				margin-right: 0.5em;
+			}
+			#log-button {
+				font-size: 87.5%;
+				line-height: 1;
+				margin: 0;
+			}
+			#textdisplay,
+			#tabledisplay {
+				width: 80%;
+				margin-left: 10%;
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				font-size: smaller;
+			}
+			#textdisplay * {
+				padding: 1em;
+				border: solid black;
+				border-width: 1px 1px 0 1px;
+			}
+		</style>
 	</head>
 	<body>
 		<p style="display: none" role="none">
@@ -11,20 +208,385 @@
 		<noscript
 			><p>The <code>mffer</code> webapp requires JavaScript.</p></noscript
 		>
-		<?!= include('Subpages/navbar.html'); ?>
-		<?!= include('Subpages/alert.html'); ?>
-		<?!= include('Subpages/spinner.html'); ?>
-
+		<nav
+			id="mffer-navbar"
+			role="navigation"
+			class="navbar fixed-top navbar-light bg-light always-active"
+		>
+			<div
+				id="mffer-navbar-toggle-frame"
+				class="d-flex justify-content-start w-25"
+			>
+				<button
+					id="mffer-navbar-toggle"
+					class="navbar-toggler btn btn-outline-primary"
+					type="button"
+					data-bs-toggle="collapse"
+					data-bs-target="#mffer-navbar-menu"
+					data-bs-auto-close="true"
+					aria-controls="mffer-navbar-menu"
+					aria-expanded="false"
+					aria-label="Toggle navigation menu"
+				>
+					<span class="navbar-toggler-icon"></span>
+				</button>
+			</div>
+			<h1 id="mffer-navbar-brand" class="navbar-brand">
+				<a href="https://mffer.org">mffer</a>
+			</h1>
+			<div
+				id="mffer-navbar-login-frame"
+				class="d-flex justify-content-end w-25"
+			>
+				<button
+					type="button"
+					id="mffer-navbar-button-login"
+					class="start-inactive btn btn-primary"
+				>
+					login
+				</button>
+			</div>
+			<div id="mffer-navbar-menu" class="collapse navbar-collapse">
+				<ul class="navbar-nav">
+					<li class="nav-item">
+						<a
+							id="menu-button-home"
+							target="_top"
+							onclick="openContents();"
+							class="nav-link active"
+							aria-current="page"
+							>Home</a
+						>
+					</li>
+					<li id="menu-item-admin" class="nav-item start-inactive">
+						<a
+							id="menu-button-admin"
+							onclick="openAdmin();"
+							class="nav-link"
+							>Admin</a
+						>
+					</li>
+					<li class="nav-item">
+						<a
+							id="menu-button-dev"
+							class="nav-link"
+							href="https://dev.mffer.org/"
+							>Development</a
+						>
+					</li>
+				</ul>
+			</div>
+		</nav>
+		<div
+			id="mffer-alert"
+			class="container alert alert-danger start-inactive"
+			role="alert"
+		>
+			<h2 id="mffer-alert-title">Oops</h2>
+			<p id="mffer-alert-text">
+				Something's not right. Maybe sign in and check the settings in
+				the admin area.
+			</p>
+		</div>
+		<div id="mffer-spinner" class="container start-inactive">
+			<h2>Loading</h2>
+			<p id="loading-notes"></p>
+			<p class="spinner-border"></p>
+		</div>
 		<? if ( ! isConfigured() ) { ?>
 		<?!= include('Subpages/new.html'); ?>
 		<? } ?>
-		<?!= include('Subpages/contents.html'); ?>
-		<?!= include('Subpages/admin.html'); ?>
-		<?!= include('Subpages/shadowland.html'); ?>
+		<div id="mffer-contents" class="start-inactive">
+			<h2>Contents</h2>
+			<ul>
+				<li id="mffer-contents-li-admin" class="start-inactive">
+					<a id="mffer-contents-a-admin" onclick="openAdmin();"
+						>Admin</a
+					>
+				</li>
+			</ul>
+		</div>
+		<form id="mffer-admin" class="start-inactive">
+			<h2><code>mffer</code> settings</h2>
+			<div id="mffer-admin-deploymentinstructions">
+				<p>
+					See the
+					<a
+						href="https://dev.mffer.org/devguide#deploying-the-webapp"
+						target="_blank"
+						>deployment instructions</a
+					>
+					for details.
+				</p>
+			</div>
+			<ul>
+				<li id="mffer-admin-listitem-oauthid">
+					<p id="mffer-admin-instructions-oauthid">
+						<a
+							href="https://console.cloud.google.com/apis/credentials"
+							target="_blank"
+							>GCP credentials</a
+						>
+					</p>
+					<label for="mffer-admin-input-oauthid">OAuth 2.0 ID</label>
+					<input type="text" id="mffer-admin-input-oauthid" />
+				</li>
+				<li id="mffer-admin-listitem-oauthsecret">
+					<p id="mffer-admin-instructions-oauthsecret">
+						<a
+							href="https://console.cloud.google.com/apis/credentials"
+							target="_blank"
+							>GCP Credentials</a
+						>
+					</p>
+					<label for="mffer-admin-input-oauthsecret"
+						>OAuth 2.0 Secret</label
+					>
+					<input type="text" id="mffer-admin-input-oauthsecret" />
+				</li>
+				<li id="mffer-admin-listitem-oauthredirecturi" class="readonly">
+					<p id="mffer-admin-instructions-oauthredirecturi">
+						<a
+							href="https://console.cloud.google.com/apis/credentials"
+							target="_blank"
+							>GCP Credentials</a
+						>
+					</p>
+					<label for="mffer-admin-input-oauthredirecturi"
+						>OAuth redirect URI</label
+					>
+					<input
+						type="text"
+						id="mffer-admin-input-oauthredirecturi"
+						readonly
+						value=""
+					/>
+				</li>
+				<li id="mffer-admin-listitem-fileupload">
+					<label for="mffer-admin-input-fileupload"
+						>Upload new <code>mffer</code> data</label
+					>
+					<input type="file" id="mffer-admin-input-fileupload" />
+					<div id="mffer-filechooser-pending" class="start-inactive">
+						<p>File preview:</p>
+						<div id="mffer-filechooser-textdisplay"></div>
+						<p>Spreadsheet preview:</p>
+						<div id="mffer-filechooser-tabledisplay"></div>
+						<button
+							type="button"
+							id="button-filechooser-confirm"
+							class="btn btn-primary"
+							disabled
+						>
+							Confirm
+						</button>
+						<button
+							type="button"
+							id="button-filechooser-cancel"
+							class="btn btn-danger"
+						>
+							Cancel
+						</button>
+					</div>
+				</li>
+				<li id="mffer-admin-listitem-authorize">
+					<button
+						type="button"
+						id="mffer-admin-button-authorize"
+						class="btn btn-primary"
+					>
+						Authorize Google &amp; save these settings
+					</button>
+					<p
+						class="text-danger"
+						id="mffer-admin-authorizationerror"
+					></p>
+				</li>
+			</ul>
+		</form>
+		<form
+			name="shadowland"
+			id="mffer-shadowland"
+			class="container text-center start-inactive"
+		>
+			<h2>Shadowland</h2>
+			<fieldset id="shadowland-floor">
+				<legend>Floor</legend>
+				<label for="shadowland-floornumber">Floor Number</label>
+				<input
+					type="text"
+					list="shadowland-floornumbers"
+					id="shadowland-floornumber"
+					name="shadowland-floornumber"
+				/>
+				<datalist id="shadowland-floornumbers">
+					<option value="1">
+						<!-- more to be added programmatically, but can also type in a floor -->
+					</option>
+				</datalist>
 
-		<?!= include('Subpages/statusbar.html'); ?>
-		<?!= include('Subpages/log.html'); ?>
+				<label for="shadowland-basenumber">Base Floor Number</label>
+				<input
+					type="text"
+					list="shadowland-basenumbers"
+					id="shadowland-basenumber"
+					name="shadowland-basenumber"
+				/>
+				<datalist id="shadowland-basenumbers">
+					<option value="1">
+						<!-- more to be added programmatically, but can also type in a floor -->
+					</option>
+				</datalist>
 
+				<button id="shadowland-floorbutton-down">-</button>
+				<button id="shadowland-floorbutton-up">+</button>
+				<div id="shadowland-floortype"></div>
+			</fieldset>
+			<!-- shadowland-floor -->
+
+			<fieldset id="shadowland-opponents">
+				<legend>Opponents</legend>
+
+				<label for="opponent-1">Opponent 1</label>
+				<p id="reward-1"></p>
+				<select id="opponent-1" name="opponent-1"></select>
+				<label for="opponent-choice-1">Select Opponent 1</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-1"
+					type="radio"
+					value="1"
+				/>
+
+				<label for="opponent-2">Opponent 2</label>
+				<p id="reward-2"></p>
+				<select id="opponent-2" name="opponent-2"></select>
+				<label for="opponent-choice-2">Select Opponent 2</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-2"
+					type="radio"
+					value="2"
+				/>
+
+				<label for="opponent-3">Opponent 3</label>
+				<p id="reward-3"></p>
+				<select id="opponent-3" name="opponent-3"></select>
+				<label for="opponent-choice-3">Select Opponent 3</label>
+				<input
+					name="opponent-choice"
+					id="opponent-choice-3"
+					type="radio"
+					value="3"
+				/>
+			</fieldset>
+			<!-- shadowland-opponents -->
+
+			<fieldset id="shadowland-team">
+				<legend>Team</legend>
+				<label for="teammember-1">Team Leader</label>
+				<select id="teammember-1" name="teammember-1"></select>
+
+				<label for="teammember-2">Teammember 2</label>
+				<select id="teammember-2" name="teammember-2"></select>
+
+				<label for="teammember-2">Teammember 3</label>
+				<select id="teammember-3" name="teammember-3"></select>
+			</fieldset>
+			<!-- shadowland-team -->
+
+			<fieldset
+				id="shadowland-preferences"
+				class="btn-group btn-group-toggle"
+				data-toggle="buttons"
+			>
+				<legend>Preferences</legend>
+				<label for="preference-1" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-1"
+						name="preference-1"
+						value="1"
+					/>allow T2 before floor 25</label
+				>
+				<label for="preference-2" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-2"
+						name="preference-2"
+						value="2"
+					/>allow 6* characters</label
+				>
+				<label for="preference-3" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-3"
+						name="preference-3"
+						value="3"
+					/>allow meta characters</label
+				>
+				<label for="preference-4" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-4"
+						name="preference-4"
+						value="4"
+					/>allow good characters</label
+				>
+				<label for="preference-5" class="btn btn-secondary"
+					><input
+						type="checkbox"
+						id="preference-5"
+						name="preference-5"
+						value="5"
+					/>allow nonmatching characters</label
+				>
+			</fieldset>
+			<!-- shadowland-preferences -->
+
+			<fieldset id="shadowland-recommendations">
+				<legend>Recommended Teams</legend>
+			</fieldset>
+			<!-- shadowland-recommendations -->
+			<fieldset id="shadowland-priors">
+				<legend>Prior Successes</legend>
+			</fieldset>
+			<!-- shadowland-priors -->
+			<fieldset id="shadowland-buttons">
+				<legend class="sr-only">Finish</legend>
+				<button id="shadowland-button-reload" class="btn btn-secondary">
+					reload
+				</button>
+				<button
+					id="shadowland-button-resetfloor"
+					class="btn btn-secondary"
+				>
+					reset floor
+				</button>
+				<input
+					type="button"
+					id="shadowland-button-success"
+					value="success"
+					class="btn btn-dark"
+				/>
+			</fieldset>
+			<!-- shadowland-buttons -->
+		</form>
+		<div
+			id="mffer-statusbar"
+			class="navbar fixed-bottom container-fluid justify-content-end bg-light always-active"
+		>
+			<p id="progress-bar-text"></p>
+			<input
+				type="button"
+				id="log-button"
+				value="Log"
+				class="btn btn-dark btn-sm"
+			/>
+		</div>
+		<div id="mffer-log" class="container start-inactive">
+			<ul id="progress-log-text"></ul>
+		</div>
 		<?!= include('JavaScript.html', storage); ?>
 	</body>
 </html>
