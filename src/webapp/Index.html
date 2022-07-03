@@ -288,14 +288,45 @@
 				the admin area.
 			</p>
 		</div>
+		<div id="mffer-new" class="container start-inactive">
+			<h2>Welcome.</h2>
+			<div id="mffer-new-intro">
+				<p>
+					mffer is designed to be run as a web app on the Google Cloud
+					Platform. To deploy the application as a project of your
+					own, you must register it as an OAuth 2.0 client, add your
+					own API key, and set up a Google Sheet for storage.
+				</p>
+				<p>
+					If you just want to use the web app, you don't need to do
+					this: just visit <a href="https://mffer.org">mffer.org</a>.
+				</p>
+				<p>
+					If you want to run, build, modify, or test the command-line
+					mffer program, which is used for extracting data and
+					reporting it in a way the web app can use, you may not need
+					to do this: visit
+					<a href="https://dev.mffer.org">dev.mffer.org</a>.
+				</p>
+				<p>
+					However, if you want to modify and test the web app or
+					deploy a version yourself, then
+				</p>
+				<button
+					id="mffer-new-button-setup"
+					type="button"
+					class="btn btn-primary"
+					disabled
+				>
+					please wait
+				</button>
+			</div>
+		</div>
 		<div id="mffer-spinner" class="container start-inactive">
 			<h2>Loading</h2>
 			<p id="loading-notes"></p>
 			<p class="spinner-border"></p>
 		</div>
-		<? if ( ! isConfigured() ) { ?>
-		<?!= include('Subpages/new.html'); ?>
-		<? } ?>
 		<div id="mffer-contents" class="start-inactive">
 			<h2>Contents</h2>
 			<ul>

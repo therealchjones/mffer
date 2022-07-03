@@ -67,5 +67,6 @@
 	"python.defaultInterpreterPath": "${workspaceFolder}/tools/python/bin/python",
 	"python.analysis.diagnosticSeverityOverrides": {
 		"reportMissingModuleSource": "information"
-	}
+	},
+	"typescript.tsdk": "./tools/node_modules/typescript/lib"
 }

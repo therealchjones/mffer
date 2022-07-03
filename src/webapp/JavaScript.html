@@ -17,14 +17,19 @@
 <script id="mffer-js">
 	"use strict";
 	var debug = true; // debug = true outputs more to the console
+	var mainPage = null;
 	document.addEventListener("DOMContentLoaded", start);
-	async function start() {
-		if (!isConfigured()) {
-			initializeSetup();
-		} else {
-			await Promise.all([initializeStorage(), bootstrapify()]);
-			initializePage();
-		}
+	function start() {
+		checkConfigured();
+	}
+	async function setConfigured() {
+		await Promise.all([initializeStorage(), bootstrapify()]);
+		mainPage = $("#mffer-contents");
+		initializePage();
+	}
+	function setNotConfigured() {
+		mainPage = $("#mffer-welcome");
+		initializeSetup();
 	}
 
 	/** Various memory stores for volatile and persistent memory, complicated by
@@ -151,9 +156,30 @@
 			'<span class="spinner-border spinner-border-sm p-0" title="Loading..."></span>',
 	};
 
-	function isConfigured() {
-		return $("#mffer-new").length == 0;
+	function checkConfigured() {
+		google.script.run
+			.withFailureHandler(function () {
+				throwError("Unable to check for configuration");
+			})
+			.withSuccessHandler(function (response) {
+				if (response == true) setConfigured();
+				else setNotConfigured();
+			})
+			.isConfigured();
 	}
+	async function isConfigured() {
+		return new Promise(function (resolve, reject) {
+			google.script.run
+				.withFailureHandler(() =>
+					throwError("Unable to check for configuration")
+				)
+				.withSuccessHandler(function (response) {
+					resolve(response);
+				})
+				.isConfigured();
+		});
+	}
+
 	/**
 	 * Check for window.localStorage capabilities
 	 */
@@ -339,6 +365,7 @@
 		return spinner;
 	}
 	function initializeSetup() {
+		$("#mffer-new").show();
 		bootstrapify();
 		enableAdminContent();
 		$("#mffer-new-button-setup")
@@ -348,8 +375,7 @@
 	}
 	function openContents() {
 		hidePages();
-		if (isConfigured()) $("#mffer-contents").show();
-		else $("#mffer-new").show();
+		mainPage.show();
 	}
 	function openAdmin() {
 		hidePages();
@@ -475,8 +501,8 @@
 			return true;
 		return false;
 	}
-	function adminAuthAndSave() {
-		if (!isConfigured()) {
+	async function adminAuthAndSave() {
+		if (!(await isConfigured())) {
 			if (
 				isFalseOrEmpty(mfferSettings.oauthId) ||
 				isFalseOrEmpty(mfferSettings.oauthSecret)
