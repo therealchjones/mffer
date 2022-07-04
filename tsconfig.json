@@ -7,11 +7,16 @@
 		"lib": [
 			"esnext"
 		],
-		"target": "ES2019"
+		"target": "ES2019",
+		"composite": true,
+		"incremental": true,
+		"strict": true,
+		"alwaysStrict": true,
+		"experimentalDecorators": true
 	},
-	"include": [
-		// include the class definitions first
-		"src/webapp/Subcode/**.ts",
-		"src/webapp/**.ts"
+	"references": [
+		{
+			"path": "src/webapp/"
+		},
 	]
 }

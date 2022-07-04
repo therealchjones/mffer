@@ -1,0 +1,10 @@
+{
+	"extends": "../tsconfig.json",
+	"files": [
+		"JavaScript.ts"
+	],
+	"compilerOptions": {
+		"outDir": "../../../build/webapp",
+		"outFile": "JavaScript.js"
+	}
+}

@@ -10,6 +10,6 @@
 		"@types/google-apps-script-oauth2": "^38.0.0",
 		"@types/google.picker": "^0.0.39",
 		"stream-json": "1.7.1",
-		"typescript": "~4.7.4"
+		"typescript": "~4.4.2"
 	}
 }
