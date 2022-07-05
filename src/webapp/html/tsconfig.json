@@ -4,7 +4,10 @@
 		"JavaScript.ts"
 	],
 	"compilerOptions": {
+		"lib": [
+			"DOM"
+		],
+		"module": "none",
 		"outDir": "../../../build/webapp",
-		"outFile": "JavaScript.js"
 	}
 }

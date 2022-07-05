@@ -618,6 +618,24 @@
 		<div id="mffer-log" class="container start-inactive">
 			<ul id="progress-log-text"></ul>
 		</div>
-		<?!= include('JavaScript.html', storage); ?>
+		<script
+			defer
+			id="jquery-js"
+			src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+			crossorigin="anonymous"
+		></script>
+		<script
+			defer
+			id="bootstrap-js"
+			src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
+			integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj"
+			crossorigin="anonymous"
+		></script>
+		<div id="mffer-storage" class="start-inactive">
+			<?!= JSON.stringify(storage.getProperties()); ?>
+		</div>
+		<script id="mffer-js">
+			<?!= include('JavaScript.js', storage); ?>
+		</script>
 	</body>
 </html>

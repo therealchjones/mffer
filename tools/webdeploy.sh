@@ -29,6 +29,12 @@ VERBOSE="${VERBOSE:-}"
 DEBUG="${DEBUG:-}"
 VERBOSEOUT="${VERBOSEOUT:-}"
 DEBUGOUT="${DEBUGOUT:-}"
+WORKSPACEROOT="${WORKSPACEROOT:-$(dirname "$0")/..}"
+BUILDDIR="${BUILDDIR:-${WORKSPACEROOT}/build/webapp}"
+WEBAPPDIR="${WEBAPPDIR:-${WORKSPACEROOT}/src/webapp}"
+GASDIR="${GASDIR:-$WEBAPPDIR/gas}"
+HTMLDIR="${HTMLDIR:-$WEBAPPDIR/html}"
+PATH="$WORKSPACEROOT/tools/node_modules/.bin:$PATH"
 
 # As convention, only main() should exit the program, should do so only if
 # unable to reasonably continue, and should explain why.
@@ -41,22 +47,36 @@ main() {
 		usage
 		exit 0
 	fi
+
 	exit 0
 }
 buildPage() {
-
+	checkTsc || return 1
+	if ! tsc -b "$HTMLDIR"; then
+		echo "Unable to build page" >&2
+		return 1
+	fi
 }
 buildScript() {
-
+	return
 }
 checkClasp() {
-	yh
+	if ! type clasp >$DEBUGOUT; then
+		echo "Unable to find 'clasp'" >&2
+		return 1
+	fi
 }
 checkTsc() {
-
+	if ! type tsc >$DEBUGOUT; then
+		echo "Unable to find 'tsc'" >&2
+		return 1
+	fi
 }
 checkScp() {
-
+	if ! type scp >$DEBUGOUT; then
+		echo "Unable to find 'scp'" >&2
+		return 1
+	fi
 }
 getOptions() {
 	while getopts 'hvbgw' option; do
