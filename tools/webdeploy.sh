@@ -2,36 +2,48 @@
 
 set -e
 
-# Build the webapp from source files and optionally upload for testing.
+# Build the webapp from source files and deploy it
 #
 
 usage() {
 	cat <<EOF
-Usage: sh $0 [-bgw]
+Usage: sh $0 [-bghOv] [-D id] [-w url]
 
 Options:
-  -b    build only, do not upload
-  -g    serve HTML from Google Apps Script (default)
-  -w    serve HTML from a separate web server (WEBSERVER environment variable)
+  -b       build only, do not upload
+  -D id    use existing deployment with the given deployment ID (requires -O)
+  -g       serve HTML from Google Apps Script (default)
+  -h       print this usage message and exit
+  -O       overwrite existing deployment (the last if -D is not used)
+  -p path  scp upload destination for the web page (when using -w)
+  -v       output more information (use twice for debug info)
+  -w url   serve HTML from url instead of Google Apps Script
 
+Examples:
+  sh $0 -b
+  sh $0 -vO -w https://mffer.org -p mffer.org:mffer.org/index.html
+  sh $0 -O -D AKfycbw5My9NOpc6ZxeIND5_XWkixTRHKu4lTO5Z7-Bl0J0vgL_yYqmhsRqhkjhIBCUH5Idq
 EOF
 }
 
 # Default settings
-DEFAULTWEBSERVER=AppsScript # "AppsScript" is a special word, otherwise domain
-CUSTOMWEBSERVER=""
+DEFAULTWEBSERVER=AppsScript # "AppsScript" is a special word, otherwise url
+INCLUDESTRING="<!-- include JavaScript.js -->"
 
 # Default settings that can be overridden by environment variables
 WEBSERVER="${WEBSERVER:-$DEFAULTWEBSERVER}"
+WEBSERVERPATH="${WEBSERVERPATH:-}"
 BUILDONLY="${BUILDONLY:-}"
 USAGEONLY="${USAGEONLY:-}"
 VERBOSE="${VERBOSE:-}"
 DEBUG="${DEBUG:-}"
 VERBOSEOUT="${VERBOSEOUT:-}"
 DEBUGOUT="${DEBUGOUT:-}"
+GASDEPLOYMENT="${GASDEPLOYMENT:-}"
 WORKSPACEROOT="${WORKSPACEROOT:-$(dirname "$0")/..}"
 BUILDDIR="${BUILDDIR:-${WORKSPACEROOT}/build/webapp}"
 WEBAPPDIR="${WEBAPPDIR:-${WORKSPACEROOT}/src/webapp}"
+RELEASEDIR="${RELEASEDIR:-${BUILDDIR}/release}"
 GASDIR="${GASDIR:-$WEBAPPDIR/gas}"
 HTMLDIR="${HTMLDIR:-$WEBAPPDIR/html}"
 PATH="$WORKSPACEROOT/tools/node_modules/.bin:$PATH"
@@ -47,42 +59,171 @@ main() {
 		usage
 		exit 0
 	fi
-
+	buildPage || exit 1
+	buildScript || exit 1
+	if [ -z "$BUILDONLY" ]; then
+		pushScript || exit 1
+		if [ -z "$OVERWRITEDEPLOYMENT" ] && [ -n "$GASDEPLOYMENT" ]; then
+			if checkDeployment "$GASDEPLOYMENT"; then
+				echo "use the -O option to overwrite an existing deployment" >&2
+				exit 1
+			else
+				echo "unable to identify a deployment called '$GASDEPLOYMENT'." >&2
+				exit 1
+			fi
+		elif [ -z "$GASDEPLOYMENT" ]; then
+			if [ -z "$OVERWRITEDEPLOYMENT" ]; then
+				newDeployment || exit 1
+			else
+				newDeployment @last || exit 1
+			fi
+		else
+			if ! checkDeployment "$GASDEPLOYMENT"; then
+				echo "Unable to identify a deployment called '$GASDEPLOYMENT'." >&2
+				exit 1
+			fi
+			newDeployment "$GASDEPLOYMENT" || exit 1
+		fi
+		if [ "$WEBSERVER" != "AppsScript" ]; then
+			if [ -z "$GASDEPLOYMENT" ]; then
+				GASDEPLOYMENT="$(getLastDeployment)"
+			fi
+			buildPage "$GASDEPLOYMENT" || exit 1
+			pushPage || exit 1
+		fi
+	fi
+	echo "done" >"$VERBOSEOUT"
 	exit 0
 }
 buildPage() {
+	deployment=""
+	if [ 1 -lt "$#" ]; then
+		echo "buildPage takes at most one argument" >&2
+		return 1
+	elif [ 1 = "$#" ]; then
+		if ! checkDeployment "$1"; then
+			echo "unable to find deployment '$1'" >&2
+			return 1
+		else
+			echo "rebuilding HTML for deployment '$1'" >"$VERBOSEOUT"
+			deployment="$1"
+		fi
+	else
+		echo "building HTML" >"$VERBOSEOUT"
+	fi
 	checkTsc || return 1
 	if ! tsc -b "$HTMLDIR"; then
 		echo "Unable to build page" >&2
 		return 1
 	fi
+	if [ ! -d "$RELEASEDIR" ]; then
+		mkdir -p "$RELEASEDIR"
+	fi
+	if [ ! -r "$BUILDDIR/JavaScript.js" ]; then
+		echo "JavaScript.js not found" >&2
+		return 1
+	fi
+	sed -E -e \
+		"/$INCLUDESTRING/{
+			s|// $INCLUDESTRING||
+			a\\
+			var deploymentId = '$deployment'
+			r $BUILDDIR/JavaScript.js
+		}" "$HTMLDIR"/Index.html >"$RELEASEDIR"/index.html
 }
 buildScript() {
-	return
+	echo "building GAS scripts" >"$VERBOSEOUT"
+	cp -a "$GASDIR"/*.ts "$RELEASEDIR" || return 1
+	# clasp 2.4.1 has weird behavior with the "rootDir" setting in .clasp.json;
+	# we work around this by just removing the rootDir setting and changing to
+	# the directory itself before pushing
+	if [ -r "$GASDIR/.clasp.json" ]; then
+		sed -E 's/"rootDir"[[:space:]]*:[[:space:]]*"[^"]*"[[:space:]]*,?//' \
+			"$GASDIR/.clasp.json" >"$RELEASEDIR/.clasp.json" || return 1
+	fi
+	# another dumb clasp bug (see https://github.com/google/clasp/issues/875)
+	echo '{}' >"$RELEASEDIR"/package.json
+	if [ -r "$GASDIR/appsscript.json" ]; then
+		cp -a "$GASDIR/appsscript.json" "$RELEASEDIR" || return 1
+	fi
 }
 checkClasp() {
-	if ! type clasp >$DEBUGOUT; then
+	if ! type clasp >"$DEBUGOUT"; then
 		echo "Unable to find 'clasp'" >&2
 		return 1
 	fi
 }
+checkDeployment() {
+	if [ 1 != "$#" ]; then
+		echo "checkDeployment requires an argument" >&2
+		return 2
+	fi
+	checkClasp || return 2
+	if runClasp deployments 2>/dev/null \
+		| grep -E "^- $1 @" >/dev/null; then
+		return 0
+	else
+		return 1
+	fi
+}
 checkTsc() {
-	if ! type tsc >$DEBUGOUT; then
+	if ! type tsc >"$DEBUGOUT"; then
 		echo "Unable to find 'tsc'" >&2
 		return 1
 	fi
 }
 checkScp() {
-	if ! type scp >$DEBUGOUT; then
+	if ! type scp >"$DEBUGOUT"; then
 		echo "Unable to find 'scp'" >&2
 		return 1
 	fi
 }
+getLastDeployment() {
+	lastdeployedversion=0
+	checkClasp || return 1
+	if ! output="$(runClasp deployments \
+		| sed -E -e '/^- [^@]* @([1-9][0-9]*) - /!d' \
+			-e 's/^- [^@]* @([0-9]*) - .*$/\1/')"; then
+		return 1
+	fi
+	for i in $output; do
+		if [ "$lastdeployedversion" -lt "$i" ]; then
+			lastdeployedversion="$i"
+		fi
+	done
+	if ! lastdeployment="$(
+		runClasp deployments \
+			| sed -E -e '/^- [^@]* @'"$lastdeployedversion"' -/!d' \
+				-e 's/^- ([^@]*) @'"$lastdeployedversion"' .*$/\1/'
+	)"; then
+		return 1
+	fi
+	echo "$lastdeployment"
+}
+getLastVersion() {
+	checkClasp || return 1
+	runClasp versions | tail -n 1 | sed -E 's/^([0-9]*) - .*$/\1/' || return 1
+}
 getOptions() {
-	while getopts 'hvbgw' option; do
+	while getopts 'bD:ghOp:vw:' option; do
 		case "$option" in
+			b)
+				BUILDONLY=Y
+				;;
+			D)
+				GASDEPLOYMENT="$OPTARG"
+				;;
+			g)
+				WEBSERVER="AppsScript"
+				;;
 			h)
 				USAGEONLY=y
+				;;
+			O)
+				OVERWRITEDEPLOYMENT=Y
+				;;
+			p)
+				WEBSERVERPATH="$OPTARG"
 				;;
 			v)
 				if [ -n "$VERBOSE" ]; then
@@ -90,27 +231,10 @@ getOptions() {
 				fi
 				VERBOSE=Y
 				;;
-			b)
-				BUILDONLY=Y
-				;;
-			g)
-				if [ "AppsScript" != "$WEBSERVER" ]; then
-					echo "Do not use the -g option with the WEBSERVER variable." >&2
-					return 1
-				fi
-				CUSTOMWEBSERVER="$WEBSERVER"
-				WEBSERVER="AppsScript"
-				;;
 			w)
-				if [ "AppsScript" = "$WEBSERVER" ] && [ -z "$CUSTOMWEBSERVER" ]; then
-					echo "To use -w, set WEBSERVER environment variable to the" >&2
-					echo "desired URL." >&2
-					return 1
-				elif [ "AppsScript" = "$WEBSERVER" ]; then
-					WEBSERVER="$CUSTOMWEBSERVER"
-				fi
+				WEBSERVER="$OPTARG"
 				;;
-			?)
+			*)
 				usage
 				return 1
 				;;
@@ -134,6 +258,95 @@ getOptions() {
 	fi
 	VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
 }
+newDeployment() {
+	if [ 1 -lt "$#" ]; then
+		echo "newDeployment takes at most 1 argument" >&2
+		return 2
+	elif [ 1 = "$#" ]; then
+		if [ "@last" = "$1" ]; then
+			GASDEPLOYMENT="$(getLastDeployment)" || return 1
+		else
+			if ! checkDeployment "$1"; then
+				echo "Unable to identify deployment '$1'" >&2
+				return 1
+			fi
+			GASDEPLOYMENT="$1"
+		fi
+	fi
+	runClasp version "$(date +%Y%m%dT%H%M%z)" >"$DEBUGOUT" || return 1
+	lastversion="$(getLastVersion)" || return 1
+	if [ -z "$GASDEPLOYMENT" ]; then
+		# deploy it
+		echo "creating new deployment, version $lastversion" >"$VERBOSEOUT"
+		runClasp deploy -V "$lastversion" -d "$(date +%Y%m%dT%H%M%z)" >"$DEBUGOUT" || return 1
+	else
+		# deploy it in the GASDEPLOYMENT spot
+		echo "redeploying new version $lastversion to $GASDEPLOYMENT" >"$VERBOSEOUT"
+		runClasp deploy -V "$lastversion" -d "$(date +%Y%m%dT%H%M%z)" -i "$GASDEPLOYMENT" >"$DEBUGOUT" || return 1
+	fi
+}
+pushPage() {
+	checkScp || return 1
+	server=""
+	path=""
+	if [ -z "$WEBSERVERPATH" ]; then #try to get server and path from WEBSERVER
+		server="$(
+			echo "$WEBSERVER" \
+				| sed -E -e 's|^https?://||' \
+					-e 's|^([^:/]*)$|\1|' \
+					-e 's|^([^/:]*)[:/].*$|\1|'
+		)"
+		path="$(
+			echo "$WEBSERVER" \
+				| sed -E -e 's|^https?://||' \
+					-e '\|/|!d' \
+					-e 's|^[^/]*/(.*)$|\1|'
+		)"
+	elif ! echo "$WEBSERVERPATH" | grep '[:/]' >/dev/null; then # WEBSERVERPATH has no : or /, we'll assume it's just a server
+		server="$WEBSERVERPATH"
+		path=""
+	elif echo "$WEBSERVERPATH" | grep '^[^/]*:' >/dev/null; then #WEBSERVERPATH has a : before any /, so the part before the first : is the server
+		server="${WEBSERVERPATH%%:*}"
+		path="${WEBSERVERPATH#*:}"
+	else # There's no : before the first /, so we'll assume it's just a path and get the server from WEBSERVER as above
+		server="$(
+			echo "$WEBSERVER" \
+				| sed -E -e 's|^https?://||' \
+					-e 's|^([^:/]*)$|\1|' \
+					-e 's|^([^/:]*)[:/].*$|\1|'
+		)"
+	fi
+	echo "pushing web page to $server:$path" >"$VERBOSEOUT"
+	scp -q "$RELEASEDIR"/index.html "$server":"$path"
+}
+pushScript() {
+	echo "pushing Apps Script files" >"$VERBOSEOUT"
+	runClasp push -f >"$DEBUGOUT" || return 1
+}
+runClasp() {
+	worked=y
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		# as noted above, due to the behavior of clasp 2.4.1, we change to the
+		# release directory before pushing the script files to Apps Script
+		if ! output="$( (cd "$RELEASEDIR" && clasp "$@" 2>&1))" \
+			&& worked="" \
+			&& echo "$output" | grep 'Error: Looks like you are offline.' >/dev/null; then
+			echo "$output" >"$DEBUGOUT"
+			echo "retrying ($i/10)" >"$DEBUGOUT"
+			worked=y
+		else
+			if [ -z "$worked" ]; then # some other error occurred
+				echo "$output" >&2
+				return 1
+			fi
+			echo "$output"
+			return 0
+		fi
+	done
+	echo "clasp was unable to connect" >&2
+	return 1
+}
+
 # Prints an absolute pathname corresponding to directory $1, creating the
 # directory if it does not exist.
 setdir() {
@@ -156,3 +369,4 @@ setdir() {
 	fi
 	(cd "$1" && pwd "$1") || exit 1
 }
+main "$@"

@@ -8,6 +8,6 @@
 			"DOM"
 		],
 		"module": "none",
-		"outDir": "../../../build/webapp",
+		"outDir": "../../../build/webapp"
 	}
 }

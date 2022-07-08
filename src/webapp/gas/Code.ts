@@ -67,7 +67,7 @@ function buildPage_(
 	storage: VolatileProperties | null = null
 ): GoogleAppsScript.HTML.HtmlOutput {
 	let properties = getProperties_();
-	let contents = include("Index.html", storage);
+	let contents = include("index.html", storage);
 	let page = HtmlService.createHtmlOutput(contents)
 		.addMetaTag(
 			"viewport",
