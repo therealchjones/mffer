@@ -1,6 +1,22 @@
 /**
+ * mffer
+ * https://mffer.org
+ * https://dev.mffer.org
+ */
+
+/**
+ * Dangerous and destructive functions for resetting the deployment and/or
+ * associated properties. To use, open the Apps Script IDE, uncomment the
+ * function, save the file, and run the function via the function drop-down. For
+ * details on the specific functions, search for the (all caps) method name in
+ * this file.
+ */
+// function RESET_DEPLOYMENT() { resetAllProperties_(); }
+// function RESET_ATTEMPTS() { resetAdminAuthAttempts_(); }
+
+/**
  * Dummy function, present to simplify getting permissions in the Google Scripts
- * IDE. This should be the first method in the first file.
+ * IDE. This should be the first (uncommented) method in the first file.
  * @returns {boolean} true
  */
 function getPermissions(): boolean {
@@ -8,15 +24,12 @@ function getPermissions(): boolean {
 	return true;
 }
 /**
- * Remove all properties from the PropertiesService stores associated with this
- * script, effectively resetting the deployment. It also erases the entire
- * associated spreadsheet. Private function specified with the trailing _ cannot
- * be run from the client side or easily selected in the Apps Script IDE. To run
- * (and remove all this data), open in the Apps Script IDE, uncomment the below
- * line starting with "function", press "Save", select
- * "RESET_DEPLOYMENT_YES_REALLY" from the function drop-down, and press "Run".
+ * **THIS IS A DANGEROUS AND DESTRUCTIVE FUNCTION**. Remove all properties from
+ * the PropertiesService stores associated with this script, effectively
+ * resetting the deployment. It also erases the entire associated spreadsheet,
+ * including (potentially) user data. Run using the RESET_DEPLOYMENT function in
+ * the Apps Script IDE.
  */
-// function RESET_DEPLOYMENT_YES_REALLY() { resetAllProperties_(); }
 function resetAllProperties_(): void {
 	let properties = PropertiesService.getDocumentProperties();
 	if (properties != null) properties.deleteAllProperties();
@@ -26,6 +39,22 @@ function resetAllProperties_(): void {
 	if (properties != null) properties.deleteAllProperties();
 	eraseSpreadsheet_();
 	removeAppData_();
+}
+/**
+ * **THIS IS A DANGEROUS AND DESTRUCTIVE FUNCTION**. Remove all properties
+ * created by attempts to log in and change administrative settings for the
+ * webapp. These should be removed automatically when an attempt completes
+ * (succeeding or failing), but if they're not, they will prevent any further
+ * attempts. Run usng the RESET_ATTEMPTS function in the Apps Script IDE.
+ */
+function resetAdminAuthAttempts_(): void {
+	let properties = getProperties_();
+	for (let property of properties.getKeys()) {
+		if (property.startsWith("adminAttempt-")) {
+			console.warn(`Requested removal of '${property}`);
+			properties.deleteProperty(property);
+		}
+	}
 }
 /**
  * Get the properties store. Though likely not necessary to separate
@@ -55,9 +84,37 @@ function setProperties_(
  * The basic webapp-enabling function responding to the HTTP GET request
  * @returns {GoogleAppsScript.HTML.HtmlOutput} web page appropriate to the
  * request
+ *
+ * Managing different URLs in an anonymous web application can be challenging;
+ * if uncertain whether a given format will work, try it in a "private" or
+ * "incognito" window using a deployed version of the webapp. Any that prompt
+ * for Google login we consider inadequate for "anonymous" access. Base address:
+ * https://script.google.com/macros/s/<deployment ID>/
+ *
+ * Known working:
+ * - dev (when used with deployment ID, not script ID)
+ * - exec
+ * - exec?foo=bar&baz=bees
+ * - exec?state=fuzz
+ * - exec/usercallback
+ * - exec/usercallback?foo=bar&state=foo
+ * - exec/callback
+ *
+ * Not working:
+ * - exec/
+ * - exec/?foo
+ * - exec/foo
+ * - exec/callback/
+ *
+ * The components of the accessing url are available as properties of the
+ * request object sent to doGet.
  */
-function doGet(): GoogleAppsScript.HTML.HtmlOutput {
-	return buildPage_();
+function doGet(request: any): GoogleAppsScript.HTML.HtmlOutput {
+	if (request && request.pathInfo == "callback")
+		return processCallback_(request);
+	else if (request && request.parameters)
+		return processParameters_(request.parameters);
+	else return buildPage_();
 }
 /**
  * Construct the web page from the Index.html template
@@ -66,19 +123,88 @@ function doGet(): GoogleAppsScript.HTML.HtmlOutput {
 function buildPage_(
 	storage: VolatileProperties | null = null
 ): GoogleAppsScript.HTML.HtmlOutput {
-	let properties = getProperties_();
-	let contents = include("index.html", storage);
+	let contents = include("index.html");
 	let page = HtmlService.createHtmlOutput(contents)
 		.addMetaTag(
 			"viewport",
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
 		)
 		.setTitle("mffer: Marvel Future Fight exploration & reporting");
-	page.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 	return page;
 }
+function processCallback_(request: any): GoogleAppsScript.HTML.HtmlOutput {
+	if (request.parameters && request.parameters.length > 0)
+		return processParameters_(request.parameters);
+	else return buildPage_();
+}
+/**
+ *
+ * @param parameters
+ * @returns
+ */
+function processParameters_(parameters: {
+	[index: string]: string[] | null;
+}): GoogleAppsScript.HTML.HtmlOutput {
+	let callbackResponse: { parameter: { [index: string]: any } } = {
+		parameter: {},
+	};
+	for (let key of Object.keys(parameters)) {
+		let value = parameters[key];
+		if (value && value.length > 0)
+			callbackResponse.parameter[key] = value[0];
+	}
+	if (callbackResponse.parameter.state) {
+		let properties = getProperties_();
+		let attemptKey: string =
+			"adminAttempt-" + callbackResponse.parameter.state;
+		if (properties.getKeys().includes(attemptKey)) {
+			let attemptProperties = properties.getProperty(attemptKey);
+			if (!attemptProperties) attemptProperties = "{}";
+			let originalProperties: any = JSON.parse(attemptProperties);
+			for (let key of Object.keys(originalProperties)) {
+				let origprop = originalProperties[key];
+				if (Object.keys(callbackResponse.parameter).includes(key)) {
+					let newprop: any = callbackResponse.parameter[key];
+					let newprops = JSON.stringify(newprop);
+					let origprops = JSON.stringify(origprop);
+					if (newprops != origprops) {
+						console.warn(
+							`Given '${key}' does not match saved property:\nNew: ${newprops}\nOriginal: ${origprops}`
+						);
+						return buildPage_();
+					}
+				}
+			}
+			callbackResponse.parameter = {
+				...callbackResponse.parameter,
+				...originalProperties,
+			};
+			properties.deleteProperty(attemptKey);
+			if (
+				callbackResponse.parameter.code ||
+				callbackResponse.parameter.error
+			) {
+				if (!isConfigured())
+					return processNewAdminAuthResponse_(callbackResponse);
+				else {
+					return processAdminAuthResponse_(callbackResponse);
+				}
+			} else
+				console.log(
+					"admin attempt callback without code or error occurred"
+				);
+		} else {
+			// there's a state, but there's no matching adminAttempt-* key
+			console.log(
+				"callback with state token; probably a user login attempt"
+			);
+			// process user login attempt here
+		}
+	}
+	return buildPage_();
+}
 function getConfig() {
-	let config = {
+	let config: { [index: string]: string | boolean | null } = {
 		oauthId: getOauthId_(),
 		oauthSecret: hasOauthSecret_(),
 		pickerApiKey: getPickerApiKey_(),
@@ -133,6 +259,15 @@ function setProperty_(propertyName: string, propertyValue: string) {
 	}
 	properties.setProperty(propertyName, propertyValue);
 }
+/**
+ *
+ *
+ *
+ * @param storage masquerading as persistent storage but only in memory; as an
+ * aside, this store is not changed by this function and the OAuth2Service
+ * itself does not even access it here.
+ * @returns
+ */
 function getAdminAuthService_(storage: VolatileProperties | null = null) {
 	let callbackFunction: string,
 		oauthId: string | null,
@@ -153,18 +288,22 @@ function getAdminAuthService_(storage: VolatileProperties | null = null) {
 		);
 	}
 	if (oauthId == null || oauthSecret == null) throw new Error();
-	return OAuth2.createService("adminLogin")
+	let serviceName: string = "adminLogin";
+	let redirectUrl: string = getRedirectUri();
+	let service = OAuth2.createService(serviceName)
 		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
 		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
 		.setClientId(oauthId)
 		.setClientSecret(oauthSecret)
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
+		.setRedirectUri(redirectUrl)
 		.setScope(
 			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
 		)
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
+	return service;
 }
 function isFalseOrEmpty_(check: string | boolean | null): boolean {
 	if (
@@ -175,9 +314,16 @@ function isFalseOrEmpty_(check: string | boolean | null): boolean {
 		return true;
 	return false;
 }
-function getAdminAuthUrl(propertiesJson: string | null = null) {
+function getAdminAuthUrl(propertiesJson?: string) {
+	let propertyStore = getProperties_();
+	for (let property of propertyStore.getKeys()) {
+		if (property.indexOf("adminAttempt-") >= 0)
+			throw new Error(
+				"Unable to change admin settings: an attempt is underway"
+			);
+	}
 	let properties: { [index: string]: string };
-	if (propertiesJson == null) properties = {};
+	if (!propertiesJson) properties = {};
 	else properties = JSON.parse(propertiesJson);
 	if (properties == null) properties = {};
 	if (!isConfigured()) {
@@ -186,15 +332,6 @@ function getAdminAuthUrl(propertiesJson: string | null = null) {
 			isFalseOrEmpty_(properties.oauthSecret)
 		)
 			throw new Error("OAuth ID and OAuth secret are not set.");
-		// discard all other settings; new config will set only these
-		let loginProperties = {
-			oauthId: properties.oauthId,
-			oauthSecret: properties.oauthSecret,
-		};
-		let storage = new VolatileProperties(loginProperties);
-		return getAdminAuthService_(storage).getAuthorizationUrl(
-			loginProperties
-		);
 	}
 	let newProperties: { [index: string]: string } = {};
 	if (!isFalseOrEmpty_(properties.oauthId))
@@ -205,15 +342,45 @@ function getAdminAuthUrl(propertiesJson: string | null = null) {
 		newProperties.pickerApiKey = properties.pickerApiKey;
 	if (!isFalseOrEmpty_(properties.hostUri))
 		newProperties.hostUri = properties.hostUri;
+	newProperties.serviceName = "adminLogin";
 	let storage = new VolatileProperties(newProperties);
-	return getAdminAuthService_(storage).getAuthorizationUrl(newProperties);
+	let service = getAdminAuthService_(storage);
+	let url = service.getAuthorizationUrl(newProperties);
+	let propertyKeyName = getParam(url, "state");
+	if (!propertyKeyName) throw new Error("No state token created");
+	else propertyKeyName = "adminAttempt-" + propertyKeyName;
+	propertyStore.setProperty(propertyKeyName, JSON.stringify(newProperties));
+	return url;
+}
+function getParam(url: string, key: string): string | null {
+	if (!key || key.length == 0) return null;
+	let keyRe = new RegExp("[?&]" + key + "=");
+	let keyIndex = url.search(keyRe);
+	if (keyIndex < 0) return null;
+	else {
+		let param: string = url.substring(keyIndex + key.length + 2);
+		let endIndex = param.search(/[&#]/);
+		if (endIndex < 0) return param;
+		else return param.substring(0, endIndex);
+	}
 }
 function getRedirectUri(): string {
-	return (
-		"https://script.google.com/macros/d/" +
-		ScriptApp.getScriptId() +
-		"/usercallback"
-	);
+	// because of the issues with using the formal usercallback endpoint in
+	// Google Apps Script, we simply use the regular webapp endpoint
+	return getUrl();
+}
+function getUrl(): string {
+	let staticUrl =
+		"https://script.google.com/macros/s/AKfycbz5q3EspNp7O7jSXvjRd8_m1yBFnGfi7deUqAuJ2mKfpLuS1Jmt7QXkNqA6oSIWrqJA/exec";
+	let generatedUrl: string = ScriptApp.getService().getUrl();
+	if (staticUrl == generatedUrl) {
+		console.log("static and generated urls are the same");
+	} else {
+		console.warn("difference between static and generated url detected:");
+		console.log("static: " + staticUrl);
+		console.log("generated: " + generatedUrl);
+	}
+	return staticUrl;
 }
 function processNewAdminAuthResponse_(response: any) {
 	let noOauthMessage: string =
@@ -223,20 +390,9 @@ function processNewAdminAuthResponse_(response: any) {
 	let oauthSecret: string = response.parameter.oauthSecret;
 	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
 		throw new Error(noOauthMessage);
-	let storage = new VolatileProperties();
-	storage.setProperties(
-		{
-			oauthId: oauthId,
-			oauthSecret: oauthSecret,
-		},
-		false
-	);
+	let storage = new VolatileProperties(response.parameter);
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(response)) {
-		setProperty_("oauthSecret", oauthSecret);
-		setProperty_("oauthId", oauthId);
-		storage.deleteProperty("oauthId");
-		storage.deleteProperty("oauthSecret");
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to find administrator token");
 		let adminId: string = getUserId_(token);
@@ -245,7 +401,14 @@ function processNewAdminAuthResponse_(response: any) {
 		} else {
 			setProperty_("adminId", adminId);
 		}
+		setProperty_("oauthSecret", oauthSecret);
+		setProperty_("oauthId", oauthId);
+		storage.deleteProperty("oauthId");
+		storage.deleteProperty("oauthSecret");
 		createNewSpreadsheet_();
+		console.warn(
+			"Created new administrator settings. If this warning is unexpected, shut down the web application NOW."
+		);
 		return buildPage_(storage);
 	} else {
 		let errorMessage: string = response.parameter.error;
@@ -316,10 +479,6 @@ function getUserAuthService_(storage: VolatileProperties | null = null) {
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
 	if (storage.getProperty("callbackUrl")) {
-		console.log(
-			"Changing callback from default to " +
-				storage.getProperty("callbackUrl")
-		);
 		oauth2Service.setRedirectUri(storage.getProperty("callbackUrl"));
 	} else {
 		console.log("Using default callback url");
@@ -376,7 +535,8 @@ function getUserId_(id_token: string): string {
 	let id = JSON.parse(
 		Utilities.newBlob(Utilities.base64Decode(id_body)).getDataAsString()
 	);
-	if (id.aud != getOauthId_())
+	let oauthId = getOauthId_();
+	if (oauthId && id.aud != oauthId)
 		throw new Error("Invalid ID token: audience does not match");
 	if (
 		id.iss != "https://accounts.google.com" &&
@@ -411,13 +571,8 @@ function getUserLoginStatus(pageStorageJson: string): string | null {
  * @param {string} filename Name of file containing HTML contents or template
  * @returns {string} Displayable HTML suitable for including within HTML output
  */
-function include(
-	filename: string,
-	storage: VolatileProperties | null = null
-): string {
+function include(filename: string): string {
 	let template = HtmlService.createTemplateFromFile(filename);
-	if (storage == null) storage = new VolatileProperties();
-	template.storage = storage;
 	return template.evaluate().getContent();
 }
 function getDateString_(): string {
@@ -963,9 +1118,8 @@ function saveFloorNumber(floorNumber: any) {
 
 function csvToTable(text: string, storageJson: string) {
 	let storage = new VolatileProperties(JSON.parse(storageJson));
-	let returnContent: string | null = null;
 	setAdminToUser_(storage);
-	let adminService = getAdminAuthService_(storage);
+	getAdminAuthService_(storage);
 
 	var csvArray = Utilities.parseCsv(text, "|");
 	var returnTable = HtmlService.createHtmlOutput("<table>");

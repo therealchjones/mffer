@@ -18,5 +18,8 @@
 		{
 			"path": "src/webapp/"
 		},
+	],
+	"exclude": [
+		"./build/**"
 	]
 }

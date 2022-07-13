@@ -1,118 +1,86 @@
 "use strict";
 var debug = true; // debug = true outputs more to the console
-var mainPage: JQuery | null = null;
+var homePage: JQuery | null = null;
+var url: string | null = null;
 document.addEventListener("DOMContentLoaded", start);
 function start() {
+	checkLocation();
 	checkConfigured();
 }
 async function setConfigured() {
 	await Promise.all([initializeStorage(), bootstrapify()]);
-	mainPage = $("#mffer-contents");
+	homePage = $("#mffer-contents");
 	initializePage();
 }
 function setNotConfigured() {
-	mainPage = $("#mffer-welcome");
+	homePage = $("#mffer-welcome");
 	initializeSetup();
 }
-
+function checkLocation() {
+	if (window.location.origin.includes(".googleusercontent.")) {
+		google.script.run
+			.withSuccessHandler(setUrl)
+			.withFailureHandler((error, object) => throwError(error.toString()))
+			.getUrl();
+	}
+}
+function setUrl(serverUrl: string) {
+	if (!url && serverUrl) url = serverUrl;
+}
 /** Various memory stores for volatile and persistent memory, complicated by
  * the inability to use window.localStorage directly for apps script since
  * it presents user code in an iframe from a different domain. Each is
  * scoped differently, with more narrow scopes overriding more broad ones:
  *
- * mfferStorage: volatile, in memory, resets with page load
- * pageStorage: copied from server for current page load, not copied back
+ * serverStorage: loaded from Apps Script server upon page load, sent back when
+ *              changes are made, as persistent as possible
  * localStorage: script's window.localStorage, but due to third-party
- *               storage restrictions persists only for current session
- * frameStorage: stored by window.top.localStorage when in iframe
+ *               storage restrictions may persist only for the current session
+ *               especially if the page is being loaded from Apps Script
+ * workingStorage: volatile, in memory, resets with page load
  */
-var mfferStorage: { [key: string]: string | boolean | null } | null = null;
-var pageStorage: { [key: string]: string | boolean | null } | null = null;
+var workingStorage: { [key: string]: string | boolean | null } | null = null;
+var serverStorage: { [key: string]: string | boolean | null } | null = null;
 // var localStorage = null; // should already be defined if supported
-var frameStorage: {
-	storage?: { [key: string]: string | null } | null;
-	origin?: Location["origin"] | string;
-	server?: MessageEventSource | null;
-	storeItem?: (name: string, value: string) => void;
-	retrieveItem?: (name: string) => void;
-} | null = null;
 async function initializeStorage() {
-	if (mfferStorage != null)
+	if (workingStorage != null)
 		throw new Error("Storage has already been initialized");
-	mfferStorage = {};
-	let frameStoragePromise = timeout(initializeFrameStorage(), 1000);
+	workingStorage = {};
 	let localStoragePromise = initializeLocalStorage();
-	let pageStoragePromise = initializePageStorage();
+	let serverStoragePromise = initializeServerStorage();
 
 	const results = await Promise.allSettled([
-		frameStoragePromise,
+		serverStoragePromise,
 		localStoragePromise,
-		pageStoragePromise,
 	]);
-	if (
-		results[0].toString() == "fulfilled" &&
-		frameStorage != null &&
-		frameStorage.storage != null
-	)
-		mfferStorage = { ...frameStorage.storage };
+	if (results[0].toString() == "fulfilled" && serverStorage != null)
+		workingStorage = { ...serverStorage };
 	if (results[1].toString() == "fulfilled")
-		mfferStorage = { ...mfferStorage, ...localStorage };
-	if (results[2].toString() == "fulfilled")
-		mfferStorage = { ...mfferStorage, ...pageStorage };
-}
-function initializeFrameStorage() {
-	return new Promise<void>(function (resolve, reject) {
-		if (frameStorage != null)
-			throw new Error("Frame storage is already configured.");
-		else {
-			initialListener = function (messageEvent: MessageEvent) {
-				let messageName = getMessageName(messageEvent);
-				if (messageName != "frameStorageSetup")
-					throw new Error("Not a frame storage setup message");
-				frameStorage = { storage: null };
-				frameStorage.origin = messageEvent.origin.toString();
-				frameStorage.server = messageEvent.source;
-				frameStorage.storeItem = frameStorageStore;
-				frameStorage.retrieveItem = frameStorageRetrieve;
-				if (messageEvent.data.storage === undefined)
-					frameStorage.storage = {};
-				else frameStorage.storage = messageEvent.data.storage;
-				if (messageEvent.data.callbackUrl) {
-					if (mfferStorage == null) mfferStorage = {};
-					mfferStorage.callbackUrl = messageEvent.data.callbackUrl;
-				}
-				window.removeEventListener("message", initialListener);
-				window.addEventListener("message", receiveFrameStorageMessage);
-				resolve();
-			};
-			window.addEventListener("message", initialListener);
-			if (window.top != null)
-				window.top.postMessage("frameStorageSetup", "*");
-		}
-	});
+		workingStorage = { ...workingStorage, ...localStorage };
 }
 function initializeLocalStorage() {
-	return new Promise<void>(function (resolve, reject) {
+	return new Promise<void>(function (resolve, _) {
 		if (!window.localStorage)
 			throw new Error("No local storage is available.");
 		resolve();
 	});
 }
-function initializePageStorage() {
-	return new Promise<void>(function (resolve, reject) {
-		if (pageStorage != null)
-			throw new Error("Page storage is already configured.");
+function initializeServerStorage() {
+	return new Promise<void>(function (resolve, _) {
+		if (serverStorage != null)
+			throw new Error("server storage is already configured");
 		google.script.run
 			.withFailureHandler(() =>
 				throwError("Unable to get server storage")
 			)
 			.withSuccessHandler(function (response: string) {
 				let pageStorageText = response.trim();
-				if (pageStorageText) pageStorage = JSON.parse(pageStorageText);
-				else pageStorage = {};
+				if (pageStorageText)
+					serverStorage = JSON.parse(pageStorageText);
+				else serverStorage = {};
 				resolve();
 			})
-			.getStoredProperties();
+			.getConfig();
 	});
 }
 function getMessageName(messageEvent: MessageEvent) {
@@ -147,7 +115,7 @@ var mfferSettings: { [index: string]: string | boolean } = {
 	pickerApiKey: "",
 };
 var importText: string | null = null;
-var bootstrap = {
+var bootstrapElements = {
 	boxarrow:
 		'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><title>Open in new window</title><path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0v-2z"/><path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>',
 	spinner:
@@ -185,57 +153,6 @@ function hasLocalStorage() {
 	if (!window.localStorage) return false;
 	return true;
 }
-function storeItem(key: string, value: string) {
-	if (frameStorage != null && frameStorage.storeItem != null) {
-		frameStorage.storeItem(key, value);
-	} else if (hasLocalStorage()) {
-		window.localStorage.setItem(key, value);
-	} else {
-		throwError(
-			"No storage medium available to store '" + key.toString() + "'"
-		);
-	}
-}
-function retrieveItem(key: string) {
-	if (frameStorage != null && frameStorage.retrieveItem != null) {
-		return frameStorage.retrieveItem(key);
-	} else if (hasLocalStorage()) {
-		return window.localStorage.getItem(key);
-	} else {
-		throwError(
-			"No storage medium available from which to retrieve '" +
-				key.toString() +
-				"'"
-		);
-	}
-}
-function frameStorageRetrieve(key: string) {
-	if (frameStorage == null || frameStorage.server == null) {
-		throwError("Frame storage is not available.");
-	} else {
-		frameStorage.server.postMessage(
-			{
-				name: "frameStorageRetrieve",
-				key: "key",
-			},
-			{ targetOrigin: frameStorage.origin }
-		);
-	}
-}
-function frameStorageStore(key: string, value: string) {
-	if (frameStorage == null || frameStorage.server == null) {
-		throwError("Frame storage is not available.");
-	} else {
-		frameStorage.server.postMessage(
-			{
-				name: "frameStorageStore",
-				key: key,
-				value: value,
-			},
-			{ targetOrigin: frameStorage.origin }
-		);
-	}
-}
 /**
  * Apply some standard Bootstrap classes rather than including them in all
  * the different HTML sources. Note that for best experience, the initially
@@ -248,12 +165,12 @@ async function bootstrapify() {
 	pages.find("ol").addClass("list-group list-group-flush");
 	pages.find("li").addClass("list-group-item");
 	pages.find("label").addClass("form-label");
-	pages.find("a[target='_blank']").append(bootstrap.boxarrow);
+	pages.find("a[target='_blank']").append(bootstrapElements.boxarrow);
 	bootstrapifyAdmin();
 }
 function bootstrapifyAdmin() {
 	let lis = $("#mffer-admin li");
-	let spinner = bootstrap.spinner;
+	let spinner = bootstrapElements.spinner;
 	lis.append(spinner);
 	lis.children(".spinner-border").hide();
 	lis.find("input")
@@ -315,8 +232,8 @@ function receiveFrameStorageMessage(messageEvent: MessageEvent) {
 				messageEvent.data.value === undefined
 			)
 				debugLog("Frame storage 'retrieve' message has no data");
-			if (mfferStorage == null) mfferStorage = {};
-			mfferStorage[messageEvent.data.key] = messageEvent.data.value;
+			if (workingStorage == null) workingStorage = {};
+			workingStorage[messageEvent.data.key] = messageEvent.data.value;
 			debugLog(
 				"Set mfferStorage." +
 					messageEvent.data.key +
@@ -365,13 +282,13 @@ function initializeSetup() {
 	bootstrapify();
 	enableAdminContent();
 	$("#mffer-new-button-setup")
-		.click(openAdmin)
+		.on("click", openAdmin)
 		.html("setup mffer")
 		.removeAttr("disabled");
 }
 function openContents() {
 	hidePages();
-	if (mainPage != null) mainPage.show();
+	if (homePage != null) homePage.show();
 }
 function openAdmin() {
 	hidePages();
@@ -394,16 +311,15 @@ function openAdmin() {
 		.getRedirectUri();
 	$("#mffer-admin")
 		.find("input[type='text']")
-		.change(function (event) {
-			showSpinner(this);
-			let text = $(this).val()?.toString().trim();
+		.on("change", function (event) {
+			showSpinner(event.currentTarget);
+			let text = $(event.currentTarget).val()?.toString().trim();
 			if (text == null) text = "";
 			let inputName = event.currentTarget.id;
 			let shortName = inputName.replace(/^mffer-admin-input-/, "");
-			for (let property in Object.keys(mfferSettings)) {
-				let index = property as keyof typeof mfferSettings;
+			for (let property of Object.keys(mfferSettings)) {
 				if (property.toLowerCase() == shortName) {
-					mfferSettings[index] = text;
+					mfferSettings[property] = text;
 				}
 			}
 			switch (shortName) {
@@ -422,12 +338,12 @@ function openAdmin() {
 						.find("a")
 						.attr("href", link)
 						.html(html)
-						.append(bootstrap.boxarrow);
+						.append(bootstrapElements.boxarrow);
 					break;
 				default:
 					break;
 			}
-			hideSpinner(this);
+			hideSpinner(event.currentTarget);
 		});
 	google.script.run
 		.withSuccessHandler(loadSettings)
@@ -445,7 +361,7 @@ function openAdmin() {
 					.withFailureHandler(function () {
 						throwError("Unable to import new data");
 					})
-					.importNewData(importText, JSON.stringify(mfferStorage));
+					.importNewData(importText, JSON.stringify(workingStorage));
 				break;
 			case "button-filechooser-cancel":
 				$("#mffer-filechooser-pending").hide();
@@ -509,15 +425,16 @@ async function adminAuthAndSave() {
 		}
 	}
 	$("#mffer-admin-authorizationerror").html("");
-	$("#mffer-admin-button-authorize").off("click");
-	$("#mffer-admin-button-authorize").html(bootstrap.spinner);
+	$("#mffer-admin-button-authorize")
+		.off("click")
+		.attr("disabled", "true")
+		.html(bootstrapElements.spinner);
 	let properties: { [index: string]: string | boolean } = {};
-	for (let property in mfferSettings) {
+	for (let property of Object.keys(mfferSettings)) {
 		if (
 			!$("#mffer-admin-input-" + property.toLowerCase()).attr("disabled")
 		) {
-			let index = property as keyof typeof mfferSettings;
-			properties[property] = mfferSettings[index];
+			properties[property] = mfferSettings[property];
 		}
 	}
 	let propertiesJson = JSON.stringify(properties);
@@ -529,7 +446,10 @@ async function adminAuthAndSave() {
 		.withSuccessHandler(function (url: any) {
 			url = url.toString();
 			if (isFalseOrEmpty(url))
-				throw new Error("Unable to obtain admin login url");
+				throw new Error(
+					"Unable to obtain admin login url: empty result"
+				);
+			console.log(`Authorization URL: ${url}`);
 			$(document.createElement("a")).attr("href", url)[0].click();
 		})
 		.getAdminAuthUrl(propertiesJson);
@@ -543,11 +463,13 @@ function throwError(error: string) {
 	$("#loading-notes").html(errorMessage);
 	throw error;
 }
-function loadSettings(settingString: string = "") {
-	let currentSettings: { [index: string]: string } =
+function loadSettings(settingString: string = "{}") {
+	let currentSettings: { [index: string]: string | boolean | null } =
 		JSON.parse(settingString);
 	for (let property in currentSettings) {
-		mfferSettings[property] = currentSettings[property].toString();
+		let value = currentSettings[property];
+		if (value === null) value = "";
+		mfferSettings[property] = value;
 	}
 	for (let property in mfferSettings) {
 		let input = $("#mffer-admin-input-" + property.toLowerCase());
@@ -632,58 +554,58 @@ function uploadComplete() {
 	initializePage();
 }
 function showLoginSpinner() {
-	$("#mffer-navbar-button-login").html(bootstrap.spinner).show();
+	$("#mffer-navbar-button-login").html(bootstrapElements.spinner).show();
 }
 function checkLocalStorage() {
-	if (!mfferStorage) mfferStorage = {};
+	if (!workingStorage) workingStorage = {};
 	if (hasLocalStorage()) {
 		if (window.localStorage.getItem("oauth2.userLogin"))
-			mfferStorage["oauth2.userLogin"] =
+			workingStorage["oauth2.userLogin"] =
 				window.localStorage.getItem("oauth2.userLogin");
 	}
 }
 function checkUserLogin() {
 	showLoginSpinner();
 	checkPageStorage();
-	if (!mfferStorage || !mfferStorage["oauth2.userLogin"]) {
+	if (!workingStorage || !workingStorage["oauth2.userLogin"]) {
 		openContents();
 		// in-page storage did not include new user data; check for
 		// persistent old user data
 		checkLocalStorage();
-		if (!mfferStorage || !mfferStorage["oauth2.userLogin"]) {
+		if (!workingStorage || !workingStorage["oauth2.userLogin"]) {
 			// there's no user data at all
 			resetLogin();
 		} else {
 			// there was persistent old user data, but it needs to be
 			// updated and/or checked
-			updateLogin(JSON.stringify(mfferStorage));
+			updateLogin(JSON.stringify(workingStorage));
 		}
 	}
 }
 function checkPageStorage() {
-	if (pageStorage && pageStorage.adminAuthError) {
+	if (serverStorage && serverStorage.adminAuthError) {
 		// failed admin login when trying to change settings
 		// TODO: #147 consider whether admin auth error should return
 		// attempted auth settings
 		userLogout();
 		showAlert("Administrator authentication error");
 		openContents();
-	} else if (pageStorage && pageStorage["oauth2.adminLogin"]) {
+	} else if (serverStorage && serverStorage["oauth2.adminLogin"]) {
 		// logged in to change settings; will go back to admin page but
 		// also login as "regular" user
-		if (!mfferStorage) mfferStorage = {};
-		mfferStorage["oauth2.userLogin"] = pageStorage["oauth2.adminLogin"];
-		updateLogin(JSON.stringify(mfferStorage));
+		if (!workingStorage) workingStorage = {};
+		workingStorage["oauth2.userLogin"] = serverStorage["oauth2.adminLogin"];
+		updateLogin(JSON.stringify(workingStorage));
 		enableAdminContent();
 		openAdmin();
-	} else if (pageStorage && pageStorage.userAuthError) {
+	} else if (serverStorage && serverStorage.userAuthError) {
 		// failed standard user login
 		userLogout();
 		showAlert("User authentication error");
 		openContents();
-	} else if (pageStorage && pageStorage["oauth2.userLogin"]) {
+	} else if (serverStorage && serverStorage["oauth2.userLogin"]) {
 		// logged in as standard user
-		setLoginStatus(JSON.stringify(pageStorage));
+		setLoginStatus(JSON.stringify(serverStorage));
 		openContents();
 	}
 }
@@ -697,10 +619,13 @@ function updateLogin(storageText: string) {
 }
 function savePageStorage() {
 	if (hasLocalStorage()) {
-		if (mfferStorage != null && mfferStorage["oauth2.userLogin"] != null)
+		if (
+			workingStorage != null &&
+			workingStorage["oauth2.userLogin"] != null
+		)
 			window.localStorage.setItem(
 				"oauth2.userLogin",
-				mfferStorage["oauth2.userLogin"].toString()
+				workingStorage["oauth2.userLogin"].toString()
 			);
 	}
 }
@@ -714,14 +639,14 @@ function setLoginStatus(storageText: string | null) {
 		resetLogin();
 	} else {
 		let newStorage = JSON.parse(storageText);
-		mfferStorage = {};
-		mfferStorage["oauth2.userLogin"] = newStorage["oauth2.userLogin"];
+		workingStorage = {};
+		workingStorage["oauth2.userLogin"] = newStorage["oauth2.userLogin"];
 		if (newStorage.adminUser) {
-			mfferStorage.adminUser = true;
+			workingStorage.adminUser = true;
 			enableAdminContent();
 		} else hideAdminContent();
 		if (newStorage.hasUserSpreadsheet)
-			mfferStorage.hasUserSpreadsheet = true;
+			workingStorage.hasUserSpreadsheet = true;
 		else
 			showAlert(
 				"Spreadsheet not found",
@@ -754,12 +679,12 @@ function userLogin() {
 				.attr("href", url.toString())[0]
 				.click();
 		})
-		.getUserAuthUrl(mfferStorage);
+		.getUserAuthUrl(workingStorage);
 }
 function userLogout() {
 	hideAdminContent();
-	mfferStorage = null;
-	pageStorage = null;
+	workingStorage = null;
+	serverStorage = null;
 	$("#mffer-storage").html("");
 	setLoginStatus(null);
 }
@@ -926,8 +851,8 @@ function csvToTable(text: string) {
 	google.script.run
 		.withSuccessHandler(displayTable)
 		.withFailureHandler(displayTableError)
-		.csvToTable(text, JSON.stringify(mfferStorage));
-	return "<p>" + bootstrap.spinner + "</p>";
+		.csvToTable(text, JSON.stringify(workingStorage));
+	return "<p>" + bootstrapElements.spinner + "</p>";
 }
 function displayTable(text: string) {
 	let result = $("<div>" + text + "</div>");
