@@ -2,11 +2,18 @@
 var debug = true; // debug = true outputs more to the console
 var homePage: JQuery | null = null;
 var url: string | null = null;
+var customDomain: string | null = null;
 document.addEventListener("DOMContentLoaded", start);
-function start() {
-	checkLocation();
-	checkConfigured();
+async function start() {
+	await checkLocation();
+	checkDeployment();
+	if (await isConfigured()) setConfigured();
+	else setNotConfigured();
 }
+// Need to move here from GAS:
+// doGet() logic
+// processCallback()
+// processParameters()
 async function setConfigured() {
 	await Promise.all([initializeStorage(), bootstrapify()]);
 	homePage = $("#mffer-contents");
@@ -16,16 +23,54 @@ function setNotConfigured() {
 	homePage = $("#mffer-welcome");
 	initializeSetup();
 }
-function checkLocation() {
-	if (window.location.origin.includes(".googleusercontent.")) {
-		google.script.run
-			.withSuccessHandler(setUrl)
-			.withFailureHandler((error, object) => throwError(error.toString()))
-			.getUrl();
+/**
+ * Ensure there is a deploymentID setting & sanity checks pass.
+ * @throws Error if something appears amiss with the deployment.
+ */
+async function checkDeployment() {
+	let deploymentExplainer =
+		"; the project was probably not deployed properly. See https://dev.mffer.org/.";
+	if (!debug) deploymentExplainer = "";
+	// deploymentId is created as part of the page building and deployment
+	// process, so we can't initialize it within the source script. We check to
+	// see that it's set properly, but this also requires recognizing it
+	// shouldn't be set when TypeScript is compiling this file.
+	// @ts-expect-error
+	if (deploymentId === undefined || deploymentId === null) {
+		throw new Error("Undefined deployment ID" + deploymentExplainer);
+		// @ts-expect-error
+	} else if (deploymentId == "") {
+		// the web page was built for Google Apps Script
+		if (customDomain)
+			throw new Error(
+				"Empty deployment ID set with custom domain" +
+					deploymentExplainer
+			);
+	} else {
+		// the web page was built for a custom domain
+		if (!customDomain)
+			throw new Error(
+				"Deployment ID set without custom domain" + deploymentExplainer
+			);
 	}
 }
-function setUrl(serverUrl: string) {
-	if (!url && serverUrl) url = serverUrl;
+async function checkLocation() {
+	return new Promise<void>(function (resolve, _) {
+		if (window.location.hostname.includes(".googleusercontent.")) {
+			google.script.run
+				.withSuccessHandler((gasUrl: string) => {
+					url = gasUrl;
+					customDomain = null;
+					resolve();
+				})
+				.withFailureHandler((error, _) => throwError(error.toString()))
+				.getUrl();
+		} else {
+			url = window.location.href;
+			customDomain = window.location.hostname;
+			resolve();
+		}
+	});
 }
 /** Various memory stores for volatile and persistent memory, complicated by
  * the inability to use window.localStorage directly for apps script since
@@ -83,16 +128,6 @@ function initializeServerStorage() {
 			.getConfig();
 	});
 }
-function getMessageName(messageEvent: MessageEvent) {
-	if (messageEvent == null || messageEvent.data == null)
-		throw new Error("Invalid message received");
-	else {
-		if (messageEvent.data.name === undefined)
-			return messageEvent.data.toString();
-		else return messageEvent.data.name.toString();
-	}
-}
-var initialListener: (messageEvent: MessageEvent<any>) => void;
 function timeout(promise: Promise<any>, time: number) {
 	return Promise.race([
 		promise,
@@ -121,25 +156,13 @@ var bootstrapElements = {
 	spinner:
 		'<span class="spinner-border spinner-border-sm p-0" title="Loading..."></span>',
 };
-
-function checkConfigured() {
-	google.script.run
-		.withFailureHandler(function () {
-			throwError("Unable to check for configuration");
-		})
-		.withSuccessHandler(function (response: boolean | string) {
-			if (response == true) setConfigured();
-			else setNotConfigured();
-		})
-		.isConfigured();
-}
 async function isConfigured() {
-	return new Promise(function (resolve, reject) {
+	return new Promise<boolean>(function (resolve, _) {
 		google.script.run
 			.withFailureHandler(() =>
 				throwError("Unable to check for configuration")
 			)
-			.withSuccessHandler(function (response: string) {
+			.withSuccessHandler(function (response: boolean) {
 				resolve(response);
 			})
 			.isConfigured();
@@ -222,36 +245,6 @@ function hidePages() {
 		.filter(':not(".always-active")')
 		.filter(':not("#mffer-alert")')
 		.hide();
-}
-function receiveFrameStorageMessage(messageEvent: MessageEvent) {
-	let messageName = getMessageName(messageEvent);
-	switch (messageName) {
-		case "frameStorageRetrieve":
-			if (
-				messageEvent.data.key === undefined ||
-				messageEvent.data.value === undefined
-			)
-				debugLog("Frame storage 'retrieve' message has no data");
-			if (workingStorage == null) workingStorage = {};
-			workingStorage[messageEvent.data.key] = messageEvent.data.value;
-			debugLog(
-				"Set mfferStorage." +
-					messageEvent.data.key +
-					" to '" +
-					messageEvent.data.value +
-					"'"
-			);
-			break;
-		case "frameStorageStore":
-			break;
-		default:
-			debugLog("Received unknown message type: '" + messageName + "'");
-			break;
-	}
-	return;
-}
-function debugLog(message?: string) {
-	if (debug) console.log(message);
 }
 function showAlert(messageOrTitle: string, message: string | null = null) {
 	let title = "Alert";
@@ -449,7 +442,6 @@ async function adminAuthAndSave() {
 				throw new Error(
 					"Unable to obtain admin login url: empty result"
 				);
-			console.log(`Authorization URL: ${url}`);
 			$(document.createElement("a")).attr("href", url)[0].click();
 		})
 		.getAdminAuthUrl(propertiesJson);

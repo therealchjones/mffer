@@ -198,6 +198,7 @@ function processParameters_(parameters: {
 			console.log(
 				"callback with state token; probably a user login attempt"
 			);
+			// or may just be a "reload" of a previous login!
 			// process user login attempt here
 		}
 	}
@@ -373,9 +374,7 @@ function getUrl(): string {
 	let staticUrl =
 		"https://script.google.com/macros/s/AKfycbz5q3EspNp7O7jSXvjRd8_m1yBFnGfi7deUqAuJ2mKfpLuS1Jmt7QXkNqA6oSIWrqJA/exec";
 	let generatedUrl: string = ScriptApp.getService().getUrl();
-	if (staticUrl == generatedUrl) {
-		console.log("static and generated urls are the same");
-	} else {
+	if (staticUrl != generatedUrl) {
 		console.warn("difference between static and generated url detected:");
 		console.log("static: " + staticUrl);
 		console.log("generated: " + generatedUrl);
@@ -478,17 +477,16 @@ function getUserAuthService_(storage: VolatileProperties | null = null) {
 		)
 		.setParam("access_type", "offline")
 		.setParam("prompt", "consent");
-	if (storage.getProperty("callbackUrl")) {
-		oauth2Service.setRedirectUri(storage.getProperty("callbackUrl"));
-	} else {
-		console.log("Using default callback url");
-	}
+	oauth2Service.setRedirectUri(getRedirectUri());
 	return oauth2Service;
 }
 function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 	let storage = new VolatileProperties(pageStorage);
 	return getUserAuthService_(storage).getAuthorizationUrl();
 }
+// TODO #209: move this entirely to the user's browser (actually probably can't
+// do this part because it'll need the client secret, but maybe the token
+// response)
 function processUserAuthResponse_(response: any) {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
