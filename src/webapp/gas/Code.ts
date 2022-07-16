@@ -403,17 +403,16 @@ function processNewAdminAuthResponse_(response: {
 		return { error: adminAuthError };
 	}
 }
-function processAdminAuthResponse_(response: any) {
+function processAdminAuthResponse_(response: any): { [key: string]: string } {
 	let storage = new VolatileProperties();
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(response)) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to get token");
 		if (getUserId_(token) == null || getUserId_(token) != getAdminId_()) {
-			return;
-			{
-				error: "Logged in user is not an administrator.";
-			}
+			return {
+				error: "Logged in user is not an administrator.",
+			};
 		}
 		if (response != null && response.parameter != null) {
 			let newProperties: { [index: string]: string } = {};
