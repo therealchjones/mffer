@@ -5,14 +5,14 @@ var url: string | null = null;
 var customDomain: string | null = null;
 document.addEventListener("DOMContentLoaded", start);
 async function start() {
-	await checkLocation();
+	await checkUrl();
 	checkDeployment();
+	await checkParameters();
 	if (await isConfigured()) setConfigured();
 	else setNotConfigured();
 }
 // Need to move here from GAS:
 // doGet() logic
-// processCallback()
 // processParameters()
 async function setConfigured() {
 	await Promise.all([initializeStorage(), bootstrapify()]);
@@ -22,6 +22,81 @@ async function setConfigured() {
 function setNotConfigured() {
 	homePage = $("#mffer-welcome");
 	initializeSetup();
+}
+/**
+ *
+ * @param parameters
+ * @returns
+ */
+async function checkParameters(): Promise<void> {
+	return new Promise<void>(async function (resolve, _) {
+		if (!url) await checkUrl();
+		let urlObj: URL;
+		let parameters: URLSearchParams | { [key: string]: string | null } = {};
+		if (!url) throw new Error("Unable to get URL");
+		else {
+			urlObj = new URL(url);
+			if (urlObj.hostname == "script.google.com")
+				parameters = await getGasParameters();
+			else {
+				for (const key of urlObj.searchParams.keys()) {
+					parameters[key] = urlObj.searchParams.get(key);
+				}
+			}
+		}
+		if (Object.keys(parameters).includes("state")) {
+			// some sort of callback (or reload)
+			// if already logged in, check to see if it's the same login or a state that's already been used?
+			// determine whether we're looking for a user or admin login?
+			let response: { parameter: { [key: string]: string | null } } = {
+				parameter: parameters,
+			};
+			// send to server
+			google.script.run
+				.withFailureHandler((error) => {
+					throw new Error(
+						"Unable to validate parameters: " + error.message
+					);
+				})
+				.withSuccessHandler(function (credentials: {
+					[key: string]: string;
+				}) {
+					// figure out what needs to handle the returned credentials
+					// possible "success" responses (e.g., no error thrown by method)
+					// admin login success: { config: <getConfig() response> }
+					// admin login failure: { error: <error message> }
+					// user login success: { user: <user data for storage> }
+					// user login failure: { error: <error message> }
+					if (!credentials)
+						throw new Error("No credentials received from server");
+					let keys = Object.keys(credentials);
+					if (keys.length == 0)
+						throw new Error(
+							"Empty credentials object received from server"
+						);
+					else if (keys.includes("user")) {
+						// process user login
+					} else if (keys.includes("error"))
+						throw new Error("Invalid login: " + credentials.error);
+					else if (keys.includes("config")) {
+						// set config from object
+						loadSettings(JSON.stringify(credentials.config));
+						resolve();
+					} else
+						throw new Error(
+							"Invalid credentials received from server"
+						);
+					resolve();
+				})
+				.processParameters(response);
+		} else if (Object.keys(parameters).includes("page")) {
+			// (future work) go directly to a specific page
+			resolve();
+		} else {
+			// nothing to do
+			resolve();
+		}
+	});
 }
 /**
  * Ensure there is a deploymentID setting & sanity checks pass.
@@ -54,11 +129,11 @@ async function checkDeployment() {
 			);
 	}
 }
-async function checkLocation() {
+async function checkUrl() {
 	return new Promise<void>(function (resolve, _) {
 		if (window.location.hostname.includes(".googleusercontent.")) {
 			google.script.run
-				.withSuccessHandler((gasUrl: string) => {
+				.withSuccessHandler(async (gasUrl: string) => {
 					url = gasUrl;
 					customDomain = null;
 					resolve();
@@ -70,6 +145,14 @@ async function checkLocation() {
 			customDomain = window.location.hostname;
 			resolve();
 		}
+	});
+}
+// only useful if served from google apps script
+async function getGasParameters(): Promise<{ [key: string]: string }> {
+	return new Promise(function (resolve, _) {
+		google.script.url.getLocation((location) =>
+			resolve(location.parameter)
+		);
 	});
 }
 /** Various memory stores for volatile and persistent memory, complicated by

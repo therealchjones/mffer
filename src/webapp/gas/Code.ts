@@ -110,11 +110,7 @@ function setProperties_(
  * request object sent to doGet.
  */
 function doGet(request: any): GoogleAppsScript.HTML.HtmlOutput {
-	if (request && request.pathInfo == "callback")
-		return processCallback_(request);
-	else if (request && request.parameters)
-		return processParameters_(request.parameters);
-	else return buildPage_();
+	return buildPage_();
 }
 /**
  * Construct the web page from the Index.html template
@@ -123,8 +119,7 @@ function doGet(request: any): GoogleAppsScript.HTML.HtmlOutput {
 function buildPage_(
 	storage: VolatileProperties | null = null
 ): GoogleAppsScript.HTML.HtmlOutput {
-	let contents = include("index.html");
-	let page = HtmlService.createHtmlOutput(contents)
+	let page = HtmlService.createHtmlOutputFromFile("index.html")
 		.addMetaTag(
 			"viewport",
 			"width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -132,62 +127,48 @@ function buildPage_(
 		.setTitle("mffer: Marvel Future Fight exploration & reporting");
 	return page;
 }
-function processCallback_(request: any): GoogleAppsScript.HTML.HtmlOutput {
-	if (request.parameters && request.parameters.length > 0)
-		return processParameters_(request.parameters);
-	else return buildPage_();
-}
 /**
  *
  * @param parameters
  * @returns
  */
-function processParameters_(parameters: {
-	[index: string]: string[] | null;
-}): GoogleAppsScript.HTML.HtmlOutput {
-	let callbackResponse: { parameter: { [index: string]: any } } = {
-		parameter: {},
-	};
-	for (let key of Object.keys(parameters)) {
-		let value = parameters[key];
-		if (value && value.length > 0)
-			callbackResponse.parameter[key] = value[0];
-	}
-	if (callbackResponse.parameter.state) {
+function processParameters(response: {
+	parameter: { [key: string]: string | null };
+}): { [key: string]: string | null } {
+	if (response.parameter.state) {
 		let properties = getProperties_();
-		let attemptKey: string =
-			"adminAttempt-" + callbackResponse.parameter.state;
+		let attemptKey: string = "adminAttempt-" + response.parameter.state;
 		if (properties.getKeys().includes(attemptKey)) {
 			let attemptProperties = properties.getProperty(attemptKey);
 			if (!attemptProperties) attemptProperties = "{}";
 			let originalProperties: any = JSON.parse(attemptProperties);
 			for (let key of Object.keys(originalProperties)) {
 				let origprop = originalProperties[key];
-				if (Object.keys(callbackResponse.parameter).includes(key)) {
-					let newprop: any = callbackResponse.parameter[key];
+				if (Object.keys(response.parameter).includes(key)) {
+					let newprop: any = response.parameter[key];
 					let newprops = JSON.stringify(newprop);
 					let origprops = JSON.stringify(origprop);
 					if (newprops != origprops) {
 						console.warn(
 							`Given '${key}' does not match saved property:\nNew: ${newprops}\nOriginal: ${origprops}`
 						);
-						return buildPage_();
+						return {
+							error: `Given '${key}' does not match saved property:\nNew: ${newprops}\nOriginal: ${origprops}`,
+						};
 					}
 				}
 			}
-			callbackResponse.parameter = {
-				...callbackResponse.parameter,
+			// the order here doesn't matter; the above ensures any response properties are the same as the originals
+			response.parameter = {
+				...response.parameter,
 				...originalProperties,
 			};
 			properties.deleteProperty(attemptKey);
-			if (
-				callbackResponse.parameter.code ||
-				callbackResponse.parameter.error
-			) {
+			if (response.parameter.code || response.parameter.error) {
 				if (!isConfigured())
-					return processNewAdminAuthResponse_(callbackResponse);
+					return processNewAdminAuthResponse_(response);
 				else {
-					return processAdminAuthResponse_(callbackResponse);
+					return processAdminAuthResponse_(response);
 				}
 			} else
 				console.log(
@@ -198,11 +179,11 @@ function processParameters_(parameters: {
 			console.log(
 				"callback with state token; probably a user login attempt"
 			);
-			// or may just be a "reload" of a previous login!
+			// or may just be a "reload" of a previous login
 			// process user login attempt here
 		}
 	}
-	return buildPage_();
+	return {};
 }
 function getConfig() {
 	let config: { [index: string]: string | boolean | null } = {
@@ -381,14 +362,19 @@ function getUrl(): string {
 	}
 	return staticUrl;
 }
-function processNewAdminAuthResponse_(response: any) {
-	let noOauthMessage: string =
-		"Admin authorization response did not include OAuth 2.0 client information.";
-	if (!response || !response.parameter) throw new Error(noOauthMessage);
-	let oauthId: string = response.parameter.oauthId;
-	let oauthSecret: string = response.parameter.oauthSecret;
-	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret))
-		throw new Error(noOauthMessage);
+function processNewAdminAuthResponse_(response: {
+	parameter: { [key: string]: string | null };
+}): { [key: string]: string } {
+	if (!response || !response.parameter)
+		throw new Error(
+			"Unable to process admin authorization: no parameters given."
+		);
+	let oauthId: string | null = response.parameter.oauthId;
+	let oauthSecret: string | null = response.parameter.oauthSecret;
+	if (!oauthId || !oauthSecret)
+		throw new Error(
+			"Unable to process admin authorization: no OAuth 2.0 client information."
+		);
 	let storage = new VolatileProperties(response.parameter);
 	let service = getAdminAuthService_(storage);
 	if (service.handleCallback(response)) {
@@ -408,14 +394,13 @@ function processNewAdminAuthResponse_(response: any) {
 		console.warn(
 			"Created new administrator settings. If this warning is unexpected, shut down the web application NOW."
 		);
-		return buildPage_(storage);
+		return { config: getConfig() };
 	} else {
-		let errorMessage: string = response.parameter.error;
-		if (isFalseOrEmpty_(errorMessage)) errorMessage = "Unknown error";
+		let errorMessage: string | null = response.parameter.error;
+		if (!errorMessage) errorMessage = "Unknown error";
 		let adminAuthError: string =
 			"Unable to authorize administrative access: " + errorMessage;
-		storage.setProperty("adminAuthError", adminAuthError);
-		return buildPage_(storage);
+		return { error: adminAuthError };
 	}
 }
 function processAdminAuthResponse_(response: any) {
@@ -425,11 +410,10 @@ function processAdminAuthResponse_(response: any) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to get token");
 		if (getUserId_(token) == null || getUserId_(token) != getAdminId_()) {
-			storage.setProperties(
-				{ adminAuthError: "Logged in user is not an administrator." },
-				true
-			);
-			return buildPage_(storage);
+			return;
+			{
+				error: "Logged in user is not an administrator.";
+			}
 		}
 		if (response != null && response.parameter != null) {
 			let newProperties: { [index: string]: string } = {};
@@ -446,13 +430,11 @@ function processAdminAuthResponse_(response: any) {
 			}
 			setProperties_(newProperties);
 		}
-		return buildPage_(storage);
+		return { config: getConfig() };
 	} else {
-		storage.setProperty(
-			"adminAuthError",
-			"Unable to authorize administrative access: access_denied"
-		);
-		return buildPage_(storage);
+		return {
+			error: "Unable to authorize administrative access: access_denied",
+		};
 	}
 }
 function getUserAuthService_(storage: VolatileProperties | null = null) {
@@ -487,25 +469,26 @@ function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 // TODO #209: move this entirely to the user's browser (actually probably can't
 // do this part because it'll need the client secret, but maybe the token
 // response)
-function processUserAuthResponse_(response: any) {
+function processUserAuthResponse_(response: any): { [key: string]: string } {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
+	let userId: string;
 	if (!response) throw new Error("No response was given");
 	if (service.handleCallback(response)) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to get ID token");
-		let userId: string = getUserId_(token);
+		userId = getUserId_(token);
 		if (userId == null) throw new Error("Unable to obtain user ID");
 		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
+		else storage.setProperty("adminUser", "false");
 		createUserFile_(userId, storage);
 		storage.setProperty("hasUserSpreadsheet", "true");
 	} else {
-		storage.setProperty(
-			"userAuthError",
-			"Unable to authorize user access: access_denied"
-		);
+		return {
+			error: "Unable to authorize user access: access_denied",
+		};
 	}
-	return buildPage_(storage);
+	return { user: userId };
 }
 function getUserSpreadsheetId_(userId: string): string | null {
 	if (userId == null)
@@ -563,15 +546,6 @@ function getUserLoginStatus(pageStorageJson: string): string | null {
 	} else {
 		return null;
 	}
-}
-/**
- * Create HTML output suitable for inclusion in another page
- * @param {string} filename Name of file containing HTML contents or template
- * @returns {string} Displayable HTML suitable for including within HTML output
- */
-function include(filename: string): string {
-	let template = HtmlService.createTemplateFromFile(filename);
-	return template.evaluate().getContent();
 }
 function getDateString_(): string {
 	let today = new Date();
