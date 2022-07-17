@@ -140,6 +140,7 @@ function processParameters(response: {
 		let attemptKey: string = "adminAttempt-" + response.parameter.state;
 		if (properties.getKeys().includes(attemptKey)) {
 			let attemptProperties = properties.getProperty(attemptKey);
+			properties.deleteProperty(attemptKey);
 			if (!attemptProperties) attemptProperties = "{}";
 			let originalProperties: any = JSON.parse(attemptProperties);
 			for (let key of Object.keys(originalProperties)) {
@@ -163,7 +164,6 @@ function processParameters(response: {
 				...response.parameter,
 				...originalProperties,
 			};
-			properties.deleteProperty(attemptKey);
 			if (response.parameter.code || response.parameter.error) {
 				if (!isConfigured())
 					return processNewAdminAuthResponse_(response);
@@ -181,6 +181,7 @@ function processParameters(response: {
 			);
 			// or may just be a "reload" of a previous login
 			// process user login attempt here
+			return processUserAuthResponse_(response);
 		}
 	}
 	return {};
@@ -487,7 +488,10 @@ function processUserAuthResponse_(response: any): { [key: string]: string } {
 			error: "Unable to authorize user access: access_denied",
 		};
 	}
-	return { user: userId };
+	return {
+		user: userId,
+		...storage.getProperties(),
+	};
 }
 function getUserSpreadsheetId_(userId: string): string | null {
 	if (userId == null)

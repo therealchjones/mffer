@@ -124,11 +124,12 @@ buildPage() {
 		return 1
 	fi
 	sed -E -e \
+		"/^[[:space:]]*var deploymentId/s/(var deploymentId[^=]*=[[:space:]]*)\"\"/\1\"$deployment\"/" \
+		"$BUILDDIR/JavaScript.js" >"$BUILDDIR/JavaScript.js.deployment"
+	sed -E -e \
 		"/$INCLUDESTRING/{
 			s|// $INCLUDESTRING||
-			a\\
-			var deploymentId = '$deployment'
-			r $BUILDDIR/JavaScript.js
+			r $BUILDDIR/JavaScript.js.deployment
 		}" "$HTMLDIR"/Index.html >"$RELEASEDIR"/index.html
 }
 buildScript() {

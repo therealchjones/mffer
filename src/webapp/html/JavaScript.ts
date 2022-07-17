@@ -1,7 +1,23 @@
 "use strict";
-var debug = true; // debug = true outputs more to the console
+
+/** deploymentId is set to a nonempty string iff the page is being served from
+ * a domain other than Google Apps Script.
+ */
+// (for use in the page building process, don't change the below line)
+var deploymentId: string = "";
+/**
+ * the "main" page displayed by default
+ */
 var homePage: JQuery | null = null;
+/**
+ * the url in the browser location bar; iff being served from Google Apps
+ * Script this does not include any query string or hash
+ */
 var url: string | null = null;
+/**
+ * the hostname if the page is being served from a custom domain; `null` if
+ * it's being served from Google Apps Script
+ */
 var customDomain: string | null = null;
 document.addEventListener("DOMContentLoaded", start);
 async function start() {
@@ -11,9 +27,6 @@ async function start() {
 	if (await isConfigured()) setConfigured();
 	else setNotConfigured();
 }
-// Need to move here from GAS:
-// doGet() logic
-// processParameters()
 async function setConfigured() {
 	await Promise.all([initializeStorage(), bootstrapify()]);
 	homePage = $("#mffer-contents");
@@ -23,21 +36,23 @@ function setNotConfigured() {
 	homePage = $("#mffer-welcome");
 	initializeSetup();
 }
-/**
- *
- * @param parameters
- * @returns
- */
+function isOnGas(): boolean {
+	return window.location.hostname.endsWith(".googleusercontent.com");
+}
+function isSetupOnly(): boolean {
+	if (deploymentId && isOnGas()) return true;
+	else return false;
+}
 async function checkParameters(): Promise<void> {
 	return new Promise<void>(async function (resolve, _) {
+		console.debug("Checking URL parameters");
 		if (!url) await checkUrl();
 		let urlObj: URL;
-		let parameters: URLSearchParams | { [key: string]: string | null } = {};
+		let parameters: { [key: string]: string | null } = {};
 		if (!url) throw new Error("Unable to get URL");
 		else {
 			urlObj = new URL(url);
-			if (urlObj.hostname == "script.google.com")
-				parameters = await getGasParameters();
+			if (isOnGas()) parameters = await getGasParameters();
 			else {
 				for (const key of urlObj.searchParams.keys()) {
 					parameters[key] = urlObj.searchParams.get(key);
@@ -45,6 +60,7 @@ async function checkParameters(): Promise<void> {
 			}
 		}
 		if (Object.keys(parameters).includes("state")) {
+			console.debug("Sending callback parameters to Apps Script");
 			// some sort of callback (or reload)
 			// if already logged in, check to see if it's the same login or a state that's already been used?
 			// determine whether we're looking for a user or admin login?
@@ -54,7 +70,7 @@ async function checkParameters(): Promise<void> {
 			// send to server
 			google.script.run
 				.withFailureHandler((error) => {
-					throw new Error(
+					console.error(
 						"Unable to validate parameters: " + error.message
 					);
 				})
@@ -67,23 +83,25 @@ async function checkParameters(): Promise<void> {
 					// admin login failure: { error: <error message> }
 					// user login success: { user: <user data for storage> }
 					// user login failure: { error: <error message> }
-					if (!credentials)
-						throw new Error("No credentials received from server");
+					if (!credentials) {
+						console.debug("No credentials received from server");
+						resolve();
+					}
 					let keys = Object.keys(credentials);
 					if (keys.length == 0)
-						throw new Error(
+						console.debug(
 							"Empty credentials object received from server"
 						);
 					else if (keys.includes("user")) {
-						// process user login
+						console.debug("Received user credentials");
+						setLoginStatus(JSON.stringify(credentials));
 					} else if (keys.includes("error"))
-						throw new Error("Invalid login: " + credentials.error);
+						console.warn("Invalid login: " + credentials.error);
 					else if (keys.includes("config")) {
-						// set config from object
+						console.debug("Deployment admin settings updated");
 						loadSettings(JSON.stringify(credentials.config));
-						resolve();
 					} else
-						throw new Error(
+						console.error(
 							"Invalid credentials received from server"
 						);
 					resolve();
@@ -105,15 +123,8 @@ async function checkParameters(): Promise<void> {
 async function checkDeployment() {
 	let deploymentExplainer =
 		"; the project was probably not deployed properly. See https://dev.mffer.org/.";
-	if (!debug) deploymentExplainer = "";
-	// deploymentId is created as part of the page building and deployment
-	// process, so we can't initialize it within the source script. We check to
-	// see that it's set properly, but this also requires recognizing it
-	// shouldn't be set when TypeScript is compiling this file.
-	// @ts-expect-error
 	if (deploymentId === undefined || deploymentId === null) {
 		throw new Error("Undefined deployment ID" + deploymentExplainer);
-		// @ts-expect-error
 	} else if (deploymentId == "") {
 		// the web page was built for Google Apps Script
 		if (customDomain)
@@ -131,7 +142,8 @@ async function checkDeployment() {
 }
 async function checkUrl() {
 	return new Promise<void>(function (resolve, _) {
-		if (window.location.hostname.includes(".googleusercontent.")) {
+		console.debug("Checking URL");
+		if (isOnGas()) {
 			google.script.run
 				.withSuccessHandler(async (gasUrl: string) => {
 					url = gasUrl;
@@ -147,9 +159,14 @@ async function checkUrl() {
 		}
 	});
 }
-// only useful if served from google apps script
 async function getGasParameters(): Promise<{ [key: string]: string }> {
 	return new Promise(function (resolve, _) {
+		console.debug("Getting parameters from Apps Script");
+		if (!isOnGas())
+			throw new Error(
+				"Unable to obtain parameters using getGasParameters when not serving from Apps Script"
+			);
+
 		google.script.url.getLocation((location) =>
 			resolve(location.parameter)
 		);
@@ -241,6 +258,7 @@ var bootstrapElements = {
 };
 async function isConfigured() {
 	return new Promise<boolean>(function (resolve, _) {
+		console.debug("Checking if the webapp has been configured");
 		google.script.run
 			.withFailureHandler(() =>
 				throwError("Unable to check for configuration")
@@ -354,6 +372,7 @@ function getSpinner(element: HTMLElement | JQuery<Element>) {
 	return spinner;
 }
 function initializeSetup() {
+	console.debug("Starting webapp configuration");
 	$("#mffer-new").show();
 	bootstrapify();
 	enableAdminContent();
@@ -367,6 +386,7 @@ function openContents() {
 	if (homePage != null) homePage.show();
 }
 function openAdmin() {
+	console.debug("Switching to admin configuration page");
 	hidePages();
 	let lis = $("#mffer-admin li");
 	for (let property in mfferSettings) {
@@ -500,6 +520,7 @@ async function adminAuthAndSave() {
 			);
 		}
 	}
+	console.debug("Attempting to authorize deployment configuration changes");
 	$("#mffer-admin-authorizationerror").html("");
 	$("#mffer-admin-button-authorize")
 		.off("click")
@@ -642,6 +663,7 @@ function checkLocalStorage() {
 function checkUserLogin() {
 	showLoginSpinner();
 	checkPageStorage();
+	// but what if it is present?
 	if (!workingStorage || !workingStorage["oauth2.userLogin"]) {
 		openContents();
 		// in-page storage did not include new user data; check for

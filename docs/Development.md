@@ -1000,11 +1000,11 @@ stays the same:
 
 ### Webapp limitations
 
-The mffer webapp has some limitations imposed by using Google Apps Script and
-associated services. Some can be mitigated with additional deployment changes,
-but others may require changes to the underlying code.
+The mffer webapp has some limitations imposed when serving the page using Google
+Apps Script. These are are not problems when
+[hosting the webapp at a custom domain](#hosting-the-webapp-at-a-custom-domain).
 
-#### Persistent storage
+#### Persistent storage & user logins
 
 Google Apps Scripts serves user-developed content from
 [within a sandboxed iframe](https://developers.google.com/apps-script/guides/html/restrictions#top.html),
@@ -1015,16 +1015,6 @@ and is blocked or quickly removed by some browsers. This means user logins for
 the webapp won't last restarting the browser, and may even be deleted before the
 browser is restarted. User information is stored in their Google Drive, so it's
 not lost, but frequent logins may be annoying.
-
-This annoyance can be bypassed if users disable "block 3rd-party cookies" or
-similar settings in their browsers, or even if they allow explicitly for the
-domain googleusercontent.com. However, guiding users through making these
-changes may itself be difficult. The other option is to use a different "first
-party" domain (such as mffer.org) and include the Google Apps Script app in yet
-another iframe. The instructions for
-[hosting the webapp at a custom domain](#hosting-the-webapp-at-a-custom-domain)
-describe the steps to set this up, and will fix the third-party storage problem
-as an added benefit.
 
 ## See also
 
