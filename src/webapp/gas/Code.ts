@@ -113,6 +113,103 @@ function doGet(request: any): GoogleAppsScript.HTML.HtmlOutput {
 	return buildPage_();
 }
 /**
+ * Respond to an HTTP POST request
+ * @param request see https://developers.google.com/apps-script/guides/web#request_parameters
+ */
+function doPost(request: any) {
+	if (
+		!request ||
+		!request.postData ||
+		!request.postData.length ||
+		!request.postData.contents ||
+		request.postData.length == 0
+		// we can't use
+		// request.postData.type != "application/json"
+		// as we must keep the request "CORS safe"
+	) {
+		let error = new Error("invalid request");
+		throw error;
+	}
+	let requestData: any;
+	let functionArgs: any[] = [];
+	try {
+		requestData = JSON.parse(request.postData.contents);
+	} catch {
+		throw new Error("unable to parse request");
+	}
+	if (
+		!requestData ||
+		!requestData.application ||
+		requestData.application != "mffer" ||
+		!requestData.function ||
+		!requestData.function.name ||
+		!requestData.function.args
+	)
+		throw new Error("improper request");
+
+	requestData.function.args.forEach(function (
+		value: any,
+		index: any,
+		_: any
+	) {
+		try {
+			functionArgs[index] = JSON.parse(value);
+		} catch (error: any) {
+			throw new Error("improper request: " + error.toString());
+		}
+	});
+	let result: any;
+	try {
+		switch (requestData.function.name) {
+			// It may look tedious, but since we're running arbitrary functions
+			// by anonymous request, we intentionally use this format as an
+			// allowlist of methods that can be called. Note that this therefore
+			// is not impacted by Apps Script's built-in limitation for running
+			// methods via google.script.run only if they don't end in _.
+			case "isConfigured":
+				result = isConfigured();
+				break;
+			case "processParameters":
+				result = processParameters(functionArgs[0]);
+				break;
+			case "getConfig":
+				result = getConfig();
+				break;
+			case "getAdminAuthUrl":
+				result = getAdminAuthUrl(functionArgs[0]);
+				break;
+			case "getRedirectUri":
+				result = getRedirectUri();
+				break;
+			case "getUserAuthUrl":
+				result = getUserAuthUrl(functionArgs[0]);
+				break;
+			case "getUserLoginStatus":
+				result = getUserLoginStatus(functionArgs[0]);
+				break;
+			case "importNewData":
+				result = importNewData(functionArgs[0], functionArgs[1]);
+				break;
+			case "getWebappDatabase":
+				result = getWebappDatabase();
+				break;
+			case "csvToTable":
+				result = csvToTable(functionArgs[0], functionArgs[1]);
+				break;
+			default:
+				throw new Error("improper request: no such function");
+		}
+	} catch (error: any) {
+		let errorMessage = `Unable to evaluate ${requestData.function.name}`;
+		if (error.message) errorMessage += `: ${error.message.toString()}`;
+		result = { error: errorMessage };
+		console.error("doPost:" + errorMessage);
+	}
+	return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
+		ContentService.MimeType.JSON
+	);
+}
+/**
  * Construct the web page from the Index.html template
  * @returns Apps Script-compatible web page
  */
@@ -281,6 +378,7 @@ function getAdminAuthService_(storage: VolatileProperties | null = null) {
 		.setCallbackFunction(callbackFunction)
 		.setPropertyStore(storage)
 		.setRedirectUri(redirectUrl)
+		.setExpirationMinutes("60")
 		.setScope(
 			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
 		)
@@ -329,13 +427,13 @@ function getAdminAuthUrl(propertiesJson?: string) {
 	let storage = new VolatileProperties(newProperties);
 	let service = getAdminAuthService_(storage);
 	let url = service.getAuthorizationUrl(newProperties);
-	let propertyKeyName = getParam(url, "state");
+	let propertyKeyName = getParam_(url, "state");
 	if (!propertyKeyName) throw new Error("No state token created");
 	else propertyKeyName = "adminAttempt-" + propertyKeyName;
 	propertyStore.setProperty(propertyKeyName, JSON.stringify(newProperties));
 	return url;
 }
-function getParam(url: string, key: string): string | null {
+function getParam_(url: string, key: string): string | null {
 	if (!key || key.length == 0) return null;
 	let keyRe = new RegExp("[?&]" + key + "=");
 	let keyIndex = url.search(keyRe);
@@ -353,15 +451,7 @@ function getRedirectUri(): string {
 	return getUrl();
 }
 function getUrl(): string {
-	let staticUrl =
-		"https://script.google.com/macros/s/AKfycbz5q3EspNp7O7jSXvjRd8_m1yBFnGfi7deUqAuJ2mKfpLuS1Jmt7QXkNqA6oSIWrqJA/exec";
-	let generatedUrl: string = ScriptApp.getService().getUrl();
-	if (staticUrl != generatedUrl) {
-		console.warn("difference between static and generated url detected:");
-		console.log("static: " + staticUrl);
-		console.log("generated: " + generatedUrl);
-	}
-	return staticUrl;
+	return ScriptApp.getService().getUrl();
 }
 function processNewAdminAuthResponse_(response: {
 	parameter: { [key: string]: string | null };
@@ -610,7 +700,7 @@ function createNewSpreadsheet_(): GoogleAppsScript.Spreadsheet.Spreadsheet {
  * use
  * @returns the server response as a string
  */
-function updateRemoteSpreadsheet(
+function updateRemoteSpreadsheet_(
 	spreadsheetId: string,
 	accessToken: string,
 	ValueRange: any
@@ -1061,7 +1151,7 @@ function getUsers_(): { userId: string; userFileId: string }[] | null {
  * the preferences between instantiations. TODO: At some point can likely just
  * use the working sheet.)
  */
-function saveNewPreferences(preferences: any) {
+function saveNewPreferences_(preferences: any) {
 	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
 	if (!sheet) throw new Error("Unable to find sheet");
 	else sheet.getRange(15, 3, 5).setValues(preferences);
@@ -1073,7 +1163,7 @@ function saveNewPreferences(preferences: any) {
  * [ floor, mode, opponent team 1, opponent team 2, opponent team 3, selected opponent team,
  *   winning team ]
  */
-function saveShadowlandEntry(entry: any) {
+function saveShadowlandEntry_(entry: any) {
 	// As webapps aren't permitted to pass a time, we find it here
 	entry.unshift(new Date());
 	let sheet = getSheetById_(getSpreadsheet_(), 1930936724);
@@ -1085,7 +1175,7 @@ function saveShadowlandEntry(entry: any) {
  * Sets the "current floor" in the database
  * (i.e., the old sheet, see comments for saveNewPreferences())
  */
-function saveFloorNumber(floorNumber: any) {
+function saveFloorNumber_(floorNumber: any) {
 	let sheet = getSheetById_(getSpreadsheet_(), 1315797114);
 	if (!sheet) throw new Error("Unable to get sheet");
 	else sheet.getRange("A2").setValue(floorNumber);

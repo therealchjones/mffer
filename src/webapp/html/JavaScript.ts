@@ -19,13 +19,24 @@ var url: string | null = null;
  * it's being served from Google Apps Script
  */
 var customDomain: string | null = null;
+var configured: boolean | null = null;
+var defaultAdminSubmitText: string = "";
 document.addEventListener("DOMContentLoaded", start);
 async function start() {
 	await checkUrl();
+	getTexts();
 	checkDeployment();
 	await checkParameters();
 	if (await isConfigured()) setConfigured();
 	else setNotConfigured();
+}
+async function getTexts(): Promise<void> {
+	return new Promise<void>((resolve, _) => {
+		defaultAdminSubmitText =
+			document.getElementById("mffer-admin-button-authorize")
+				?.innerHTML || "";
+		resolve();
+	});
 }
 async function setConfigured() {
 	await Promise.all([initializeStorage(), bootstrapify()]);
@@ -42,6 +53,57 @@ function isOnGas(): boolean {
 function isSetupOnly(): boolean {
 	if (deploymentId && isOnGas()) return true;
 	else return false;
+}
+async function postRequest(functionName: string, ...args: any[]): Promise<any> {
+	let postUrl: string;
+	if (deploymentId)
+		postUrl =
+			"https://script.google.com/macros/s/" + deploymentId + "/exec";
+	else {
+		if (!url) await checkUrl();
+		if (!url) throw new Error("Unable to get url for posting requests");
+		postUrl = url;
+	}
+	if (!functionName) {
+		throw new Error("Unable to post request: no function name given");
+	}
+	let request: {
+		application: string;
+		function: { name: string; args: string[] };
+	} = {
+		application: "mffer",
+		function: {
+			name: functionName,
+			args: [],
+		},
+	};
+	args.forEach(function (value, index, _) {
+		request.function.args[index] = JSON.stringify(value);
+	});
+	let requestJson = JSON.stringify(request);
+	// Google Apps Script errors don't have Access-Control-Allow-Origin headers,
+	// so no data will be returned; additionally, Google Apps Script does not
+	// respond appropriately to CORS preflight, so our request must only use
+	// items that do not trigger CORS preflight; see
+	// https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request and
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#simple_requests.
+	// Specifically for our purposes, the 'Content-type' header is limited.
+	let options: RequestInit = {
+		method: "POST",
+		mode: "cors",
+		body: requestJson,
+	};
+	return fetch(postUrl, options).then(parseResponse, throwFetchError);
+}
+async function parseResponse(response: Response): Promise<any> {
+	if (!response.ok)
+		throw new Error(
+			"Could not obtain requested data: " + JSON.stringify(response)
+		);
+	else return response.json();
+}
+function throwFetchError(reason: any): never {
+	throw new Error("Unable to fetch data: " + reason?.toString());
 }
 async function checkParameters(): Promise<void> {
 	return new Promise<void>(async function (resolve, _) {
@@ -68,15 +130,8 @@ async function checkParameters(): Promise<void> {
 				parameter: parameters,
 			};
 			// send to server
-			google.script.run
-				.withFailureHandler((error) => {
-					console.error(
-						"Unable to validate parameters: " + error.message
-					);
-				})
-				.withSuccessHandler(function (credentials: {
-					[key: string]: string;
-				}) {
+			postRequest("processParameters", response)
+				.then(function (credentials: any) {
 					// figure out what needs to handle the returned credentials
 					// possible "success" responses (e.g., no error thrown by method)
 					// admin login success: { config: <getConfig() response> }
@@ -94,7 +149,7 @@ async function checkParameters(): Promise<void> {
 						);
 					else if (keys.includes("user")) {
 						console.debug("Received user credentials");
-						setLoginStatus(JSON.stringify(credentials));
+						setLoginStatus(credentials);
 					} else if (keys.includes("error"))
 						console.warn("Invalid login: " + credentials.error);
 					else if (keys.includes("config")) {
@@ -106,7 +161,11 @@ async function checkParameters(): Promise<void> {
 						);
 					resolve();
 				})
-				.processParameters(response);
+				.catch((error: any) => {
+					console.error(
+						"Unable to validate parameters: " + error?.toString()
+					);
+				});
 		} else if (Object.keys(parameters).includes("page")) {
 			// (future work) go directly to a specific page
 			resolve();
@@ -145,12 +204,12 @@ async function checkUrl() {
 		console.debug("Checking URL");
 		if (isOnGas()) {
 			google.script.run
-				.withSuccessHandler(async (gasUrl: string) => {
+				.withSuccessHandler(async function (gasUrl: string) {
 					url = gasUrl;
 					customDomain = null;
 					resolve();
 				})
-				.withFailureHandler((error, _) => throwError(error.toString()))
+				.withFailureHandler((error) => throwError(error.toString()))
 				.getUrl();
 		} else {
 			url = window.location.href;
@@ -166,7 +225,6 @@ async function getGasParameters(): Promise<{ [key: string]: string }> {
 			throw new Error(
 				"Unable to obtain parameters using getGasParameters when not serving from Apps Script"
 			);
-
 		google.script.url.getLocation((location) =>
 			resolve(location.parameter)
 		);
@@ -210,23 +268,16 @@ function initializeLocalStorage() {
 		resolve();
 	});
 }
-function initializeServerStorage() {
-	return new Promise<void>(function (resolve, _) {
-		if (serverStorage != null)
-			throw new Error("server storage is already configured");
-		google.script.run
-			.withFailureHandler(() =>
-				throwError("Unable to get server storage")
-			)
-			.withSuccessHandler(function (response: string) {
-				let pageStorageText = response.trim();
-				if (pageStorageText)
-					serverStorage = JSON.parse(pageStorageText);
-				else serverStorage = {};
-				resolve();
-			})
-			.getConfig();
-	});
+async function initializeServerStorage() {
+	if (serverStorage != null)
+		throw new Error("server storage is already configured");
+	return postRequest("getConfig")
+		.then(function (response: string) {
+			let pageStorageText = response.trim();
+			if (pageStorageText) serverStorage = JSON.parse(pageStorageText);
+			else serverStorage = {};
+		})
+		.catch(() => throwError("Unable to get server storage"));
 }
 function timeout(promise: Promise<any>, time: number) {
 	return Promise.race([
@@ -256,17 +307,18 @@ var bootstrapElements = {
 	spinner:
 		'<span class="spinner-border spinner-border-sm p-0" title="Loading..."></span>',
 };
-async function isConfigured() {
-	return new Promise<boolean>(function (resolve, _) {
-		console.debug("Checking if the webapp has been configured");
-		google.script.run
-			.withFailureHandler(() =>
-				throwError("Unable to check for configuration")
-			)
-			.withSuccessHandler(function (response: boolean) {
-				resolve(response);
-			})
-			.isConfigured();
+async function isConfigured(): Promise<boolean> {
+	return new Promise<boolean>(async (resolve, _) => {
+		if (configured == null)
+			configured = await postRequest("isConfigured")
+				.then((result: any) => result === true)
+				.catch((reason) => {
+					console.error(
+						`Unable to check configuration: ${reason.toString()}`
+					);
+					return false;
+				});
+		resolve(configured);
 	});
 }
 
@@ -396,15 +448,14 @@ function openAdmin() {
 		}
 	}
 	showSpinner($("#mffer-admin-input-oauthredirecturi"));
-	google.script.run
-		.withSuccessHandler(function (uri: string) {
+	postRequest("getRedirectUri")
+		.then(function (uri: string) {
 			$("#mffer-admin-input-oauthredirecturi").val(uri);
 			hideSpinner($("#mffer-admin-input-oauthredirecturi"));
 		})
-		.withFailureHandler(function () {
-			throwError("Unable to get redirect URI");
-		})
-		.getRedirectUri();
+		.catch(function (reason: any) {
+			throwError("Unable to get redirect URI: " + reason.toString());
+		});
 	$("#mffer-admin")
 		.find("input[type='text']")
 		.on("change", function (event) {
@@ -441,23 +492,21 @@ function openAdmin() {
 			}
 			hideSpinner(event.currentTarget);
 		});
-	google.script.run
-		.withSuccessHandler(loadSettings)
-		.withFailureHandler(function () {
+	postRequest("getConfig")
+		.then((config: string) => loadSettings(config))
+		.catch(function () {
 			throwError("Unable to get the current configuration");
-		})
-		.getConfig();
+		});
 	$("#mffer-filechooser-pending button").click(function (event) {
 		$("#mffer-filechooser-pending").hide();
 		switch (event.target.id) {
 			case "button-filechooser-confirm":
 				showSpinner($("#mffer-admin-input-fileupload"));
-				google.script.run
-					.withSuccessHandler(uploadComplete)
-					.withFailureHandler(function () {
+				postRequest("importNewData", workingStorage)
+					.then(uploadComplete)
+					.catch(function () {
 						throwError("Unable to import new data");
-					})
-					.importNewData(importText, JSON.stringify(workingStorage));
+					});
 				break;
 			case "button-filechooser-cancel":
 				$("#mffer-filechooser-pending").hide();
@@ -497,7 +546,7 @@ function openAdmin() {
 			fileReader.readAsText(file);
 		}
 	});
-	$("#mffer-admin-button-authorize").click(adminAuthAndSave);
+	resetAdminSubmitButton();
 	$("#mffer-admin").show();
 }
 function isFalseOrEmpty(check: any) {
@@ -509,7 +558,17 @@ function isFalseOrEmpty(check: any) {
 		return true;
 	return false;
 }
+function resetAdminSubmitButton(): void {
+	$("#mffer-admin-button-authorize")
+		.on("click", adminAuthAndSave)
+		.html(defaultAdminSubmitText)
+		.removeAttr("disabled");
+}
 async function adminAuthAndSave() {
+	$("#mffer-admin-button-authorize")
+		.off("click")
+		.attr("disabled", "true")
+		.html(bootstrapElements.spinner);
 	if (!(await isConfigured())) {
 		if (
 			isFalseOrEmpty(mfferSettings.oauthId) ||
@@ -518,14 +577,11 @@ async function adminAuthAndSave() {
 			$("#mffer-admin-authorizationerror").html(
 				"OAuth ID and OAuth secret are required"
 			);
+			resetAdminSubmitButton();
 		}
 	}
-	console.debug("Attempting to authorize deployment configuration changes");
+	console.debug("Attempting to validate deployment configuration changes");
 	$("#mffer-admin-authorizationerror").html("");
-	$("#mffer-admin-button-authorize")
-		.off("click")
-		.attr("disabled", "true")
-		.html(bootstrapElements.spinner);
 	let properties: { [index: string]: string | boolean } = {};
 	for (let property of Object.keys(mfferSettings)) {
 		if (
@@ -535,20 +591,36 @@ async function adminAuthAndSave() {
 		}
 	}
 	let propertiesJson = JSON.stringify(properties);
-	google.script.run
-		.withFailureHandler(function (error: any) {
-			error = error.toString();
-			throwError("Unable to obtain admin login URL: " + error);
-		})
-		.withSuccessHandler(function (url: any) {
-			url = url.toString();
-			if (isFalseOrEmpty(url))
+	// because on Apps Script the iframe has
+	// 'allow-top-navigation-by-user-activation', the redirection must happen
+	// within x seconds of the user clicking or typing something; for most
+	// browsers it appears x is 5 but at least for some safari it's 2. Need to
+	// make some way to work around this, e.g., prompt user to click on
+	// something else when the redirect is ready if it's been too long.
+	postRequest("getAdminAuthUrl", propertiesJson)
+		.then(function (authUrl: any) {
+			authUrl = authUrl.toString();
+			if (!authUrl)
 				throw new Error(
 					"Unable to obtain admin login url: empty result"
 				);
-			$(document.createElement("a")).attr("href", url)[0].click();
+			$("#mffer-admin-button-authorize")
+				.on("click", () => {
+					$("#mffer-admin-button-authorize")
+						.off("click")
+						.attr("disabled", "true")
+						.html(bootstrapElements.spinner);
+					$(document.createElement("a"))
+						.attr("href", authUrl)[0]
+						.click();
+				})
+				.html("Authorize &amp; Submit")
+				.removeAttr("disabled");
 		})
-		.getAdminAuthUrl(propertiesJson);
+		.catch(function (error: any) {
+			error = error.toString();
+			throwError("Unable to obtain admin login URL: " + error);
+		});
 }
 function throwError(error: string) {
 	$("#mffer-spinner h2").html("Error");
@@ -600,12 +672,11 @@ function loadPickerApi(token: any) {
 		});
 }
 function accessGooglePicker() {
-	google.script.run
-		.withSuccessHandler(createGooglePicker)
-		.withFailureHandler(function () {
+	postRequest("getPickerApiKey")
+		.then(createGooglePicker)
+		.catch(function () {
 			throwError("Unable to obtain Google Picker API Key");
-		})
-		.getPickerApiKey();
+		});
 }
 function createGooglePicker(apiKey?: string) {
 	let pickerApiKey: string = "";
@@ -623,7 +694,7 @@ function createGooglePicker(apiKey?: string) {
 		.hideTitleBar()
 		.setOAuthToken(googleOauthToken)
 		.setDeveloperKey(pickerApiKey)
-		.setOrigin(google.script.host.origin)
+		.setOrigin(new URL(url!).origin)
 		.setCallback(pickerCallback)
 		.build();
 	hideLoading();
@@ -637,6 +708,7 @@ function pickerCallback(data: any) {
 		) {
 			$("#mffer-new-get-database").hide();
 			showLoading("Checking file");
+			// not sure what's supposed to be below here, as the function isn't given
 			google.script.run
 				.withSuccessHandler(() => null)
 				.withFailureHandler(function () {
@@ -650,7 +722,10 @@ function uploadComplete() {
 	initializePage();
 }
 function showLoginSpinner() {
-	$("#mffer-navbar-button-login").html(bootstrapElements.spinner).show();
+	$("#mffer-navbar-button-login")
+		.attr("disabled", "true")
+		.html(bootstrapElements.spinner)
+		.show();
 }
 function checkLocalStorage() {
 	if (!workingStorage) workingStorage = {};
@@ -707,12 +782,11 @@ function checkPageStorage() {
 	}
 }
 function updateLogin(storageText: string) {
-	google.script.run
-		.withSuccessHandler(setLoginStatus)
-		.withFailureHandler(function () {
+	postRequest("getUserLoginStatus", storageText)
+		.then(setLoginStatus)
+		.catch(function () {
 			throwError("Unable to get login status");
-		})
-		.getUserLoginStatus(storageText);
+		});
 }
 function savePageStorage() {
 	if (hasLocalStorage()) {
@@ -726,8 +800,13 @@ function savePageStorage() {
 			);
 	}
 }
-function resetLogin() {
-	$("#mffer-navbar-button-login").html("login").click(userLogin).show();
+async function resetLogin() {
+	return new Promise<void>((resolve, _) => {
+		$("#mffer-navbar-button-login")
+			.html("login")
+			.on("click", userLogin)
+			.show();
+	});
 }
 function setLoginStatus(storageText: string | null) {
 	if (!storageText) {
@@ -767,16 +846,24 @@ function hideAdminContent() {
 function userLogin() {
 	showLoginSpinner();
 	savePageStorage();
-	google.script.run
-		.withFailureHandler(function () {
-			throwError("Unable to get user login URL");
-		})
-		.withSuccessHandler(function (url: any) {
+	postRequest("getUserAuthUrl", JSON.stringify(workingStorage))
+		.then(function (url: any) {
 			$(document.createElement("a"))
 				.attr("href", url.toString())[0]
 				.click();
 		})
-		.getUserAuthUrl(workingStorage);
+		.catch(function () {
+			throwError("Unable to get user login URL");
+		});
+}
+async function checkUserLoginUrl() {
+	return postRequest("getUserAuthUrl").then((loginUrl: any): void => {
+		$("#mffer-navbar-button-login").on("click", () =>
+			$(document.createElement("a"))
+				.attr("href", loginUrl.toString())[0]
+				.click()
+		);
+	});
 }
 function userLogout() {
 	hideAdminContent();
@@ -787,10 +874,7 @@ function userLogout() {
 }
 function initializePage() {
 	showLoading("getting data");
-	google.script.run
-		.withFailureHandler(alertLoadFailure)
-		.withSuccessHandler(loadData)
-		.getWebappDatabase();
+	postRequest("getWebappDatabase").then(loadData).catch(alertLoadFailure);
 	$("#mffer-admin-input-oauthid")
 		.add("#mffer-admin-input-oauthsecret")
 		.attr("disabled", "disabled");
@@ -908,11 +992,7 @@ function getJobText(jobNumber: number) {
 
 function saveFloorNumber(floorNumber: number) {
 	let jobNumber = markProgress("Saving current floor");
-	google.script.run
-		.withFailureHandler(logWarn)
-		.withSuccessHandler(logSuccess)
-		.withUserObject(jobNumber)
-		.saveFloorNumber(floorNumber);
+	postRequest("saveFloorNumber", floorNumber).then(logSuccess).catch(logWarn);
 	return floorNumber;
 }
 function logSuccess(result: any): void {}
@@ -945,10 +1025,9 @@ function getFirstLines(text: string) {
 	return returnText;
 }
 function csvToTable(text: string) {
-	google.script.run
-		.withSuccessHandler(displayTable)
-		.withFailureHandler(displayTableError)
-		.csvToTable(text, JSON.stringify(workingStorage));
+	postRequest("csvToTable", text, workingStorage)
+		.then(displayTable)
+		.catch(displayTableError);
 	return "<p>" + bootstrapElements.spinner + "</p>";
 }
 function displayTable(text: string) {
