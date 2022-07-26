@@ -1,5 +1,10 @@
 "use strict";
 
+/**
+ * enables additional testing, though no additional functionality; adds output
+ * in the browser's JavaScript console
+ */
+var mfferDebug: boolean = true;
 /** deploymentId is set to a nonempty string iff the page is being served from
  * a domain other than Google Apps Script.
  */
@@ -10,49 +15,114 @@ var deploymentId: string = "";
  */
 var homePage: JQuery | null = null;
 /**
- * the url in the browser location bar; iff being served from Google Apps
- * Script this does not include any query string or hash
+ * current page settings
  */
-var url: string | null = null;
+var settings: {
+	oauthId: string | null;
+	hasOauthSecret: boolean | null;
+	"oauth2.userLogin": string | null;
+	user: string | null;
+	isAdmin: boolean | null;
+	hasUserSpreadsheet: boolean | null;
+	pickerApiKey: string | null;
+} | null = null;
+
 /**
- * the hostname if the page is being served from a custom domain; `null` if
- * it's being served from Google Apps Script
+ * `systemData` indexes Promises for data that is slow or complicated to access;
+ * the Promises should be used only for reading the data, not for changing it.
  */
-var customDomain: string | null = null;
-var configured: boolean | null = null;
-var defaultAdminSubmitText: string = "";
+var systemData: { [key: string]: Promise<any> } = {};
+
 document.addEventListener("DOMContentLoaded", start);
 async function start() {
-	await checkUrl();
-	getTexts();
-	checkDeployment();
-	await checkParameters();
-	if (await isConfigured()) setConfigured();
-	else setNotConfigured();
+	loadSystemData("configuration", loadConfiguration);
+	loadSystemData("url", loadUrl);
+	loadSystemData("parameters", loadParameters);
+	loadSystemData("credentials", loadCredentials);
+	loadSystemData("texts", loadTexts);
+	loadSystemData("loginurl", loadUserLoginUrl);
+	loadSystemData("initialsettings", loadInitialSettings);
+	initializeSettings();
+	if (await isConfigured()) initializePage();
+	else initializeSetup();
 }
-async function getTexts(): Promise<void> {
-	return new Promise<void>((resolve, _) => {
-		defaultAdminSubmitText =
+/**
+ * reads data into a Promise that can be accessed multiple times to access the data without repetitive or overlapping calls
+ * @param name key under which to store the Promise in the `systemData` object
+ * @param func function which loads the data and returns the Promise
+ */
+async function loadSystemData(name: string, func: () => Promise<any>) {
+	if (!systemData) systemData = {};
+	if (!systemData[name]) systemData[name] = func();
+}
+/**
+ * Overwrites the existing Promise associated with `name` with another. This is
+ * not as safe or efficient as using `loadSystemData`.
+ * @param name key under which to store the Promise in the `systemData` object
+ * @param func function which loads the data and returns the Promise
+ */
+async function reloadSystemData(name: string, func: () => Promise<any>) {
+	if (!systemData) systemData = {};
+	systemData[name] = func();
+}
+/**
+ * accesses a Promise for a copy of system data to avoid accessing the data directly with repetitive or overlapping calls
+ * @param name key under which the Promise is stored in the `systemData` object
+ * @returns a Promise for a copy of the data; not suitable for changing the data directly, just reading it
+ */
+async function getSystemData(name: string): Promise<any> {
+	if (!systemData || !systemData[name])
+		throw new Error(`System '${name}' has not been loaded`);
+	return systemData[name];
+}
+function logDebug(message: string) {
+	if (mfferDebug) console.debug(message);
+}
+/**
+ * parses the HTML source to set default text based on the original text
+ * within various elements
+ */
+async function loadTexts(): Promise<{ [key: string]: string }> {
+	return new Promise((resolve, _) => {
+		let defaultAdminSubmitText =
 			document.getElementById("mffer-admin-button-authorize")
 				?.innerHTML || "";
-		resolve();
+		resolve({
+			defaultAdminSubmitText: defaultAdminSubmitText,
+		});
 	});
 }
-async function setConfigured() {
-	await Promise.all([initializeStorage(), bootstrapify()]);
-	homePage = $("#mffer-contents");
-	initializePage();
+/**
+ * creates the global `settings` object and loads it with the initial page settings
+ * @returns a Promise to complete loading the `settings` object
+ */
+async function initializeSettings() {
+	loadSystemData("initialsettings", loadInitialSettings);
+	if (settings) {
+		console.warn(
+			"Settings have already been initialized; not doing it again."
+		);
+		return settings;
+	}
+	let initialSettings: any = await getSystemData("initialsettings");
+	settings = {
+		oauthId: initialSettings["oauthId"]?.toString() || null,
+		hasOauthSecret: initialSettings["hasOauthSecret"],
+		"oauth2.userLogin":
+			initialSettings["oauth2.userLogin"]?.toString() || null,
+		user: initialSettings["user"]?.toString() || null,
+		isAdmin: initialSettings["isAdmin"],
+		hasUserSpreadsheet: initialSettings["hasUserSpreadsheet"],
+		pickerApiKey: initialSettings["pickerApiKey"]?.toString() || null,
+	};
+	return settings;
 }
-function setNotConfigured() {
-	homePage = $("#mffer-welcome");
-	initializeSetup();
-}
+/**
+ * checks whether this page is being served from Google Apps Script
+ * @returns `true` if the page is being served from Google Apps Script, `false` otherwise
+ */
 function isOnGas(): boolean {
 	return window.location.hostname.endsWith(".googleusercontent.com");
-}
-function isSetupOnly(): boolean {
-	if (deploymentId && isOnGas()) return true;
-	else return false;
 }
 async function postRequest(functionName: string, ...args: any[]): Promise<any> {
 	let postUrl: string;
@@ -60,9 +130,8 @@ async function postRequest(functionName: string, ...args: any[]): Promise<any> {
 		postUrl =
 			"https://script.google.com/macros/s/" + deploymentId + "/exec";
 	else {
-		if (!url) await checkUrl();
-		if (!url) throw new Error("Unable to get url for posting requests");
-		postUrl = url;
+		if (!systemData.url) systemData["url"] = loadUrl();
+		postUrl = await systemData.url;
 	}
 	if (!functionName) {
 		throw new Error("Unable to post request: no function name given");
@@ -100,127 +169,119 @@ async function parseResponse(response: Response): Promise<any> {
 		throw new Error(
 			"Could not obtain requested data: " + JSON.stringify(response)
 		);
-	else return response.json();
+	else {
+		try {
+			let respObj = response.json();
+			return respObj;
+		} catch (e: any) {
+			throwError(
+				"Unable to parse server response as JSON: " +
+					response.text() +
+					"(" +
+					e.toString() +
+					")"
+			);
+		}
+	}
 }
 function throwFetchError(reason: any): never {
 	throw new Error("Unable to fetch data: " + reason?.toString());
 }
-async function checkParameters(): Promise<void> {
-	return new Promise<void>(async function (resolve, _) {
-		console.debug("Checking URL parameters");
-		if (!url) await checkUrl();
-		let urlObj: URL;
+/**
+ * loads the "parameters" system
+ * @returns a Promise for the `parameters` object, a string-indexed dictionary
+ * of strings
+ */
+async function loadParameters(): Promise<{ [key: string]: string | null }> {
+	return new Promise<{ [key: string]: string | null }>(async function (
+		resolve,
+		_
+	) {
+		logDebug("Checking URL parameters");
 		let parameters: { [key: string]: string | null } = {};
-		if (!url) throw new Error("Unable to get URL");
-		else {
-			urlObj = new URL(url);
-			if (isOnGas()) parameters = await getGasParameters();
-			else {
-				for (const key of urlObj.searchParams.keys()) {
-					parameters[key] = urlObj.searchParams.get(key);
-				}
+		if (isOnGas()) {
+			parameters = await getGasParameters();
+		} else {
+			if (!systemData.url) systemData["url"] = loadUrl();
+			let urlObj = new URL(await systemData.url);
+			for (const key of urlObj.searchParams.keys()) {
+				parameters[key] = urlObj.searchParams.get(key);
 			}
 		}
-		if (Object.keys(parameters).includes("state")) {
-			console.debug("Sending callback parameters to Apps Script");
+		resolve(parameters);
+	});
+}
+
+/**
+ * obtains credentials from the Apps Script server if the page is responding to
+ * a callback
+ * @returns a Promise for the server's `credentials` object whose format depends
+ * on the specific callback that was invoked; if the page is not a callback
+ * (i.e., the loaded url has no query string with a "state" parameter), the
+ * empty object `{}` is returned
+ */
+async function loadCredentials(): Promise<{ [key: string]: string }> {
+	return new Promise(async (resolve, _) => {
+		loadSystemData("parameters", loadParameters);
+		let params = await getSystemData("parameters");
+		let credentials: any = {};
+		if (Object.keys(params).includes("state")) {
+			logDebug("Sending callback parameters to Apps Script");
 			// some sort of callback (or reload)
 			// if already logged in, check to see if it's the same login or a state that's already been used?
 			// determine whether we're looking for a user or admin login?
 			let response: { parameter: { [key: string]: string | null } } = {
-				parameter: parameters,
+				parameter: params,
 			};
 			// send to server
-			postRequest("processParameters", response)
-				.then(function (credentials: any) {
-					// figure out what needs to handle the returned credentials
-					// possible "success" responses (e.g., no error thrown by method)
-					// admin login success: { config: <getConfig() response> }
-					// admin login failure: { error: <error message> }
-					// user login success: { user: <user data for storage> }
-					// user login failure: { error: <error message> }
-					if (!credentials) {
-						console.debug("No credentials received from server");
-						resolve();
-					}
-					let keys = Object.keys(credentials);
-					if (keys.length == 0)
-						console.debug(
-							"Empty credentials object received from server"
-						);
-					else if (keys.includes("user")) {
-						console.debug("Received user credentials");
-						setLoginStatus(credentials);
-					} else if (keys.includes("error"))
-						console.warn("Invalid login: " + credentials.error);
-					else if (keys.includes("config")) {
-						console.debug("Deployment admin settings updated");
-						loadSettings(JSON.stringify(credentials.config));
-					} else
-						console.error(
-							"Invalid credentials received from server"
-						);
-					resolve();
+			await postRequest("processParameters", response)
+				.then(function (creds: any) {
+					if (creds) credentials = creds;
 				})
 				.catch((error: any) => {
 					console.error(
-						"Unable to validate parameters: " + error?.toString()
+						"Unable to process parameters: " + error?.toString()
 					);
 				});
-		} else if (Object.keys(parameters).includes("page")) {
-			// (future work) go directly to a specific page
-			resolve();
-		} else {
-			// nothing to do
-			resolve();
 		}
+		resolve(credentials);
 	});
 }
 /**
- * Ensure there is a deploymentID setting & sanity checks pass.
- * @throws Error if something appears amiss with the deployment.
+ * Determines the top address that returned this page. If the app is running on
+ * Google Apps Script, this string is the origin and path; if not on Google Apps
+ * script, it is the full href.
+ * @returns a Promise for the url as a string
  */
-async function checkDeployment() {
-	let deploymentExplainer =
-		"; the project was probably not deployed properly. See https://dev.mffer.org/.";
-	if (deploymentId === undefined || deploymentId === null) {
-		throw new Error("Undefined deployment ID" + deploymentExplainer);
-	} else if (deploymentId == "") {
-		// the web page was built for Google Apps Script
-		if (customDomain)
-			throw new Error(
-				"Empty deployment ID set with custom domain" +
-					deploymentExplainer
-			);
-	} else {
-		// the web page was built for a custom domain
-		if (!customDomain)
-			throw new Error(
-				"Deployment ID set without custom domain" + deploymentExplainer
-			);
-	}
-}
-async function checkUrl() {
-	return new Promise<void>(function (resolve, _) {
-		console.debug("Checking URL");
+async function loadUrl() {
+	return new Promise<string>(function (resolve, _) {
+		logDebug("Checking URL");
 		if (isOnGas()) {
 			google.script.run
-				.withSuccessHandler(async function (gasUrl: string) {
-					url = gasUrl;
-					customDomain = null;
-					resolve();
+				.withSuccessHandler(async function (gasUrl: any) {
+					if (!gasUrl)
+						throw new Error(
+							"Unable to obtain URL from Apps Script"
+						);
+					resolve(gasUrl.toString());
 				})
-				.withFailureHandler((error) => throwError(error.toString()))
-				.getUrl();
+				.withFailureHandler((error) =>
+					throwError(
+						"Unable to get URL from Apps Script: " +
+							error.toString()
+					)
+				)
+				.loadUrl();
 		} else {
-			url = window.location.href;
-			customDomain = window.location.hostname;
-			resolve();
+			if (!window.location.href)
+				throw new Error("Unable to determine url from window.location");
+			resolve(window.location.href);
 		}
 	});
 }
 async function getGasParameters(): Promise<{ [key: string]: string }> {
 	return new Promise(function (resolve, _) {
-		console.debug("Getting parameters from Apps Script");
+		logDebug("Getting parameters from Apps Script");
 		if (!isOnGas())
 			throw new Error(
 				"Unable to obtain parameters using getGasParameters when not serving from Apps Script"
@@ -230,54 +291,20 @@ async function getGasParameters(): Promise<{ [key: string]: string }> {
 		);
 	});
 }
-/** Various memory stores for volatile and persistent memory, complicated by
- * the inability to use window.localStorage directly for apps script since
- * it presents user code in an iframe from a different domain. Each is
- * scoped differently, with more narrow scopes overriding more broad ones:
- *
- * serverStorage: loaded from Apps Script server upon page load, sent back when
- *              changes are made, as persistent as possible
- * localStorage: script's window.localStorage, but due to third-party
- *               storage restrictions may persist only for the current session
- *               especially if the page is being loaded from Apps Script
- * workingStorage: volatile, in memory, resets with page load
+/**
+ * read storage sources and consolidate the settings existing at page load time
+ * @returns a Promise for the initial settings
  */
-var workingStorage: { [key: string]: string | boolean | null } | null = null;
-var serverStorage: { [key: string]: string | boolean | null } | null = null;
-// var localStorage = null; // should already be defined if supported
-async function initializeStorage() {
-	if (workingStorage != null)
-		throw new Error("Storage has already been initialized");
-	workingStorage = {};
-	let localStoragePromise = initializeLocalStorage();
-	let serverStoragePromise = initializeServerStorage();
-
-	const results = await Promise.allSettled([
-		serverStoragePromise,
-		localStoragePromise,
-	]);
-	if (results[0].toString() == "fulfilled" && serverStorage != null)
-		workingStorage = { ...serverStorage };
-	if (results[1].toString() == "fulfilled")
-		workingStorage = { ...workingStorage, ...localStorage };
-}
-function initializeLocalStorage() {
-	return new Promise<void>(function (resolve, _) {
-		if (!window.localStorage)
-			throw new Error("No local storage is available.");
-		resolve();
+async function loadInitialSettings(): Promise<any> {
+	return new Promise(async (resolve, _) => {
+		loadSystemData("configuration", loadConfiguration);
+		let storage: { [key: string]: string | null } = {
+			...(await getSystemData("configuration")),
+		};
+		if (!window.localStorage) console.warn("No local storage is available");
+		else storage = { ...storage, ...window.localStorage };
+		resolve(storage);
 	});
-}
-async function initializeServerStorage() {
-	if (serverStorage != null)
-		throw new Error("server storage is already configured");
-	return postRequest("getConfig")
-		.then(function (response: string) {
-			let pageStorageText = response.trim();
-			if (pageStorageText) serverStorage = JSON.parse(pageStorageText);
-			else serverStorage = {};
-		})
-		.catch(() => throwError("Unable to get server storage"));
 }
 function timeout(promise: Promise<any>, time: number) {
 	return Promise.race([
@@ -309,19 +336,60 @@ var bootstrapElements = {
 };
 async function isConfigured(): Promise<boolean> {
 	return new Promise<boolean>(async (resolve, _) => {
-		if (configured == null)
-			configured = await postRequest("isConfigured")
-				.then((result: any) => result === true)
-				.catch((reason) => {
-					console.error(
-						`Unable to check configuration: ${reason.toString()}`
-					);
-					return false;
-				});
-		resolve(configured);
+		loadSystemData("configuration", loadConfiguration);
+		let config = await getSystemData("configuration");
+		if (config && config.oauthId && config.hasOauthSecret) resolve(true);
+		else resolve(false);
 	});
 }
-
+/**
+ * loads configuration from the Apps Script server
+ * @returns a Promise for a configuration object, which is the empty object `{}` if the deployment is not configured
+ */
+async function loadConfiguration(): Promise<{
+	[key: string]: string | boolean | null;
+}> {
+	return postRequest("getConfig")
+		.then((config: any) => {
+			if (!config) return {};
+			else {
+				try {
+					let configObj: any = JSON.parse(config);
+					configObj = standardizeObject(configObj);
+					return configObj;
+				} catch (e: any) {
+					throwError(
+						"Unable to parse configuration: " +
+							JSON.stringify(config) +
+							"(" +
+							e.toString() +
+							")"
+					);
+				}
+			}
+		})
+		.catch(function (reason?: any) {
+			throwError(
+				"Unable to get the current configuration: " + reason?.toString()
+			);
+		});
+}
+function standardizeObject(obj: any): {
+	[key: string]: string | boolean | null;
+} {
+	let newObj: { [key: string]: string | boolean | null } = {};
+	if (typeof obj != "object")
+		throw new Error("Unable to standardize object " + JSON.stringify(obj));
+	else {
+		for (const key of Object.keys(obj)) {
+			if (obj[key] == null) newObj[key] = null;
+			else if (typeof obj[key] == "boolean") newObj[key] = obj[key];
+			else if (typeof obj[key] == "string") newObj[key] = obj[key];
+			else newObj[key] = obj[key].toString();
+		}
+		return newObj;
+	}
+}
 /**
  * Check for window.localStorage capabilities
  */
@@ -424,8 +492,9 @@ function getSpinner(element: HTMLElement | JQuery<Element>) {
 	return spinner;
 }
 function initializeSetup() {
-	console.debug("Starting webapp configuration");
-	$("#mffer-new").show();
+	logDebug("Starting webapp configuration");
+	homePage = $("#mffer-new");
+	homePage.show();
 	bootstrapify();
 	enableAdminContent();
 	$("#mffer-new-button-setup")
@@ -438,7 +507,7 @@ function openContents() {
 	if (homePage != null) homePage.show();
 }
 function openAdmin() {
-	console.debug("Switching to admin configuration page");
+	logDebug("Switching to admin configuration page");
 	hidePages();
 	let lis = $("#mffer-admin li");
 	for (let property in mfferSettings) {
@@ -492,8 +561,10 @@ function openAdmin() {
 			}
 			hideSpinner(event.currentTarget);
 		});
-	postRequest("getConfig")
-		.then((config: string) => loadSettings(config))
+	if (!systemData.configuration)
+		systemData["configuration"] = loadConfiguration();
+	systemData.configuration
+		.then((config: string) => loadSettings(JSON.stringify(config)))
 		.catch(function () {
 			throwError("Unable to get the current configuration");
 		});
@@ -502,8 +573,8 @@ function openAdmin() {
 		switch (event.target.id) {
 			case "button-filechooser-confirm":
 				showSpinner($("#mffer-admin-input-fileupload"));
-				postRequest("importNewData", workingStorage)
-					.then(uploadComplete)
+				postRequest("importNewData", importText, settings)
+					.then((_) => uploadComplete())
 					.catch(function () {
 						throwError("Unable to import new data");
 					});
@@ -558,11 +629,19 @@ function isFalseOrEmpty(check: any) {
 		return true;
 	return false;
 }
-function resetAdminSubmitButton(): void {
-	$("#mffer-admin-button-authorize")
-		.on("click", adminAuthAndSave)
-		.html(defaultAdminSubmitText)
-		.removeAttr("disabled");
+async function resetAdminSubmitButton(): Promise<void> {
+	return new Promise<void>(async (resolve, _) => {
+		if (!systemData["texts"]) loadSystemData("texts", loadTexts);
+		let texts = await getSystemData("texts");
+		let defaultAdminSubmitText: string = "";
+		if (texts && texts.defaultAdminSubmitText)
+			defaultAdminSubmitText = texts.defaultAdminSubmitText.toString();
+		$("#mffer-admin-button-authorize")
+			.on("click", adminAuthAndSave)
+			.html(defaultAdminSubmitText)
+			.removeAttr("disabled");
+		resolve();
+	});
 }
 async function adminAuthAndSave() {
 	$("#mffer-admin-button-authorize")
@@ -580,7 +659,7 @@ async function adminAuthAndSave() {
 			resetAdminSubmitButton();
 		}
 	}
-	console.debug("Attempting to validate deployment configuration changes");
+	logDebug("Attempting to validate deployment configuration changes");
 	$("#mffer-admin-authorizationerror").html("");
 	let properties: { [index: string]: string | boolean } = {};
 	for (let property of Object.keys(mfferSettings)) {
@@ -678,7 +757,7 @@ function accessGooglePicker() {
 			throwError("Unable to obtain Google Picker API Key");
 		});
 }
-function createGooglePicker(apiKey?: string) {
+async function createGooglePicker(apiKey?: string) {
 	let pickerApiKey: string = "";
 	if (apiKey != null) {
 		pickerApiKey = apiKey;
@@ -689,6 +768,8 @@ function createGooglePicker(apiKey?: string) {
 	spreadsheetView
 		.setIncludeFolders(true)
 		.setMode(google.picker.DocsViewMode.LIST);
+	if (!systemData["url"]) loadSystemData("url", loadUrl);
+	let url: string = (await getSystemData("url")).toString();
 	googlePicker = new google.picker.PickerBuilder()
 		.addView(spreadsheetView)
 		.hideTitleBar()
@@ -721,115 +802,82 @@ function uploadComplete() {
 	hideSpinner($("#mffer-admin-input-fileupload"));
 	initializePage();
 }
-function showLoginSpinner() {
+/**
+ * Set up the user login system. Checks for served credentials, and if not
+ * present attempts to obtain updated credentials using stored user information.
+ * If that's not available either, presents the login button.
+ * @returns
+ */
+async function initializeUserLogin(): Promise<void> {
+	return new Promise<void>(async (resolve, _) => {
+		loadSystemData("loginurl", loadUserLoginUrl);
+		loadSystemData("credentials", loadCredentials);
+		if (!settings) settings = await initializeSettings();
+		let credentials = await getSystemData("credentials");
+		if (
+			credentials &&
+			credentials["user"] &&
+			credentials["oauth2.userLogin"]
+		) {
+			// we've obtained up-to-date user credentials, probably from a Google callback
+			logDebug("Up-to-date credentials available on initialization");
+		} else if (settings["oauth2.userLogin"]) {
+			// there are (possibly old) credentials still in the settings; let's check and maybe update them
+			logDebug(
+				"Stored credentials; will check validity and update if possible"
+			);
+			reloadSystemData("credentials", () => {
+				return postRequest("updateUserLogin", settings);
+			});
+			credentials = await getSystemData("credentials");
+		} else {
+			// there's no current login information
+		}
+		if (credentials && credentials["oauth2.userLogin"]) {
+			// we have a valid login
+			logDebug("Credentials confirmed. Storing.");
+			await setCredentials(credentials);
+			// make the logout button
+			$("#mffer-navbar-button-login")
+				.on("click", userLogout)
+				.html("logout")
+				.removeAttr("disabled")
+				.show();
+		} else {
+			// there's no current user login
+			await userLogout();
+		}
+		resolve();
+	});
+}
+async function setCredentials(credentials: any) {
+	if (!settings) settings = await initializeSettings();
+	settings.user = credentials.user;
+	settings["oauth2.userLogin"] = credentials["oauth2.userLogin"];
+	settings.isAdmin = credentials.isAdmin;
+	if (settings.isAdmin) enableAdminContent();
+	if (credentials.hasUserSpreadsheet) settings.hasUserSpreadsheet = true;
+	else
+		showAlert(
+			"Spreadsheet not found",
+			"Please select or create a Google Spreadsheet to save your individual data"
+		);
+	savePageStorage();
+}
+
+async function showLoginSpinner() {
 	$("#mffer-navbar-button-login")
 		.attr("disabled", "true")
 		.html(bootstrapElements.spinner)
 		.show();
 }
-function checkLocalStorage() {
-	if (!workingStorage) workingStorage = {};
-	if (hasLocalStorage()) {
-		if (window.localStorage.getItem("oauth2.userLogin"))
-			workingStorage["oauth2.userLogin"] =
-				window.localStorage.getItem("oauth2.userLogin");
-	}
-}
-function checkUserLogin() {
-	showLoginSpinner();
-	checkPageStorage();
-	// but what if it is present?
-	if (!workingStorage || !workingStorage["oauth2.userLogin"]) {
-		openContents();
-		// in-page storage did not include new user data; check for
-		// persistent old user data
-		checkLocalStorage();
-		if (!workingStorage || !workingStorage["oauth2.userLogin"]) {
-			// there's no user data at all
-			resetLogin();
-		} else {
-			// there was persistent old user data, but it needs to be
-			// updated and/or checked
-			updateLogin(JSON.stringify(workingStorage));
-		}
-	}
-}
-function checkPageStorage() {
-	if (serverStorage && serverStorage.adminAuthError) {
-		// failed admin login when trying to change settings
-		// TODO: #147 consider whether admin auth error should return
-		// attempted auth settings
-		userLogout();
-		showAlert("Administrator authentication error");
-		openContents();
-	} else if (serverStorage && serverStorage["oauth2.adminLogin"]) {
-		// logged in to change settings; will go back to admin page but
-		// also login as "regular" user
-		if (!workingStorage) workingStorage = {};
-		workingStorage["oauth2.userLogin"] = serverStorage["oauth2.adminLogin"];
-		updateLogin(JSON.stringify(workingStorage));
-		enableAdminContent();
-		openAdmin();
-	} else if (serverStorage && serverStorage.userAuthError) {
-		// failed standard user login
-		userLogout();
-		showAlert("User authentication error");
-		openContents();
-	} else if (serverStorage && serverStorage["oauth2.userLogin"]) {
-		// logged in as standard user
-		setLoginStatus(JSON.stringify(serverStorage));
-		openContents();
-	}
-}
-function updateLogin(storageText: string) {
-	postRequest("getUserLoginStatus", storageText)
-		.then(setLoginStatus)
-		.catch(function () {
-			throwError("Unable to get login status");
-		});
-}
 function savePageStorage() {
 	if (hasLocalStorage()) {
-		if (
-			workingStorage != null &&
-			workingStorage["oauth2.userLogin"] != null
-		)
+		if (settings != null && settings["oauth2.userLogin"] != null)
 			window.localStorage.setItem(
 				"oauth2.userLogin",
-				workingStorage["oauth2.userLogin"].toString()
+				settings["oauth2.userLogin"].toString()
 			);
-	}
-}
-async function resetLogin() {
-	return new Promise<void>((resolve, _) => {
-		$("#mffer-navbar-button-login")
-			.html("login")
-			.on("click", userLogin)
-			.show();
-	});
-}
-function setLoginStatus(storageText: string | null) {
-	if (!storageText) {
-		// user does not (currently) have access
-		if (hasLocalStorage()) localStorage.clear();
-		resetLogin();
-	} else {
-		let newStorage = JSON.parse(storageText);
-		workingStorage = {};
-		workingStorage["oauth2.userLogin"] = newStorage["oauth2.userLogin"];
-		if (newStorage.adminUser) {
-			workingStorage.adminUser = true;
-			enableAdminContent();
-		} else hideAdminContent();
-		if (newStorage.hasUserSpreadsheet)
-			workingStorage.hasUserSpreadsheet = true;
-		else
-			showAlert(
-				"Spreadsheet not found",
-				"Please select or create a Google Spreadsheet to save your individual data"
-			);
-		savePageStorage();
-		$("#mffer-navbar-button-login").html("logout").click(userLogout).show();
 	}
 }
 function enableAdminContent() {
@@ -843,42 +891,49 @@ function hideAdminContent() {
 	}
 	$("#mffer-contents-li-admin").add("#menu-item-admin").hide();
 }
-function userLogin() {
-	showLoginSpinner();
-	savePageStorage();
-	postRequest("getUserAuthUrl", JSON.stringify(workingStorage))
-		.then(function (url: any) {
-			$(document.createElement("a"))
-				.attr("href", url.toString())[0]
-				.click();
-		})
-		.catch(function () {
-			throwError("Unable to get user login URL");
-		});
+/**
+ * determines the Google url to use for user logins
+ * @returns a Promise for the url
+ */
+async function loadUserLoginUrl() {
+	return new Promise<string>(async (resolve, _) =>
+		resolve((await postRequest("getUserAuthUrl")).toString())
+	);
 }
-async function checkUserLoginUrl() {
-	return postRequest("getUserAuthUrl").then((loginUrl: any): void => {
-		$("#mffer-navbar-button-login").on("click", () =>
-			$(document.createElement("a"))
-				.attr("href", loginUrl.toString())[0]
-				.click()
-		);
-	});
-}
-function userLogout() {
+async function userLogout() {
+	loadSystemData("loginurl", loadUserLoginUrl);
 	hideAdminContent();
-	workingStorage = null;
-	serverStorage = null;
-	$("#mffer-storage").html("");
-	setLoginStatus(null);
+	// remove any old login credentials
+	if (settings) {
+		settings["oauth2.userLogin"] = null;
+		settings.isAdmin = null;
+		settings.hasUserSpreadsheet = null;
+		settings.user = null;
+	}
+	if (hasLocalStorage()) localStorage.clear();
+	// make the login button
+	let loginUrl = await getSystemData("loginurl");
+	if (loginUrl)
+		$("#mffer-navbar-button-login")
+			.on("click", () => {
+				$(document.createElement("a"))
+					.attr("href", loginUrl)[0]
+					.click();
+			})
+			.html("login")
+			.removeAttr("disabled")
+			.show();
+	else throw new Error("Unable to obtain user login url");
 }
-function initializePage() {
-	showLoading("getting data");
+async function initializePage() {
+	await bootstrapify();
+	homePage = $("#mffer-contents");
 	postRequest("getWebappDatabase").then(loadData).catch(alertLoadFailure);
 	$("#mffer-admin-input-oauthid")
 		.add("#mffer-admin-input-oauthsecret")
 		.attr("disabled", "disabled");
-	checkUserLogin();
+	initializeUserLogin();
+	openContents();
 }
 function loadData(database: any) {
 	if (database == null) alertLoadFailure();
@@ -1025,7 +1080,7 @@ function getFirstLines(text: string) {
 	return returnText;
 }
 function csvToTable(text: string) {
-	postRequest("csvToTable", text, workingStorage)
+	postRequest("csvToTable", text, settings)
 		.then(displayTable)
 		.catch(displayTableError);
 	return "<p>" + bootstrapElements.spinner + "</p>";

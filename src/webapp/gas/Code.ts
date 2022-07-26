@@ -184,8 +184,8 @@ function doPost(request: any) {
 			case "getUserAuthUrl":
 				result = getUserAuthUrl(functionArgs[0]);
 				break;
-			case "getUserLoginStatus":
-				result = getUserLoginStatus(functionArgs[0]);
+			case "updateUserLogin":
+				result = updateUserLogin(functionArgs[0]);
 				break;
 			case "importNewData":
 				result = importNewData(functionArgs[0], functionArgs[1]);
@@ -232,7 +232,7 @@ function buildPage_(
 function processParameters(response: {
 	parameter: { [key: string]: string | null };
 }): { [key: string]: string | null } {
-	if (response.parameter.state) {
+	if (response && response.parameter && response.parameter.state) {
 		let properties = getProperties_();
 		let attemptKey: string = "adminAttempt-" + response.parameter.state;
 		if (properties.getKeys().includes(attemptKey)) {
@@ -286,7 +286,7 @@ function processParameters(response: {
 function getConfig() {
 	let config: { [index: string]: string | boolean | null } = {
 		oauthId: getOauthId_(),
-		oauthSecret: hasOauthSecret_(),
+		hasOauthSecret: hasOauthSecret_(),
 		pickerApiKey: getPickerApiKey_(),
 	};
 	return JSON.stringify(config);
@@ -448,9 +448,9 @@ function getParam_(url: string, key: string): string | null {
 function getRedirectUri(): string {
 	// because of the issues with using the formal usercallback endpoint in
 	// Google Apps Script, we simply use the regular webapp endpoint
-	return getUrl();
+	return loadUrl();
 }
-function getUrl(): string {
+function loadUrl(): string {
 	return ScriptApp.getService().getUrl();
 }
 function processNewAdminAuthResponse_(response: {
@@ -562,26 +562,29 @@ function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
 function processUserAuthResponse_(response: any): { [key: string]: string } {
 	let storage = new VolatileProperties();
 	let service = getUserAuthService_(storage);
-	let userId: string;
 	if (!response) throw new Error("No response was given");
 	if (service.handleCallback(response)) {
-		let token = service.getIdToken();
-		if (!token) throw new Error("Unable to get ID token");
-		userId = getUserId_(token);
-		if (userId == null) throw new Error("Unable to obtain user ID");
-		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
-		else storage.setProperty("adminUser", "false");
-		createUserFile_(userId, storage);
-		storage.setProperty("hasUserSpreadsheet", "true");
+		return getUserCredentials_(storage);
 	} else {
 		return {
 			error: "Unable to authorize user access: access_denied",
 		};
 	}
-	return {
-		user: userId,
-		...storage.getProperties(),
-	};
+}
+function getUserCredentials_(storage: VolatileProperties): {
+	[key: string]: string;
+} {
+	let service = getUserAuthService_(storage);
+	let token = service.getIdToken();
+	if (!token) throw new Error("Unable to obtain user ID token");
+	let userId = getUserId_(token);
+	if (!userId) throw new Error("Unable to obtain user ID");
+	else storage.setProperty("user", userId);
+	if (userId == getAdminId_()) storage.setProperty("isAdmin", "true");
+	else storage.setProperty("isAdmin", "false");
+	createUserFile_(userId, storage);
+	storage.setProperty("hasUserSpreadsheet", "true");
+	return storage.getProperties();
 }
 function getUserSpreadsheetId_(userId: string): string | null {
 	if (userId == null)
@@ -623,21 +626,22 @@ function getUserId_(id_token: string): string {
 	// TODO #146: validate signature of id_token
 	return id.sub;
 }
-function getUserLoginStatus(pageStorageJson: string): string | null {
-	let pageStorage: { [key: string]: string } = JSON.parse(pageStorageJson);
-	let storage = new VolatileProperties(pageStorage);
+/**
+ * Checks to see if the user has current valid login status (renewing via
+ * refresh token, if needed) and returns valid up-to-date credentials if
+ * available, or an empty object `{}` otherwise.
+ * @param pageStorageJson
+ * @returns
+ */
+function updateUserLogin(properties: { [key: string]: string }): {
+	[key: string]: string;
+} {
+	let storage = new VolatileProperties(properties);
 	let service = getUserAuthService_(storage);
 	if (service.hasAccess()) {
-		let token = service.getIdToken();
-		if (!token) throw new Error("Unable to get ID token");
-		let userId: string = getUserId_(token);
-		if (userId == null) throw new Error("Unable to obtain user ID");
-		if (userId == getAdminId_()) storage.setProperty("adminUser", "true");
-		createUserFile_(userId, storage);
-		storage.setProperty("hasUserSpreadsheet", "true");
-		return JSON.stringify(storage.getProperties());
+		return getUserCredentials_(storage);
 	} else {
-		return null;
+		return {};
 	}
 }
 function getDateString_(): string {
@@ -769,8 +773,11 @@ function numToCol_(colNum: number): string | null {
 	colName += colBaseLabels[colNum % colBaseLabels.length];
 	return colName;
 }
-function importNewData(newText: string, storageJson: string): void {
-	let storage = new VolatileProperties(JSON.parse(storageJson));
+function importNewData(
+	newText: string,
+	properties: { [key: string]: string }
+): any[][] | null {
+	let storage = new VolatileProperties(properties);
 	setAdminToUser_(storage);
 	if (storage.getProperty("adminAuthError"))
 		throw new Error(
@@ -796,9 +803,10 @@ function importNewData(newText: string, storageJson: string): void {
 	let dataSheetName: string = "mffer - " + getDateString_();
 	dataSheet.setName(dataSheetName);
 	let newData = Utilities.parseCsv(newText, "|");
-	if (newData.length == 0) return;
+	if (newData.length == 0) return null;
 	let dataRange = dataSheet.getRange(1, 1, newData.length, newData[0].length);
 	dataRange.setValues(newData);
+	return getWebappDatabase();
 }
 function removeAppData_(): void {
 	let response = UrlFetchApp.fetch(
@@ -1181,8 +1189,8 @@ function saveFloorNumber_(floorNumber: any) {
 	else sheet.getRange("A2").setValue(floorNumber);
 }
 
-function csvToTable(text: string, storageJson: string) {
-	let storage = new VolatileProperties(JSON.parse(storageJson));
+function csvToTable(text: string, properties: { [key: string]: string }) {
+	let storage = new VolatileProperties(properties);
 	setAdminToUser_(storage);
 	getAdminAuthService_(storage);
 
