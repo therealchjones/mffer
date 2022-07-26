@@ -23,7 +23,7 @@ GOOGLE_EMAIL=""
 GOOGLE_PASSWORD=""
 
 # Non-POSIX tools used in this script:
-# git, python3, pip3, mktemp
+# git, python3 (3.9 or higher), pip3, mktemp
 
 # Prints an absolute pathname corresponding to path $1
 #
@@ -259,6 +259,9 @@ if not sys.prefix.startswith( "$MFFTEMPDIR" ) and not sys.prefix.startswith( "/p
 if sys.version_info.major != 3:
     print( "Not running in Python 3", file=sys.stderr)
     exit(1)
+if sys.version_info.minor < 9:
+    print( "$0 requires Python 3.9 or higher", file=sys.stderr)
+    exit(1)
 EOF
 else
 	echo "Error: Unable to find temporary python environment" >&2
@@ -278,6 +281,7 @@ fi
 # "new" gpapi, so they're not overwritten by the old one's requirements, and
 # finally copy over the plain python files from the new one so they're the ones
 # actually used when importing.
+pip3 install --upgrade pip >"$DEBUGOUT"
 pip3 --disable-pip-version-check install gpapi >"$DEBUGOUT"
 pip3 --disable-pip-version-check install -r "$MFFTEMPDIR/googleplay-api/requirements.txt" >"$DEBUGOUT"
 GPAPIDIR="$(find "$MFFTEMPDIR/python" -type d -name "gpapi")"
