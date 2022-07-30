@@ -729,7 +729,7 @@ Drive, and is deployed at https://mffer.org via the
 not especially straightforward, and other better options may be more readily
 available to other users. These will, however, require significant code
 modification, as the mffer webapp code makes heavy use of Apps Script
-(transpiled from TypeScript) and its associated APIs, the Google Picker, and
+(transpiled from TypeScript), its associated APIs, and
 Google's OAuth 2.0 authentication.
 
 ### Deploying the webapp
@@ -742,9 +742,11 @@ to the many confounding factors involved.
 
 #### Requirements
 
--   [Google Account](https://google.com/account) with access to
-    [Google Apps Script](https://script.google.com), Google Drive, and Google
-    Cloud Platform (the free tiers are all acceptable).
+-   [Google Account](https://google.com/account) with access to [Google Apps
+    Script](https://script.google.com), Google Drive, and Google Cloud Platform
+    (the free tiers are all acceptable). Unless otherwise noted, please ensure
+    the Google account you're using for all of the deployment instructions is the
+    same one you'd like to use to "host" the project.
 -   POSIX-like development system (such as Linux, macOS/OS X, or Windows with
     Cygwin or another POSIX layer)
 -   [Node.js](https://nodejs.org) & npm
@@ -762,8 +764,8 @@ resources for setting up Apps Script in a Google Cloud Platform account include:
 -   https://developers.google.com/picker/docs#appreg
 -   https://cloud.google.com/resource-manager/docs/creating-managing-projects
 
-In an effort to consolidate the above into a simple(r) set of instructions,
-follow the below set of instructions to set up a project for mffer.
+The below attempts to be a simple(r) set of instructions for setting up a
+project for mffer, consolidated from the above.
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
    name (and other info if desired). Press "Create".
@@ -811,7 +813,7 @@ follow the below set of instructions to set up a project for mffer.
    recommend then checking out a specific version from which to deploy the
    webapp rather than using the latest code. For instance, to create a new
    branch named "new-deployment" starting with the release code for version 0.2.1:
-    ```shell
+    ```
     [~] $ git clone https://github.com/therealchjones/mffer
     [~] $ cd mffer
     [mffer] $ git checkout -b new-deployment v0.2.1
@@ -821,57 +823,56 @@ follow the below set of instructions to set up a project for mffer.
    However, if you are only interested in deploying the webapp, most aren't
    necessary, and if desired you can install only the needed `clasp` tool and
    its dependencies:
-    ```shell
+    ```
     [mffer] $ cd tools
     [mffer/tools] $ npm install
     ```
 4. Using the same Google account you used for your Google Cloud Platform
    project above, login to Google with `clasp`:
-    ```shell
+    ```
     [mffer/tools] $ ./node_modules/.bin/clasp login
     ```
-5. Create the Google Apps project:
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp create --type sheets --title mffer
+5. Create the Google Apps project and upload the files:
     ```
-6. Add the webapp files to the project:
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
+    [mffer/tools] $ sh ./webdeploy.sh -vN
     ```
-7. Open the Google Apps Script IDE:
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
+6. Open the Google Apps Script IDE:
     ```
-8. Switch to using a standard Google Cloud Project by opening "Project Settings"
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open
+    ```
+7. Switch to using a standard Google Cloud Project by opening "Project Settings"
    (the gear icon), pressing the "Change project" button,
    and entering the project number you noted from step 2 of
    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform) (or
    visit the [GCP Dashboard](https://console.cloud.google.com/home/dashboard)
    again if you need to copy it).
-9. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
+8. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
    press the "Run" button, which will prompt you to "Review Permissions" and
    approve access to your Google account. If prompted that "Google hasn't
    verified this app", select "Continue".
-10. Open the webapp:
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+9. Open the webapp:
     ```
-    If prompted for which deployment to use, press `<enter>` or `<return>`.
-11. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
+    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open --webapp
+    ```
+    If prompted for which deployment to use, select the one labelled with the
+    date and time of deployment and the version number "@1".
+10. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
     secret you made a note of in the
     [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
     section (or obtain them again from
     https://console.cloud.google.com/apis/credentials using the provided
     links).
-12. Visit the OAuth client ID page using the provided link, and in the
+11. Visit the OAuth client ID page using the provided link, and in the
     "Authorized redirect URIs" section, add the URI given in the webapp; press
     "Save".
-13. Back on the webapp, use the "Authorize Google & save these settings" button to authenticate with Google once
-    more, again "Continue" if the "Google hasn't verified this app" propt
-    appears, and when prompted authorize the access to the app's files in Google
-    Drive. This will lock the above settings and take the app
-    out of
-    "setup mode".
+12. Back on the webapp, use the "validate these settings" button to check them,
+    then press "Authorize & Submit" to authenticate with Google once more,
+    again "Continue" if the "Google hasn't verified this app" prompt appears,
+    and when prompted authorize the access to the app's files in Google Drive.
+    This will lock the above settings and take the app out of "setup mode".
+13. Login and go back to "admin" ---- need to get callback info properly loaded
+    before config is obtained or will erroneously think the configuration is
+    still in setup mode (though fixes with a reload)
 14. When the app reloads, under "Upload new mffer data" select a CSV file
     created by the mffer command line application and then "Confirm" it for upload.
 15. To visit the deployed test version of the web app, use `clasp` at the

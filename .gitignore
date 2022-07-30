@@ -1,5 +1,6 @@
 .clasp.json
 .clasprc.json
+.credentials
 .jython_cache
 .venv
 creds.json

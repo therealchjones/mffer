@@ -203,7 +203,7 @@ function doPost(request: any) {
 		let errorMessage = `Unable to evaluate ${requestData.function.name}`;
 		if (error.message) errorMessage += `: ${error.message.toString()}`;
 		result = { error: errorMessage };
-		console.error("doPost:" + errorMessage);
+		console.error("doPost: " + errorMessage);
 	}
 	return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(
 		ContentService.MimeType.JSON
@@ -273,9 +273,6 @@ function processParameters(response: {
 				);
 		} else {
 			// there's a state, but there's no matching adminAttempt-* key
-			console.log(
-				"callback with state token; probably a user login attempt"
-			);
 			// or may just be a "reload" of a previous login
 			// process user login attempt here
 			return processUserAuthResponse_(response);
@@ -395,7 +392,7 @@ function isFalseOrEmpty_(check: string | boolean | null): boolean {
 		return true;
 	return false;
 }
-function getAdminAuthUrl(propertiesJson?: string) {
+function getAdminAuthUrl(propertiesJson?: string): { [key: string]: string } {
 	let propertyStore = getProperties_();
 	for (let property of propertyStore.getKeys()) {
 		if (property.indexOf("adminAttempt-") >= 0)
@@ -406,7 +403,7 @@ function getAdminAuthUrl(propertiesJson?: string) {
 	let properties: { [index: string]: string };
 	if (!propertiesJson) properties = {};
 	else properties = JSON.parse(propertiesJson);
-	if (properties == null) properties = {};
+	if (!properties) properties = {};
 	if (!isConfigured()) {
 		if (
 			isFalseOrEmpty_(properties.oauthId) ||
@@ -424,26 +421,102 @@ function getAdminAuthUrl(propertiesJson?: string) {
 	if (!isFalseOrEmpty_(properties.hostUri))
 		newProperties.hostUri = properties.hostUri;
 	newProperties.serviceName = "adminLogin";
+	let authUrlMessage: { [key: string]: string } = {};
+	let testResult = checkOauthClient_(newProperties.oauthId, getRedirectUri());
+	if (testResult["error"]) {
+		authUrlMessage["error"] = testResult.error;
+		authUrlMessage["error_subtype"] = testResult["error_subtype"] || "";
+		authUrlMessage["time"] = new Date().toUTCString();
+		return authUrlMessage;
+	}
 	let storage = new VolatileProperties(newProperties);
-	let service = getAdminAuthService_(storage);
-	let url = service.getAuthorizationUrl(newProperties);
+	let url = getAdminAuthService_(storage).getAuthorizationUrl();
+	authUrlMessage = {
+		url: url,
+		time: new Date().toUTCString(),
+	};
 	let propertyKeyName = getParam_(url, "state");
 	if (!propertyKeyName) throw new Error("No state token created");
 	else propertyKeyName = "adminAttempt-" + propertyKeyName;
 	propertyStore.setProperty(propertyKeyName, JSON.stringify(newProperties));
-	return url;
+	return authUrlMessage;
+}
+function checkOauthClient_(
+	oauthClientId: string,
+	redirectUrl: string
+): { [key: string]: string } {
+	let result: { [key: string]: string } = {};
+	let url =
+		"https://accounts.google.com/o/oauth2/v2/auth?client_id=" +
+		oauthClientId +
+		"&redirect_uri=" +
+		redirectUrl +
+		"&response_type=code" +
+		"&scope=openid" +
+		"&prompt=consent";
+	let options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+		followRedirects: false,
+		muteHttpExceptions: true,
+	};
+	let response = UrlFetchApp.fetch(url, options);
+	while (response.getResponseCode() == 302) {
+		let headers: any = response.getHeaders();
+		if (!headers || !headers["Location"]) {
+			result["error"] = "unable to follow redirects";
+			result["error_subtype"] = "unknown";
+			return result;
+		} else {
+			url = headers.Location.toString();
+			response = UrlFetchApp.fetch(url, options);
+		}
+	}
+	switch (response.getResponseCode()) {
+		case 200:
+			let params = getParams_(url);
+			if (params["error"]) result["error"] = params["error"];
+			else if (params["authError"]) {
+				result["error"] = Utilities.newBlob(
+					Utilities.base64Decode(params.authError)
+				).getDataAsString();
+			}
+			if (params["error_subtype"])
+				result["error_subtype"] = params.error_subtype;
+			else result["error_subtype"] = "unknown";
+			break;
+		default:
+			result["error"] = response.getResponseCode().toString();
+			result["error_subtype"] = "response_code";
+			break;
+	}
+	return result;
+}
+/**
+ * Parses a url into a string-indexed object of keys and values, where the value
+ * associated with each key is the first value for that key in the query string
+ * of the url
+ * @param url a url, or just the portion of the url starting with `?`
+ */
+function getParams_(url: string): { [key: string]: string } {
+	let queries: string[] = [];
+	let params: { [key: string]: string } = {};
+	let parts = url.split("?", 2);
+	let addendum = "";
+	if (parts.length == 2) addendum = parts[1];
+	parts = addendum.split("#", 2);
+	let query = parts[0];
+	queries = query.split("&");
+	for (const entry of queries) {
+		let entries = entry.split("=", 2);
+		let key = entries[0];
+		if (!Object.keys(params).includes(key)) params[key] = entries[1] || "";
+	}
+	return params;
 }
 function getParam_(url: string, key: string): string | null {
 	if (!key || key.length == 0) return null;
-	let keyRe = new RegExp("[?&]" + key + "=");
-	let keyIndex = url.search(keyRe);
-	if (keyIndex < 0) return null;
-	else {
-		let param: string = url.substring(keyIndex + key.length + 2);
-		let endIndex = param.search(/[&#]/);
-		if (endIndex < 0) return param;
-		else return param.substring(0, endIndex);
-	}
+	let params = getParams_(url);
+	if (!Object.keys(params).includes(key)) return null;
+	return params[key];
 }
 function getRedirectUri(): string {
 	// because of the issues with using the formal usercallback endpoint in

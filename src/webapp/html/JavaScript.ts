@@ -130,8 +130,8 @@ async function postRequest(functionName: string, ...args: any[]): Promise<any> {
 		postUrl =
 			"https://script.google.com/macros/s/" + deploymentId + "/exec";
 	else {
-		if (!systemData.url) systemData["url"] = loadUrl();
-		postUrl = await systemData.url;
+		loadSystemData("url", loadUrl);
+		postUrl = await getSystemData("url");
 	}
 	if (!functionName) {
 		throw new Error("Unable to post request: no function name given");
@@ -349,30 +349,38 @@ async function isConfigured(): Promise<boolean> {
 async function loadConfiguration(): Promise<{
 	[key: string]: string | boolean | null;
 }> {
-	return postRequest("getConfig")
-		.then((config: any) => {
-			if (!config) return {};
-			else {
-				try {
-					let configObj: any = JSON.parse(config);
-					configObj = standardizeObject(configObj);
-					return configObj;
-				} catch (e: any) {
-					throwError(
-						"Unable to parse configuration: " +
-							JSON.stringify(config) +
-							"(" +
-							e.toString() +
-							")"
-					);
+	return new Promise(async (resolve, _) => {
+		// if there's a callback, we don't want to get the configuration until
+		// that's been processed, which is done via credentialling
+		loadSystemData("credentials", loadCredentials);
+		await getSystemData("credentials");
+		logDebug("Getting deployment configuration");
+		postRequest("getConfig")
+			.then((config: any) => {
+				if (!config) resolve({});
+				else {
+					try {
+						let configObj: any = JSON.parse(config);
+						configObj = standardizeObject(configObj);
+						resolve(configObj);
+					} catch (e: any) {
+						throwError(
+							"Unable to parse configuration: " +
+								JSON.stringify(config) +
+								"(" +
+								e.toString() +
+								")"
+						);
+					}
 				}
-			}
-		})
-		.catch(function (reason?: any) {
-			throwError(
-				"Unable to get the current configuration: " + reason?.toString()
-			);
-		});
+			})
+			.catch(function (reason?: any) {
+				throwError(
+					"Unable to get the current configuration: " +
+						reason?.toString()
+				);
+			});
+	});
 }
 function standardizeObject(obj: any): {
 	[key: string]: string | boolean | null;
@@ -630,18 +638,15 @@ function isFalseOrEmpty(check: any) {
 	return false;
 }
 async function resetAdminSubmitButton(): Promise<void> {
-	return new Promise<void>(async (resolve, _) => {
-		if (!systemData["texts"]) loadSystemData("texts", loadTexts);
-		let texts = await getSystemData("texts");
-		let defaultAdminSubmitText: string = "";
-		if (texts && texts.defaultAdminSubmitText)
-			defaultAdminSubmitText = texts.defaultAdminSubmitText.toString();
-		$("#mffer-admin-button-authorize")
-			.on("click", adminAuthAndSave)
-			.html(defaultAdminSubmitText)
-			.removeAttr("disabled");
-		resolve();
-	});
+	if (!systemData["texts"]) loadSystemData("texts", loadTexts);
+	let texts = await getSystemData("texts");
+	let defaultAdminSubmitText: string = "";
+	if (texts && texts.defaultAdminSubmitText)
+		defaultAdminSubmitText = texts.defaultAdminSubmitText.toString();
+	$("#mffer-admin-button-authorize")
+		.on("click", adminAuthAndSave)
+		.html(defaultAdminSubmitText)
+		.removeAttr("disabled");
 }
 async function adminAuthAndSave() {
 	$("#mffer-admin-button-authorize")
@@ -677,28 +682,45 @@ async function adminAuthAndSave() {
 	// make some way to work around this, e.g., prompt user to click on
 	// something else when the redirect is ready if it's been too long.
 	postRequest("getAdminAuthUrl", propertiesJson)
-		.then(function (authUrl: any) {
-			authUrl = authUrl.toString();
-			if (!authUrl)
+		.then(function (authUrlMessage: any) {
+			if (!authUrlMessage)
 				throw new Error(
 					"Unable to obtain admin login url: empty result"
 				);
-			$("#mffer-admin-button-authorize")
-				.on("click", () => {
-					$("#mffer-admin-button-authorize")
-						.off("click")
-						.attr("disabled", "true")
-						.html(bootstrapElements.spinner);
-					$(document.createElement("a"))
-						.attr("href", authUrl)[0]
-						.click();
-				})
-				.html("Authorize &amp; Submit")
-				.removeAttr("disabled");
+			else if (authUrlMessage["error"]) {
+				let error: string = "";
+				if (authUrlMessage["error_subtype"])
+					error =
+						"Unable to validate admin configuration: " +
+						authUrlMessage.error_subtype.toString() +
+						": " +
+						authUrlMessage.error.toString();
+				else
+					error =
+						"Unable to validate admin configuration: " +
+						authUrlMessage.error.toString();
+				throw new Error(error);
+			} else if (authUrlMessage["url"]) {
+				$("#mffer-admin-button-authorize")
+					.on("click", () => {
+						$("#mffer-admin-button-authorize")
+							.off("click")
+							.attr("disabled", "true")
+							.html(bootstrapElements.spinner);
+						$(document.createElement("a"))
+							.attr("href", authUrlMessage.url.toString())[0]
+							.click();
+					})
+					.html("Authorize &amp; Submit")
+					.removeAttr("disabled");
+			} else {
+				throw new Error("Unable to validate admin configuration.");
+			}
 		})
 		.catch(function (error: any) {
 			error = error.toString();
-			throwError("Unable to obtain admin login URL: " + error);
+			console.error("Unable to obtain admin login URL: " + error);
+			resetAdminSubmitButton();
 		});
 }
 function throwError(error: string) {
