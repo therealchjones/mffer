@@ -14,6 +14,7 @@ Options:
   -D id    use existing deployment with the given deployment ID (requires -O)
   -g       serve HTML from Google Apps Script (default)
   -h       print this usage message and exit
+  -N       create a new Google Apps Script project if not associated with one
   -O       overwrite existing deployment (the last if -D is not used)
   -p path  scp upload destination for the web page (when using -w)
   -v       output more information (use twice for debug info)
@@ -21,6 +22,7 @@ Options:
 
 Examples:
   sh $0 -b
+  sh $0 -N
   sh $0 -vO -w https://mffer.org -p mffer.org:mffer.org/index.html
   sh $0 -O -D AKfycbw5My9NOpc6ZxeIND5_XWkixTRHKu4lTO5Z7-Bl0J0vgL_yYqmhsRqhkjhIBCUH5Idq
 EOF
@@ -39,6 +41,7 @@ VERBOSE="${VERBOSE:-}"
 DEBUG="${DEBUG:-}"
 VERBOSEOUT="${VERBOSEOUT:-}"
 DEBUGOUT="${DEBUGOUT:-}"
+OVERWRITEDEPLOYMENT="${OVERWRITEDEPLOYMENT:-}"
 GASDEPLOYMENT="${GASDEPLOYMENT:-}"
 WORKSPACEROOT="${WORKSPACEROOT:-$(dirname "$0")/..}"
 BUILDDIR="${BUILDDIR:-${WORKSPACEROOT}/build/webapp}"
@@ -47,21 +50,26 @@ RELEASEDIR="${RELEASEDIR:-${BUILDDIR}/release}"
 GASDIR="${GASDIR:-$WEBAPPDIR/gas}"
 HTMLDIR="${HTMLDIR:-$WEBAPPDIR/html}"
 PATH="$WORKSPACEROOT/tools/node_modules/.bin:$PATH"
+NEWPROJECT="${NEWPROJECT:-}"
 
 # As convention, only main() should exit the program, should do so only if
 # unable to reasonably continue, and should explain why.
 # Other functions should return a nonzero status, but only output explanation
 # text if a "bare" function that's calling external programs rather than
 # other functions. This prevents excessive error output via a "stack trace".
+# To avoid debug output mangling expected outputs, put calls to the "check*"
+# functions in this function only.
 main() {
 	getOptions "$@" || exit 1
 	if [ -n "$USAGEONLY" ]; then
 		usage
 		exit 0
 	fi
+	checkTsc || exit 1
 	buildPage || exit 1
 	buildScript || exit 1
 	if [ -z "$BUILDONLY" ]; then
+		checkClasp || exit 1
 		pushScript || exit 1
 		if [ -z "$OVERWRITEDEPLOYMENT" ] && [ -n "$GASDEPLOYMENT" ]; then
 			if checkDeployment "$GASDEPLOYMENT"; then
@@ -79,14 +87,15 @@ main() {
 			fi
 		else
 			if ! checkDeployment "$GASDEPLOYMENT"; then
-				echo "Unable to identify a deployment called '$GASDEPLOYMENT'." >&2
+				echo "unable to identify a deployment called '$GASDEPLOYMENT'." >&2
 				exit 1
 			fi
 			newDeployment "$GASDEPLOYMENT" || exit 1
 		fi
 		if [ "$WEBSERVER" != "AppsScript" ]; then
+			checkScp || exit 1
 			if [ -z "$GASDEPLOYMENT" ]; then
-				GASDEPLOYMENT="$(getLastDeployment)"
+				GASDEPLOYMENT="$(getLastDeployment)" || exit 1
 			fi
 			buildPage "$GASDEPLOYMENT" || exit 1
 			pushPage || exit 1
@@ -111,9 +120,8 @@ buildPage() {
 	else
 		echo "building HTML" >"$VERBOSEOUT"
 	fi
-	checkTsc || return 1
 	if ! tsc -b "$HTMLDIR"; then
-		echo "Unable to build page" >&2
+		echo "unable to build page" >&2
 		return 1
 	fi
 	if [ ! -d "$RELEASEDIR" ]; then
@@ -135,23 +143,42 @@ buildPage() {
 buildScript() {
 	echo "building GAS scripts" >"$VERBOSEOUT"
 	cp -a "$GASDIR"/*.ts "$RELEASEDIR" || return 1
+}
+checkClasp() {
+	if ! type clasp >"$DEBUGOUT"; then
+		echo "unable to find 'clasp'" >&2
+		return 1
+	fi
+	if [ ! -r "$GASDIR/.clasp.json" ]; then
+		echo "script not associated with an existing project" >"$VERBOSEOUT"
+		if [ -z "$NEWPROJECT" ]; then
+			echo "no associated project found; use" >&2
+			echo "'$0 -N'" >&2
+			echo "to create a new project" >&2
+			echo "see https://dev.mffer.org/devguide for details" >&2
+			return 1
+		else
+			echo "creating new GAS project" >"$VERBOSEOUT"
+			runClasp create --type sheets --title mffer >"$DEBUGOUT" || exit 1
+			cp -a "$RELEASEDIR/.clasp.json" "$GASDIR"
+			NEWPROJECT=""
+		fi
+	else
+		if [ -n "$NEWPROJECT" ]; then
+			echo "$GASDIR/.clasp.json already exists; not creating new project" >&2
+			return 1
+		fi
+	fi
 	# clasp 2.4.1 has weird behavior with the "rootDir" setting in .clasp.json;
 	# we work around this by just removing the rootDir setting and changing to
 	# the directory itself before pushing
-	if [ -r "$GASDIR/.clasp.json" ]; then
-		sed -E 's/"rootDir"[[:space:]]*:[[:space:]]*"[^"]*"[[:space:]]*,?//' \
-			"$GASDIR/.clasp.json" >"$RELEASEDIR/.clasp.json" || return 1
-	fi
+	# (see https://github.com/google/clasp/issues/869)
+	cp -a "$GASDIR/.clasp.json" "$RELEASEDIR" || exit 1
+	runClasp settings rootDir '.' >"$DEBUGOUT" || exit 1
 	# another dumb clasp bug (see https://github.com/google/clasp/issues/875)
 	echo '{}' >"$RELEASEDIR"/package.json
 	if [ -r "$GASDIR/appsscript.json" ]; then
 		cp -a "$GASDIR/appsscript.json" "$RELEASEDIR" || return 1
-	fi
-}
-checkClasp() {
-	if ! type clasp >"$DEBUGOUT"; then
-		echo "Unable to find 'clasp'" >&2
-		return 1
 	fi
 }
 checkDeployment() {
@@ -159,7 +186,6 @@ checkDeployment() {
 		echo "checkDeployment requires an argument" >&2
 		return 2
 	fi
-	checkClasp || return 2
 	if runClasp deployments 2>/dev/null \
 		| grep -E "^- $1 @" >/dev/null; then
 		return 0
@@ -169,19 +195,18 @@ checkDeployment() {
 }
 checkTsc() {
 	if ! type tsc >"$DEBUGOUT"; then
-		echo "Unable to find 'tsc'" >&2
+		echo "unable to find 'tsc'" >&2
 		return 1
 	fi
 }
 checkScp() {
 	if ! type scp >"$DEBUGOUT"; then
-		echo "Unable to find 'scp'" >&2
+		echo "unable to find 'scp'" >&2
 		return 1
 	fi
 }
 getLastDeployment() {
 	lastdeployedversion=0
-	checkClasp || return 1
 	if ! output="$(runClasp deployments \
 		| sed -E -e '/^- [^@]* @([1-9][0-9]*) - /!d' \
 			-e 's/^- [^@]* @([0-9]*) - .*$/\1/')"; then
@@ -192,21 +217,44 @@ getLastDeployment() {
 			lastdeployedversion="$i"
 		fi
 	done
-	if ! lastdeployment="$(
-		runClasp deployments \
-			| sed -E -e '/^- [^@]* @'"$lastdeployedversion"' -/!d' \
-				-e 's/^- ([^@]*) @'"$lastdeployedversion"' .*$/\1/'
-	)"; then
+	if ! claspOutput="$(runClasp deployments)"; then
+		echo "$claspOutput" >&2
 		return 1
+	else
+		if ! lastdeployment="$(
+			echo "$claspOutput" \
+				| sed -E -e '/^- [^@]* @'"$lastdeployedversion"' -/!d' \
+					-e 's/^- ([^@]*) @'"$lastdeployedversion"' .*$/\1/'
+		)"; then
+			echo "$lastdeployment" >&2
+			return 1
+		fi
 	fi
 	echo "$lastdeployment"
 }
 getLastVersion() {
-	checkClasp || return 1
-	runClasp versions | tail -n 1 | sed -E 's/^([0-9]*) - .*$/\1/' || return 1
+	# Note that getLastVersion is only run after a version is created, so we
+	# don't need to handle the empty case
+	if ! claspOutput="$(runClasp versions)"; then
+		echo "$claspOutput" >&2
+		return 1
+	else
+		if ! versions="$(echo "$claspOutput" | sed -E -e '/^[1-9][0-9]* - /!d' -e 's/^([1-9][0-9]*) - .*$/\1/')"; then
+			echo "$lastVersion" >&2
+			return 1
+		else
+			lastVersion=0
+			for i in $versions; do
+				if [ "$i" -gt "$lastVersion" ]; then
+					lastVersion="$i"
+				fi
+			done
+			echo "$lastVersion"
+		fi
+	fi
 }
 getOptions() {
-	while getopts 'bD:ghOp:vw:' option; do
+	while getopts 'bD:ghNOp:vw:' option; do
 		case "$option" in
 			b)
 				BUILDONLY=Y
@@ -219,6 +267,9 @@ getOptions() {
 				;;
 			h)
 				USAGEONLY=y
+				;;
+			N)
+				NEWPROJECT=Y
 				;;
 			O)
 				OVERWRITEDEPLOYMENT=Y
@@ -268,7 +319,7 @@ newDeployment() {
 			GASDEPLOYMENT="$(getLastDeployment)" || return 1
 		else
 			if ! checkDeployment "$1"; then
-				echo "Unable to identify deployment '$1'" >&2
+				echo "unable to identify deployment '$1'" >&2
 				return 1
 			fi
 			GASDEPLOYMENT="$1"
@@ -287,7 +338,6 @@ newDeployment() {
 	fi
 }
 pushPage() {
-	checkScp || return 1
 	server=""
 	path=""
 	if [ -z "$WEBSERVERPATH" ]; then #try to get server and path from WEBSERVER
@@ -329,7 +379,7 @@ runClasp() {
 	for i in 1 2 3 4 5 6 7 8 9 10; do
 		# as noted above, due to the behavior of clasp 2.4.1, we change to the
 		# release directory before pushing the script files to Apps Script
-		if ! output="$( (cd "$RELEASEDIR" && clasp "$@" 2>&1))" \
+		if ! output="$( (cd "$RELEASEDIR" && clasp -W "$@" 2>&1))" \
 			&& worked="" \
 			&& echo "$output" | grep 'Error: Looks like you are offline.' >/dev/null; then
 			echo "$output" >"$DEBUGOUT"
@@ -347,12 +397,11 @@ runClasp() {
 	echo "clasp was unable to connect" >&2
 	return 1
 }
-
 # Prints an absolute pathname corresponding to directory $1, creating the
 # directory if it does not exist.
 setdir() {
 	if [ "$#" != "1" ]; then
-		echo 'Usage: setdir dirname' >&2
+		echo 'usage: setdir dirname' >&2
 		exit 1
 	fi
 	if [ -e "$1" ]; then
