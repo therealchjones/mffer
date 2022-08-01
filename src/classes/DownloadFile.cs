@@ -30,7 +30,7 @@ namespace Mffer {
 		string RemoteUrl {
 			get {
 				StringBuilder sb = new StringBuilder( "http://mheroesgb.gcdn.netmarble.com/mheroesgb/DIST/Android/v" );
-				sb.Append( NetworkData.AppVersion );
+				sb.Append( NetworkData.GetDownloadVersion() );
 				if ( bundleEach ) sb.Append( "/BundleEach/" );
 				else sb.Append( "/Bundle/" );
 				sb.Append( hash );

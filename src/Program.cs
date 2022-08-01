@@ -25,9 +25,10 @@ namespace Mffer {
 		static int Main( string[] args ) {
 			RootCommand command = SetupCommandLine();
 			Game = new Game();
-			// NetworkData.DownloadFiles();
+			NetworkData.DownloadAssets();
 			// Alliances.GetProspectiveAlliances();
-			return command.Invoke( args );
+			//return command.Invoke( args );
+			return 0;
 		}
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
 			LoadAll( dataDir );
