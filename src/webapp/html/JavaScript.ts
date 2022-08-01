@@ -822,7 +822,8 @@ function pickerCallback(data: any) {
 }
 function uploadComplete() {
 	hideSpinner($("#mffer-admin-input-fileupload"));
-	initializePage();
+	reloadSystemData("database", loadWebappDatabase);
+	openContents();
 }
 /**
  * Set up the user login system. Checks for served credentials, and if not
@@ -918,9 +919,23 @@ function hideAdminContent() {
  * @returns a Promise for the url
  */
 async function loadUserLoginUrl() {
-	return new Promise<string>(async (resolve, _) =>
-		resolve((await postRequest("getUserAuthUrl")).toString())
-	);
+	return new Promise<string>(async (resolve, reject) => {
+		// user login information may only be available after processing any new credentials from a callback
+		loadSystemData("credentials", loadCredentials);
+		await getSystemData("credentials");
+		let response: any = await postRequest("getUserAuthUrl");
+		if (!response) {
+			logDebug("Unable to get user login url; disabling login");
+			resolve("");
+		} else if (response.error) {
+			logDebug(
+				"Unable to get user login url: " +
+					response.error.toString() +
+					"; disabling login"
+			);
+			resolve("");
+		} else resolve(response.toString());
+	});
 }
 async function userLogout() {
 	loadSystemData("loginurl", loadUserLoginUrl);
@@ -945,20 +960,26 @@ async function userLogout() {
 			.html("login")
 			.removeAttr("disabled")
 			.show();
-	else throw new Error("Unable to obtain user login url");
+	else logDebug("Login disabled.");
 }
 async function initializePage() {
 	await bootstrapify();
+	loadSystemData("database", loadWebappDatabase);
 	homePage = $("#mffer-contents");
-	postRequest("getWebappDatabase").then(loadData).catch(alertLoadFailure);
 	$("#mffer-admin-input-oauthid")
 		.add("#mffer-admin-input-oauthsecret")
 		.attr("disabled", "disabled");
 	initializeUserLogin();
 	openContents();
 }
+async function loadWebappDatabase(): Promise<any> {
+	return postRequest("getWebappDatabase")
+		.then(loadData)
+		.catch(alertLoadFailure);
+}
 function loadData(database: any) {
 	if (database == null) alertLoadFailure();
+	else $("#mffer-alert").hide();
 	hideLoading();
 }
 
@@ -1027,11 +1048,6 @@ function markProgress(text: string, jobNumber = null) {
 		// write text to log & progress bar
 	}
 	// return job number
-}
-
-// for issues that may not be right, but don't necessarily require user intervention
-function alertWarn(text: string) {
-	alertError(text);
 }
 
 // for issues that require user intervention

@@ -475,9 +475,13 @@ function checkOauthClient_(
 			let params = getParams_(url);
 			if (params["error"]) result["error"] = params["error"];
 			else if (params["authError"]) {
-				result["error"] = Utilities.newBlob(
-					Utilities.base64Decode(params.authError)
-				).getDataAsString();
+				try {
+					result["error"] = Utilities.newBlob(
+						Utilities.base64DecodeWebSafe(params.authError)
+					).getDataAsString();
+				} catch {
+					result["error"] = params.authError;
+				}
 			}
 			if (params["error_subtype"])
 				result["error_subtype"] = params.error_subtype;
@@ -507,8 +511,9 @@ function getParams_(url: string): { [key: string]: string } {
 	queries = query.split("&");
 	for (const entry of queries) {
 		let entries = entry.split("=", 2);
-		let key = entries[0];
-		if (!Object.keys(params).includes(key)) params[key] = entries[1] || "";
+		let key = decodeURIComponent(entries[0]);
+		if (!Object.keys(params).includes(key))
+			params[key] = decodeURIComponent(entries[1]) || "";
 	}
 	return params;
 }

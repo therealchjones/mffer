@@ -576,7 +576,7 @@ uses:
 -   Temurin JRE 11.0.14.1_1
 -   Ghidra
 
-```shell
+```
 sh tools/testmac.sh
 ```
 
@@ -723,14 +723,12 @@ included).
 
 ## Developing the mffer webapp
 
-The mffer webapp is based on Google Apps Script, uses Google Sheets/Google
-Drive, and is deployed at https://mffer.org via the
-[Google Cloud Platform](https://cloud.google.com). This method of deployment is
+The mffer webapp uses Google Apps Script, Google Sheets/Google Drive, and the
+[Google Cloud Platform](https://cloud.google.com), and the "front end" may
+optionally be hosted on a different web server. This method of deployment is
 not especially straightforward, and other better options may be more readily
-available to other users. These will, however, require significant code
-modification, as the mffer webapp code makes heavy use of Apps Script
-(transpiled from TypeScript), its associated APIs, and
-Google's OAuth 2.0 authentication.
+available to some users. This method is supported as that most easily available
+to all users.
 
 ### Deploying the webapp
 
@@ -742,30 +740,54 @@ to the many confounding factors involved.
 
 #### Requirements
 
--   [Google Account](https://google.com/account) with access to [Google Apps
-    Script](https://script.google.com), Google Drive, and Google Cloud Platform
-    (the free tiers are all acceptable). Unless otherwise noted, please ensure
-    the Google account you're using for all of the deployment instructions is the
-    same one you'd like to use to "host" the project.
+-   [Google Account](https://google.com/account) with access to
+    [Google Apps Script](https://script.google.com),
+    [Google Drive](https://drive.google.com), and
+    [Google Cloud Platform](https://cloud.google.com); the free tiers of these
+    products are all sufficient. We recommend all the below steps are performed
+    with a "testing" Google account rather than a primary or organizational
+    account, but you should use the same account for all parts of the
+    deployment.
 -   POSIX-like development system (such as Linux, macOS/OS X, or Windows with
     Cygwin or another POSIX layer)
 -   [Node.js](https://nodejs.org) & npm
+-   Modern graphical web browser such as Google Chrome, Edge, Firefox, or Safari
+
+#### Setting up the webapp development environment
+
+1. Clone the [mffer Repository](https://github.com/therealchjones/mffer). We
+   recommend then checking out a specific version from which to deploy the
+   webapp rather than using the latest code. For instance, to create a new
+   branch named "new-deployment" starting with the release code for version 0.2.1:
+
+    ```
+    [~] $ git clone https://github.com/therealchjones/mffer
+    [~] $ cd mffer
+    [mffer] $ git checkout -b new-deployment v0.2.1
+    ```
+
+2. The tools needed for webapp development are all included in the general
+   [development environment](#setting-up-a-development-environment) section, and
+   the `dotnet restore` step will install them all. However, if you are only
+   interested in deploying the webapp, most of the other tools aren't necessary,
+   and if desired you can manage with only `clasp` and its dependencies. You can
+   limit your environment to those and a few other Node.js packages with:
+
+    ```
+    [mffer] $ cd tools
+    [mffer/tools] $ npm install
+    ```
 
 #### Setting Up Google Cloud Platform
 
-GCP is somewhat complex to configure, and configuration within an existing GCP
-account is beyond the scope of this document (and may be beyond the abilities of
-this author). However, you may be able to create a basic project usable for
-mffer webapp deployment in a few (relatively) simple steps. More in-depth
-resources for setting up Apps Script in a Google Cloud Platform account include:
+General Google Cloud Platform (GCP) configuration is beyond the scope of this
+document (and may be beyond the abilities of this author). However, you may be
+able to create a project usable for mffer webapp deployment relatively easily
+following the below steps. More comprehensive resources for setting up Apps
+Script in a Google Cloud Platform account include:
 
--   https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project
--   https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
--   https://developers.google.com/picker/docs#appreg
--   https://cloud.google.com/resource-manager/docs/creating-managing-projects
-
-The below attempts to be a simple(r) set of instructions for setting up a
-project for mffer, consolidated from the above.
+-   [Google Cloud: Creating and managing projects](https://cloud.google.com/resource-manager/docs/creating-managing-projects)
+-   [Google Apps Script: Google Cloud Platform Projects](https://developers.google.com/apps-script/guides/cloud-platform-projects#switching_to_a_different_standard_gcp_project)
 
 1. Login to https://console.cloud.google.com/projectcreate and enter a project
    name (and other info if desired). Press "Create".
@@ -779,7 +801,6 @@ project for mffer, consolidated from the above.
    need to do that at this time; we'll do so in a later step.
     - [Apps Script API](https://console.cloud.google.com/apis/library/script.googleapis.com)
     - [Drive API](https://console.developers.google.com/apis/library/drive.googleapis.com)
-    - [Picker API](https://console.cloud.google.com/apis/library/picker.googleapis.com)
     - [Sheets API](https://console.developers.google.com/apis/library/sheets.googleapis.com)
 4. Create an OAuth Consent Screen by visiting
    https://console.cloud.google.com/apis/credentials/consent, choosing
@@ -799,92 +820,70 @@ project for mffer, consolidated from the above.
 6. Visit https://console.cloud.google.com/apis/credentials and click on the name
    of your newly-created OAuth 2.0 Client ID. Make a note of the "client secret"
    on the right side of the screen.
-7. Return to https://console.cloud.google.com/apis/credentials/wizard and again
-   ensure the correct project is shown in the project drop-down. Choose
-   "Google Picker API" for "Which API are you using?" and select "Public data"
-   before pressing "Next". Make a note of the API Key and press "Done".
 
 #### Uploading and configuring the webapp
 
 1. In
    [Google Apps Script Settings](https://script.google.com/home/usersettings),
    enable "Google Apps Script API"
-2. Clone the [mffer Repository](https://github.com/therealchjones/mffer). We
-   recommend then checking out a specific version from which to deploy the
-   webapp rather than using the latest code. For instance, to create a new
-   branch named "new-deployment" starting with the release code for version 0.2.1:
-    ```
-    [~] $ git clone https://github.com/therealchjones/mffer
-    [~] $ cd mffer
-    [mffer] $ git checkout -b new-deployment v0.2.1
-    ```
-3. `dotnet restore` will install all the needed development tools as noted in
-   the [development environment](#setting-up-a-development-environment) section.
-   However, if you are only interested in deploying the webapp, most aren't
-   necessary, and if desired you can install only the needed `clasp` tool and
-   its dependencies:
-    ```
-    [mffer] $ cd tools
-    [mffer/tools] $ npm install
-    ```
-4. Using the same Google account you used for your Google Cloud Platform
+2. Using the same Google account you used for your Google Cloud Platform
    project above, login to Google with `clasp`:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp login
     ```
-5. Create the Google Apps project and upload the files:
+3. Create the Google Apps project and upload the files:
     ```
     [mffer/tools] $ sh ./webdeploy.sh -vN
     ```
-6. Open the Google Apps Script IDE:
+4. Open the Google Apps Script IDE:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open
     ```
-7. Switch to using a standard Google Cloud Project by opening "Project Settings"
+5. Switch to using a standard Google Cloud Project by opening "Project Settings"
    (the gear icon), pressing the "Change project" button,
    and entering the project number you noted from step 2 of
    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform) (or
    visit the [GCP Dashboard](https://console.cloud.google.com/home/dashboard)
    again if you need to copy it).
-8. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
+6. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
    press the "Run" button, which will prompt you to "Review Permissions" and
    approve access to your Google account. If prompted that "Google hasn't
    verified this app", select "Continue".
-9. Open the webapp:
+7. Open the webapp:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open --webapp
     ```
     If prompted for which deployment to use, select the one labelled with the
     date and time of deployment and the version number "@1".
-10. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
-    secret you made a note of in the
-    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
-    section (or obtain them again from
-    https://console.cloud.google.com/apis/credentials using the provided
-    links).
-11. Visit the OAuth client ID page using the provided link, and in the
-    "Authorized redirect URIs" section, add the URI given in the webapp; press
-    "Save".
-12. Back on the webapp, use the "validate these settings" button to check them,
+8. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
+   secret you made a note of in the
+   [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
+   section (or obtain them again from
+   https://console.cloud.google.com/apis/credentials using the provided
+   links).
+9. Visit the OAuth client ID page using the provided link, and in the
+   "Authorized redirect URIs" section, add the URI given in the webapp; press
+   "Save".
+10. Back on the webapp, use the "validate these settings" button to check them,
     then press "Authorize & Submit" to authenticate with Google once more,
     again "Continue" if the "Google hasn't verified this app" prompt appears,
     and when prompted authorize the access to the app's files in Google Drive.
     This will lock the above settings and take the app out of "setup mode".
-13. Login and go back to "admin" ---- need to get callback info properly loaded
-    before config is obtained or will erroneously think the configuration is
-    still in setup mode (though fixes with a reload)
-14. When the app reloads, under "Upload new mffer data" select a CSV file
-    created by the mffer command line application and then "Confirm" it for upload.
-15. To visit the deployed test version of the web app, use `clasp` at the
+11. Use the webapp's "Login" button to authenticate once again with Google
+    (which will create a "user" account for you), then choose the "Admin" link.
+12. Under "Upload new mffer data" select a CSV file
+    created by the mffer command line application and then "Confirm" it for
+    upload.
+13. To visit the deployed test version of the web app, use `clasp` at the
     command line:
-    ```shell
+    ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
     ```
 
 ### Testing the webapp
 
 The webapp is now available for testing, but is not fully usable by everyone.
-Site configuration settings (like the API key) are stored in your Google
+Site configuration settings (like the OAuth client secret) are stored in your Google
 account, and everyone who accesses the webapp must be able to access these, so
 the webapp "runs as" you. However, you don't want everyone using the webapp to
 have access to your Google Drive, so this is very limited access; further access
@@ -892,36 +891,27 @@ requires the user to authorize the mffer webapp to connect to their own account.
 
 While the app is in "test mode", anyone can access it, but only users you
 specifically designate as "test users" will be allowed to log in (see
-"[Test a web app
-deployment](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment)").
+"[Test a web app deployment](https://developers.google.com/apps-script/guides/web#test_a_web_app_deployment)").
 To end this restriction, the webapp must be submitted for
 [verification](https://developers.google.com/apps-script/guides/client-verification)
 by Google.
-
-There are other restrictions as well that are tangentially related; most
-notably, Google will check login status whenever the "test" URL is visited, and
-this prevents the web app from running within an `iframe` hosted on another
-site. This is because the app is under a "test deployment"; deploying a version
-of the webapp is required to ease this restriction, which can be as easy as
-using the "Deploy" button in the Apps Script IDE. (See also the end of the
-"[changing the webapp](#changing-the-webapp)" section.)
 
 ### Changing the webapp
 
 Make the changes you desire to the webapp in the files and directories under the
 repository's `src/webapp/` directory. To push a new version of the webapp to
-Google's servers for testing, again in the `tools/` directory, run
+the Google Apps Script servers for testing, again in the `tools/` directory, run
 
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp push -f
+```
+[mffer/tools] $ sh ./webdeploy -vO
 ```
 
 If there are major changes to the code, the new deployment may require that you
 re-verify permissions for the webapp as the developer. This can be done by again
 opening the Apps Script console
 
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open
+```
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open
 ```
 
 and then in the IDE, open "Editor" (the `<>` icon), select "Code.gs" from the
@@ -930,23 +920,25 @@ file list and press the "Run" button, which if necessary will prompt you to
 
 You can then visit the new version of the webapp just like the old one:
 
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+```
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open --webapp
 ```
 
-If prompted for which deployment to use, press `<enter>` or `<return>`.
-
 To deploy multiple versions (for instance, a "production" one and another for
-testing), see [Create and manage deployments](https://developers.google.com/apps-script/concepts/deployments)
-and the [clasp deployment instructions](https://developers.google.com/apps-script/guides/clasp#deploy_a_published_project).
+testing), see
+[Create and manage deployments](https://developers.google.com/apps-script/concepts/deployments)
+and the
+[clasp deployment instructions](https://developers.google.com/apps-script/guides/clasp#deploy_a_published_project).
+However, we recommend using a different GCP project and even a different Google
+account for a "production" site; messing them up could be difficult to reverse.
 
 ### Hosting the webapp at a custom domain
 
 Visiting the webapp for testing during development is most easily done from the
 command line via
 
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp
+```
+[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open --webapp
 ```
 
 The webapp can also be visited by entering the URL this command uses into the
@@ -955,49 +947,24 @@ more user-friendly address may be beneficial. If you have access to a web server
 that allows you to upload an HTML document that will be served at a URL of your
 choice, use the following steps to use that address to access the webapp.
 
-1. Create a "fixed" version of the Google Apps Script code that won't be changed
-   each time you modify the code:
+1. [Deploy the webapp to Google Apps Script](#deploying-the-webapp) as described
+   above.
 
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp version "first version"
-    Created version 1.
+2. Deploy the app again, this time to your personal site:
+
+    ```
+    [mffer/tools] $ sh ./webdeploy.sh -vO -w https://example.org -p example.org:index.html
     ```
 
-2. Make a formal "deployment" of this version to get an unchanging public URL
-   for it:
+    where the url of your final site is the argument to the `-w` option and the
+    argument to the `-p` option is the destination host and file that will be
+    used by the `scp` program to transfer the file.
 
-    ```shell
-    [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp deploy -V 1 -d "first deployment"
-    - pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk @1.
-    ```
-
-3. Open the site in your browser, choose the deployment you just made, and copy the URL:
-
-    ```shell
-    ./node_modules/.bin/clasp -P ../src/webapp open --webapp
-    ```
-
-4. Edit `tools/iframe.html` and change the URL in the iframe `src` attribute to
-   the one you just copied; upload the file to the URL of your choice.
-
-5. Add the copied URL and your newly uploaded URL to the "Authorized Redirects"
+3. Add your newly uploaded URL to the "Authorized Redirects"
    list for your OAuth client ID.
 
-To update to a new version of the webapp code at your custom domain (without
-repeating the above steps), first create a new version from the latest code:
-
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp version "second version"
-Created version 2.
-```
-
-Then, redeploy using the same deployment ID as before so the Apps Script URL
-stays the same:
-
-```shell
-[mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp deploy -i pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk -V 2 -d "second deployment"
-- pu2b3iujnaksjdado-sid-sdfaHFIfhwpf0h-dk @2.
-```
+(Note that deploying a new version of the webapp to the custom url will again
+require the full command listed in step 2.)
 
 ### Webapp limitations
 
