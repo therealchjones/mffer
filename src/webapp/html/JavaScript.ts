@@ -25,6 +25,7 @@ var settings: {
 	isAdmin: boolean | null;
 	hasUserSpreadsheet: boolean | null;
 	pickerApiKey: string | null;
+	url: string | null;
 } | null = null;
 
 /**
@@ -32,7 +33,7 @@ var settings: {
  * the Promises should be used only for reading the data, not for changing it.
  */
 var systemData: { [key: string]: Promise<any> } = {};
-
+var adminInitialized: boolean = false;
 document.addEventListener("DOMContentLoaded", start);
 async function start() {
 	loadSystemData("configuration", loadConfiguration);
@@ -98,6 +99,7 @@ async function loadTexts(): Promise<{ [key: string]: string }> {
  */
 async function initializeSettings() {
 	loadSystemData("initialsettings", loadInitialSettings);
+	loadSystemData("url", loadUrl);
 	if (settings) {
 		console.warn(
 			"Settings have already been initialized; not doing it again."
@@ -114,6 +116,7 @@ async function initializeSettings() {
 		isAdmin: initialSettings["isAdmin"],
 		hasUserSpreadsheet: initialSettings["hasUserSpreadsheet"],
 		pickerApiKey: initialSettings["pickerApiKey"]?.toString() || null,
+		url: (await getSystemData("url")) || null,
 	};
 	return settings;
 }
@@ -126,11 +129,11 @@ function isOnGas(): boolean {
 }
 async function postRequest(functionName: string, ...args: any[]): Promise<any> {
 	let postUrl: string;
+	loadSystemData("url", loadUrl);
 	if (deploymentId)
 		postUrl =
 			"https://script.google.com/macros/s/" + deploymentId + "/exec";
 	else {
-		loadSystemData("url", loadUrl);
 		postUrl = await getSystemData("url");
 	}
 	if (!functionName) {
@@ -139,12 +142,14 @@ async function postRequest(functionName: string, ...args: any[]): Promise<any> {
 	let request: {
 		application: string;
 		function: { name: string; args: string[] };
+		url: string;
 	} = {
 		application: "mffer",
 		function: {
 			name: functionName,
 			args: [],
 		},
+		url: await getSystemData("url"),
 	};
 	args.forEach(function (value, index, _) {
 		request.function.args[index] = JSON.stringify(value);
@@ -202,8 +207,7 @@ async function loadParameters(): Promise<{ [key: string]: string | null }> {
 		if (isOnGas()) {
 			parameters = await getGasParameters();
 		} else {
-			if (!systemData.url) systemData["url"] = loadUrl();
-			let urlObj = new URL(await systemData.url);
+			let urlObj = new URL(window.location.href);
 			for (const key of urlObj.searchParams.keys()) {
 				parameters[key] = urlObj.searchParams.get(key);
 			}
@@ -220,7 +224,7 @@ async function loadParameters(): Promise<{ [key: string]: string | null }> {
  * (i.e., the loaded url has no query string with a "state" parameter), the
  * empty object `{}` is returned
  */
-async function loadCredentials(): Promise<{ [key: string]: string }> {
+async function loadCredentials(): Promise<{ [key: string]: string | boolean }> {
 	return new Promise(async (resolve, _) => {
 		loadSystemData("parameters", loadParameters);
 		let params = await getSystemData("parameters");
@@ -248,9 +252,7 @@ async function loadCredentials(): Promise<{ [key: string]: string }> {
 	});
 }
 /**
- * Determines the top address that returned this page. If the app is running on
- * Google Apps Script, this string is the origin and path; if not on Google Apps
- * script, it is the full href.
+ * Determines the origin and path of the address that returned this page
  * @returns a Promise for the url as a string
  */
 async function loadUrl() {
@@ -273,9 +275,7 @@ async function loadUrl() {
 				)
 				.loadUrl();
 		} else {
-			if (!window.location.href)
-				throw new Error("Unable to determine url from window.location");
-			resolve(window.location.href);
+			resolve(window.location.origin + window.location.pathname);
 		}
 	});
 }
@@ -515,6 +515,12 @@ function openContents() {
 	if (homePage != null) homePage.show();
 }
 function openAdmin() {
+	$("#mffer-admin").show();
+}
+async function initializeAdmin() {
+	if (adminInitialized) return;
+	else adminInitialized = true;
+	loadSystemData("url", loadUrl);
 	logDebug("Switching to admin configuration page");
 	hidePages();
 	let lis = $("#mffer-admin li");
@@ -525,14 +531,21 @@ function openAdmin() {
 		}
 	}
 	showSpinner($("#mffer-admin-input-oauthredirecturi"));
-	postRequest("getRedirectUri")
-		.then(function (uri: string) {
-			$("#mffer-admin-input-oauthredirecturi").val(uri);
-			hideSpinner($("#mffer-admin-input-oauthredirecturi"));
-		})
-		.catch(function (reason: any) {
-			throwError("Unable to get redirect URI: " + reason.toString());
-		});
+	if (isOnGas())
+		postRequest("getRedirectUri")
+			.then(function (uri: string) {
+				$("#mffer-admin-input-oauthredirecturi").val(uri);
+				hideSpinner($("#mffer-admin-input-oauthredirecturi"));
+			})
+			.catch(function (reason: any) {
+				throwError("Unable to get redirect URI: " + reason.toString());
+			});
+	else {
+		$("#mffer-admin-input-oauthredirecturi").val(
+			await getSystemData("url")
+		);
+		hideSpinner($("#mffer-admin-input-oauthredirecturi"));
+	}
 	$("#mffer-admin")
 		.find("input[type='text']")
 		.on("change", function (event) {
@@ -626,7 +639,6 @@ function openAdmin() {
 		}
 	});
 	resetAdminSubmitButton();
-	$("#mffer-admin").show();
 }
 function isFalseOrEmpty(check: any) {
 	if (
@@ -874,17 +886,31 @@ async function initializeUserLogin(): Promise<void> {
 	});
 }
 async function setCredentials(credentials: any) {
+	if (!credentials) return;
 	if (!settings) settings = await initializeSettings();
-	settings.user = credentials.user;
-	settings["oauth2.userLogin"] = credentials["oauth2.userLogin"];
-	settings.isAdmin = credentials.isAdmin;
+	settings.user = credentials.user?.toString() || null;
+	settings["oauth2.userLogin"] =
+		credentials["oauth2.userLogin"]?.toString() || null;
+	if (
+		credentials.isAdmin &&
+		(credentials.isAdmin === "true" || credentials.isAdmin === true)
+	)
+		settings.isAdmin = true;
+	else settings.isAdmin = false;
 	if (settings.isAdmin) enableAdminContent();
-	if (credentials.hasUserSpreadsheet) settings.hasUserSpreadsheet = true;
-	else
+	if (
+		credentials.hasUserSpreadsheet &&
+		(credentials.hasUserSpreadsheet === "true" ||
+			credentials.hasUserSpreadsheet === true)
+	)
+		settings.hasUserSpreadsheet = true;
+	else {
+		settings.hasUserSpreadsheet = false;
 		showAlert(
 			"Spreadsheet not found",
 			"Please select or create a Google Spreadsheet to save your individual data"
 		);
+	}
 	savePageStorage();
 }
 
@@ -904,9 +930,11 @@ function savePageStorage() {
 	}
 }
 function enableAdminContent() {
-	$("#mffer-contents-li-admin")
-		.add("#menu-item-admin")
-		.removeClass("start-inactive");
+	initializeAdmin().then(() =>
+		$("#mffer-contents-li-admin")
+			.add("#menu-item-admin")
+			.removeClass("start-inactive")
+	);
 }
 function hideAdminContent() {
 	if ($("#mffer-admin").is(":visible")) {

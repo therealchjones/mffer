@@ -143,7 +143,8 @@ function doPost(request: any) {
 		requestData.application != "mffer" ||
 		!requestData.function ||
 		!requestData.function.name ||
-		!requestData.function.args
+		!requestData.function.args ||
+		!requestData.url
 	)
 		throw new Error("improper request");
 
@@ -158,6 +159,7 @@ function doPost(request: any) {
 			throw new Error("improper request: " + error.toString());
 		}
 	});
+	let callbackUrl: string = requestData.url.toString();
 	let result: any;
 	try {
 		switch (requestData.function.name) {
@@ -170,31 +172,39 @@ function doPost(request: any) {
 				result = isConfigured();
 				break;
 			case "processParameters":
-				result = processParameters(functionArgs[0]);
+				result = processParameters(functionArgs[0], callbackUrl);
 				break;
 			case "getConfig":
 				result = getConfig();
 				break;
 			case "getAdminAuthUrl":
-				result = getAdminAuthUrl(functionArgs[0]);
+				result = getAdminAuthUrl(functionArgs[0], callbackUrl);
 				break;
 			case "getRedirectUri":
 				result = getRedirectUri();
 				break;
 			case "getUserAuthUrl":
-				result = getUserAuthUrl(functionArgs[0]);
+				result = getUserAuthUrl(functionArgs[0], callbackUrl);
 				break;
 			case "updateUserLogin":
-				result = updateUserLogin(functionArgs[0]);
+				result = updateUserLogin(callbackUrl, functionArgs[0]);
 				break;
 			case "importNewData":
-				result = importNewData(functionArgs[0], functionArgs[1]);
+				result = importNewData(
+					functionArgs[0],
+					callbackUrl,
+					functionArgs[1]
+				);
 				break;
 			case "getWebappDatabase":
 				result = getWebappDatabase();
 				break;
 			case "csvToTable":
-				result = csvToTable(functionArgs[0], functionArgs[1]);
+				result = csvToTable(
+					functionArgs[0],
+					functionArgs[1],
+					callbackUrl
+				);
 				break;
 			default:
 				throw new Error("improper request: no such function");
@@ -229,9 +239,12 @@ function buildPage_(
  * @param parameters
  * @returns
  */
-function processParameters(response: {
-	parameter: { [key: string]: string | null };
-}): { [key: string]: string | null } {
+function processParameters(
+	response: {
+		parameter: { [key: string]: string | null };
+	},
+	callbackUrl: string
+): { [key: string]: string | null } {
 	if (response && response.parameter && response.parameter.state) {
 		let properties = getProperties_();
 		let attemptKey: string = "adminAttempt-" + response.parameter.state;
@@ -263,9 +276,9 @@ function processParameters(response: {
 			};
 			if (response.parameter.code || response.parameter.error) {
 				if (!isConfigured())
-					return processNewAdminAuthResponse_(response);
+					return processNewAdminAuthResponse_(callbackUrl, response);
 				else {
-					return processAdminAuthResponse_(response);
+					return processAdminAuthResponse_(callbackUrl, response);
 				}
 			} else
 				console.log(
@@ -275,7 +288,7 @@ function processParameters(response: {
 			// there's a state, but there's no matching adminAttempt-* key
 			// or may just be a "reload" of a previous login
 			// process user login attempt here
-			return processUserAuthResponse_(response);
+			return processUserAuthResponse_(response, callbackUrl);
 		}
 	}
 	return {};
@@ -336,6 +349,27 @@ function setProperty_(propertyName: string, propertyValue: string) {
 	}
 	properties.setProperty(propertyName, propertyValue);
 }
+function getBaseOAuthService_(
+	serviceName: string,
+	oauthId: string,
+	oauthSecret: string,
+	callbackUrl: string,
+	storage: VolatileProperties
+) {
+	return OAuth2.createService(serviceName)
+		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
+		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
+		.setPropertyStore(storage)
+		.setClientId(oauthId)
+		.setClientSecret(oauthSecret)
+		.setExpirationMinutes("60")
+		.setRedirectUri(callbackUrl)
+		.setScope(
+			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
+		)
+		.setParam("access_type", "offline")
+		.setParam("prompt", "consent");
+}
 /**
  *
  *
@@ -345,43 +379,28 @@ function setProperty_(propertyName: string, propertyValue: string) {
  * itself does not even access it here.
  * @returns
  */
-function getAdminAuthService_(storage: VolatileProperties | null = null) {
-	let callbackFunction: string,
-		oauthId: string | null,
-		oauthSecret: string | null = null;
-	if (storage == null) storage = new VolatileProperties();
-	oauthId = storage.getProperty("oauthId");
-	oauthSecret = storage.getProperty("oauthSecret");
+function getAdminAuthService_(
+	callbackUrl: string,
+	storage: VolatileProperties
+) {
+	let oauthId = storage.getProperty("oauthId");
+	let oauthSecret = storage.getProperty("oauthSecret");
 	if (isConfigured()) {
-		callbackFunction = "processAdminAuthResponse_";
-		if (isFalseOrEmpty_(oauthId)) oauthId = getOauthId_();
-		if (isFalseOrEmpty_(oauthSecret)) oauthSecret = getOauthSecret_();
-	} else {
-		callbackFunction = "processNewAdminAuthResponse_";
+		if (!oauthId) oauthId = getOauthId_();
+		if (!oauthSecret) oauthSecret = getOauthSecret_();
 	}
-	if (isFalseOrEmpty_(oauthId) || isFalseOrEmpty_(oauthSecret)) {
+	if (!oauthId || !oauthSecret) {
 		throw new Error(
 			"Unable to create admin service: OAuth ID and OAuth secret are required."
 		);
 	}
-	if (oauthId == null || oauthSecret == null) throw new Error();
-	let serviceName: string = "adminLogin";
-	let redirectUrl: string = getRedirectUri();
-	let service = OAuth2.createService(serviceName)
-		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
-		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
-		.setClientId(oauthId)
-		.setClientSecret(oauthSecret)
-		.setCallbackFunction(callbackFunction)
-		.setPropertyStore(storage)
-		.setRedirectUri(redirectUrl)
-		.setExpirationMinutes("60")
-		.setScope(
-			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
-		)
-		.setParam("access_type", "offline")
-		.setParam("prompt", "consent");
-	return service;
+	return getBaseOAuthService_(
+		"adminLogin",
+		oauthId,
+		oauthSecret,
+		callbackUrl,
+		storage
+	);
 }
 function isFalseOrEmpty_(check: string | boolean | null): boolean {
 	if (
@@ -392,7 +411,10 @@ function isFalseOrEmpty_(check: string | boolean | null): boolean {
 		return true;
 	return false;
 }
-function getAdminAuthUrl(propertiesJson?: string): { [key: string]: string } {
+function getAdminAuthUrl(
+	propertiesJson: string,
+	callbackUrl: string
+): { [key: string]: string } {
 	let propertyStore = getProperties_();
 	for (let property of propertyStore.getKeys()) {
 		if (property.indexOf("adminAttempt-") >= 0)
@@ -421,6 +443,7 @@ function getAdminAuthUrl(propertiesJson?: string): { [key: string]: string } {
 	if (!isFalseOrEmpty_(properties.hostUri))
 		newProperties.hostUri = properties.hostUri;
 	newProperties.serviceName = "adminLogin";
+	if (callbackUrl) newProperties.callbackUrl = callbackUrl;
 	let authUrlMessage: { [key: string]: string } = {};
 	let testResult = checkOauthClient_(newProperties.oauthId, getRedirectUri());
 	if (testResult["error"]) {
@@ -430,7 +453,7 @@ function getAdminAuthUrl(propertiesJson?: string): { [key: string]: string } {
 		return authUrlMessage;
 	}
 	let storage = new VolatileProperties(newProperties);
-	let url = getAdminAuthService_(storage).getAuthorizationUrl();
+	let url = getAdminAuthService_(callbackUrl, storage).getAuthorizationUrl();
 	authUrlMessage = {
 		url: url,
 		time: new Date().toUTCString(),
@@ -531,9 +554,12 @@ function getRedirectUri(): string {
 function loadUrl(): string {
 	return ScriptApp.getService().getUrl();
 }
-function processNewAdminAuthResponse_(response: {
-	parameter: { [key: string]: string | null };
-}): { [key: string]: string } {
+function processNewAdminAuthResponse_(
+	callbackUrl: string,
+	response: {
+		parameter: { [key: string]: string | null };
+	}
+): { [key: string]: string } {
 	if (!response || !response.parameter)
 		throw new Error(
 			"Unable to process admin authorization: no parameters given."
@@ -545,7 +571,7 @@ function processNewAdminAuthResponse_(response: {
 			"Unable to process admin authorization: no OAuth 2.0 client information."
 		);
 	let storage = new VolatileProperties(response.parameter);
-	let service = getAdminAuthService_(storage);
+	let service = getAdminAuthService_(callbackUrl, storage);
 	if (service.handleCallback(response)) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to find administrator token");
@@ -572,9 +598,12 @@ function processNewAdminAuthResponse_(response: {
 		return { error: adminAuthError };
 	}
 }
-function processAdminAuthResponse_(response: any): { [key: string]: string } {
+function processAdminAuthResponse_(
+	callbackUrl: string,
+	response: any
+): { [key: string]: string } {
 	let storage = new VolatileProperties();
-	let service = getAdminAuthService_(storage);
+	let service = getAdminAuthService_(callbackUrl, storage);
 	if (service.handleCallback(response)) {
 		let token = service.getIdToken();
 		if (!token) throw new Error("Unable to get token");
@@ -605,54 +634,51 @@ function processAdminAuthResponse_(response: any): { [key: string]: string } {
 		};
 	}
 }
-function getUserAuthService_(storage: VolatileProperties | null = null) {
+function getUserAuthService_(callbackUrl: string, storage: VolatileProperties) {
 	let oauthId: string | null = getOauthId_();
-	let callbackFunction: string = "processUserAuthResponse_";
-	if (isFalseOrEmpty_(oauthId))
-		throw new Error("OAuth 2.0 Client ID is not set");
+	if (!oauthId) throw new Error("OAuth 2.0 Client ID is not set");
 	let oauthSecret: string | null = getOauthSecret_();
-	if (isFalseOrEmpty_(oauthSecret))
-		throw new Error("OAuth 2.0 Client secret is not set");
-	if (storage == null) storage = new VolatileProperties();
-	if (oauthId == null || oauthSecret == null) throw new Error();
-	let oauth2Service = OAuth2.createService("userLogin")
-		.setAuthorizationBaseUrl("https://accounts.google.com/o/oauth2/auth")
-		.setTokenUrl("https://accounts.google.com/o/oauth2/token")
-		.setClientId(oauthId)
-		.setClientSecret(oauthSecret)
-		.setCallbackFunction(callbackFunction)
-		.setPropertyStore(storage)
-		.setScope(
-			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
-		)
-		.setParam("access_type", "offline")
-		.setParam("prompt", "consent");
-	oauth2Service.setRedirectUri(getRedirectUri());
-	return oauth2Service;
+	if (!oauthSecret) throw new Error("OAuth 2.0 Client secret is not set");
+	return getBaseOAuthService_(
+		"userLogin",
+		oauthId,
+		oauthSecret,
+		callbackUrl,
+		storage
+	);
 }
-function getUserAuthUrl(pageStorage: { [key: string]: string } | null): string {
+function getUserAuthUrl(
+	pageStorage: { [key: string]: string } | null,
+	callbackUrl: string
+): string {
 	let storage = new VolatileProperties(pageStorage);
-	return getUserAuthService_(storage).getAuthorizationUrl();
+	return getUserAuthService_(callbackUrl, storage).getAuthorizationUrl();
 }
 // TODO #209: move this entirely to the user's browser (actually probably can't
 // do this part because it'll need the client secret, but maybe the token
 // response)
-function processUserAuthResponse_(response: any): { [key: string]: string } {
+function processUserAuthResponse_(
+	response: any,
+	callbackUrl: string
+): { [key: string]: string } {
 	let storage = new VolatileProperties();
-	let service = getUserAuthService_(storage);
+	let service = getUserAuthService_(callbackUrl, storage);
 	if (!response) throw new Error("No response was given");
 	if (service.handleCallback(response)) {
-		return getUserCredentials_(storage);
+		return getUserCredentials_(callbackUrl, storage);
 	} else {
 		return {
 			error: "Unable to authorize user access: access_denied",
 		};
 	}
 }
-function getUserCredentials_(storage: VolatileProperties): {
+function getUserCredentials_(
+	callbackUrl: string,
+	storage: VolatileProperties
+): {
 	[key: string]: string;
 } {
-	let service = getUserAuthService_(storage);
+	let service = getUserAuthService_(callbackUrl, storage);
 	let token = service.getIdToken();
 	if (!token) throw new Error("Unable to obtain user ID token");
 	let userId = getUserId_(token);
@@ -660,7 +686,7 @@ function getUserCredentials_(storage: VolatileProperties): {
 	else storage.setProperty("user", userId);
 	if (userId == getAdminId_()) storage.setProperty("isAdmin", "true");
 	else storage.setProperty("isAdmin", "false");
-	createUserFile_(userId, storage);
+	createUserFile_(userId, callbackUrl, storage);
 	storage.setProperty("hasUserSpreadsheet", "true");
 	return storage.getProperties();
 }
@@ -711,13 +737,16 @@ function getUserId_(id_token: string): string {
  * @param pageStorageJson
  * @returns
  */
-function updateUserLogin(properties: { [key: string]: string }): {
+function updateUserLogin(
+	callbackUrl: string,
+	properties: { [key: string]: string }
+): {
 	[key: string]: string;
 } {
 	let storage = new VolatileProperties(properties);
-	let service = getUserAuthService_(storage);
+	let service = getUserAuthService_(callbackUrl, storage);
 	if (service.hasAccess()) {
-		return getUserCredentials_(storage);
+		return getUserCredentials_(callbackUrl, storage);
 	} else {
 		return {};
 	}
@@ -814,7 +843,10 @@ function updateRemoteSpreadsheet_(
  * @param storage persistent storage object containing authentication
  * information
  */
-function setAdminToUser_(storage: VolatileProperties): void {
+function setAdminToUser_(
+	callbackUrl: string,
+	storage: VolatileProperties
+): void {
 	if (storage.getProperty("adminAuthError")) return;
 	if (
 		storage.getProperty("oauth2.adminLogin") == null &&
@@ -824,7 +856,7 @@ function setAdminToUser_(storage: VolatileProperties): void {
 			"oauth2.adminLogin",
 			storage.getProperty("oauth2.userLogin")
 		);
-		let service = getAdminAuthService_(storage);
+		let service = getAdminAuthService_(callbackUrl, storage);
 		if (service.hasAccess()) {
 			let token = service.getIdToken();
 			if (!token) throw new Error("Unable to get ID token");
@@ -853,15 +885,16 @@ function numToCol_(colNum: number): string | null {
 }
 function importNewData(
 	newText: string,
+	callbackUrl: string,
 	properties: { [key: string]: string }
 ): any[][] | null {
 	let storage = new VolatileProperties(properties);
-	setAdminToUser_(storage);
+	setAdminToUser_(callbackUrl, storage);
 	if (storage.getProperty("adminAuthError"))
 		throw new Error(
 			"Authorization error: " + storage.getProperty("adminAuthError")
 		);
-	let authService = getAdminAuthService_(storage);
+	let authService = getAdminAuthService_(callbackUrl, storage);
 	if (!authService.hasAccess()) {
 		throw new Error("Access is not available");
 	}
@@ -1026,12 +1059,13 @@ function addUserFile_(userId: string, userFileId: string) {
 }
 function createUserFile_(
 	userId: string,
+	callbackUrl: string,
 	storage: VolatileProperties
 ): string | null {
-	let auth = getUserAuthService_(storage);
+	let auth = getUserAuthService_(callbackUrl, storage);
 	if (
 		auth.hasAccess() &&
-		getScopes_(storage).includes(
+		getScopes_(callbackUrl, storage).includes(
 			"https://www.googleapis.com/auth/drive.appdata"
 		)
 	) {
@@ -1083,10 +1117,17 @@ function createUserFile_(
 		throw new Error("No permission to create user file.");
 	}
 }
-function getScopes_(storage: VolatileProperties): string[] {
-	getUserAuthService_(storage);
-	let scopeString = JSON.parse(storage.getProperty("oauth2.userLogin")).scope;
-	return scopeString.split(" ");
+function getScopes_(
+	callbackUrl: string,
+	storage: VolatileProperties
+): string[] {
+	getUserAuthService_(callbackUrl, storage);
+	let creds = storage.getProperty("oauth2.userLogin");
+	if (!creds) creds = "{}";
+	let credsObj = JSON.parse(creds);
+	if (Object.keys(credsObj).includes("scope"))
+		return credsObj.scope.split(" ");
+	else return [];
 }
 /**
  * Allow referring to an individual sheet by ID rather than name (which
@@ -1267,10 +1308,14 @@ function saveFloorNumber_(floorNumber: any) {
 	else sheet.getRange("A2").setValue(floorNumber);
 }
 
-function csvToTable(text: string, properties: { [key: string]: string }) {
+function csvToTable(
+	text: string,
+	properties: { [key: string]: string },
+	callbackUrl: string
+) {
 	let storage = new VolatileProperties(properties);
-	setAdminToUser_(storage);
-	getAdminAuthService_(storage);
+	setAdminToUser_(callbackUrl, storage);
+	getAdminAuthService_(callbackUrl, storage);
 
 	var csvArray = Utilities.parseCsv(text, "|");
 	var returnTable = HtmlService.createHtmlOutput("<table>");

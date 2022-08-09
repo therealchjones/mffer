@@ -228,7 +228,7 @@ running the programs.
 ### Build requirements
 
 -   a vaguely POSIX-compatible development environment (and some near-ubiquitous
-    POSIX-like tools that aren't strictly in the POSIX standard, like `tar`, and
+    POSIX-like tools that aren't strictly in the POSIX standard, like `tar` and
     `mktemp`)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
@@ -758,12 +758,12 @@ to the many confounding factors involved.
 1. Clone the [mffer Repository](https://github.com/therealchjones/mffer). We
    recommend then checking out a specific version from which to deploy the
    webapp rather than using the latest code. For instance, to create a new
-   branch named "new-deployment" starting with the release code for version 0.2.1:
+   branch named "new-deployment" starting with the release code for version 0.1.0:
 
     ```
     [~] $ git clone https://github.com/therealchjones/mffer
     [~] $ cd mffer
-    [mffer] $ git checkout -b new-deployment v0.2.1
+    [mffer] $ git checkout -b new-deployment v0.1.0
     ```
 
 2. The tools needed for webapp development are all included in the general
@@ -811,7 +811,7 @@ Script in a Google Cloud Platform account include:
    scopes". Press "Add to table" and "Update", then press "Save and continue". Add your own account
    as a "Test user", then press "Save and continue" one more time.
 5. Visit https://console.cloud.google.com/apis/credentials/wizard and again
-   ensure the correct project is shown in the project drop-down. First choose
+   ensure the correct project is shown in the project drop-down. Choose
    "Apps Script API" for "Which API are you using?" and select "User data"
    before pressing "Next". Don't add anything in "Scopes", just "Save and
    continue". For the "OAuth Client ID" section's "Application

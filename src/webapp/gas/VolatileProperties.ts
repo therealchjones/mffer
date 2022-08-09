@@ -4,8 +4,8 @@ class VolatileProperties {
 		this.properties_ = {};
 		for (const key of Object.keys(properties)) {
 			let value = properties[key];
-			if (value === null) this.properties_[key] = "";
-			else this.properties_[key] = value;
+			if (!value) this.properties_[key] = "";
+			else this.properties_[key] = value.toString();
 		}
 	}
 	private properties_: { [key: string]: string };
@@ -24,7 +24,8 @@ class VolatileProperties {
 		return this.properties_;
 	}
 	public getProperty(key: string) {
-		return this.properties_[key];
+		if (this.getKeys().includes(key)) return this.properties_[key];
+		else return null;
 	}
 	public setProperties(
 		properties: { [key: string]: string },
@@ -42,7 +43,8 @@ class VolatileProperties {
 		}
 		return this;
 	}
-	public setProperty(key: string, value: string): VolatileProperties {
+	public setProperty(key: string, value: string | null): VolatileProperties {
+		if (!value) value = "";
 		this.properties_[key] = value;
 		return this;
 	}
