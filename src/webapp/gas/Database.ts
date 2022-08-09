@@ -2,7 +2,9 @@ class Database {
 	readonly Spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
 	readonly id: string;
 	static readonly sheetNames: string[] = ["Main", "mffer"];
-	constructor(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet = null) {
+	constructor(
+		spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null = null
+	) {
 		if (spreadsheet == null) {
 			this.Spreadsheet = SpreadsheetApp.create("mffer Database");
 		} else {
@@ -58,20 +60,20 @@ class Database {
 	 * makeSheet
 	 */
 	public makeSheet(sheetName: string): void {
-		let sheet: GoogleAppsScript.Spreadsheet.Sheet;
+		let sheet: GoogleAppsScript.Spreadsheet.Sheet | null =
+			this.Spreadsheet.getSheetByName(sheetName);
+		if (!sheet) throw new Error("Unable to get sheet");
 		switch (sheetName) {
 			case "Main":
-				sheet = this.Spreadsheet.getSheetByName(sheetName);
 				if (sheet.getDataRange().isBlank()) {
 					this.makeMainSheet(sheet);
 				}
 				break;
 			case "mffer":
-				sheet = this.Spreadsheet.getSheetByName(sheetName);
 				this.makeDataSheet(sheet);
 				break;
 			default:
-				this.Spreadsheet.getSheetByName(sheetName).hideSheet();
+				sheet.hideSheet();
 				break;
 		}
 	}

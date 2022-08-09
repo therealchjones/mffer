@@ -1,6 +1,6 @@
 class Deployment {
-	public hostUri: string;
-	public appsScriptUri: string;
+	public hostUri: string | null = null;
+	public appsScriptUri: string | null = null;
 	constructor() {}
 
 	public static getCurrentDeployment(): Deployment {
