@@ -515,14 +515,14 @@ function openContents() {
 	if (homePage != null) homePage.show();
 }
 function openAdmin() {
+	logDebug("Switching to admin configuration page");
+	hidePages();
 	$("#mffer-admin").show();
 }
 async function initializeAdmin() {
 	if (adminInitialized) return;
 	else adminInitialized = true;
 	loadSystemData("url", loadUrl);
-	logDebug("Switching to admin configuration page");
-	hidePages();
 	let lis = $("#mffer-admin li");
 	for (let property in mfferSettings) {
 		let input = $("#mffer-admin-input-" + property.toLowerCase());

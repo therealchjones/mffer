@@ -364,6 +364,7 @@ function getBaseOAuthService_(
 		.setClientSecret(oauthSecret)
 		.setExpirationMinutes("60")
 		.setRedirectUri(callbackUrl)
+		.setCallbackFunction("NotActuallyBeingUsed")
 		.setScope(
 			"openid https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file"
 		)

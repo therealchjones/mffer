@@ -823,58 +823,61 @@ Script in a Google Cloud Platform account include:
 
 #### Uploading and configuring the webapp
 
-1. In
+1. Ensure you are signed out of all Google accounts except the one you used for
+   your Google Cloud Platform project (and which you added as a "Test user")
+   above.
+2. In
    [Google Apps Script Settings](https://script.google.com/home/usersettings),
    enable "Google Apps Script API"
-2. Using the same Google account you used for your Google Cloud Platform
+3. Using the same Google account you used for your Google Cloud Platform
    project above, login to Google with `clasp`:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp login
     ```
-3. Create the Google Apps project and upload the files:
+4. Create the Google Apps project and upload the files:
     ```
     [mffer/tools] $ sh ./webdeploy.sh -vN
     ```
-4. Open the Google Apps Script IDE:
+5. Open the Google Apps Script IDE:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open
     ```
-5. Switch to using a standard Google Cloud Project by opening "Project Settings"
+6. Switch to using a standard Google Cloud Project by opening "Project Settings"
    (the gear icon), pressing the "Change project" button,
    and entering the project number you noted from step 2 of
    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform) (or
    visit the [GCP Dashboard](https://console.cloud.google.com/home/dashboard)
    again if you need to copy it).
-6. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
+7. Open "Editor" (the &lt; &gt; icon), select "Code.gs" from the file list and
    press the "Run" button, which will prompt you to "Review Permissions" and
    approve access to your Google account. If prompted that "Google hasn't
    verified this app", select "Continue".
-7. Open the webapp:
+8. Open the webapp:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp/gas open --webapp
     ```
     If prompted for which deployment to use, select the one labelled with the
     date and time of deployment and the version number "@1".
-8. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
+9. Choose "Setup mffer", then enter the OAuth 2.0 Client ID and OAuth 2.0
    secret you made a note of in the
    [Setting up Google Cloud Platform](#setting-up-google-cloud-platform)
    section (or obtain them again from
    https://console.cloud.google.com/apis/credentials using the provided
    links).
-9. Visit the OAuth client ID page using the provided link, and in the
-   "Authorized redirect URIs" section, add the URI given in the webapp; press
-   "Save".
-10. Back on the webapp, use the "validate these settings" button to check them,
+10. Visit the OAuth client ID page using the provided link, and in the
+    "Authorized redirect URIs" section, add the URI given in the webapp; press
+    "Save".
+11. Back on the webapp, use the "validate these settings" button to check them,
     then press "Authorize & Submit" to authenticate with Google once more,
     again "Continue" if the "Google hasn't verified this app" prompt appears,
     and when prompted authorize the access to the app's files in Google Drive.
     This will lock the above settings and take the app out of "setup mode".
-11. Use the webapp's "Login" button to authenticate once again with Google
+12. Use the webapp's "Login" button to authenticate once again with Google
     (which will create a "user" account for you), then choose the "Admin" link.
-12. Under "Upload new mffer data" select a CSV file
+13. Under "Upload new mffer data" select a CSV file
     created by the mffer command line application and then "Confirm" it for
     upload.
-13. To visit the deployed test version of the web app, use `clasp` at the
+14. To visit the deployed test version of the web app, use `clasp` at the
     command line:
     ```
     [mffer/tools] $ ./node_modules/.bin/clasp -P ../src/webapp open --webapp

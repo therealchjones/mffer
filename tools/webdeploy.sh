@@ -44,12 +44,15 @@ DEBUGOUT="${DEBUGOUT:-}"
 OVERWRITEDEPLOYMENT="${OVERWRITEDEPLOYMENT:-}"
 GASDEPLOYMENT="${GASDEPLOYMENT:-}"
 WORKSPACEROOT="${WORKSPACEROOT:-$(dirname "$0")/..}"
+if [ "${WORKSPACEROOT#/}" = "$WORKSPACEROOT" ]; then
+	WORKSPACEROOT="$PWD/$WORKSPACEROOT"
+fi
 BUILDDIR="${BUILDDIR:-${WORKSPACEROOT}/build/webapp}"
 WEBAPPDIR="${WEBAPPDIR:-${WORKSPACEROOT}/src/webapp}"
 RELEASEDIR="${RELEASEDIR:-${BUILDDIR}/release}"
 GASDIR="${GASDIR:-$WEBAPPDIR/gas}"
 HTMLDIR="${HTMLDIR:-$WEBAPPDIR/html}"
-PATH="$WORKSPACEROOT/tools/node_modules/.bin:$PATH"
+export PATH="$WORKSPACEROOT/tools/node_modules/.bin:$PATH"
 NEWPROJECT="${NEWPROJECT:-}"
 
 # As convention, only main() should exit the program, should do so only if
