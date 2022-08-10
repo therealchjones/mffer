@@ -362,6 +362,63 @@ All of these tools can be removed (along with their installed dependencies and t
 dotnet clean
 ```
 
+#### Additional setup
+
+Though they may be included in the `dotnet restore` command at some point, at the
+time of this writing it's necessary to set up Python and Jython separately if
+you wish to work on the apkdl script, the documentation build process, and
+Ghidra analysis. It's not necessary to setup Python beyond the system version to
+run apkdl, autoanalyze, or Ghidra, just to make changes to them. It's not
+required to set up Python to build the documentation if you're only making
+document edits, but it may be good for testing that those edits appear the way
+you want them to before submitting the pull request.
+
+After cloning the repository, ensure you're using a recommended version of
+Python and/or Jython, as noted in the `/.python-version` file. This is probably
+easiest if you're using pyenv, which will automatically refer to that file; you
+can see if it's using the appropriate versions anywhere in the repository by
+running
+
+```
+pyenv versions
+```
+
+If you're missing a version, install it to your pyenv home directory using
+
+```
+pyenv install <version>
+```
+
+and it will then be used automatically within the repository.
+
+After that, we recommend setting up virtual environments with the necessary
+tools within the repository. Within the `/tools` directory, run:
+
+```
+python -m venv python
+. python/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Rather than Python, Ghidra scripts use Jython. Because Jython is based upon the deprecated Python 2.7, setting up for development of autoanalyze or other Ghidra analysis requires further steps. The pyenv commands above will similarly work to install the appropriate Jython version. However, Jython additionally requires a Java distribution, and requires installation of the virtualenv module within pyenv's copy of Jython. Once you have Jython working on your system, you can install virtualenv with:
+
+```
+jython -m easy_install virtualenv==15.2.0
+```
+
+Then, from the `/tools` directory, you can again build a virtual environment and set up the development tools for Jython:
+
+```
+jython -m virtualenv --no-pip --no-wheel jython
+. jython/bin/activate
+jython -m easy_install ghidra-stubs
+```
+
+(The virtualenv may give you some errors about missing directories but still work properly.)
+
+If you are using VS Code, you may need to run "Python: Select Interpreter" from the Command Palette manually when switching between Python and Jython files.
+
 ## Changing mffer
 
 ### Making a custom `Program.cs`
