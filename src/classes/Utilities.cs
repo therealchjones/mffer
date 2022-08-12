@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -29,6 +30,39 @@ namespace Mffer {
 				}
 			}
 			return stringBuilder.ToString();
+		}
+		/// <summary>
+		/// Creates a new temporary directory
+		/// </summary>
+		/// <remarks>Attempts to create a directory within the system or user's
+		/// temporary directory with an unguessable directory name. This is not
+		/// expected to be cryptographically secure and could theoretically
+		/// impose a race condition between determining the diirectory name and
+		/// creating the directory.
+		/// </remarks>
+		/// <returns><see cref="DirectoryInfo"/> representing the new temporary
+		/// directory</returns>
+		internal static DirectoryInfo CreateTempDirectory() {
+			string mainTempDir = Path.GetTempPath();
+			string tmpDirName, tmpDirPath;
+			do {
+				tmpDirName = Path.GetRandomFileName();
+				tmpDirPath = Path.Join( mainTempDir, tmpDirName );
+			} while ( Directory.Exists( tmpDirName ) || File.Exists( tmpDirName ) );
+			return Directory.CreateDirectory( tmpDirPath );
+		}
+		internal static void RemoveTempDirectory( DirectoryInfo tmpDir ) {
+			string mainTempDir = Path.GetTempPath();
+			if ( !tmpDir.FullName.StartsWith( mainTempDir ) ) {
+				throw new ApplicationException( "Can only remove temporary directories" );
+			}
+			foreach ( FileInfo file in tmpDir.EnumerateFiles() ) {
+				file.Delete();
+			}
+			foreach ( DirectoryInfo dir in tmpDir.EnumerateDirectories() ) {
+				RemoveTempDirectory( dir );
+			}
+			tmpDir.Delete();
 		}
 	}
 }

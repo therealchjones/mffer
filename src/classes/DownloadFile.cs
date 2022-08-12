@@ -1,5 +1,3 @@
-using System.IO;
-using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
@@ -17,17 +15,8 @@ namespace Mffer {
 		string simpleHash;
 		ulong zipSize;
 		bool bundleEach;
-		string LocalFile {
-			get {
-				StringBuilder sb = new StringBuilder( "files/" );
-				if ( bundleEach ) sb.Append( "bundle_each/" );
-				else sb.Append( "bundle/" );
-				sb.Append( hash );
-				sb.Append( ".zip" );
-				return sb.ToString();
-			}
-		}
-		string RemoteUrl {
+		internal string LocalFile { get; set; }
+		internal string RemoteUrl {
 			get {
 				StringBuilder sb = new StringBuilder( "http://mheroesgb.gcdn.netmarble.com/mheroesgb/DIST/Android/v" );
 				sb.Append( NetworkData.GetDownloadVersion() );
@@ -62,21 +51,13 @@ namespace Mffer {
 			simpleHash = item.GetProperty( "simple_hash" ).GetString();
 			zipSize = item.GetProperty( "zip_size" ).GetUInt64();
 			bundleEach = false;
-		}
-		/// <summary>
-		/// Downloads the data this <see cref="DownloadFile"/> represents and saves it to the local filesystem
-		/// </summary>
-		public void Download() {
-			NetworkData.TryDownloadFile( RemoteUrl, LocalFile );
-		}
-		/// <summary>
-		/// Unzips a downloaded zip archive to its final destination
-		/// </summary>
-		public void Unzip() {
-			if ( File.Exists( LocalFile ) ) {
-				ZipFile.ExtractToDirectory( LocalFile, "./files/bundle/" );
-				File.Delete( LocalFile );
-			}
+
+			StringBuilder fileName = new();
+			if ( bundleEach ) fileName.Append( "bundle_each/" );
+			else fileName.Append( "bundle/" );
+			fileName.Append( hash );
+			fileName.Append( ".zip" );
+			LocalFile = fileName.ToString();
 		}
 	}
 }

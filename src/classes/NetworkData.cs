@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -771,55 +772,73 @@ namespace Mffer {
 		/// Based on the PatchSystem methods from the game. Downloads the asset
 		/// bundle files for the latest available version of the game.
 		/// </remarks>
-		/// <param name="destination">directory into which downloaded files
+		/// <param name="destDir">directory into which downloaded files
 		/// will be written</param>
-		static public void DownloadAssets( string destination = null ) {
+		static public void DownloadAssets( string destDir ) {
+			if ( String.IsNullOrEmpty( destDir ) ) throw new ArgumentNullException( "destination" );
+			string version = GetDownloadVersion();
 			Dictionary<string, string> formData = new Dictionary<string, string> {
 				{ "platform", "0"},
-				{ "ver", GetDownloadVersion() }
+				{ "ver", version }
 			};
 			string url = GetServerUrl() + "GetVersion";
 			JsonElement ver = GetWww( url, formData ).RootElement.GetProperty( "desc" ).GetProperty( "ver" );
 			List<DownloadFile> fileList = new List<DownloadFile>();
 			List<DownloadFile> downloadList = new List<DownloadFile>();
-			List<DownloadFile> retryList, newList = new List<DownloadFile>();
-			Directory.CreateDirectory( "mff-files/bundle/" );
+			List<DownloadFile> retryList = new List<DownloadFile>();
+			Directory.CreateDirectory( destDir );
 			foreach ( JsonElement item in ver.EnumerateArray() ) {
 				DownloadFile file = new DownloadFile( item );
 				fileList.Add( file );
-				/*
-				if ( file.serviceType == 1 ) {
-					excludeList.Add( file.name );
-				} else if ( file.name.StartsWith( "Local" ) && !file.name.Contains( "_en" ) ) {
-					excludeList.Add( file.name );
-				} else {
-					downloadList.Add( file );
-				}
-				*/
 			}
 			Console.WriteLine( $"Downloading {fileList.Count} files..." );
-			foreach ( DownloadFile file in fileList ) {
-				try {
-					file.Download();
-				} catch {
-					newList.Add( file );
-				}
-			}
-			while ( newList.Count > 0 ) {
-				Console.WriteLine( $"Retrying {newList.Count} files..." );
-				retryList = newList;
-				newList.Clear();
-				foreach ( DownloadFile file in retryList ) {
-					try {
-						file.Download();
-					} catch {
-						newList.Add( file );
+			DownloadFile[] newList = new DownloadFile[fileList.Count];
+			fileList.CopyTo( newList );
+			DirectoryInfo tmpDir = Utilities.CreateTempDirectory();
+			try {
+				do {
+					retryList.Clear();
+					foreach ( DownloadFile file in newList ) {
+						if ( !TryDownloadFile(
+								file.RemoteUrl,
+								Path.Join( tmpDir.FullName, file.LocalFile ) )
+							) {
+							retryList.Add( file );
+						}
+					}
+					if ( retryList.Count > 0 ) {
+						Console.WriteLine( $"Retrying {retryList.Count} files..." );
+						newList = new DownloadFile[retryList.Count];
+						retryList.CopyTo( newList );
+					}
+				} while ( retryList.Count > 0 );
+				Console.WriteLine( "Unzipping files..." );
+				string assetDirName = "mff-assets-" + version;
+				foreach ( DownloadFile file in fileList ) {
+					if ( File.Exists( Path.Join( tmpDir.FullName, file.LocalFile ) ) ) {
+						ZipFile.ExtractToDirectory( Path.Join( tmpDir.FullName, file.LocalFile ), Path.Join( tmpDir.FullName, assetDirName ), false );
+					} else {
+						throw new ApplicationException( $"File not found: {Path.Join( tmpDir.FullName, file.LocalFile )}" );
 					}
 				}
-			}
-			Console.WriteLine( "Unzipping files..." );
-			foreach ( DownloadFile file in fileList ) {
-				file.Unzip();
+				DateTime fileDate = DateTime.MinValue;
+				foreach ( string file in Directory.EnumerateFiles( Path.Join( tmpDir.FullName, assetDirName ) ) ) {
+					DateTime newFileDate = File.GetLastWriteTime( file );
+					if ( newFileDate > fileDate ) fileDate = newFileDate;
+				}
+				destDir = Path.Join( destDir, "mff-assets-" + version + "-" + fileDate.ToString( "yyyyMMdd" ) );
+				while ( Directory.Exists( destDir ) ) {
+					int lastDash = destDir.LastIndexOf( "-" );
+					if ( lastDash + 2 <= destDir.Length ) { // the dash is more than 2 spots from the end
+						destDir = destDir + "-1";
+					} else {
+						int suffix = Int32.Parse( destDir.Substring( lastDash + 1 ) );
+						destDir = destDir.Substring( 0, lastDash + 1 ) + ( suffix + 1 ).ToString();
+					}
+				}
+				Directory.Move( Path.Join( tmpDir.FullName, assetDirName ), destDir );
+			} finally {
+				Utilities.RemoveTempDirectory( tmpDir );
 			}
 			Console.WriteLine( "Done." );
 		}
@@ -831,14 +850,17 @@ namespace Mffer {
 		/// overwritten if exists.</param>
 		/// <returns><c>true</c> if the file is successfully downloaded and
 		/// written to disk, <c>false</c> otherwise.</returns>
-		static public bool TryDownloadFile( string url, string file ) {
+		static bool TryDownloadFile( string url, string file ) {
 			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Get, url );
 			request.Headers.Add( "Range", "bytes=0-" );
+			FileInfo newFile = new( file );
+			if ( newFile.Exists ) throw new ApplicationException( $"Unable to download; file '{newFile.FullName}' already exists." );
+			if ( !newFile.Directory.Exists ) newFile.Directory.Create();
 			try {
-				using ( FileStream localFile = new FileStream( file, FileMode.Create ) ) {
+				using ( FileStream localFile = new FileStream( newFile.FullName, FileMode.Create ) ) {
 					Www.Send( request ).Content.CopyTo( localFile, null, new System.Threading.CancellationToken() );
 				}
-			} catch {
+			} catch ( HttpRequestException ) {
 				return false;
 			}
 			return true;
