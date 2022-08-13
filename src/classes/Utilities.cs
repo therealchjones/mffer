@@ -51,6 +51,16 @@ namespace Mffer {
 			} while ( Directory.Exists( tmpDirName ) || File.Exists( tmpDirName ) );
 			return Directory.CreateDirectory( tmpDirPath );
 		}
+		/// <summary>
+		/// Removes an existing temporary directory and all contents
+		/// </summary>
+		/// <remarks>For safety's sake, first ensures the given directory is
+		/// within the system or user temporary directory; this is ideally used
+		/// to remove those previous created by <see
+		/// cref="CreateTempDirectory"/>.
+		/// </remarks>
+		/// <param name="tmpDir"></param>
+		/// <exception cref="ApplicationException"></exception>
 		internal static void RemoveTempDirectory( DirectoryInfo tmpDir ) {
 			string mainTempDir = Path.GetTempPath();
 			if ( !tmpDir.FullName.StartsWith( mainTempDir ) ) {
@@ -64,5 +74,24 @@ namespace Mffer {
 			}
 			tmpDir.Delete();
 		}
+		/// <summary>
+		/// Gets a <see cref="Version"/> name from a directory name
+		/// </summary>
+		/// <remarks>
+		/// Version directories should have a name that ends in the name of the
+		/// <see cref="Version"/>. A <see cref="Version"/> name should be a
+		/// string that starts with a digit. Given the name of a version
+		/// directory, this returns the <see cref="Version"/> name, or null
+		/// if the name doesn't contain one.
+		/// </remarks>
+		/// <param name="fullString">The name of a directory</param>
+		/// <returns>The name of the <see cref="Version"/></returns>
+		public static string GetVersionName( string fullString ) {
+			char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+			int firstDigit = fullString.IndexOfAny( digits );
+			if ( firstDigit == -1 ) return null;
+			return fullString.Substring( firstDigit );
+		}
 	}
+
 }

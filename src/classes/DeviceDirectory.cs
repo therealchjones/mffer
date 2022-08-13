@@ -12,7 +12,7 @@ namespace Mffer {
 	/// <para><see cref="DeviceDirectory"/>s are built from filesystem directory
 	/// trees that are subsets of the filesystem from an Android device upon
 	/// which Marvel Future Fight has been installed. Although the <see
-	/// cref="RootDirectory"/> matches the <c>/</c> directory from the Android
+	/// cref="VersionDirectory.RootDirectory"/> matches the <c>/</c> directory from the Android
 	/// filesystem, not all subdirectories need be included (and most
 	/// overlapping mounts are not); typically a <see cref="DeviceDirectory"/>
 	/// includes only those subtrees associated with the Marvel Future Fight
@@ -22,10 +22,9 @@ namespace Mffer {
 	/// <c>autoextract</c> program and has a name similar to
 	/// <c>mff-device-files-7.0.1-170126-20210423</c>.</para>
 	/// </remarks>
-	public class DeviceDirectory : GameObject {
-		IAssetReader assetReader;
+	public class DeviceDirectory : VersionDirectory {
 		/// <summary>
-		/// The files within the <see cref="RootDirectory"/> that will be loaded
+		/// The files within the <see cref="VersionDirectory.RootDirectory"/> that will be loaded
 		/// </summary>
 		static readonly string[] FilePaths = {
 			"data/Media/0/Android/data/com.netmarble.mherosgb/files/bundle/text",
@@ -33,49 +32,9 @@ namespace Mffer {
 			"data/data/com.netmarble.mherosgb/shared_prefs/com.netmarble.mherosgb.v2.playerprefs.xml"
 			};
 		/// <summary>
-		/// The filesystem directory in which this <see cref="DeviceDirectory"/>
-		/// is rooted
-		/// </summary>
-		[JsonIgnore]
-		DirectoryInfo RootDirectory { get; set; }
-		/// <summary>
-		/// Gets or sets the individual files containing data to evaluate,
-		/// indexed by file name
-		/// </summary>
-		/// <remarks>
-		/// <see cref="DataFiles"/> provides access to the files listed in <see
-		/// cref="FilePaths"/>.
-		/// </remarks>
-		public Dictionary<string, GameObject> DataFiles { get; }
-		/// <summary>
-		/// Gets the <see cref="Version"/> name for the <see
-		/// cref="DeviceDirectory"/>
-		/// </summary>
-		public string VersionName {
-			get {
-				string version = GetVersionName( RootDirectory.Name );
-				if ( version is null ) {
-					throw new InvalidDataException( $"Directory '{RootDirectory.FullName}' does not have a valid version name." );
-				}
-				return version;
-			}
-		}
-		/// <summary>
-		/// Gets the name of the <see cref="DeviceDirectory"/>
-		/// </summary>
-		[JsonIgnore]
-		public string Name { get => RootDirectory.Name; }
-		/// <summary>
-		/// Gets the full pathname of the <see cref="DeviceDirectory"/>
-		/// </summary>
-		[JsonIgnore]
-		public string FullName { get => RootDirectory.FullName; }
-		/// <summary>
 		/// Initializes a new <see cref="DeviceDirectory"/> instance
 		/// </summary>
 		DeviceDirectory() : base() {
-			DataFiles = new Dictionary<string, GameObject>();
-			assetReader = new AssetsToolsNETReader();
 		}
 		/// <summary>
 		/// Creates an instance of the <see cref="DeviceDirectory"/> class from
@@ -112,14 +71,6 @@ namespace Mffer {
 			}
 		}
 		/// <summary>
-		/// Loads all available data into the <see cref="DataFiles"/>
-		/// </summary>
-		public override void LoadAll() {
-			foreach ( GameObject entry in DataFiles.Values ) {
-				entry.LoadAll();
-			}
-		}
-		/// <summary>
 		/// Checks whether a given directory is a <see cref="DeviceDirectory"/>
 		/// </summary>
 		/// <param name="directory"><see cref="DirectoryInfo"/> to check</param>
@@ -132,41 +83,13 @@ namespace Mffer {
 		/// further checks are needed before assuming any other characteristics of
 		/// <see cref="DeviceDirectory"/></remarks>
 		public static bool IsDeviceDirectory( DirectoryInfo directory ) {
-			if ( directory is null ) {
-				throw new ArgumentNullException( "directory" );
-			}
-			if ( directory.Name is null ) {
-				throw new ArgumentException( "Directory has no name", "directory" );
-			}
-			if ( !directory.Exists ) {
-				throw new ArgumentException( "Directory does not exist", "directory" );
-			}
-			string version = GetVersionName( directory.Name );
-			if ( version is null ) return false;
+			if ( !VersionDirectory.IsVersionDirectory( directory ) ) return false;
 			foreach ( string filePath in FilePaths ) {
 				if ( !File.Exists( Path.Join( directory.FullName, filePath ) ) ) {
 					return false;
 				}
 			}
 			return true;
-		}
-		/// <summary>
-		/// Gets a <see cref="Version"/> name from a directory name
-		/// </summary>
-		/// <remarks>
-		/// Version directories should have a name that ends in the name of the
-		/// <see cref="Version"/>. A <see cref="Version"/> name should be a
-		/// string that starts with a digit. Given the name of a version
-		/// directory, this returns the <see cref="Version"/> name, or null
-		/// if the name doesn't contain one.
-		/// </remarks>
-		/// <param name="fullString">The name of a directory</param>
-		/// <returns>The name of the <see cref="Version"/></returns>
-		public static string GetVersionName( string fullString ) {
-			char[] digits = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-			int firstDigit = fullString.IndexOfAny( digits );
-			if ( firstDigit == -1 ) return null;
-			return fullString.Substring( firstDigit );
 		}
 	}
 }
