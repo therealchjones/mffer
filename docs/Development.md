@@ -235,6 +235,7 @@ running the programs.
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)
 -   Python 3
+-   Doxygen (for building documentation)
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
 

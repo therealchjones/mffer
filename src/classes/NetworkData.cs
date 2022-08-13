@@ -640,6 +640,20 @@ namespace Mffer {
 			}
 			return UserID;
 		}
+		/// <summary>
+		/// Reports the download version for available Marvel Future Fight
+		/// assets
+		/// </summary>
+		/// <remarks>
+		/// The "download version" is usually the same as the game version, but
+		/// if there are bug fixes within the game that do not require changes
+		/// to the data files, they may be different. The download version is
+		/// used to determine the proper URL from which to download the data
+		/// files, and it is part of the version string given in the names of
+		/// directories created when downloading assets.
+		/// </remarks>
+		/// <returns>a string representation of the currently available download
+		/// version</returns>
 		public static string GetDownloadVersion() {
 			JsonElement info = GetServerInfoForVersion( GetVersion() );
 			if ( info.TryGetProperty( "download_version", out JsonElement versionJson ) && !String.IsNullOrEmpty( versionJson.GetString() ) ) {

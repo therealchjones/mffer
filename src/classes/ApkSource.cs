@@ -6,8 +6,16 @@ using System.Text;
 using GooglePlayStoreApi;
 
 namespace Mffer {
+	/// <summary>
+	/// Represents a source from which to download APK files for the game
+	/// </summary>
 	public class ApkSource {
 		GooglePlayStoreClient PlayStore;
+		/// <summary>
+		/// Creates a new instance of an <see cref="ApkSource"/> using the given <see cref="AndroidCredentials"/>
+		/// </summary>
+		/// <param name="credentials"><see cref="AndroidCredentials"/> used to access this <see cref="ApkSource"/></param>
+		/// <exception cref="ArgumentNullException">if <paramref>credentials</paramref> is null</exception>
 		public ApkSource( AndroidCredentials credentials ) {
 			if ( credentials is null ) throw new ArgumentNullException( "credentials" );
 			string email = credentials.GetValue( "Email" );
