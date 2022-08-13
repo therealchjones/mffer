@@ -12,7 +12,7 @@ namespace Mffer {
 	/// validating command-line arguments) should be performed via this class. A
 	/// <see cref="DataSource"/> is built from <see cref="DataBundle"/>
 	/// objects that are each associated with a given version of
-	/// the <see cref="Game"/>. Data from each <see cref="DeviceDirectory"/> are
+	/// the <see cref="Game"/>. Data from each <see cref="VersionDirectory"/> are
 	/// loaded into the <see cref="DataBundle"/> associated with the same
 	/// version when requested by the a <see cref="Game"/> instance.</para>
 	/// <para>The <see cref="DataSource"/> class includes these definitions and
@@ -36,8 +36,9 @@ namespace Mffer {
 		/// <remarks>The <paramref name="pathName"/> is validated and examined
 		/// for appropriate directories to import.</remarks>
 		/// <seealso cref="Add(string)"/>
-		/// <param name="pathName">The full path name of a device directory or
-		/// parent of device directories</param>
+		/// <param name="pathName">The full path name of a <see
+		/// cref="VersionDirectory"/> or the parent of multiple version
+		/// directories.</param>
 		public DataSource( string pathName ) : this() {
 			Add( pathName );
 		}
@@ -46,10 +47,10 @@ namespace Mffer {
 		/// </summary>
 		/// <remarks>The <paramref name="pathName"/> is validated and examined
 		/// for appropriate directories to import. The given <paramref
-		/// name="pathName"/> may be a <see cref="DeviceDirectory"/> or a parent
-		/// of one or more <see cref="DeviceDirectory"/>s.</remarks>.
-		/// <param name="pathName">The full path name of a device directory or
-		/// parent of device directories</param>
+		/// name="pathName"/> may be a <see cref="VersionDirectory"/> or a parent
+		/// of one or more <see cref="VersionDirectory"/>s.</remarks>.
+		/// <param name="pathName">The full path name of a version directory or
+		/// parent of version directories</param>
 		public void Add( string pathName ) {
 			if ( String.IsNullOrEmpty( pathName ) ) {
 				throw new ArgumentNullException( "pathName" );
@@ -58,27 +59,30 @@ namespace Mffer {
 				throw new ArgumentException( "Directory does not exist", "pathName" );
 			}
 			DirectoryInfo directory = new DirectoryInfo( pathName );
-			if ( !DeviceDirectory.IsDeviceDirectory( directory ) ) {
-				List<DirectoryInfo> subdirs = directory.GetDirectories().ToList();
-				List<DirectoryInfo> deviceDirs = new List<DirectoryInfo>();
-				foreach ( DirectoryInfo subdir in subdirs ) {
-					if ( DeviceDirectory.IsDeviceDirectory( subdir ) ) {
-						deviceDirs.Add( subdir );
-						Add( subdir.FullName );
-					}
+			// We check in the following order:
+			// - the directory is a DeviceDirectory
+			// - the directory is a VersionDirectory
+			// - one or more subdirectories of the directory is a DeviceDirectory or a VersionDirectory
+			// - if none of the above, error
+			List<VersionDirectory> directories = new();
+			if ( DeviceDirectory.IsDeviceDirectory( directory ) )
+				directories.Add( new DeviceDirectory( directory ) );
+			else if ( VersionDirectory.IsVersionDirectory( directory ) ) directories.Add( new VersionDirectory( directory ) );
+			else {
+				foreach ( DirectoryInfo subdir in directory.EnumerateDirectories() ) {
+					if ( DeviceDirectory.IsDeviceDirectory( subdir ) ) directories.Add( new DeviceDirectory( subdir ) );
+					else if ( VersionDirectory.IsVersionDirectory( subdir ) ) directories.Add( new VersionDirectory( subdir ) );
 				}
-				if ( deviceDirs.Count == 0 ) {
-					throw new ArgumentException( "Directory is neither a device directory nor a parent of a device directory", "pathName" );
+			}
+			if ( directories.Count == 0 ) throw new ArgumentException( "Directory is neither a version directory nor a parent of a version directories", "pathName" );
+			foreach ( VersionDirectory versionDirectory in directories ) {
+				string version = versionDirectory.VersionName;
+				if ( VersionData.ContainsKey( version ) ) {
+					throw new FileLoadException( $"Unable to load version directory '{versionDirectory.FullName}': already loaded assets for version {version}" );
 				}
-				return;
+				DataBundle dataBundle = new DataBundle( versionDirectory );
+				VersionData.Add( version, dataBundle );
 			}
-			DeviceDirectory deviceDirectory = new DeviceDirectory( directory );
-			string version = deviceDirectory.VersionName;
-			if ( VersionData.ContainsKey( version ) ) {
-				throw new FileLoadException( $"Unable to load device directory '{deviceDirectory.FullName}': already loaded assets for version {version}" );
-			}
-			DataBundle dataBundle = new DataBundle( deviceDirectory );
-			VersionData.Add( version, dataBundle );
 		}
 		/// <summary>
 		/// Creates a list of the identified version names

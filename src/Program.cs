@@ -25,13 +25,15 @@ namespace Mffer {
 		static int Main( string[] args ) {
 			RootCommand command = SetupCommandLine();
 			Game = new Game();
-			// NetworkData.DownloadFiles();
-			// Alliances.GetProspectiveAlliances();
 			return command.Invoke( args );
 		}
-		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir ) {
-			LoadAll( dataDir );
-			WriteAll( outputDir );
+		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir, bool downloadAssets ) {
+			if ( downloadAssets ) {
+				NetworkData.DownloadAssets( outputDir.FullName );
+			} else {
+				LoadAll( dataDir );
+				WriteAll( outputDir );
+			}
 		}
 		/// <summary>
 		/// Loads all available game data
@@ -62,10 +64,13 @@ namespace Mffer {
 		}
 		static RootCommand SetupCommandLine() {
 			RootCommand command = new RootCommand( Description );
+			Option<bool> downloadAssetsOption = new Option<bool>(
+				new string[] { "--download-assets", "-D" },
+				"download asset files rather than process existing ones"
+			);
 			Option<DirectoryInfo> dataDirOption = new Option<DirectoryInfo>(
-				"--datadir", "source directory"
+				"--datadir", "source directory; required if -D is not used"
 			) {
-				IsRequired = true,
 				Arity = ArgumentArity.ExactlyOne
 			};
 			dataDirOption.ExistingOnly();
@@ -85,10 +90,24 @@ namespace Mffer {
 			outputDirOption.LegalFilePathsOnly();
 			command.AddOption( dataDirOption );
 			command.AddOption( outputDirOption );
+			command.AddOption( downloadAssetsOption );
+			command.AddValidator(
+				result => {
+					if ( result.GetValueForOption( downloadAssetsOption )
+						&& result.GetValueForOption( dataDirOption ) != null
+					) {
+						result.ErrorMessage = $"Cannot use '--datadir' option with '--download-assets' set to {result.GetValueForOption( downloadAssetsOption )}";
+					} else if ( !result.GetValueForOption( downloadAssetsOption )
+						&& result.GetValueForOption( dataDirOption ) == null ) {
+						result.ErrorMessage = $"'--datadir' option is required unless downloading assets";
+					}
+
+				}
+			);
 			command.SetHandler(
-				( DirectoryInfo dataDir, DirectoryInfo outputDir ) =>
-					OptionsHandler( dataDir, outputDir ),
-					dataDirOption, outputDirOption
+				( DirectoryInfo dataDir, DirectoryInfo outputDir, bool downloadAssets ) =>
+					OptionsHandler( dataDir, outputDir, downloadAssets ),
+					dataDirOption, outputDirOption, downloadAssetsOption
 			);
 			return command;
 		}

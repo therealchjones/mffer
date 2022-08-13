@@ -16,7 +16,7 @@ namespace Mffer {
 		/// Gets or sets the <see cref="DeviceDirectory"/> from which this
 		/// <see cref="DataBundle"/> loads its data
 		/// </summary>
-		DeviceDirectory BackingDirectory { get; set; }
+		VersionDirectory BackingDirectory { get; set; }
 		/// <summary>
 		/// Sets or gets a dictionary of files containing <see cref="Version"/>
 		/// data, indexed by filename
@@ -24,7 +24,7 @@ namespace Mffer {
 		/// <remarks>
 		/// <see cref="DataBundle.DataFiles"/> is a link to the <see
 		/// cref="DataBundle.BackingDirectory"/>'s <see
-		/// cref="DeviceDirectory.DataFiles"/> property for convenience.
+		/// cref="VersionDirectory.DataFiles"/> property for convenience.
 		/// </remarks>
 		[JsonIgnore] // Found in this.BackingDirectory instead
 		public Dictionary<string, GameObject> DataFiles {
@@ -40,9 +40,9 @@ namespace Mffer {
 		/// Initializes a new <see cref="DataBundle"/> instance based on the
 		/// given <see cref="DeviceDirectory"/>
 		/// </summary>
-		/// <param name="backingDirectory"><see cref="DeviceDirectory"/> from
+		/// <param name="backingDirectory"><see cref="VersionDirectory"/> from
 		/// which this <see cref="DataBundle"/> will load its data</param>
-		public DataBundle( DeviceDirectory backingDirectory ) : this() {
+		public DataBundle( VersionDirectory backingDirectory ) : this() {
 			if ( backingDirectory is null ) {
 				throw new ArgumentNullException( "backngDirectory" );
 			}

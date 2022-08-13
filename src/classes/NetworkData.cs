@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,7 +10,7 @@ using Snappier;
 
 namespace Mffer {
 	/// <summary>
-	/// Represents the static data available online
+	/// Represents the data available online
 	/// </summary>
 	/// <remarks>
 	/// <para>Some data are not included in the game files, but are not unique to an
@@ -46,7 +47,7 @@ namespace Mffer {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
-		static JsonElement ServerInfo = new JsonElement();
+		static JsonElement ServerInfo = GetServerInfo();
 		static float Uptime = 0;
 		static bool PreLoginInProgress = false;
 		static string PacketKey = null;
@@ -59,41 +60,55 @@ namespace Mffer {
 		static string DeviceKey = null;
 		static string IP = null;
 		static string AccessToken = null;
-		/// <summary>
-		/// A <see cref="string"/> representing the current version of the app.
-		/// </summary>
-		/// <remarks>
-		/// Obtained in libil2cpp.so via plugins: com/seed9/common/Common.java:getBundleVersion()
-		/// varies by version
-		/// </remarks>
-		public static string AppVersion = "7.9.0";
+		static string LatestVersion = null;
 		/// <summary>
 		/// Initializes the static <see cref="NetworkData"/> class
 		/// </summary>
 		static NetworkData() {
 		}
 		/// <summary>
-		/// Obtains data about the Netmarble servers
+		/// Obtains info about the Netmarble servers
 		/// </summary>
 		/// <remarks>
-		/// Downloads the Netmarble server data and loads it into
-		/// <see cref="NetworkData.ServerInfo"/> if necessary, and returns that
-		/// server info. Re-implementation of libil2cpp.so's
+		/// Downloads the Netmarble server data, loads it into <see
+		/// cref="NetworkData.ServerInfo"/>, and returns that server info.
+		/// Re-implementation of libil2cpp.so's
 		/// <c>PacketTransfer.SetServerData()</c> and the following processing
 		/// steps.
 		/// </remarks>
-		/// <returns></returns>
+		/// <returns>A <see cref="JsonElement"/> describing information about
+		/// various Netmarble servers for  the latest available version of
+		/// Marvel Future Fight</returns>
 		static JsonElement GetServerInfo() {
 			if ( ServerInfo.ValueKind == JsonValueKind.Undefined ) {
-				// Obtained in libil2cpp.so via PacketTransfer.SetServerDataOK()
-				JsonDocument info = JsonDocument.Parse(
-					Www.GetStringAsync( GetServerInfoUrl() ).Result,
-					JsonOptions
-				);
-				ServerInfo = info.RootElement.Clone();
-				info.Dispose();
+				ServerInfo = GetServerInfoForVersion( GetVersion() );
 			}
 			return ServerInfo;
+		}
+		/// <summary>
+		/// A <see cref="string"/> representing the latest version of the app.
+		/// </summary>
+		/// <remarks>
+		/// Obtained in libil2cpp.so via plugins:com/seed9/common/Common.java:getBundleVersion() and
+		/// varies by version; we obtain this by estimation and successive
+		/// checks with the Netmarble servers
+		/// </remarks>
+		static public string GetVersion() {
+			if ( String.IsNullOrWhiteSpace( LatestVersion ) ) LatestVersion = GetLatestAppVersion();
+			return LatestVersion;
+		}
+		/// <summary>
+		/// Obtained in libil2cpp.so via PacketTransfer.SetServerDataOK()
+		/// </summary>
+		/// <param name="version"></param>
+		/// <returns></returns>
+		/// <exception cref="ApplicationException"></exception>
+		static JsonElement GetServerInfoForVersion( string version ) {
+			if ( String.IsNullOrEmpty( version ) ) throw new ApplicationException( "Requires valid version string" );
+			JsonDocument doc = JsonDocument.Parse( Www.GetStringAsync( GetServerInfoUrl( version ) ).Result, JsonOptions );
+			JsonElement info = doc.RootElement.Clone();
+			doc.Dispose();
+			return info;
 		}
 		/// <summary>
 		/// Returns the URL from which to download Netmarble server information
@@ -102,45 +117,51 @@ namespace Mffer {
 		/// Remake of `libil2cpp.so`'s `ServerInfo.GetRemoteFilePath()`
 		/// </remarks>
 		/// <param name="appVersion">The version of MFF. If not provided, empty,
-		/// or only whitespace, uses <see cref="NetworkData"/>.AppVersion</param>
+		/// or only whitespace, uses <see cref="NetworkData.GetLatestAppVersion()"/></param>
 		/// <returns>A <see cref="String"/> representation of the URL</returns>
-		/// <exception cref="ArgumentException">if <see
-		/// paramref="appVersion"/>is not a usable version string</exception>
 		static string GetServerInfoUrl( string appVersion = "" ) {
-			if ( String.IsNullOrEmpty( appVersion ) ) appVersion = AppVersion;
-			if ( String.IsNullOrWhiteSpace( appVersion ) ) throw new ArgumentException( "Version must be a valid string", appVersion );
+			if ( String.IsNullOrWhiteSpace( appVersion ) ) appVersion = GetVersion();
 			return PatchUrl + "v" + appVersion + "/" + ServerFileName + "?p=" + Rng.Next( 0, 0x7fffffff ).ToString();
 		}
+		/// <summary>
+		/// Determines the latest available version of Marvel Future Fight
+		/// </summary>
+		/// <remarks>Derived from SceneTitle.CheckVersion(); here, the version
+		/// is determined by estimating based on the current date then making
+		/// successive calls to the Netmarble servers until getting a response
+		/// suggesting the correct version.</remarks>
+		/// <returns>a <see cref="String"/> identifying the latest available version</returns>
 		static string GetLatestAppVersion() {
-			if ( String.IsNullOrEmpty( AppVersion ) ) {
-				AppVersion = GetTimeBasedAppVersion();
+			string possVersion = GetTimeBasedAppVersion();
+			string minVersion;
+			string maxVersion;
+			List<string> possibleVersions = new();
+			while ( !possibleVersions.Contains( possVersion ) ) {
+				possibleVersions.Add( possVersion );
+				JsonElement serverDetail = GetServerDataForVersion( possVersion ).GetProperty( "detail" );
+				minVersion = serverDetail.GetProperty( "min_ver" ).GetString();
+				maxVersion = serverDetail.GetProperty( "max_ver" ).GetString();
+				if ( new System.Version( minVersion ) > new System.Version( possVersion ) ) possVersion = minVersion;
+				else if ( new System.Version( maxVersion ) > new System.Version( possVersion ) ) possVersion = maxVersion;
+				else return possVersion;
 			}
-			int[] versionArray = ParseAppVersion( AppVersion );
-			return "foo";
-		}
-		static int[] ParseAppVersion( string version ) {
-			int major, minor, patch;
-			string[] splitVersion = AppVersion.Split( '.', 3 );
-			if ( version.Length < 3 || !Int32.TryParse( splitVersion[2], out patch ) ) patch = 0;
-			if ( version.Length < 2 || !Int32.TryParse( splitVersion[1], out minor ) ) minor = 0;
-			if ( !Int32.TryParse( splitVersion[0], out major ) ) {
-				throw new ArgumentException( "Unable to parse version number", version );
-			}
-			return new int[3] { major, minor, patch };
+			throw new ApplicationException( "Unable to determine latest application version." );
 		}
 		/// <summary>
 		/// Obtain an approximate current app version
 		/// </summary>
 		/// <remarks>Determines a naive first guess for the current version
 		/// based on the current date. MFF makes 10 "minor" releases each year
-		/// and increases the "major" version every April historically.
+		/// and increases the "major" version every April historically. This
+		/// method intentionally underestimates the version.
 		/// </remarks>
-		/// <returns>A <see cref="String"/> representation of an estimated
+		/// <returns>a <see cref="String"/> representation of an estimated
 		/// current app version</returns>
 		static string GetTimeBasedAppVersion() {
 			int days = ( DateTimeOffset.UtcNow - new DateTimeOffset( 2014, 5, 1, 0, 0, 0, TimeSpan.Zero ) ).Days;
 			int major = days / 365;
-			int minor = Math.Min( ( days - ( major * 365 ) ) / 30, 9 );
+			int daysSinceMajor = days - major * 365;
+			int minor = Math.Max( daysSinceMajor / 31 - 2, 0 );
 			int patch = 0;
 			return major.ToString() + '.' + minor.ToString() + '.' + patch.ToString();
 		}
@@ -152,8 +173,11 @@ namespace Mffer {
 		/// </remarks>
 		/// <returns></returns>
 		static JsonElement GetServerData() {
-			string selectServerType = GetServerInfo().GetProperty( "select_server" ).GetProperty( "type" ).GetString();
-			JsonElement serverList = GetServerInfo().GetProperty( "server_list" );
+			return GetServerDataForVersion( GetVersion() );
+		}
+		static JsonElement GetServerDataForVersion( string version ) {
+			string selectServerType = GetServerInfoForVersion( version ).GetProperty( "select_server" ).GetProperty( "type" ).GetString();
+			JsonElement serverList = GetServerInfoForVersion( version ).GetProperty( "server_list" );
 			JsonElement selectedServer = new JsonElement();
 			foreach ( JsonElement server in serverList.EnumerateArray() ) {
 				if ( server.GetProperty( "type" ).GetString() == selectServerType ) {
@@ -355,7 +379,7 @@ namespace Mffer {
 			formData.Add( "cID", GetCID() );
 			formData.Add( "dID", GetDeviceId() );
 			formData.Add( "platform", "android" );
-			formData.Add( "ver", AppVersion );
+			formData.Add( "ver", LatestVersion );
 			formData.Add( "lang", "en" );
 			formData.Add( "country", "US" );
 			formData.Add( "ds", "1" );
@@ -616,12 +640,12 @@ namespace Mffer {
 			}
 			return UserID;
 		}
-		static string GetVersion() {
-			JsonElement info = GetServerInfo();
+		public static string GetDownloadVersion() {
+			JsonElement info = GetServerInfoForVersion( GetVersion() );
 			if ( info.TryGetProperty( "download_version", out JsonElement versionJson ) && !String.IsNullOrEmpty( versionJson.GetString() ) ) {
-				AppVersion = versionJson.GetString();
+				return versionJson.GetString();
 			}
-			return AppVersion;
+			return GetVersion();
 		}
 		static void SetPacketKey( string protoPacketKey = null ) {
 			PacketKey = protoPacketKey;
@@ -744,56 +768,77 @@ namespace Mffer {
 		/// <summary>
 		/// Obtain the downloadable content from Netmarble servers
 		/// </summary>
-		/// Based on the PatchSystem methods from the game
-		static public void DownloadFiles() {
-			Console.WriteLine( "Checking for files to download..." );
-
+		/// <remarks>
+		/// Based on the PatchSystem methods from the game. Downloads the asset
+		/// bundle files for the latest available version of the game.
+		/// </remarks>
+		/// <param name="destDir">directory into which downloaded files
+		/// will be written</param>
+		static public void DownloadAssets( string destDir ) {
+			if ( String.IsNullOrEmpty( destDir ) ) throw new ArgumentNullException( "destination" );
+			string version = GetDownloadVersion();
 			Dictionary<string, string> formData = new Dictionary<string, string> {
 				{ "platform", "0"},
-				{ "ver", GetVersion() }
+				{ "ver", version }
 			};
 			string url = GetServerUrl() + "GetVersion";
 			JsonElement ver = GetWww( url, formData ).RootElement.GetProperty( "desc" ).GetProperty( "ver" );
 			List<DownloadFile> fileList = new List<DownloadFile>();
 			List<DownloadFile> downloadList = new List<DownloadFile>();
-			List<DownloadFile> retryList, newList = new List<DownloadFile>();
-			Directory.CreateDirectory( "files/bundle/" );
+			List<DownloadFile> retryList = new List<DownloadFile>();
+			Directory.CreateDirectory( destDir );
 			foreach ( JsonElement item in ver.EnumerateArray() ) {
 				DownloadFile file = new DownloadFile( item );
 				fileList.Add( file );
-				/*
-				if ( file.serviceType == 1 ) {
-					excludeList.Add( file.name );
-				} else if ( file.name.StartsWith( "Local" ) && !file.name.Contains( "_en" ) ) {
-					excludeList.Add( file.name );
-				} else {
-					downloadList.Add( file );
-				}
-				*/
 			}
 			Console.WriteLine( $"Downloading {fileList.Count} files..." );
-			foreach ( DownloadFile file in fileList ) {
-				try {
-					file.Download();
-				} catch {
-					newList.Add( file );
-				}
-			}
-			while ( newList.Count > 0 ) {
-				Console.WriteLine( $"Retrying {newList.Count} files..." );
-				retryList = newList;
-				newList.Clear();
-				foreach ( DownloadFile file in retryList ) {
-					try {
-						file.Download();
-					} catch {
-						newList.Add( file );
+			DownloadFile[] newList = new DownloadFile[fileList.Count];
+			fileList.CopyTo( newList );
+			DirectoryInfo tmpDir = Utilities.CreateTempDirectory();
+			try {
+				do {
+					retryList.Clear();
+					foreach ( DownloadFile file in newList ) {
+						if ( !TryDownloadFile(
+								file.RemoteUrl,
+								Path.Join( tmpDir.FullName, file.LocalFile ) )
+							) {
+							retryList.Add( file );
+						}
+					}
+					if ( retryList.Count > 0 ) {
+						Console.WriteLine( $"Retrying {retryList.Count} files..." );
+						newList = new DownloadFile[retryList.Count];
+						retryList.CopyTo( newList );
+					}
+				} while ( retryList.Count > 0 );
+				Console.WriteLine( "Unzipping files..." );
+				string assetDirName = "mff-assets-" + version;
+				foreach ( DownloadFile file in fileList ) {
+					if ( File.Exists( Path.Join( tmpDir.FullName, file.LocalFile ) ) ) {
+						ZipFile.ExtractToDirectory( Path.Join( tmpDir.FullName, file.LocalFile ), Path.Join( tmpDir.FullName, assetDirName ), false );
+					} else {
+						throw new ApplicationException( $"File not found: {Path.Join( tmpDir.FullName, file.LocalFile )}" );
 					}
 				}
-			}
-			Console.WriteLine( "Unzipping files..." );
-			foreach ( DownloadFile file in fileList ) {
-				file.Unzip();
+				DateTime fileDate = DateTime.MinValue;
+				foreach ( string file in Directory.EnumerateFiles( Path.Join( tmpDir.FullName, assetDirName ) ) ) {
+					DateTime newFileDate = File.GetLastWriteTime( file );
+					if ( newFileDate > fileDate ) fileDate = newFileDate;
+				}
+				destDir = Path.Join( destDir, "mff-assets-" + version + "-" + fileDate.ToString( "yyyyMMdd" ) );
+				while ( Directory.Exists( destDir ) ) {
+					int lastDash = destDir.LastIndexOf( "-" );
+					if ( lastDash + 2 <= destDir.Length ) { // the dash is more than 2 spots from the end
+						destDir = destDir + "-1";
+					} else {
+						int suffix = Int32.Parse( destDir.Substring( lastDash + 1 ) );
+						destDir = destDir.Substring( 0, lastDash + 1 ) + ( suffix + 1 ).ToString();
+					}
+				}
+				Directory.Move( Path.Join( tmpDir.FullName, assetDirName ), destDir );
+			} finally {
+				Utilities.RemoveTempDirectory( tmpDir );
 			}
 			Console.WriteLine( "Done." );
 		}
@@ -805,14 +850,17 @@ namespace Mffer {
 		/// overwritten if exists.</param>
 		/// <returns><c>true</c> if the file is successfully downloaded and
 		/// written to disk, <c>false</c> otherwise.</returns>
-		static public bool TryDownloadFile( string url, string file ) {
+		static bool TryDownloadFile( string url, string file ) {
 			HttpRequestMessage request = new HttpRequestMessage( HttpMethod.Get, url );
 			request.Headers.Add( "Range", "bytes=0-" );
+			FileInfo newFile = new( file );
+			if ( newFile.Exists ) throw new ApplicationException( $"Unable to download; file '{newFile.FullName}' already exists." );
+			if ( !newFile.Directory.Exists ) newFile.Directory.Create();
 			try {
-				using ( FileStream localFile = new FileStream( file, FileMode.Create ) ) {
+				using ( FileStream localFile = new FileStream( newFile.FullName, FileMode.Create ) ) {
 					Www.Send( request ).Content.CopyTo( localFile, null, new System.Threading.CancellationToken() );
 				}
-			} catch {
+			} catch ( HttpRequestException ) {
 				return false;
 			}
 			return true;
