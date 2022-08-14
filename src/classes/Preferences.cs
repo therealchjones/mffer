@@ -14,13 +14,13 @@ namespace Mffer {
 	/// Represents the settings from an XML-based preferences file
 	/// </summary>
 	/// <remarks>
-	/// Each <see cref="PreferenceFile"/> represents the multiple
-	/// key-value pairs present in an XML file, typically from the
+	/// Each <see cref="PreferenceFile"/> represents the multiple key-value
+	/// pairs present in an XML file, typically from the
 	/// <code>shared_prefs</code> directory on an Android device or other
-	/// locations corresponding to Unity's <code>PlayerPrefs</code> class.
+	/// locations corresponding to Unity's <a
+	/// href="https://docs.unity3d.com/ScriptReference/PlayerPrefs.html">PlayerPrefs</a>
+	/// class.
 	/// </remarks>
-	/// <seealso
-	/// href="https://docs.unity3d.com/ScriptReference/PlayerPrefs.html"/>
 	public class PreferenceFile : PreferenceObject {
 		/// <summary>
 		/// Gets or sets the file from which preferences are obtained

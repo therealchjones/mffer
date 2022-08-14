@@ -24,7 +24,13 @@ namespace Mffer {
 		/// Gets or sets the included versions of the game
 		/// </summary>
 		public List<Version> Versions { get; set; }
+		/// <summary>
+		/// Gets or sets a list of players in the game
+		/// </summary>
 		List<Player> Players { get; set; }
+		/// <summary>
+		/// Gets or sets a list of alliances (guilds) in the game
+		/// </summary>
 		List<Alliance> Alliances { get; set; }
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Game"/> class

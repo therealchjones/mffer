@@ -13,8 +13,8 @@ namespace Mffer {
 		/// <param name="name">name of <see cref="Asset"/> to seek</param>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> to
 		/// search</param>
-		/// <returns><c>true</c> if <see paramref="assetBundle"/> contains <see
-		/// paramref="name"/>, <c>false</c> otherwise</returns>
+		/// <returns><c>true</c> if <paramref name="assetBundle"/> contains <paramref
+		/// name="name"/>, <c>false</c> otherwise</returns>
 		public bool Contains( string name, AssetBundle assetBundle );
 		/// <summary>
 		/// Loads data from a file into a new <see cref="AssetBundle"/>
@@ -37,7 +37,7 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> to read</param>
 		/// <returns><see cref="List{String}"/> of the names of all <see
-		/// cref="Asset"/>s in <see paramref="assetBundle"/></returns>
+		/// cref="Asset"/>s in <paramref name="assetBundle"/></returns>
 		public List<string> GetAllAssetNames( AssetBundle assetBundle );
 		/// <summary>
 		/// Obtain a <see cref="List{Asset}"/> of of all the <see
@@ -45,7 +45,7 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> to read</param>
 		/// <returns><see cref="List{Asset}"/> of of all the <see
-		/// cref="Asset"/>s in <see paramref="assetBundle"/></returns>
+		/// cref="Asset"/>s in <paramref name="assetBundle"/></returns>
 		public List<Asset> GetAllAssets( AssetBundle assetBundle );
 	}
 }

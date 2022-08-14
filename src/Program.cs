@@ -13,8 +13,18 @@ namespace Mffer {
 	/// </remarks>
 	/// <seealso cref="Program.Alliances"/>
 	public static partial class Program {
+		/// <summary>
+		/// Represents the game to be analyzed
+		/// </summary>
 		static Game Game { get; set; }
+		/// <summary>
+		/// Description of this program
+		/// </summary>
 		const string Description = "Marvel Future Fight exploration & reporting";
+		/// <summary>
+		/// Catalogs options to be allowed on the command line
+		/// </summary>
+		/// <remarks>Not currently used; see <see cref="SetupCommandLine"/></remarks>
 		static readonly Dictionary<string[], string> Options = new Dictionary<string[], string> {
 			{new[]{"--datadir","-d"}, "directory containing Marvel Future Fight data files"},
 			{new[]{"--outputdir","-o"}, "directory in which to place created files"}
@@ -27,6 +37,17 @@ namespace Mffer {
 			Game = new Game();
 			return command.Invoke( args );
 		}
+		/// <summary>
+		/// Provides the logic for mffer program flow based on the options given
+		/// on the command line
+		/// </summary>
+		/// <param name="dataDir"><see cref="DirectoryInfo"/> requested as a
+		/// source directory via the '--datadir' option</param>
+		/// <param name="outputDir"><see cref="DirectoryInfo"/> requested as an
+		/// output directory via the '--outputdir' option</param>
+		/// <param name="downloadAssets"><see cref="Boolean"/> noting whether to
+		/// download data files (<c>true</c>) or process them
+		/// (<c>false</c>)</param>
 		static void OptionsHandler( DirectoryInfo dataDir, DirectoryInfo outputDir, bool downloadAssets ) {
 			if ( downloadAssets ) {
 				NetworkData.DownloadAssets( outputDir.FullName );
@@ -62,6 +83,10 @@ namespace Mffer {
 			Game.ToJsonFiles( saveDir );
 			Game.WriteCSVs( saveDir );
 		}
+		/// <summary>
+		/// Load the options to be evaluated by parsing the command line
+		/// </summary>
+		/// <returns><see cref="RootCommand"/> object to be invoked after parsing the command line</returns>
 		static RootCommand SetupCommandLine() {
 			RootCommand command = new RootCommand( Description );
 			Option<bool> downloadAssetsOption = new Option<bool>(

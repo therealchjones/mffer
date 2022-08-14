@@ -39,6 +39,12 @@ namespace Mffer {
 		/// cref="AssetBundle.GetAllAssets()"/> methods instead.
 		/// </remarks>
 		internal SortedDictionary<string, Asset> Assets { get; set; }
+		/// <summary>
+		/// Creates an instance of an <see cref="AssetBundle"/> associated with
+		/// the given <see cref="IAssetReader"/>
+		/// </summary>
+		/// <param name="reader">The <see cref="IAssetReader"/> used to access the new <see cref="AssetBundle"/></param>
+		/// <exception cref="ArgumentNullException">if the parameter is <c>null</c></exception>
 		internal AssetBundle( IAssetReader reader ) : base() {
 			if ( reader is null ) throw new ArgumentNullException( nameof( reader ) );
 			assetReader = reader;
@@ -63,10 +69,10 @@ namespace Mffer {
 		/// </remarks>
 		/// <param name="name"><see cref="String"/> naming the desired <see
 		/// cref="Asset"/></param>
-		/// <returns><c>true</c> if an <see cref="Asset"/> named <see
-		/// paramref="name"/> is included in this <see cref="AssetBundle"/>,
+		/// <returns><c>true</c> if an <see cref="Asset"/> named <paramref
+		/// name="name"/> is included in this <see cref="AssetBundle"/>,
 		/// <c>false</c> otherwise</returns>
-		/// <exception cref="ArgumentNullException"> if <see paramref="name"/>
+		/// <exception cref="ArgumentNullException"> if <paramref name="name"/>
 		/// is null or empty</exception>
 		public bool Contains( string name ) {
 			if ( String.IsNullOrEmpty( name ) ) throw new ArgumentNullException( nameof( name ) );

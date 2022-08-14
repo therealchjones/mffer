@@ -37,6 +37,10 @@ namespace Mffer {
 				BindingFlags.Instance | BindingFlags.Public, null, null, null );
 			return converter;
 		}
+		/// <summary>
+		/// Helper class to convert GameObject-derived objects to and from JSON
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
 		class GameObjectJsonConverterInner<T> : JsonConverter<T> where T : GameObject {
 			/// <summary>
 			/// Creates a GameObject-derived object from JSON formatted text
@@ -49,10 +53,10 @@ namespace Mffer {
 			/// <c>null</c>, a <see cref="String"/>, a GameObject-derived object, or a <see cref="List{T}"/>
 			/// of GameObject-derived objects.
 			/// </remarks>
-			/// <param name="reader"></param>
-			/// <param name="typeToConvert"></param>
-			/// <param name="options"></param>
-			/// <returns></returns>
+			/// <param name="reader"><see cref="Utf8JsonReader"/> from which JSON is being read</param>
+			/// <param name="typeToConvert">the type of object being created</param>
+			/// <param name="options">options for serializing the object</param>
+			/// <returns>the object being read</returns>
 			public override T Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options ) {
 				if ( reader.TokenType != JsonTokenType.StartObject ) throw new JsonException();
 				T gameObject = Activator.CreateInstance<T>();
@@ -139,7 +143,7 @@ namespace Mffer {
 			/// </summary>
 			/// <remarks>
 			/// This is intended to determine the more specific derived type being parsed
-			/// by examining the properties of an object in JSON format. The <see paramref="reader"/>
+			/// by examining the properties of an object in JSON format. The <paramref name="reader"/>
 			/// should be positioned inside the beginning of the object (e.g., having already
 			/// read the <c>{</c> starting the object). The reader is not suitable for use after this
 			/// method as its position is not guaranteed. Thus, use a clone of the reader used for
@@ -193,6 +197,12 @@ namespace Mffer {
 				typeList.Sort( CompareMatches );
 				return typeList.Last().Key;
 			}
+			/// <summary>
+			/// Comparison algorithm for type-fit as used in <see cref="InferGameObjectType"/>
+			/// </summary>
+			/// <param name="x">First type to compare</param>
+			/// <param name="y">Second type to compare</param>
+			/// <returns>1 if <c>x</c> is a better fit than <c>y</c>, -11 if <c>y</c> is a better fit than <c>x</c>, 0 otherwise</returns>
 			private static int CompareMatches( KeyValuePair<Type, int[]> x, KeyValuePair<Type, int[]> y ) {
 				int bothX = x.Value[0];
 				int typeOnlyX = x.Value[1];
@@ -211,7 +221,16 @@ namespace Mffer {
 				return 0;
 			}
 		}
+		/// <summary>
+		/// <see cref="IComparer{T}"/> implementation for comparing property names alphabetically
+		/// </summary>
 		class PropertyComparer : IComparer<PropertyInfo> {
+			/// <summary>
+			/// Compare two <see cref="PropertyInfo"/> objects by name alphabetically
+			/// </summary>
+			/// <param name="a">first object</param>
+			/// <param name="b">second object</param>
+			/// <returns>the (alphabetical) comparison by name in the invariant culture</returns>
 			public int Compare( PropertyInfo a, PropertyInfo b ) {
 				return StringComparer.InvariantCulture.Compare( a.Name, b.Name );
 			}
