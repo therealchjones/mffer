@@ -23,7 +23,7 @@ namespace Mffer {
 		/// Creates a new instance of <see cref="AndroidCredentials"/> using data from the given file
 		/// </summary>
 		/// <param name="fileName">the path to a file containing Android/Google authentication &amp; authorization data</param>
-		/// <exception cref="ArgumentException">if the file <paramref>fileName</paramref> does not exist</exception>
+		/// <exception cref="ArgumentException">if the file <paramref name="fileName"/> does not exist</exception>
 		public AndroidCredentials( string fileName ) : this() {
 			FileInfo file = new( fileName );
 			if ( !file.Exists ) throw new ArgumentException( $"File '{file.FullName}' does not exist." );

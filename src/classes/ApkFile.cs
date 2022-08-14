@@ -15,7 +15,13 @@ namespace Mffer {
 	/// includes properties and methods for accessing those files.
 	/// </remarks>
 	public class ApkFile : GameObject {
+		/// <summary>
+		/// The <see cref="AndroidManifest"/> of this <see cref="ApkFile"/>
+		/// </summary>
 		AndroidManifest Manifest { get; set; }
+		/// <summary>
+		/// Represents the file within the local filesystem
+		/// </summary>
 		FileInfo File { get; set; }
 		/// <summary>
 		/// Creates a new instance of an <see cref="ApkFile"/> from the given filename

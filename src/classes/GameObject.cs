@@ -17,7 +17,7 @@ namespace Mffer {
 	/// Each <see cref="GameObject"/> is a simple object containing data that
 	/// can be formatted as a string, an array of <see cref="GameObject"/>s,
 	/// a dictionary of named <see cref="GameObject"/>s, or <c>null</c>. A <see
-	/// cref="GameObject"/> can be easily represented in JSON format; a <see
+	/// cref="GameObject"/> can be easily represented in <a href="https://json.org">JSON</a> format; a <see
 	/// cref="GameObject"/> is analagous to a JSON document (though more
 	/// restrictive). <see cref="GameObject"/>s form the base from which other
 	/// game data such as <see cref="Asset"/>s are derived. This class
@@ -26,8 +26,11 @@ namespace Mffer {
 	/// </remarks>
 	/// <seealso cref="Asset"/>
 	/// <seealso cref="PreferenceObject"/>
-	/// <seealso href="https://json.org/"/>
 	public class GameObject : DynamicObject {
+		/// <summary>
+		/// The underlying value of the <see cref="GameObject"/>
+		/// </summary>
+		/// <remarks>This should be accessed via the <see cref="Value"/> property</remarks>
 		private dynamic _value = null;
 		/// <summary>
 		/// Gets or sets the value of the object, which may be a string,
@@ -84,10 +87,23 @@ namespace Mffer {
 			if ( IsDictionary() ) return ( (Dictionary<string, GameObject>)Value ).Keys.AsEnumerable();
 			else return new List<string>();
 		}
+		/// <summary>
+		/// Integral accessor for this <see cref="GameObject"/>
+		/// </summary>
+		/// <param name="index"><see cref="Int32"/> index of the value to return</param>
+		/// <returns>The value at <c>index</c>, iff this <see cref="GameObject"/> is an array type</returns>
+		/// <exception cref="InvalidOperationException">if this <see cref="GameObject"/> is not an array type</exception>
 		GameObject GetObject( int index ) {
 			if ( IsArray() ) return Value[index];
 			throw new InvalidOperationException( $"Unable to get an object at index {index}: value is not an array." );
 		}
+		/// <summary>
+		/// String accessor for this <see cref="GameObject"/>
+		/// </summary>
+		/// <param name="key"><see cref="String"/> key of the value to return</param>
+		/// <returns>The value at <c>key</c>, iff this <see cref="GameObject"/> is a <see cref="Dictionary{K,V}"/> type</returns>
+		/// <exception cref="InvalidOperationException">if this <see cref="GameObject"/> is not a <see cref="Dictionary{K,V}"/> type</exception>
+
 		GameObject GetObject( string key = null ) {
 			if ( key is null ) return this;
 			if ( IsDictionary() ) return Value[key];
@@ -100,14 +116,14 @@ namespace Mffer {
 		/// When it is possible to definitively select a <see cref="String"/> or
 		/// null value that is represented by the <see cref="GameObject.Value"/>
 		/// property or its descendants, optionally with a single level of
-		/// branching where a branch can be chosen with the <see
-		/// paramref="key"/> parameter, <see cref="GetValue"/> will return the value.
+		/// branching where a branch can be chosen with the <paramref
+		/// name="key"/> parameter, <see cref="GetValue"/> will return the value.
 		/// </remarks>
 		/// <param name="key">The optional name of the value for which to
 		/// search</param>
 		/// <returns>The value associated with this <see cref="GameObject"/> and
 		/// (optionally) <paramref name="key"/></returns>
-		/// <throws><see cref="KeyNotFoundException"/> if no single value can be definitively chosen</throws>
+		/// <exception cref="KeyNotFoundException"> if no single value can be definitively chosen</exception>
 		public virtual string GetValue( string key = null ) {
 			if ( key is null ) {
 				if ( IsString() || _value is null ) return Value;
@@ -145,6 +161,11 @@ namespace Mffer {
 				}
 			}
 		}
+		/// <summary>
+		/// Reports whether a <see cref="GameObject"/> is an array type
+		/// </summary>
+		/// <param name="obj">the <see cref="GameObject"/> to evaluate; this <see cref="GameObject"/> if <c>null</c></param>
+		/// <returns><c>true</c> if the <see cref="GameObject"/> is an array type, <c>falce</c> otherwise</returns>
 		bool IsArray( dynamic obj = null ) {
 			Type type;
 			if ( obj is null ) {
@@ -157,6 +178,11 @@ namespace Mffer {
 			else
 				return false;
 		}
+		/// <summary>
+		/// Reports whether a <see cref="GameObject"/> is a dictionary type
+		/// </summary>
+		/// <param name="obj">the <see cref="GameObject"/> to evaluate; this <see cref="GameObject"/> if <c>null</c></param>
+		/// <returns><c>true</c> if the <see cref="GameObject"/> is a dictiomary type, <c>falce</c> otherwise</returns>
 		bool IsDictionary( dynamic obj = null ) {
 			Type type;
 			if ( obj is null ) {
@@ -172,10 +198,29 @@ namespace Mffer {
 				return false;
 			}
 		}
+		/// <summary>
+		/// Reports whether a <see cref="GameObject"/> is a string type
+		/// </summary>
+		/// <returns><c>true</c> if the <see cref="GameObject"/> is an string type, <c>falce</c> otherwise</returns>
 		bool IsString() {
 			if ( _value is string ) return true;
 			else return false;
 		}
+		/// <summary>
+		/// Reports whether an object is a valid value for a <see
+		/// cref="GameObject"/>
+		/// </summary>
+		/// <remarks>
+		/// <see cref="GameObject"/>s must be representable as a <c>null</c>
+		/// value, a <see cref="String"/>, an array of <see
+		/// cref="GameObject"/>s, or a <see cref="Dictionary{K,V}"/> of <see
+		/// cref="GameObject"/>s indexed by <see cref="String"/>s.
+		/// </remarks>
+		/// <param name="obj">the object to evaluate</param>
+		/// <returns><c>true</c> if the object is null, a string, an array of
+		/// <see cref="GameObject"/>s, or a string-indexed <see
+		/// cref="Dictionary{K,V}"/> of <see cref="GameObject"/>s;
+		/// <c>falce</c> otherwise</returns>
 		bool IsValidValue( dynamic obj ) {
 			if ( obj is null || obj is string || IsArray( obj ) || IsDictionary( obj ) ) return true;
 			else return false;
@@ -492,8 +537,8 @@ namespace Mffer {
 			return jsonArray;
 		}
 		/// <summary>
-		/// Writes the <see cref="GameObject"/> in JSON format to a <see
-		/// cref="Stream"/>
+		/// Writes the <see cref="GameObject"/> in <a
+		/// href="https://json.org">JSON</a> format to a <see cref="Stream"/>
 		/// </summary>
 		/// <remarks>
 		/// In contrast to the default <see
@@ -505,7 +550,6 @@ namespace Mffer {
 		/// which the method is called as well as throughout its membership
 		/// hierarchy.
 		/// </remarks>
-		/// <seealso href="https://json.org"/>
 		public void ToJson( Stream stream, JsonSerializerOptions serializerOptions = default, JsonWriterOptions writerOptions = default ) {
 			Utf8JsonWriter utf8Writer = new Utf8JsonWriter( stream, writerOptions );
 			try {

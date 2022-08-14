@@ -10,12 +10,15 @@ namespace Mffer {
 	/// Represents a source from which to download APK files for the game
 	/// </summary>
 	public class ApkSource {
+		/// <summary>
+		/// The <see cref="GooglePlayStoreClient"/> associated with this <see cref="ApkSource"/>
+		/// </summary>
 		GooglePlayStoreClient PlayStore;
 		/// <summary>
 		/// Creates a new instance of an <see cref="ApkSource"/> using the given <see cref="AndroidCredentials"/>
 		/// </summary>
 		/// <param name="credentials"><see cref="AndroidCredentials"/> used to access this <see cref="ApkSource"/></param>
-		/// <exception cref="ArgumentNullException">if <paramref>credentials</paramref> is null</exception>
+		/// <exception cref="ArgumentNullException">if <paramref name="credentials"/> is null</exception>
 		public ApkSource( AndroidCredentials credentials ) {
 			if ( credentials is null ) throw new ArgumentNullException( "credentials" );
 			string email = credentials.GetValue( "Email" );
@@ -36,6 +39,14 @@ namespace Mffer {
 			byte[] apkBytes = PlayStore.DownloadApk( appName ).GetAwaiter().GetResult();
 			File.WriteAllBytes( $"{appName}.apk", apkBytes );
 		}
+		/// <summary>
+		/// Encrypts the account email and password for transmission to Google
+		/// </summary>
+		/// <param name="email">the account's email address</param>
+		/// <param name="password">the account's password</param>
+		/// <returns>a string containing the encrypted credentials</returns>
+		/// <exception cref="ArgumentNullException">if either parameter is null or the empty string</exception>
+		/// <seealso cref="PasswordCryptor"/>
 		string EncryptCredentials( string email, string password ) {
 			if ( String.IsNullOrEmpty( email ) || String.IsNullOrEmpty( password ) ) throw new ArgumentNullException();
 			string publicKey = "AAAAgMom/1a/v0lblO2Ubrt60J2gcuXSljGFQXgcyZWveWLEwo6prwgi3iJIZdodyhKZQrNWp5nKJ3srRXcUW+F1BD3baEVGcmEgqaLZUNBjm057pKRI16kB0YppeGx5qIQ5QjKzsR8ETQbKLNWgRY0QRNVz34kMJR3P/LgHax/6rmf5AAAAAwEAAQ==";
@@ -66,7 +77,17 @@ namespace Mffer {
 			string message = Convert.ToBase64String( messageBytes );
 			return message.Replace( '+', '-' ).Replace( '/', '_' );
 		}
+		/// <summary>
+		/// Includes static methods for encoding a password to be sent to Google servers
+		/// </summary>
 		internal class PasswordCryptor {
+			/// <summary>
+			/// Performs RSA encryption of the given byte array with the provided parameters
+			/// </summary>
+			/// <param name="modulus">the algorithm's modulus</param>
+			/// <param name="exponent">the algorithm's exponent</param>
+			/// <param name="bytes">the byte array to encrypt</param>
+			/// <returns>a byte array encrypted via the algorithm</returns>
 			private static byte[] RSAEncrypt( byte[] modulus, byte[] exponent, byte[] bytes ) {
 				using ( var rsa = new RSACryptoServiceProvider() ) {
 					rsa.ImportParameters( new RSAParameters {
@@ -77,11 +98,25 @@ namespace Mffer {
 					return rsa.Encrypt( bytes, true );
 				}
 			}
+			/// <summary>
+			/// Returns a "web safe" version of a base 64-encoded string
+			/// </summary>
+			/// <param name="str">A "regular" or web safe base 64-encoded
+			/// string</param>
+			/// <returns>a "web safe" version of the string (with <c>+</c> and
+			/// <c>/</c> characters changed to <c>-</c> and <c>_</c>,
+			/// respectively)</returns>
 			private static string GetUrlSafeBase64( string str ) {
 				return str
 					.Replace( "+", "-" )
 					.Replace( "/", "_" );
 			}
+			/// <summary>
+			/// Encrypts user credentials to send to Google servers
+			/// </summary>
+			/// <param name="email">the email address of the user</param>
+			/// <param name="password">the password of the user</param>
+			/// <returns>the encrypted credentials as a web-safe base-64 encoded string</returns>
 			public static string EncryptPassword( string email, string password ) {
 				var strPublicKey = "AAAAgMom/1a/v0lblO2Ubrt60J2gcuXSljGFQXgcyZWveWLEwo6prwgi3iJIZdodyhKZQrNWp5nKJ3srRXcUW+F1BD3baEVGcmEgqaLZUNBjm057pKRI16kB0YppeGx5qIQ5QjKzsR8ETQbKLNWgRY0QRNVz34kMJR3P/LgHax/6rmf5AAAAAwEAAQ==";
 				var publicKeyBytes = Convert.FromBase64String( strPublicKey );

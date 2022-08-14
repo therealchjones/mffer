@@ -167,7 +167,7 @@ namespace Mffer {
 			/// include previously returned alliances, so increasing the number
 			/// of alliances to be sought can increase the number of alliances
 			/// which need to be searched far more. Once at least
-			/// <see paramref="toSearch"/> alliances without weekly
+			/// <paramref name="toSearch"/> alliances without weekly
 			/// contribution points are found, they are returned in a
 			/// <see cref="List{Alliance}"/>.
 			/// </remarks>

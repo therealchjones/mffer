@@ -26,40 +26,120 @@ namespace Mffer {
 	/// included in the mffer documentation.</para>
 	/// </remarks>
 	public static class NetworkData {
-		// Obtained in libil2cpp.so via PatchSystem.GetBaseUrl()
+		/// <summary>
+		/// The primary URL for all patch (e.g., downloadable) data
+		/// </summary>
+		/// <remarks>Obtained in libil2cpp.so via PatchSystem.GetBaseUrl()</remarks>
 		const string PatchBaseUrl = "http://mheroesgb.gcdn.netmarble.com/mheroesgb/";
-		// Obtained in libil2cpp.so via PatchSystem.CreateUrl()
+		/// <summary>
+		/// System-specific URL for all patch (e.g., downloadable) data
+		/// </summary>
+		/// <remarks>Obtained in libil2cpp.so via PatchSystem.CreateUrl()</remarks>
 		const string PatchUrl = PatchBaseUrl + "DIST/Android/";
+		/// <summary>
+		/// Country code for the download URL
+		/// </summary>
+		/// <remarks>In mffer, constant string set to "US"</remarks>
 		const string CountryCode = "US";
-		// Obtained in libil2cpp.so via ServerInfo.GetFileName()
+		/// <summary>
+		/// Name of the server information file
+		/// </summary>
+		/// <remarks>Obtained in libil2cpp.so via ServerInfo.GetFileName()</remarks>
 		const string ServerFileName = "server_info.txt";
-		// Obtained in libil2cpp.so via CryptUtil.get_aesKey()
+		/// <summary>
+		/// The AES encryption key used for file decryption if none has been downloaded
+		/// </summary>
+		/// <remarks>Obtained in libil2cpp.so via CryptUtil.get_aesKey()</remarks>
 		const string AesKey = "!YJKLNGD";
-		// Obtained via a long path in Java to base/resources/res/xml/nmconfiguration.xml
+		/// <summary>
+		/// The game code used to download data
+		/// </summary>
+		/// <remarks>Obtained via a long path in Java to base/resources/res/xml/nmconfiguration.xml</remarks>
 		const string GameCode = "mherosgb";
-		// Obtained via Java::PlatformDetails.getGateWayUrl()
+		/// <summary>
+		/// Base URL used to sign in on Netmarble servers
+		/// </summary>
+		/// <remarks>Obtained via Java::PlatformDetails.getGateWayUrl()</remarks>
 		const string GateWayUrl = "https://apis.netmarble.com";
-		// Obtained in libil2cpp.so vi PluginsNetmarbleS.GetTimeZone()
+		/// <summary>
+		/// Time zone used in HTTP requests
+		/// </summary>
+		/// <remarks>Obtained in libil2cpp.so vi
+		/// PluginsNetmarbleS.GetTimeZone(). In mffer, constant
+		/// "+1:00"</remarks>
 		const string TimeZone = "+1:00";
+		/// <summary>
+		/// <see cref="HttpClient"/> used to send requests to Netmarble
+		/// </summary>
 		static readonly HttpClient Www = new HttpClient();
+		/// <summary>
+		/// Random number generator used when needed to format HTTP requests to Netmarble
+		/// </summary>
 		static readonly Random Rng = new Random();
+		/// <summary>
+		/// <see cref="JsonDocumentOptions"/> used when parsing Netmarble responses
+		/// </summary>
 		static readonly JsonDocumentOptions JsonOptions = new JsonDocumentOptions {
 			CommentHandling = JsonCommentHandling.Skip,
 			AllowTrailingCommas = true
 		};
+		/// <summary>
+		/// Data about Netmarble's servers and the game
+		/// </summary>
 		static JsonElement ServerInfo = GetServerInfo();
+		/// <summary>
+		/// Uptime reported in HTTP requests; saved as static property for
+		/// strictly increasing value
+		/// </summary>
 		static float Uptime = 0;
+		/// <summary>
+		/// Flag to note whether a PreLogin is already underway, to avoid
+		/// attempting nested requests
+		/// </summary>
 		static bool PreLoginInProgress = false;
+		/// <summary>
+		/// Encryption key used to encrypt messages and decrypt responses
+		/// </summary>
 		static string PacketKey = null;
+		/// <summary>
+		/// Identifier for Android device
+		/// </summary>
 		static string CID = null;
+		/// <summary>
+		/// Identifier for the current login session
+		/// </summary>
 		static string SessionID = null;
+		/// <summary>
+		/// Identifier for the current user
+		/// </summary>
 		static string UserID = null;
+		/// <summary>
+		/// Type of Android device
+		/// </summary>
 		static string DeviceModel = null;
+		/// <summary>
+		/// Identifier for Android device
+		/// </summary>
 		static string DeviceId = null;
+		/// <summary>
+		/// Identifier for Android device and user
+		/// </summary>
 		static string AndroidId = null;
+		/// <summary>
+		/// Identifier for Android device, user, and application
+		/// </summary>
 		static string DeviceKey = null;
+		/// <summary>
+		/// IP address provided in HTTP requests
+		/// </summary>
 		static string IP = null;
+		/// <summary>
+		/// String used in HTTP requests
+		/// </summary>
 		static string AccessToken = null;
+		/// <summary>
+		/// The most recent version of Marvel Future Fight available
+		/// </summary>
 		static string LatestVersion = null;
 		/// <summary>
 		/// Initializes the static <see cref="NetworkData"/> class
@@ -175,6 +255,11 @@ namespace Mffer {
 		static JsonElement GetServerData() {
 			return GetServerDataForVersion( GetVersion() );
 		}
+		/// <summary>
+		/// Get settings from Netmarble for the given version of Marvel Future Fight
+		/// </summary>
+		/// <param name="version">Version name to request</param>
+		/// <returns>A server data document corresponding to the given version</returns>
 		static JsonElement GetServerDataForVersion( string version ) {
 			string selectServerType = GetServerInfoForVersion( version ).GetProperty( "select_server" ).GetProperty( "type" ).GetString();
 			JsonElement serverList = GetServerInfoForVersion( version ).GetProperty( "server_list" );
@@ -203,6 +288,12 @@ namespace Mffer {
 		static string GetServerUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr" ).GetString();
 		}
+		/// <summary>
+		/// Get a document from Netmarble servers via HTTP using the given form data
+		/// </summary>
+		/// <param name="url">URL from which to request the document</param>
+		/// <param name="formData">data to send with the request</param>
+		/// <returns>A decrypted and decompressed response in <see cref="JsonDocument"/> format</returns>
 		static JsonDocument GetWww( string url, Dictionary<string, string> formData ) {
 			url = url + "?cKey=" + GetUptime();
 			string param = url;
@@ -216,6 +307,11 @@ namespace Mffer {
 			string text = Encoding.UTF8.GetString( decompressedBytes );
 			return JsonDocument.Parse( text );
 		}
+		/// <summary>
+		/// Get a document from Netmarble using HTTP using the given parameters
+		/// </summary>
+		/// <param name="param">Parameters in URL (HTTP GET) format</param>
+		/// <returns>A decrypted document in <see cref="JsonDocument"/> format</returns>
 		static JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
@@ -260,9 +356,13 @@ namespace Mffer {
 			// many other settings for data fields/properties within WWWUtil.Get(), dunno what's useful
 			// (essentially all the properties defined in game's WWWData)
 			//MyData.RestoreAllPreviousData();
-
 			return request;
 		}
+		/// <summary>
+		/// Formats an <see cref="HttpContent"/> object appropriate for an HTTP request to the Netmarble servers based on the provided parameter string
+		/// </summary>
+		/// <param name="param">an HTTP GET-style parameter string to be formatted into an <see cref="HttpContent"/> object</param>
+		/// <returns>an <see cref="HttpContent"/> object including the information from <paramref name="param"/> and additional required data</returns>
 		static HttpContent BuildRequestContent( string param ) {
 			string completeParam = AddDefaultPacketParameter( param );
 			string key = GetPacketKey();
@@ -319,7 +419,7 @@ namespace Mffer {
 			return AesEncrypt( headerBytes, GetAesKey() + GetAesKey() );
 		}
 		/// <summary>
-		///
+		/// Sign in to Netmarble servers
 		/// </summary>
 		/// <remarks>
 		/// Re-implementation of SceneTitle.SignIn() and the many methods it calls
@@ -354,17 +454,19 @@ namespace Mffer {
 			}
 			return PacketKey;
 		}
+		/// <summary>
+		/// Loads the data needed for later Netmarble download requests
+		/// </summary>
 		static void LoadConstants() {
 			PreLogin();
 		}
 		/// <summary>
-		///
+		/// Obtains data from Netmarble used for later downloads
 		/// </summary>
 		/// <remarks>
 		/// Reimplementation of libil2cpp.so's SceneTitle.PreLogin() and the
 		/// following steps through SceneTitle.PreLoginOK()
 		/// </remarks>
-		/// <exception cref="NotImplementedException"></exception>
 		static void PreLogin() {
 			PreLoginInProgress = true;
 			string url = GetSslUrl() + "PreLogin";
@@ -421,27 +523,39 @@ namespace Mffer {
 			PreLoginInProgress = false;
 		}
 		/// <summary>
-		///
+		/// Get the player ID (another name for the CID)
 		/// </summary>
 		/// <remarks>
 		/// Re-implementation of Java::SessionImpl.getPlayerID()
 		/// </remarks>
-		/// <returns></returns>
+		/// <returns>the player ID as a string</returns>
 		static string GetPlayerId() {
 			return GetCID();
 		}
+		/// <summary>
+		/// Get the CID
+		/// </summary>
+		/// <returns>the CID in string format</returns>
 		static string GetCID() {
 			if ( String.IsNullOrEmpty( CID ) ) {
 				CID = Guid.NewGuid().ToString( "N" ).ToUpper();
 			}
 			return CID;
 		}
+		/// <summary>
+		/// Get the device model
+		/// </summary>
+		/// <returns>the device model in string format</returns>
 		static string GetDeviceModel() {
 			if ( String.IsNullOrEmpty( DeviceModel ) ) {
 				DeviceModel = "HTC One";
 			}
 			return DeviceModel;
 		}
+		/// <summary>
+		/// Get the device ID
+		/// </summary>
+		/// <returns>The device ID in string format</returns>
 		static string GetDeviceId() {
 			if ( String.IsNullOrEmpty( DeviceId ) ) {
 				string part1 = "0,0," + GetAndroidId();
@@ -451,18 +565,22 @@ namespace Mffer {
 			return DeviceId;
 		}
 		/// <summary>
-		///
+		/// Get the device key
 		/// </summary>
 		/// <remarks>
 		/// Reimplementation of Java::SessionImpl.getDeviceKey()
 		/// </remarks>
-		/// <returns></returns>
+		/// <returns>the device key as a string</returns>
 		static string GetDeviceKey() {
 			if ( String.IsNullOrEmpty( DeviceKey ) ) {
 				DeviceKey = Guid.NewGuid().ToString( "N" ).ToUpper();
 			}
 			return DeviceKey;
 		}
+		/// <summary>
+		/// Get the Android ID
+		/// </summary>
+		/// <returns>the Android ID as a string</returns>
 		static string GetAndroidId() {
 			if ( String.IsNullOrEmpty( AndroidId ) ) {
 				long num = ( Rng.Next() << 31 | Rng.Next() );
@@ -470,6 +588,13 @@ namespace Mffer {
 			}
 			return AndroidId;
 		}
+		/// <summary>
+		/// Encrypt the given byte array using the AES algorithm and the given
+		/// key and an initialization vector that is the same as the key
+		/// </summary>
+		/// <param name="decrypted">the byte array to encrypt</param>
+		/// <param name="key">a string of the AES key to use</param>
+		/// <returns>a byte array of the encrypted message</returns>
 		static string AesEncrypt( string decrypted, string key ) {
 			ASCIIEncoding asciiEncoding = new ASCIIEncoding();
 			byte[] rijKey = asciiEncoding.GetBytes( key );
@@ -478,10 +603,24 @@ namespace Mffer {
 			byte[] encryptedBytes = AesEncrypt( decryptedBytes, rijKey );
 			return Convert.ToBase64String( encryptedBytes );
 		}
+		/// <summary>
+		/// Encrypt the given byte array using the AES algorithm and the given key and initialization vector
+		/// </summary>
+		/// <param name="decrypted">the byte array to encrypt</param>
+		/// <param name="key">a string of the AES key to use</param>
+		/// <param name="isKeyIvSame"><c>true</c> the the initialization vector should be the same as the key; if <c>false</c>, a "blank" 16-byte array will be used as the IV</param>
+		/// <returns>a byte array of the encrypted message</returns>
 		static byte[] AesEncrypt( byte[] decrypted, string key, bool isKeyIvSame = true ) {
 			byte[] keyBytes = ( new ASCIIEncoding() ).GetBytes( key );
 			return AesEncrypt( decrypted, keyBytes, isKeyIvSame );
 		}
+		/// <summary>
+		/// Encrypt the given byte array using the AES algorithm and the given key and initialization vector
+		/// </summary>
+		/// <param name="decrypted">the byte array to encrypt</param>
+		/// <param name="key">a byte array of the AES key to use</param>
+		/// <param name="isKeyIvSame"><c>true</c> the the initialization vector should be the same as the key; if <c>false</c>, a "blank" 16-byte array will be used as the IV</param>
+		/// <returns>a byte array of the encrypted message</returns>
 		static byte[] AesEncrypt( byte[] decrypted, byte[] key, bool isKeyIvSame = true ) {
 			byte[] encryptedBytes = null;
 			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
@@ -503,6 +642,11 @@ namespace Mffer {
 			}
 			return encryptedBytes;
 		}
+		/// <summary>
+		/// Calculate the MD5 hash of a string
+		/// </summary>
+		/// <param name="input">the string to evaluate</param>
+		/// <returns>the MD5 hash of <paramref name="input"/> as a string</returns>
 		static string GetMD5( string input ) {
 			string output;
 			using ( MD5 md5hash = MD5.Create() ) {
@@ -515,11 +659,21 @@ namespace Mffer {
 			}
 			return output;
 		}
+		/// <summary>
+		/// Get a mock IP from which the request is originating
+		/// </summary>
+		/// <remarks>In mffer, always returns a constant internal IP</remarks>
+		/// <returns>An IP address as a string</returns>
 		static string GetIP() {
 			if ( String.IsNullOrEmpty( IP ) )
 				IP = "10.0.2.16";
 			return IP;
 		}
+		/// <summary>
+		/// Decrypts a response from Netmarble servers
+		/// </summary>
+		/// <param name="encryptedBytes">the encrypted response to decrypt</param>
+		/// <returns>the decrypted response as a string</returns>
 		static string ResponseDecrypt( byte[] encryptedBytes ) {
 			string key = GetPacketKey();
 			if ( String.IsNullOrEmpty( key ) ) {
@@ -528,6 +682,13 @@ namespace Mffer {
 			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
 			return Decrypt( encryptedBytes, keyBytes, keyBytes );
 		}
+		/// <summary>
+		/// Decrypt the encrypted byte array using an AES algorithm with the given key and initialization vector
+		/// </summary>
+		/// <param name="text">the encrypted byte array</param>
+		/// <param name="key">the AES key</param>
+		/// <param name="iv">the AES initialization vector</param>
+		/// <returns>a string of the decrypted message</returns>
 		static string Decrypt( byte[] text, byte[] key, byte[] iv ) {
 			using ( Aes rijAlg = Aes.Create() ) {
 				rijAlg.KeySize = key.Length << 3;
@@ -546,6 +707,13 @@ namespace Mffer {
 				}
 			}
 		}
+		/// <summary>
+		/// Decrypt the encrypted byte array using an AES algorithm with the given key and initialization vector
+		/// </summary>
+		/// <param name="text">the encrypted byte array</param>
+		/// <param name="key">the AES key</param>
+		/// <param name="iv">the AES initialization vector</param>
+		/// <returns>a byte array of the decrypted message</returns>
 		static byte[] DecryptBytes( byte[] text, byte[] key, byte[] iv ) {
 			using ( Aes rijAlg = Aes.Create() ) {
 				rijAlg.KeySize = key.Length << 3;
@@ -575,15 +743,27 @@ namespace Mffer {
 				}
 			}
 		}
+		/// <summary>
+		/// Get the access token, signing in if not already done so
+		/// </summary>
+		/// <returns>the access token as a string</returns>
 		static string GetAccessToken() {
 			if ( String.IsNullOrEmpty( AccessToken ) ) {
 				SignIn();
 			}
 			return AccessToken;
 		}
+		/// <summary>
+		/// Get the AES encryption key
+		/// </summary>
+		/// <returns>the AES key as a string</returns>
 		static string GetAesKey() {
 			return AesKey;
 		}
+		/// <summary>
+		/// Get the game code
+		/// </summary>
+		/// <returns>the game code as a string</returns>
 		static string GetGameCode() {
 			return GameCode;
 		}
@@ -607,6 +787,12 @@ namespace Mffer {
 		static string GetSslUrl() {
 			return GetServerData().GetProperty( "detail" ).GetProperty( "websvr_ssl" ).GetString();
 		}
+		/// <summary>
+		/// Gets the time zone
+		/// </summary>
+		/// <remarks>Though the game reports the device's time zone, this method
+		/// always returns "+1:00"</remarks>
+		/// <returns>The time zone as a string</returns>
 		static string GetTimeZone() {
 			return TimeZone;
 		}
@@ -661,9 +847,20 @@ namespace Mffer {
 			}
 			return GetVersion();
 		}
+		/// <summary>
+		/// Sets the <see cref="PacketKey"/> property to the given string or null
+		/// </summary>
+		/// <param name="protoPacketKey">the string to assign to <see cref="PacketKey"/></param>
 		static void SetPacketKey( string protoPacketKey = null ) {
 			PacketKey = protoPacketKey;
 		}
+		/// <summary>
+		/// Creates a text key from the given string.
+		/// </summary>
+		/// <remarks>Does not do anything persistent (like saving  field or
+		/// property value) at this time; does not appear to be used in the
+		/// process currently.</remarks>
+		/// <param name="text">string from which the text key will be derived</param>
 		static void SetTextKey( string text ) {
 			string pk = GetPacketKey();
 			System.Text.UnicodeEncoding unicodeEncoding = new System.Text.UnicodeEncoding( false, true, false );
@@ -730,6 +927,11 @@ namespace Mffer {
 			}
 			return true;
 		}
+		/// <summary>
+		/// Get an <see cref="Alliance"/> by name from the Netmarble servers
+		/// </summary>
+		/// <param name="allianceName">the name of the sought alliance</param>
+		/// <returns>An <see cref="Alliance"/> with the given name, or null if none is found</returns>
 		static Alliance FindAlliance( string allianceName ) {
 			string param = "SearchAlliance?guildName="
 				+ Convert.ToBase64String( Encoding.UTF8.GetBytes( allianceName ) );
@@ -881,7 +1083,7 @@ namespace Mffer {
 		}
 	}
 }
-
+// Old code originally determined via RE but no longer used; here for future reference
 /*
 class NetworkDataOld {
 	string accessToken;

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Mffer {
 	/// <summary>
@@ -52,6 +51,18 @@ namespace Mffer {
 		public Version( string versionName ) : this() {
 			Name = versionName;
 		}
+		/// <summary>
+		/// Get the dynamic object with the given name from a particular data
+		/// file
+		/// </summary>
+		/// <param name="objectName">The name of the object to seek</param>
+		/// <param name="dataFile">The name of the data file to search</param>
+		/// <returns>The object with the given name from the given data
+		/// file</returns>
+		/// <exception cref="ArgumentNullException">if the <paramref
+		/// name="dataFile"/> name is null</exception>
+		/// <exception cref="KeyNotFoundException">if no object with the given
+		/// name is found in the data file with the given name</exception>
 		dynamic GetData( string objectName, string dataFile ) {
 			if ( dataFile is null ) {
 				throw new ArgumentNullException( "dataFile" );
@@ -68,6 +79,13 @@ namespace Mffer {
 				throw new KeyNotFoundException( $"Unable to find asset '{objectName}' in '{dataFile}'" );
 			}
 		}
+		/// <summary>
+		/// Get the dynamic data object with the given name in any data file
+		/// </summary>
+		/// <param name="objectName">The name of the object to seek</param>
+		/// <returns>The dynamic object with the given name</returns>
+		/// <exception cref="KeyNotFoundException">if no object with the given
+		/// name is found in any data file</exception>
 		dynamic GetData( string objectName ) {
 			dynamic data = null;
 			foreach ( string dataFile in Data.DataFiles.Keys ) {
@@ -80,6 +98,14 @@ namespace Mffer {
 			}
 			throw new KeyNotFoundException( $"Unable to find asset '{objectName}'" );
 		}
+		/// <summary>
+		/// Attempt to load the asset with the given object name
+		/// </summary>
+		/// <param name="objectName">The name of the asset to seek</param>
+		/// <param name="data">The <see cref="Asset"/> object to load</param>
+		/// <returns><c>true</c> if the asset was found and loaded into
+		/// <paramref name="data"/> successfully, <c>false</c>
+		/// otherwise</returns>
 		bool TryGetAsset( string objectName, out Asset data ) {
 			data = null;
 			try {

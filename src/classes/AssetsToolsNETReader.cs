@@ -34,12 +34,12 @@ namespace Mffer {
 			return assetBundles[assetBundle.Path].AssetInfo.ContainsKey( name );
 		}
 		/// <inheritdoc/>
-		/// <exception cref="ArgumentNullException"> if <see paramref="path"/>
+		/// <exception cref="ArgumentNullException"> if <paramref name="path"/>
 		/// is null or the empty string</exception>
-		/// <exception cref="FileNotFoundException"> if <see paramref="path"/>
+		/// <exception cref="FileNotFoundException"> if <paramref name="path"/>
 		/// is not a path to an existing file</exception>
-		/// <exception cref="NotSupportedException"> if the asset bundle at <see
-		/// paramref="path"/> is in a format that is not readable by this <see
+		/// <exception cref="NotSupportedException"> if the asset bundle at <paramref
+		/// name="path"/> is in a format that is not readable by this <see
 		/// cref="AssetsToolsNETReader"/></exception>
 		public AssetBundle LoadAssetBundle( string path ) {
 			if ( String.IsNullOrEmpty( path ) ) throw new ArgumentNullException( "path" );
@@ -85,8 +85,8 @@ namespace Mffer {
 			return assetBundles[path].AssetBundle;
 		}
 		/// <inheritdoc/>
-		/// <exception cref="KeyNotFoundException"> if <see
-		/// paramref="assetName"/> is not the name of an <see cref="Asset"/>
+		/// <exception cref="KeyNotFoundException"> if <paramref
+		/// name="assetName"/> is not the name of an <see cref="Asset"/>
 		/// within the provided <see cref="AssetBundle"/></exception>
 		public Asset GetAsset( string assetName, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
@@ -135,16 +135,42 @@ namespace Mffer {
 			}
 			return assetBundle.Assets.Values.ToList();
 		}
+		/// <summary>
+		/// Evaluates the given <see cref="AssetBundle"/> object to ensure its validity
+		/// </summary>
+		/// <param name="assetBundle"><see cref="AssetBundle"/> to evaluate</param>
+		/// <exception cref="ArgumentNullException">if the <see cref="AssetBundle"/> is null</exception>
+		/// <exception cref="InvalidOperationException">if the <see cref="AssetBundle"/> has an invalid path or has not been properly loaded by this <see cref="AssetsToolsNETReader"/></exception>
 		private void CheckAssetBundle( AssetBundle assetBundle ) {
 			if ( assetBundle is null ) throw new ArgumentNullException( nameof( assetBundle ) );
 			if ( String.IsNullOrEmpty( assetBundle.Path ) ) throw new InvalidOperationException( "No path found for asset bundle" );
 			string path = Path.GetFullPath( assetBundle.Path );
 			if ( !assetBundles.ContainsKey( assetBundle.Path ) ) throw new InvalidOperationException( "This asset bundle was not loaded by this reader." );
 		}
+		/// <summary>
+		/// Represents the collected objects associated with a single <see
+		/// cref="AssetBundle"/> accessed by this <see
+		/// cref="AssetsToolsNETReader"/>
+		/// </summary>
 		private class AssetsToolsNETBundle {
+			/// <summary>
+			/// The <see cref="AssetBundle"/> accessed by the reader
+			/// </summary>
 			internal AssetBundle AssetBundle { get; }
+			/// <summary>
+			/// The internal representation of the <see cref="AssetBundle"/> within the reader
+			/// </summary>
 			internal BundleFileInstance AssetBundleInstance { get; }
+			/// <summary>
+			/// The data on individual assets within this <see cref="AssetBundle"/>
+			/// </summary>
 			internal Dictionary<string, AssetFileInfoEx> AssetInfo { get; }
+			/// <summary>
+			/// Creates a new <see cref="AssetsToolsNETBundle"/> from the given objects
+			/// </summary>
+			/// <param name="path">Filesystem path to the <see cref="AssetBundle"/></param>
+			/// <param name="bundleFileInstance"><see cref="BundleFileInstance"/> associated with the <see cref="AssetBundle"/></param>
+			/// <param name="assetBundle">The <see cref="AssetBundle"/></param>
 			internal AssetsToolsNETBundle( string path, BundleFileInstance bundleFileInstance, AssetBundle assetBundle ) {
 				AssetBundle = assetBundle;
 				AssetBundle.Path = path;
@@ -163,7 +189,7 @@ namespace Mffer {
 		/// into a <see cref="GameObject"/>
 		/// </summary>
 		/// <param name="assetField">The <see cref="AssetsTools.NET.AssetTypeValueField"/> to convert</param>
-		/// <returns>a <see cref="GameObject"/> representation of <see paramref="assetField"/></returns>
+		/// <returns>a <see cref="GameObject"/> representation of <paramref name="assetField"/></returns>
 		/// <exception cref="ApplicationException"> if the field cannot be converted to a <see cref="GameObject"/></exception>
 		public static GameObject ToGameObject( this AssetTypeValueField assetField ) {
 			if ( assetField.templateField.isArray == true ) {
