@@ -82,8 +82,6 @@ In many circumstances, autoanalyze will take several hours to complete.
 -   POSIX-like environment for which all the used programs are available (Linux,
     macOS/OS X, or Windows with Cygwin or another POSIX layer)
 -   git (used to obtain automatically downloaded tools)
--   [.NET 5.0 SDK](https://dotnet.microsoft.com/download/dotnet/5.0) (required
-    for building automatically downloaded tools)
 -   [Ghidra](https://ghidra-sre.org)
 -   Java runtime (required by Ghidra); consider
     [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
