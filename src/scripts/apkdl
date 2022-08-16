@@ -12,7 +12,7 @@ usage() {
 description() {
 	echo "mandatory arguments:"
 	echo "	-o output_directory"
-	echo '		place game program files in an apks-<date>/ directory'
+	echo '		place game program files in an mff-apks-<version>/ directory'
 	echo '		within output_directory'
 	echo "options:"
 	echo "	-h	print this summarized help message and quit"

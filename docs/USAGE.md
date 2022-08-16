@@ -112,7 +112,7 @@ run on a system that
 [supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
 but no .NET or Mono runtime needs to be separately installed.
 
-The other tools, apkdl and autoanalyze, have a few other requirements:
+The other tools, [apkdl](apkdl.md) and [autoanalyze](autoanalyze.md), have further requirements:
 
 -   POSIX-like typical development environment (required for apkdl and
     autoanalyze)
@@ -172,12 +172,12 @@ data, and background music) can be explored with tools like
 
 #### Using and presenting the data
 
-Upload the results using the webapp.
+Upload the `Roster-`_`version`_`.csv` file using the webapp.
 
 #### Exploring the code
 
 A great deal of information may be accessible via the raw files in
-_`output_directory`_`/files`, but the majority of code for running the game,
+_`asset_directory`_`/mff-assets-`_`version`_, but the majority of code for running the game,
 including algorithms and use of the data, are less easily evaluated directly.
 More details and specifics of how the program works are given in
 [The Structure of Marvel Future Fight](mff.md), but much of the code you'll want to review is in a
