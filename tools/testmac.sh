@@ -11,9 +11,10 @@ MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}"
 PATH="${PATH:+$PATH:}/usr/local/bin:${HOME:-}/.dotnet"
 PROGRAMNAME="$(basename "$0")"
 PROGRAMDIR="$(dirname "$0")"
-VM_NAME="${VM_NAME:-macOS}"
-VM_HOSTNAME="${VM_HOSTNAME:-macos.shared}"
+VM_NAME="${VM_NAME:-macvm}"
+VM_HOSTNAME="${VM_HOSTNAME:-macvm.shared}"
 VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
+MKMACVM_VERSION="0.3.1"
 
 # As convention, only main() should exit the program, should do so only if
 # unable to reasonably continue, and should explain why.
@@ -27,7 +28,7 @@ main() {
 		setup || exitError
 		testBuild || exitError
 		getRelease || exitError
-		testAutoextract || failError "autoextract"
+		testApkdl || failError "apkdl"
 		testAutoanalyze || failError "autoanalyze"
 		testMffer || failError "mffer"
 	else # on virtual machine
@@ -35,10 +36,10 @@ main() {
 			exitError "Unable to determine what to do next on the virtual machine."
 		fi
 		case "$state" in
-			build) buildRelease ;;
-			mffer) runMffer ;;
-			autoextract) runAutoextract ;;
-			autoanalyze) runAutoanalyze ;;
+			build) buildRelease || exit 1 ;;
+			mffer) runMffer || exit 1 ;;
+			apkdl) runApkdl || exit 1 ;;
+			autoanalyze) runAutoanalyze || exit 1 ;;
 			*)
 				exitError "Unable to determine what to do next on the virtual machine."
 				exit 1
@@ -80,6 +81,11 @@ buildRelease() {
 			return 1
 		fi
 	fi
+	if ! ./.dotnet/dotnet restore mffer/mffer.csproj >"$DEBUGOUT" \
+		|| ! ./.dotnet/dotnet clean mffer/mffer.csproj >"$DEBUGOUT"; then
+		warnError "Build tree is not in a usable state; unable to build mffer."
+		return 1
+	fi
 	if [ -n "$MFFER_SOURCE_COMMIT" ] \
 		&& [ -z "$(git -C mffer status --porcelain)" ] \
 		&& [ "$MFFER_SOURCE_COMMIT" = "$(git -C mffer tag --points-at)" ]; then
@@ -103,7 +109,7 @@ buildRelease() {
 }
 checkVmState() {
 	state=""
-	for file in autoextract autoanalyze mffer; do
+	for file in apkdl autoanalyze mffer; do
 		if [ -f "$file" ]; then
 			if [ -n "$state" ]; then
 				warnError "Both '$state' and '$file' exist."
@@ -122,8 +128,12 @@ cleanup() {
 	exitstatus="$?"
 	trap - EXIT
 	if [ -n "$MFFER_TEST_TMPDIR" ]; then
-		echo "Cleaning up..." >"$VERBOSEOUT"
-		rm -rf "$MFFER_TEST_TMPDIR"
+		if [ 0 != "$exitstatus" ]; then
+			echo "Test files in progress available in $MFFER_TEST_TMPDIR"
+		else
+			echo "Cleaning up..." >"$VERBOSEOUT"
+			rm -rf "$MFFER_TEST_TMPDIR"
+		fi
 	fi
 	exit "$exitstatus"
 }
@@ -138,30 +148,27 @@ createVm() {
 	echo "Creating virtual machine '$VM_NAME'..." >"$VERBOSEOUT"
 	if [ -z "$MFFER_TEST_TMPDIR" ]; then createTempDir || return 1; fi
 	VM_NAME="${1:-$VM_NAME}"
-	if ! curl -sS -L -o "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0.tar.gz \
-		https://github.com/therealchjones/mkmacvm/archive/v0.3.0.tar.gz \
-		|| ! tar -xf "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0.tar.gz -C "$MFFER_TEST_TMPDIR"; then
+	if ! curl -sS -L -o "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.1.tar.gz \
+		https://github.com/therealchjones/mkmacvm/archive/v"$MKMACVM_VERSION".tar.gz \
+		|| ! tar -xf "$MFFER_TEST_TMPDIR"/mkmacvm-"$MKMACVM_VERSION".tar.gz -C "$MFFER_TEST_TMPDIR"; then
 		warnError "Unable to get mkmacvm"
 		return 1
 	fi
 	if ! isRoot; then
 		warnError "Creating the virtual machine requires root privileges. Using sudo..."
 		if ! sudo VERBOSE=y \
-			"$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0/mkmacvm "$VM_NAME"; then
+			"$MFFER_TEST_TMPDIR"/mkmacvm-"$MKMACVM_VERSION"/mkmacvm; then
 			warnError "Unable to build virtual machine"
 			return 1
 		fi
 	else
-		if ! VERBOSE=y "$MFFER_TEST_TMPDIR"/mkmacvm-0.3.0/mkmacvm "$VM_NAME"; then
+		if ! VERBOSE=y "$MFFER_TEST_TMPDIR"/mkmacvm-"$MKMACVM_VERSION"/mkmacvm; then
 			warnError "Unable to build virtual machine"
 			return 1
 		fi
 	fi
-	# Android emulator nested virtualization only seems to work under the slower
-	# Parallels hypervisor rather than Apple's.
 	if ! prlctl set "$VM_NAME" --startup-view headless >"$DEBUGOUT" \
 		|| ! prlctl set "$VM_NAME" --memsize 8192 >"$DEBUGOUT" \
-		|| ! prlctl set "$VM_NAME" --hypervisor-type parallels \
 		|| ! prlctl snapshot "$VM_NAME" -n "$VM_BASESNAPSHOT" >"$DEBUGOUT"; then
 		warnError "Unable to set up virtual machine"
 		return 1
@@ -392,30 +399,13 @@ runAutoanalyze() {
 	} || return 1
 	GHIDRA="$(find ./ghidra* -name analyzeHeadless)" ./autoanalyze -h
 }
-runAutoextract() {
-	if [ ! -f testing-autoextract ]; then
-		cat /dev/null >testing-autoextract
-		chmod a+x "$PROGRAMNAME"
-		notify "Waiting for user to login via GUI..."
-		until open -a Terminal.app "$PROGRAMNAME" >"$DEBUGOUT" 2>&1; do
-			sleep 5
-		done
-		notify "Waiting for test script to complete in GUI..."
-		until [ -s testing-autoextract ]; do
-			sleep 5
-		done
-		returnstatus="$(cat testing-autoextract)"
-		return "$returnstatus"
+runApkdl() {
+	if ! installCommandLineTools \
+		|| ! "$PROGRAMDIR"/apkdl -o "$PROGRAMDIR/mffer-download" \
+		|| ! tar -cf "$PROGRAMDIR/mffer-apks.tar" -C "$PROGRAMDIR"/mffer-download mff-apks-*; then
+		return 1
 	else
-		if ! installDotNet \
-			|| ! installTemurin \
-			|| ! "$PROGRAMDIR"/autoextract -o "$PROGRAMDIR/mffer-download" \
-			|| ! tar -cf "$PROGRAMDIR/mffer-download.tar" -C "$PROGRAMDIR" mffer-download; then
-			echo 1 >testing-autoextract
-		else
-			echo 0 >testing-autoextract
-		fi
-		exit
+		return 0
 	fi
 }
 runMffer() {
@@ -602,32 +592,26 @@ testAutoanalyze() {
 	fi
 	notify "autoanalyze run successfully."
 }
-testAutoextract() {
+testApkdl() {
 	resetVm || return
-	echo "Testing autoextract on $VM_NAME..." >"$VERBOSEOUT"
+	echo "Testing apkdl on $VM_NAME..." >"$VERBOSEOUT"
 	notify "Reconfiguring VM..."
 
-	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoextract \
+	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/apkdl \
 		"$VM_HOSTNAME":; then
 		warnError "Unable to configure virtual machine to test autoextract."
 		return 1
 	fi
-
-	error="Testing autoextract requires manual interaction.\n"
-	error="$error Login on the virtual machine when its screen appears and follow\n"
-	error="$error the given instructions."
-	warnError "$error"
-	sleep 5
-
-	openParallelsGui || return 1
-
-	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
+	# because the apkdl script needs a username and password, we should allocate
+	# a tty using ssh -t
+	notify "apkdl requires a Google account and app password"
+	ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
 	if ! scp -q "$VM_HOSTNAME":mffer-download.tar "$MFFER_TEST_TMPDIR"; then
-		warnError "Unable to get autoextract-downloaded files from the virtual machine"
+		warnError "Unable to get apkdl-downloaded files from the virtual machine"
 		return 1
 	fi
 
-	notify "autoextract run successfully."
+	notify "apkdl run successfully."
 }
 testBuild() {
 	resetVm || return 1

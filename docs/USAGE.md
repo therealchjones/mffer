@@ -199,7 +199,7 @@ evaluate it further:
     with this version of Marvel Future Fight's program code:
 
     ```
-    autoanalyze -i output_directory -o output_directory
+    autoanalyze -i output_directory/mff-apks-<version> -o output_directory
     ```
 
     This may take several hours to complete.
