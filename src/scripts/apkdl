@@ -232,8 +232,43 @@ fi
 MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
 
 echo "Setting up temporary environment" >"$VERBOSEOUT"
-if ! PYTHON3="$(which python3)" >"$DEBUGOUT" 2>&1; then
-	echo "Error: unable to locate python3 executable" >&2
+# Get the python 3 executable to use. Requires Python 3.9. If not already set in
+# the PYTHON3 environment variable, will check to see if python or python3
+# satisfies this. If not, will check for the highest 3.x (up to 3.99) such that
+# python3.x is in the PATH.
+checkPython() {
+	if [ -z "$1" ]; then
+		echo 'Usage: checkPython <python_command>' >&2
+		return 1
+	fi
+	if type "$1" >"$DEBUGOUT"; then
+		if minorversion="$("$1" -c 'import sys; print(sys.version_info.minor);')" 2>"$DEBUGOUT" \
+			&& [ 9 -le "$minorversion" ]; then
+			return 0
+		fi
+	fi
+	return 1
+}
+if [ -z "${PYTHON3:=}" ]; then
+	for file in python python3; do
+		if checkPython "$file"; then
+			PYTHON3="$file"
+			break
+		fi
+	done
+fi
+if [ -z "$PYTHON3" ]; then
+	ver=99
+	while [ 9 -le "$ver" ]; do
+		if checkPython python3.$ver; then
+			PYTHON3="python3.$ver"
+			break
+		fi
+		ver="$((ver - 1))"
+	done
+fi
+if [ -z "$PYTHON3" ]; then
+	echo "Error: unable to locate Python 3.9 or greater" >&2
 	exit 1
 fi
 if ! "$PYTHON3" -m venv "$MFFTEMPDIR/python"; then

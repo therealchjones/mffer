@@ -48,7 +48,7 @@ files used to install the game onto an Android device.
 
 -   POSIX-like environment (Linux, macOS/OS X, or Windows with Cygwin or
     another POSIX layer)
--   Python 3
+-   Python 3.9 or higher
 -   git
 -   Internet connection with access to the Google Play Store
 -   A Google account with an
