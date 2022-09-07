@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DEBUG="${DEBUG:-}"
-VERBOSE="${VERBOSE:-}"
+VERBOSE="${VERBOSE:-y}"
 
 MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"
 MFFER_LOCAL_TREE="${MFFER_LOCAL_TREE:-}"
@@ -15,6 +15,7 @@ VM_NAME="${VM_NAME:-macvm}"
 VM_HOSTNAME="${VM_HOSTNAME:-macvm.shared}"
 VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
 MKMACVM_VERSION="0.3.1"
+PYTHON_VERSION="3.10.6"
 
 # As convention, only main() should exit the program, should do so only if
 # unable to reasonably continue, and should explain why.
@@ -221,6 +222,7 @@ getCanonicalDir() {
 	fi
 }
 getOptions() {
+	vees=0
 	while getopts 'hv' option; do
 		case "$option" in
 			h)
@@ -230,10 +232,7 @@ getOptions() {
 				exit 0
 				;;
 			v)
-				if [ -n "$VERBOSE" ]; then
-					DEBUG=Y
-				fi
-				VERBOSE=Y
+				vees=$((vees + 1))
 				;;
 			?)
 				usage >&2
@@ -246,7 +245,8 @@ getOptions() {
 		usage >&2
 		exit 1
 	fi
-
+	if [ "$vees" -gt 1 ]; then DEBUG=y; fi
+	if [ "$vees" -gt 0 ]; then VERBOSE=y; fi
 	if [ -n "$DEBUG" ]; then
 		set -x
 		set -u
@@ -335,6 +335,21 @@ installNodeJs() {
 	warnError "Unable to install Node.js"
 	return 1
 }
+installPython() {
+	notify "Installing Python $PYTHON_VERSION"
+	if ! curl -Ss -OL "https://www.python.org/ftp/python/$PYTHON_VERSION/python-$PYTHON_VERSION-macos11.pkg" >"$DEBUGOUT"; then
+		echo "Unable to download Python $PYTHON_VERSION" >&2
+		return 1
+	fi
+	if ! isRoot; then
+		warnError "Python must be installed as root. Will use sudo."
+	fi
+	if ! { sudo installer -pkg "./python-$PYTHON_VERSION-macos11.pkg" -target /; } >"$DEBUGOUT"; then
+		echo "Unable to install Python" >&2
+		return 1
+	fi
+	return 0
+}
 installTemurin() {
 	notify "Installing Temurin JRE 11.0.14.1_1..."
 	if curl -Ss -OL https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.14.1%2B1/OpenJDK11U-jre_x64_mac_hotspot_11.0.14.1_1.pkg >"$DEBUGOUT"; then
@@ -400,9 +415,11 @@ runAutoanalyze() {
 	GHIDRA="$(find ./ghidra* -name analyzeHeadless)" ./autoanalyze -h
 }
 runApkdl() {
-	if ! installCommandLineTools \
-		|| ! "$PROGRAMDIR"/apkdl -o "$PROGRAMDIR/mffer-download" \
-		|| ! tar -cf "$PROGRAMDIR/mffer-apks.tar" -C "$PROGRAMDIR"/mffer-download mff-apks-*; then
+	if ! installPython \
+		|| ! "$PROGRAMDIR"/apkdl ${VERBOSE:+-v} ${DEBUG:+-v} -o "$PROGRAMDIR/mffer-download" \
+		|| ! apksdir="$(find "$PROGRAMDIR/mffer-download" -depth 1 -type d -name 'mff-apks-*')" \
+		|| [ -z "$(basename "$apksdir")" ] \
+		|| ! tar -cf "$PROGRAMDIR/mffer-apks.tar" -C "$PROGRAMDIR"/mffer-download "$(basename "$apksdir")"; then
 		return 1
 	else
 		return 0
@@ -584,9 +601,9 @@ testAutoanalyze() {
 	resetVm || return 1
 	echo "Testing autoanalyze on $VM_NAME..." >"$VERBOSEOUT"
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/autoanalyze \
-		"$MFFER_TEST_TMPDIR"/mffer-download.tar \
+		"$MFFER_TEST_TMPDIR"/mffer-apks.tar \
 		"$VM_HOSTNAME": \
-		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME"; then
+		|| ! ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME ${VERBOSE:+-v} ${DEBUG:+-v}"; then
 		warnError "Unable to configure virtual machine to test autoanalyze."
 		return 1
 	fi
@@ -599,14 +616,14 @@ testApkdl() {
 
 	if ! scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/apkdl \
 		"$VM_HOSTNAME":; then
-		warnError "Unable to configure virtual machine to test autoextract."
+		warnError "Unable to configure virtual machine to test apkdl."
 		return 1
 	fi
 	# because the apkdl script needs a username and password, we should allocate
 	# a tty using ssh -t
 	notify "apkdl requires a Google account and app password"
-	ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
-	if ! scp -q "$VM_HOSTNAME":mffer-download.tar "$MFFER_TEST_TMPDIR"; then
+	ssh -qt "$VM_HOSTNAME" "sh ./$PROGRAMNAME ${VERBOSE:+-v} ${DEBUG:+-v}" || return 1
+	if ! scp -q "$VM_HOSTNAME":mffer-apks.tar "$MFFER_TEST_TMPDIR"; then
 		warnError "Unable to get apkdl-downloaded files from the virtual machine"
 		return 1
 	fi
@@ -629,7 +646,7 @@ testBuild() {
 	fi
 	# because the buildrelease function may need sudo, we should allocate a tty
 	# using ssh -t
-	if ! ssh -qt "$VM_HOSTNAME" "MFFER_SOURCE_COMMIT='$MFFER_SOURCE_COMMIT' sh '$PROGRAMNAME'"; then
+	if ! ssh -qt "$VM_HOSTNAME" "MFFER_SOURCE_COMMIT='$MFFER_SOURCE_COMMIT' sh './$PROGRAMNAME' ${VERBOSE:+-v} ${DEBUG:+-v}"; then
 		failError "build"
 		return 1
 	fi
@@ -639,7 +656,7 @@ testMffer() {
 	resetVm || return 1
 	echo "Testing mffer on $VM_NAME..." >"$VERBOSEOUT"
 	scp -q "$MFFER_TEST_TMPDIR"/mffer-macos/mffer "$VM_HOSTNAME": || return 1
-	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME" || return 1
+	ssh -q "$VM_HOSTNAME" "sh ./$PROGRAMNAME ${VERBOSE:+-v} ${DEBUG:+-v}" || return 1
 	notify "mffer run successfully."
 }
 usage() {
