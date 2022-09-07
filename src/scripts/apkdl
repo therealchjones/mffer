@@ -23,7 +23,7 @@ GOOGLE_EMAIL=""
 GOOGLE_PASSWORD=""
 
 # Non-POSIX tools used in this script:
-# git, python3 (3.9 or higher), pip3, mktemp
+# curl, python3 (3.9 or higher), mktemp
 
 # Prints an absolute pathname corresponding to path $1
 #
@@ -293,30 +293,33 @@ else
 	exit 1
 fi
 echo "Getting required software" >"$VERBOSEOUT"
-if ! OUTPUT="$(git clone https://github.com/marty0678/googleplay-api "$MFFTEMPDIR/googleplay-api" 2>&1)"; then
-	echo "$OUTPUT"
-	exit 1
-elif [ -n "$DEBUG" ]; then
-	echo "$OUTPUT"
-fi
 
-# Order of installation is important. Install the requirements (with required
-# versions) for the "new" gpapi, which should fulfill the requirements for the
-# old version. Install the old gpapi from pip, and finally copy over the plain
-# python files from the new one so they're the ones actually used when
-# importing. This all avoids needing to install protoc to generate the protobuf
-# files, since they're included in the old package.
-pip3 install --upgrade pip >"$DEBUGOUT"
-pip3 --disable-pip-version-check install -r "$MFFTEMPDIR/googleplay-api/requirements.txt" >"$DEBUGOUT"
-pip3 --disable-pip-version-check install gpapi >"$DEBUGOUT"
+# Install the few packages requiring specific versions, then the old gpapi, then
+# just copy the python code for the new gpapi into place; this lets everything
+# work properly without the need to install protoc to build or upgrade the
+# protobuf files.
+if ! pip3 install --upgrade 'pip==22.2.2' >"$DEBUGOUT" \
+	|| ! pip3 install 'protobuf==3.20.0' >"$DEBUGOUT" \
+	|| ! pip3 install 'requests==2.24.0' >"$DEBUGOUT" \
+	|| ! pip3 install 'gpapi==0.4.4' >"$DEBUGOUT"; then
+	echo 'Unable to install required python packages' >&2
+	exit 1
+fi
 GPAPIDIR="$(find "$MFFTEMPDIR/python" -type d -name "gpapi")"
 if [ -z "$GPAPIDIR" ]; then
 	echo "Error: Unable to upgrade googleplay-api." >&2
 	exit 1
 fi
-cp -a "$MFFTEMPDIR/googleplay-api/gpapi/"* "$GPAPIDIR" || exit 1
+for file in config.py googleplay.py; do
+	if ! curl -LSs -o "$GPAPIDIR/$file" \
+		https://raw.githubusercontent.com/marty0678/googleplay-api/aa193ea198ac789f2b7d7a6650174078a93710a5/gpapi/"$file" \
+		>"$DEBUGOUT"; then
+		echo 'Error: Unable to obtain working version of googleplay-api.' >&2
+		exit 1
+	fi
+done
 
-echo "Downloading files" >"$VERBOSEOUT"
+echo "Downloading APKs" >"$VERBOSEOUT"
 # Gets a version label formatted like "8.1.0-195390" while downloading the files
 if ! VERSION_LABEL="$(
 	python3 <<EOF

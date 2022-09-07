@@ -116,7 +116,7 @@ The other tools, [apkdl](apkdl.md) and [autoanalyze](autoanalyze.md), have furth
 
 -   POSIX-like typical development environment (required for apkdl and
     autoanalyze)
--   Python 3 (required for apkdl)
+-   Python 3.9 or higher (required for apkdl)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
     (required for autoanalyze)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)
@@ -128,7 +128,7 @@ macOS and most Linux distributions satisfy the needs for the "typical
 development environment"; Windows requires additional POSIX-like software such
 as Git Bash or Cygwin. (In addition to the defined
 [POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar`,
-`mktemp`, `git`, and other common utilities are used.) Most modern systems
+`mktemp`, `git`, `curl` and other common utilities are used.) Most modern systems
 require installation of a Java runtime (or SDK); we recommend the "Temurin" OpenJDK 11
 distribution freely available from
 [Adoptium.net](https://adoptium.net/temurin/releases/?version=11).
