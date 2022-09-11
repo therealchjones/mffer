@@ -234,7 +234,7 @@ running the programs.
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)
--   Python 3
+-   Python 3.9 or higher
 -   Doxygen (for building documentation)
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
@@ -610,9 +610,8 @@ created in a reproducible way. Where possible, output is then compared to "known
 good" output from prior builds. There are standardized methods for creating the
 virtual machines and for testing mffer on them. Scripts are provided to create
 virtual machines for Parallels Desktop and test mffer on the virtual machines,
-all running on a macOS host machine with only the addition of Parallels Desktop
-Pro required to build the virtual machines. These scripts are available in the
-`tools/` directory.
+all running on a macOS host machine with Parallels Desktop Pro and Command Line
+Tools for XCode. These scripts are available in the `tools/` directory.
 
 (Further information on using the command line to build and interact with
 Paralells Desktop is available
