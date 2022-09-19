@@ -27,7 +27,7 @@ if [ 0 != "$#" ]; then
 	echo "Usage: sh '$0'" >&2
 	exit 1
 fi
-LINUX_INSTALLER="${LINUX_INSTALLER:-}"
+LINUX_INSTALLER="${LINUX_INSTALLER:-}" # ISO for Ubuntu Desktop 22.04; won't work with Ubuntu Server
 LINUX_INSTALLER_URL="${LINUX_INSTALLER_URL:-https://releases.ubuntu.com/jammy/ubuntu-22.04.1-desktop-amd64.iso}"
 LINUX_VM_NAME="${LINUX_VM_NAME:-Linux Testing}"
 LINUX_VM_HOSTNAME="${LINUX_VM_HOSTNAME:-linux-testing}"
@@ -44,7 +44,6 @@ export DEBUG VERBOSE
 main() {
 	getTempDir || exit 1
 	getLinuxVirtualMachine || exit 1
-
 }
 cleanup() {
 	EXITCODE="$?"
@@ -63,16 +62,17 @@ cleanup() {
 		exit "$EXITCODE"
 	fi
 	echo "Cleaning up" >"$VERBOSEOUT"
+	if vmIsRunning; then
+		"$PRLCTL" stop "$LINUX_VM_NAME" --kill >"$DEBUGOUT" 2>&1 || true
+	fi
 	if [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
 		umount "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" 2>&1 || true
-	fi
-	if [ -n "$PRLCTL" ]; then
-		"$PRLCTL" set "$LINUX_VM_NAME" --device-del hdd1 >"$DEBUGOUT" 2>&1 || true
 	fi
 	if [ -n "$LINUX_INSTALLER_DEV" ]; then
 		hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT" 2>&1 || true
 	fi
 	if [ -n "$MFFER_TEST_TMPDIR" ] && [ -n "$MFFER_TEST_TMPDIR_NEW" ]; then
+		chmod -R u+w "$MFFER_TEST_TMPDIR"
 		rm -rf "$MFFER_TEST_TMPDIR"
 	fi
 }
@@ -107,26 +107,31 @@ createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
 	if ! mkdir -p "$LINUX_INSTALLER_DIR" \
 		|| ! attachoutput="$(hdiutil attach -nomount -plist "$LINUX_INSTALLER")" \
 		|| ! LINUX_INSTALLER_DEV="$(getAttachedDevice "$attachoutput")" \
-		|| ! mount -t cd9660 -o ro "$LINUX_INSTALLER_DEV" "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" \
+		|| ! mountoutput="$(mount -t cd9660 -o ro "$LINUX_INSTALLER_DEV" "$LINUX_INSTALLER_DIR" 2>&1)" \
 		|| ! cp -a "$LINUX_INSTALLER_DIR" "$LINUX_SETUP_DIR" \
 		|| ! umount "$LINUX_INSTALLER_DIR" \
-		|| ! hdiutil detach "$LINUX_INSTALLER_DEV"; then
+		|| ! hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT"; then
+		echo "$mountoutput" >&2
 		echo "Error: Unable to load Linux installation media" >&2
 		return 1
 	fi
+	# this sometimes fails with mount_cd9660: Invalid argument, maybe when the kext is only
+	# just being loaded?
+
 	# While installing from cd/dvd would be easier and faster, there is a bug
 	# limiting customizing disc images. It's a long story, but has been patched
 	# and we may be able to switch to that method in the future. For now, we'll
 	# use a hard disk image instead.
 	echo "Creating Linux installer" >"$VERBOSEOUT"
-	if ! chmod 0600 "$LINUX_SETUP_DIR/boot/grub/grub.conf" "$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
-		|| ! printGrubConf >"$LINUX_SETUP_DIR/boot/grub/grub.conf" \
+	if ! chmod 0600 "$LINUX_SETUP_DIR/boot/grub/grub.cfg" "$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
+		|| ! printGrubConf >"$LINUX_SETUP_DIR/boot/grub/grub.cfg" \
 		|| ! printSeed >>"$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
 		|| ! hdiutil create -fs fat32 -volname Ubuntu -layout GPTSPUD -srcfolder "$LINUX_SETUP_DIR" "$LINUX_SETUP_IMG" >"$DEBUGOUT" \
 		|| ! prl_disk_tool create --hdd "$LINUX_SETUP_HDD" --dmg "$LINUX_SETUP_IMG"; then
 		echo "Error: Unable to create Linux installer" >&2
 		return 1
 	fi
+	# This (presumably prl_disk_tool) leaves the dmg attached, which we should fix
 
 	# if [ ! -f "$SSH_IDENTITY" ]; then
 	# 	if [ -f "$SSH_IDENTITY".pub ]; then
@@ -154,26 +159,40 @@ createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
 	# fi
 
 	echo "Building virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
-	if ! "$PRLCTL" create "$LINUX_VM_NAME" -d Ubuntu >"$DEBUGOUT" \
+	if ! "$PRLCTL" create "$LINUX_VM_NAME" -d ubuntu >"$DEBUGOUT" \
 		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --isolate-vm on >"$DEBUGOUT"; then
 		echo "Error: Unable to build virtual machine '$LINUX_VM_NAME'" >&2
 		return 1
 	fi
 	if ! "$PRLCTL" set "$LINUX_VM_NAME" --device-add hdd \
-		--image "$LINUX_INSTALLER" >"$DEBUGOUT" \
+		--image "$LINUX_SETUP_HDD" >"$DEBUGOUT" \
 		|| ! "$PRLCTL" set "$LINUX_VM_NAME" \
 			--device-bootorder 'hdd1' >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --efi-boot on \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder hdd1; then
+		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --efi-boot on >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder hdd1 >"$DEBUGOUT"; then
 		echo "Error: Unable to configure virtual machine '$LINUX_VM_NAME'" >&2
 		return 1
 	fi
 	echo "Installing Linux on virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
 	if ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT" \
-		|| ! waitForInstallation; then
+		|| ! waitForInstallation \
+		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-del hdd1 >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT"; then
 		echo "Error: Unable to install Linux on virtual machine '$LINUX_VM_NAME'" >&2
 		return 1
 	fi
+
+	# Need to enable ssh as the last step of the installation, then shutdown and
+	# modify VM as above, then restart and proceed when SSH is detected. Also
+	# want to get rid of "connect your online accounts","set up livepatch","help
+	# improve ubuntu", privacy, "ready to go", all maybe under "welcome to
+	# ubuntu" for updated software, don't prompt, just do it. but no
+	# restarting---or maybe if exist, restart until done; add "update" function
+	# for existing VMs that updates all software from Base Install and updates
+	# the snapshot? Disable screensaver/lock?
+	echo "Error: the rest isn't implemented" >&2
+	return 1
+
 	echo "Removing old SSH authorization keys" >"$VERBOSEOUT"
 	ssh-keygen -R "$LINUX_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
 	ssh-keygen -R "$LINUX_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
@@ -194,8 +213,32 @@ createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
 	fi
 }
 getAttachedDevice() {
-	echo "Error: getAttachedDevice() is not implemented" >&2
-	return 1
+	if [ -z "$1" ]; then
+		echo "Error: getAttachedDevice requires a string argument" >&2
+		return 1
+	fi
+	if ! numentries="$(echo "$1" | plutil -extract 'system-entities' raw -)"; then
+		echo "Error: Unable to determine mount device" >&2
+		return 1
+	fi
+	i=0
+	device=""
+
+	while [ $i -lt "$((numentries - 1))" ]; do
+		nextdevice="$(echo "$1" | plutil -extract "system-entities.$i.dev-entry" raw -)"
+		if [ -z "$nextdevice" ]; then
+			echo "Error: Invalid plist" >&2
+			return 1
+		else
+			if [ -z "$device" ] || [ "$device" != "${device#"$nextdevice"}" ]; then device="$nextdevice"; fi
+			i="$((i + 1))"
+		fi
+	done
+	if [ -z "$device" ]; then
+		echo "Error: Unable to find mount device" >&2
+		return 1
+	fi
+	echo "$device"
 }
 getParallels() { # sets PRLCTL if not already
 	if [ -n "$PRLCTL" ]; then
@@ -309,29 +352,153 @@ getLinuxVirtualMachine() { # creates virtual machine if not already, validates
 	getVMBaseSnapshotId || return 1
 }
 printGrubConf() {
-	echo "Error: printGrubConf() is not yet implemented" >&2
-	return 1
+	cat <<-"EOF"
+		set timeout=3
+
+		menuentry "Install Ubuntu" {
+			set gfxpayload=keep
+			linux /casper/vmlinuz file=/cdrom/preseed/ubuntu.seed automatic-ubiquity ---
+			initrd /casper/initrd
+		}
+	EOF
 }
 printSeed() {
-	echo "Error: printSeed() is not yet implemented" >&2
-	return 1
+	cat <<-EOF
+		# customization
+
+		# perform automatic installation
+		ubiquity auto-install/enable boolean true
+		casper tasksel/first string ubuntu-desktop
+
+		# clock & timezone
+		d-i clock-setup/utc boolean true
+		d-i time/zone string US/Eastern
+		d-i tzsetup/selected boolean false
+		tzdata tzdata/Areas string Etc
+		tzdata tzdata/Zones/Etc string UTC
+
+		# locale & language
+		ubiquity localechooser/languagelist string en
+		ubiquity localechooser/shortlist string en
+		d-i debian-installer/locale string en_US
+		d-i debian-installer/language string en
+		ubiquity debian-installer/language string en
+		ubiquity debconf/language string us
+
+		# keyboard
+		keyboard-configuration console-setup/ask_detect boolean false
+		keyboard-configuration keyboard-configuration/variant string English (US)
+		keyboard-configuration keyboard-configuration/layout string English (US)
+		d-i keyboard-configuration/xbp-keymap select us
+		d-i keyboard-configuration/xkb-keymap select us
+		console-data keyboard-configuration/layoutcode string us
+		console-data console-setup/ask_detect boolean false
+
+		# user
+		d-i passwd/user-fullname string Linux Testing
+		d-i passwd/username string $USERNAME
+		d-i passwd/user-password password MyPassword
+		d-i passwd/user-password-again password MyPassword
+		ubiquity passwd/auto-login boolean true
+
+		# disk & partitioning
+		d-i grub-installer/bootdev string /dev/sda
+		d-i partman-auto/disk string /dev/sda
+		d-i partman-auto/method string regular
+		d-i partman-auto/choose_recipe select atomic
+		d-i partman-partitioning/confirm_write_new_label boolean true
+		d-i partman/choose_partition select finish
+		d-i partman/confirm boolean true
+		d-i partman/confirm_nooverwrite boolean true
+		d-i partman-partitioning/choose_label select gpt
+		d-i partman-partitioning/default_label string gpt
+
+		# installation specifics
+		d-i ubiquity/minimal_install boolean false
+		d-i ubiquity/use_nonfree boolean false
+		d-i ubiquity/download_updates boolean true
+
+		# currently not actually installing the ssh server, gotta fix it
+		d-i pkgsel/include string openssh-server
+
+		# still more to come
+		#ubiquity ubiquity/success-command string ***
+
+		# comment the below when troubleshooting to avoid automatic shutdown
+		#ubiquity ubiquity/poweroff boolean true
+	EOF
 }
 sshIsRunning() {
 	# returns error if not connectable, including
 	# if the hostname is not found
 	nc -z "$LINUX_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
 }
+vmIsRunning() {
+	VM_STATUS=""
+	if ! VM_STATUS="$("$PRLCTL" status "$LINUX_VM_NAME")" 2>"$DEBUGOUT"; then
+		return 2
+	fi
+	if [ -z "${VM_STATUS##VM "$LINUX_VM_NAME" exist *}" ]; then # this is in the right format
+		VM_ERROR=""
+		if [ "stopped" = "${VM_STATUS##* }" ]; then # the last word is 'stopped'
+			if [ -z "$VM_DONE" ]; then                 # it might be a fluke; try one more time
+				VM_DONE=true
+				sleep 1
+				if ! vmIsRunning; then # nope, really done or errored
+					VM_DONE=""
+					return 1
+				else # false alarm
+					VM_DONE=""
+					return 0
+				fi
+			else # ah, this happened before
+				VM_DONE=""
+				return 1
+			fi
+		else # everything looks good, and the last word isn't 'stopped'
+			VM_DONE=""
+			return 0
+		fi
+	else                         # uh, that didn't work right
+		if [ -z "$VM_ERROR" ]; then # okay, it's the first time, try once more
+			VM_ERROR=true
+			sleep 1
+			vmIsRunning
+			case "$?" in
+				2) # yeah, it's real
+					VM_ERROR=""
+					return 2
+					;;
+				1) # what, now it's stopped? Fine.
+					VM_ERROR=""
+					return 1
+					;;
+				0) # yay, we recovered by just checking it again!
+					VM_ERROR=""
+					return 0
+					;;
+				*) # some other error, I guess
+					VM_ERROR=""
+					return 2
+					;;
+			esac
+		else # we've been here before
+			VM_ERROR=""
+			return 2
+		fi
+	fi
+}
 waitForInstallation() {
 	starttime="$(getTime)"
 	maxtime="$((4 * 60 * 60))" # 4 hours, in seconds
-	until sshIsRunning; do
+	while vmIsRunning; do
 		time="$(getTime)"
 		if [ -z "$starttime" ] || [ -z "$time" ]; then
 			echo "Error: Unable to get the installation time" >&2
 			return 1
 		fi
 		if [ "$((time - starttime))" -ge "$maxtime" ]; then
-			echo "Error: Timed out; VM never made SSH accessible" >&2
+			echo "Error: Timed out; VM never shut down" >&2
 			return 1
 		fi
 		sleep 5
