@@ -53,19 +53,19 @@ cleanup() {
 		echo "mounted filesystems in place." "$VERBOSEOUT"
 
 		if [ -n "$PRLCTL" ]; then
-			"$PRLCTL" status "$LINUX_VM_NAME" >"$VERBOSEOUT"
+			"$PRLCTL" status "$LINUX_VM_NAME" >"$VERBOSEOUT" || true
 		fi
 		echo "MFFER_TEST_TMPDIR: ${MFFER_TEST_TMPDIR:-unset}" >"$VERBOSEOUT"
 		if [ -n "${LINUX_INSTALLER_DIR:=}" ]; then
-			mount | grep "$LINUX_INSTALLER_DIR" >"$VERBOSEOUT"
+			mount | grep "$LINUX_INSTALLER_DIR" >"$VERBOSEOUT" || true
 		fi
 		exit "$EXITCODE"
 	fi
 	echo "Cleaning up" >"$VERBOSEOUT"
-	if vmIsRunning; then
+	if vmIsRunning >"$DEBUGOUT" 2>&1; then
 		"$PRLCTL" stop "$LINUX_VM_NAME" --kill >"$DEBUGOUT" 2>&1 || true
 	fi
-	if [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
+	if [ -n "${LINUX_INSTALLER_DIR:=}" ] && [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
 		umount "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" 2>&1 || true
 	fi
 	if [ -n "$LINUX_INSTALLER_DEV" ]; then
@@ -76,7 +76,7 @@ cleanup() {
 		rm -rf "$MFFER_TEST_TMPDIR"
 	fi
 }
-createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
+createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
 	getParallels || return 1
 	if "$PRLCTL" list "$LINUX_VM_NAME" >"$DEBUGOUT" 2>&1; then
 		echo "Error: Virtual machine '$LINUX_VM_NAME'" >&2
@@ -107,7 +107,7 @@ createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
 	if ! mkdir -p "$LINUX_INSTALLER_DIR" \
 		|| ! attachoutput="$(hdiutil attach -nomount -plist "$LINUX_INSTALLER")" \
 		|| ! LINUX_INSTALLER_DEV="$(getAttachedDevice "$attachoutput")" \
-		|| ! mountoutput="$(mount -t cd9660 -o ro "$LINUX_INSTALLER_DEV" "$LINUX_INSTALLER_DIR" 2>&1)" \
+		|| ! mountoutput="$(mount -t cd9660 -o rdonly "$LINUX_INSTALLER_DEV" "$LINUX_INSTALLER_DIR" 2>&1)" \
 		|| ! cp -a "$LINUX_INSTALLER_DIR" "$LINUX_SETUP_DIR" \
 		|| ! umount "$LINUX_INSTALLER_DIR" \
 		|| ! hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT"; then
@@ -115,17 +115,17 @@ createLinuxVirtualMachine() { # builds a new windows VM, errors if name exists
 		echo "Error: Unable to load Linux installation media" >&2
 		return 1
 	fi
-	# this sometimes fails with mount_cd9660: Invalid argument, maybe when the kext is only
-	# just being loaded?
 
 	# While installing from cd/dvd would be easier and faster, there is a bug
 	# limiting customizing disc images. It's a long story, but has been patched
 	# and we may be able to switch to that method in the future. For now, we'll
 	# use a hard disk image instead.
 	echo "Creating Linux installer" >"$VERBOSEOUT"
-	if ! chmod 0600 "$LINUX_SETUP_DIR/boot/grub/grub.cfg" "$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
+	if ! chmod u+w "$LINUX_SETUP_DIR/boot/grub/grub.cfg" "$LINUX_SETUP_DIR/preseed/ubuntu.seed" "$LINUX_SETUP_DIR/install/" \
 		|| ! printGrubConf >"$LINUX_SETUP_DIR/boot/grub/grub.cfg" \
 		|| ! printSeed >>"$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
+		|| ! printSuccess >"$LINUX_SETUP_DIR/install/on_success.sh" \
+		|| ! chmod 0755 "$LINUX_SETUP_DIR/install/on_success.sh" \
 		|| ! hdiutil create -fs fat32 -volname Ubuntu -layout GPTSPUD -srcfolder "$LINUX_SETUP_DIR" "$LINUX_SETUP_IMG" >"$DEBUGOUT" \
 		|| ! prl_disk_tool create --hdd "$LINUX_SETUP_HDD" --dmg "$LINUX_SETUP_IMG"; then
 		echo "Error: Unable to create Linux installer" >&2
@@ -224,7 +224,7 @@ getAttachedDevice() {
 	i=0
 	device=""
 
-	while [ $i -lt "$((numentries - 1))" ]; do
+	while [ $i -lt "$((numentries))" ]; do
 		nextdevice="$(echo "$1" | plutil -extract "system-entities.$i.dev-entry" raw -)"
 		if [ -z "$nextdevice" ]; then
 			echo "Error: Invalid plist" >&2
@@ -352,12 +352,12 @@ getLinuxVirtualMachine() { # creates virtual machine if not already, validates
 	getVMBaseSnapshotId || return 1
 }
 printGrubConf() {
-	cat <<-"EOF"
+	cat <<-EOF
 		set timeout=3
 
 		menuentry "Install Ubuntu" {
 			set gfxpayload=keep
-			linux /casper/vmlinuz file=/cdrom/preseed/ubuntu.seed automatic-ubiquity ---
+			linux /casper/vmlinuz file=/cdrom/preseed/ubuntu.seed automatic-ubiquity "${DEBUG:+debug debug=}" ---
 			initrd /casper/initrd
 		}
 	EOF
@@ -376,6 +376,7 @@ printSeed() {
 		d-i tzsetup/selected boolean false
 		tzdata tzdata/Areas string Etc
 		tzdata tzdata/Zones/Etc string UTC
+		ubiquity ubiquity/automatic/timezone boolean true
 
 		# locale & language
 		ubiquity localechooser/languagelist string en
@@ -418,14 +419,79 @@ printSeed() {
 		d-i ubiquity/use_nonfree boolean false
 		d-i ubiquity/download_updates boolean true
 
-		# currently not actually installing the ssh server, gotta fix it
-		d-i pkgsel/include string openssh-server
-
 		# still more to come
-		#ubiquity ubiquity/success-command string ***
+		ubiquity ubiquity/success_command string /cdrom/install/on_success.sh
 
 		# comment the below when troubleshooting to avoid automatic shutdown
 		#ubiquity ubiquity/poweroff boolean true
+
+		# A few items found in exploring the scripts:
+		# (not sure if the domain is casper)
+		#casper preseed/early_command string <command to run with sh -c from initramfs>
+		# may be able to install package as a driver update? see in init and casper-bottom
+		# It's possible the "welcome" stuff is in casper-bottom/52gnome...
+		# like the casper one above, the below *_commands are run with sh -c, as root
+		#ubiquity is the owner for everything in ubiquity (yes, I know)
+		#ubiquity ubiquity/custom_title_text
+		#ubiquity oem-config/enable
+		#ubiquity passwd/auto-login true
+		#ubiquity passwd/auto-login-backup oem
+		#ubiquity ubiquity/automation_failure_commend
+		#ubiquity ubiquity/failure_command
+		#ubiquity ubiquity/success_command
+		#ubiquity ubiquity/show_shutdown_button
+		#ubiquity ubiquity/hide_slideshow
+		#ubiquity ubiquity/reboot
+		#ubiquity ubiquity/poweroff
+
+		# next up: ubiquity.frontend.base plugin_manager.load_plugins()
+
+	EOF
+}
+printSuccess() {
+	cat <<-"EOF"
+		#!/bin/sh
+		NEWROOT="/target"
+		LOGOUTPUT="/var/log/installer/success_command.log"
+		PACKAGES="openssh-server"
+
+		main() {
+			setupLog || true
+			setupChrootNetwork || true
+			installPackages
+			undoChrootNetwork
+		}
+		installPackages() {
+			if ! sudo chroot "$NEWROOT" apt -y install "$PACKAGES"; then
+				echo "Unable to install additional packages" >&2
+				return 1
+			fi
+		}
+		setupChrootNetwork() {
+			if [ ! -e "/etc/resolv.conf" ] \
+				|| ! sudo mv -f "$NEWROOT"/run/systemd/resolve/stub-resolv.conf "$NEWROOT"/run/systemd/resolve/stub-resolv.conf.orig \
+				|| ! sudo cp -f "/etc/resolv.conf" "$NEWROOT"/run/systemd/resolve/stub-resolv.conf; then
+				echo "Unable to setup target network; installing in the target probably won't work" >&2
+				return 1
+			fi
+		}
+		setupLog() {
+			if ! sudo mkdir -p "$(dirname "$NEWROOT$LOGOUTPUT")" \
+				|| ! sudo touch "$NEWROOT$LOGOUTPUT" \
+				|| ! sudo chmod 0666 "$NEWROOT$LOGOUTPUT" \
+				|| ! date +%Y-%m-%dT%H:%M:%S%z >> "$NEWROOT$LOGOUTPUT"; then
+				echo "Unable to write log to '$NEWROOT$LOGOUTPUT'" >&2
+				return 1
+			fi
+			exec >"$NEWROOT$LOGOUTPUT" 2>&1
+		}
+		undoChrootNetwork() {
+			if ! sudo mv -f "$NEWROOT"/run/systemd/resolve/stub-resolv.conf.orig "$NEWROOT"/run/systemd/resolve/stub-resolv.conf; then
+				echo "Unable to undo the target network change; the new system may not work" >&2
+				return 1
+			fi
+		}
+		main
 	EOF
 }
 sshIsRunning() {
