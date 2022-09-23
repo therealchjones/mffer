@@ -29,7 +29,7 @@ mdurl==0.1.1
 myst-parser==0.17.2
 packaging==21.3
 pefile==2019.4.18
-protobuf==4.21.1
+protobuf==4.21.6
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20
