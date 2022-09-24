@@ -116,12 +116,35 @@ createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
 		return 1
 	fi
 
+	# TODO: #233 Use current mac password if possible
 	# While installing from cd/dvd would be easier and faster, there is a bug
 	# limiting customizing disc images. It's a long story, but has been patched
 	# and we may be able to switch to that method in the future. For now, we'll
 	# use a hard disk image instead.
 	echo "Creating Linux installer" >"$VERBOSEOUT"
+
+	if [ ! -f "$SSH_IDENTITY" ]; then
+		if [ -f "$SSH_IDENTITY".pub ]; then
+			echo "Error: '$SSH_IDENTITY' not found but '$SSH_IDENTITY.pub' exists." >&2
+			echo '       Stopping before we break something.' >&2
+			return 1
+		fi
+		echo "Warning: '$SSH_IDENTITY' not found. Creating new key." >&2
+		if ! mkdir -p "$(dirname "$SSH_IDENTITY")" \
+			|| ! ssh-keygen -q -f "$SSH_IDENTITY" -N ""; then
+			echo "Error: Unable to create new key '$SSH_IDENTITY'." >&2
+		fi
+	fi
+	if [ ! -f "$SSH_IDENTITY".pub ]; then
+		echo "Warning: '$SSH_IDENTITY' exists but '$SSH_IDENTITY.pub' does not." >&2
+		echo "         Regenerating public key." >&2
+		if ! ssh-keygen -e "$SSH_IDENTITY" >"$SSH_IDENTITY.pub"; then
+			echo "Error: Unable to regenerate '$SSH_IDENTITY.pub'" >&2
+			return 1
+		fi
+	fi
 	if ! chmod u+w "$LINUX_SETUP_DIR/boot/grub/grub.cfg" "$LINUX_SETUP_DIR/preseed/ubuntu.seed" "$LINUX_SETUP_DIR/install/" \
+		|| ! cp "$SSH_IDENTITY.pub" "$LINUX_SETUP_DIR/install/authorized_keys" \
 		|| ! printGrubConf >"$LINUX_SETUP_DIR/boot/grub/grub.cfg" \
 		|| ! printSeed >>"$LINUX_SETUP_DIR/preseed/ubuntu.seed" \
 		|| ! printSuccess >"$LINUX_SETUP_DIR/install/on_success.sh" \
@@ -131,32 +154,6 @@ createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
 		echo "Error: Unable to create Linux installer" >&2
 		return 1
 	fi
-	# This (presumably prl_disk_tool) leaves the dmg attached, which we should fix
-
-	# if [ ! -f "$SSH_IDENTITY" ]; then
-	# 	if [ -f "$SSH_IDENTITY".pub ]; then
-	# 		echo "Error: '$SSH_IDENTITY' not found but '$SSH_IDENTITY.pub' exists." >&2
-	# 		echo '       Stopping before we break something.' >&2
-	# 		return 1
-	# 	fi
-	# 	echo "Warning: '$SSH_IDENTITY' not found. Creating new key." >&2
-	# 	if ! mkdir -p "$(dirname "$SSH_IDENTITY")" \
-	# 		|| ! ssh-keygen -q -f "$SSH_IDENTITY" -N ""; then
-	# 		echo "Error: Unable to create new key '$SSH_IDENTITY'." >&2
-	# 	fi
-	# fi
-	# if [ ! -f "$SSH_IDENTITY".pub ]; then
-	# 	echo "Warning: '$SSH_IDENTITY' exists but '$SSH_IDENTITY.pub' does not." >&2
-	# 	echo "         Regenerating public key." >&2
-	# 	if ! ssh-keygen -e "$SSH_IDENTITY" >"$SSH_IDENTITY.pub"; then
-	# 		echo "Error: Unable to regenerate '$SSH_IDENTITY.pub'" >&2
-	# 		return 1
-	# 	fi
-	# fi
-	# if ! cp "$SSH_IDENTITY.pub" "$LINUX_SETUP_DIR/authorized_keys"; then
-	# 	echo "Error: Unable to prepare VM for SSH communication" >&2
-	# 	return 1
-	# fi
 
 	echo "Building virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
 	if ! "$PRLCTL" create "$LINUX_VM_NAME" -d ubuntu >"$DEBUGOUT" \
@@ -177,40 +174,31 @@ createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
 	if ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT" \
 		|| ! waitForInstallation \
 		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-del hdd1 >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT"; then
+		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT" \
+		|| ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT"; then
 		echo "Error: Unable to install Linux on virtual machine '$LINUX_VM_NAME'" >&2
 		return 1
 	fi
-
-	# Need to enable ssh as the last step of the installation, then shutdown and
-	# modify VM as above, then restart and proceed when SSH is detected. Also
-	# want to get rid of "connect your online accounts","set up livepatch","help
-	# improve ubuntu", privacy, "ready to go", all maybe under "welcome to
-	# ubuntu" for updated software, don't prompt, just do it. but no
-	# restarting---or maybe if exist, restart until done; add "update" function
-	# for existing VMs that updates all software from Base Install and updates
-	# the snapshot? Disable screensaver/lock?
-	echo "Error: the rest isn't implemented" >&2
-	return 1
 
 	echo "Removing old SSH authorization keys" >"$VERBOSEOUT"
 	ssh-keygen -R "$LINUX_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
 	ssh-keygen -R "$LINUX_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
 	echo "Setting up new SSH authorization" >"$VERBOSEOUT"
-	# Need to wait for updates to finish, shutdown machine, remove installation
-	# media, restart, then save snapshot
-	if ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$LINUX_VM_HOSTNAME" \
-		shutdown /s >"$VERBOSEOUT"; then
+
+	if ! waitForSsh \
+		|| ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$LINUX_VM_HOSTNAME" \
+			true >"$VERBOSEOUT"; then
 		echo "Error: Unable to connect to VM via SSH" >&2
 		return 1
 	fi
 	echo "Saving VM snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
-	if ! prlctl snapshot "$LINUX_VM_NAME" -n "$VM_BASESNAPSHOT" \
-		-d "Initial installation without additional software. User $USERNAME, password 'MyPassword'. Public key SSH enabled." \
+	if ! "$PRLCTL" snapshot "$LINUX_VM_NAME" -n "$VM_BASESNAPSHOT" \
+		-d "Initial installation with only openssh-server added. User $USERNAME, password 'MyPassword'. Public key SSH, passwordless sudo." \
 		>"$DEBUGOUT"; then
 		echo "Error: Unable to save VM snapshot '$VM_BASESNAPSHOT'" >&2
 		return 1
 	fi
+	updateBaseSystem || return 1
 }
 getAttachedDevice() {
 	if [ -z "$1" ]; then
@@ -423,7 +411,7 @@ printSeed() {
 		ubiquity ubiquity/success_command string /cdrom/install/on_success.sh
 
 		# comment the below when troubleshooting to avoid automatic shutdown
-		#ubiquity ubiquity/poweroff boolean true
+		ubiquity ubiquity/poweroff boolean true
 
 		# A few items found in exploring the scripts:
 		# (not sure if the domain is casper)
@@ -431,6 +419,7 @@ printSeed() {
 		# may be able to install package as a driver update? see in init and casper-bottom
 		# It's possible the "welcome" stuff is in casper-bottom/52gnome...
 		# like the casper one above, the below *_commands are run with sh -c, as root
+		# finally, there are templates for everything in the ubiquity repo *.template files
 		#ubiquity is the owner for everything in ubiquity (yes, I know)
 		#ubiquity ubiquity/custom_title_text
 		#ubiquity oem-config/enable
@@ -444,8 +433,6 @@ printSeed() {
 		#ubiquity ubiquity/reboot
 		#ubiquity ubiquity/poweroff
 
-		# next up: ubiquity.frontend.base plugin_manager.load_plugins()
-
 	EOF
 }
 printSuccess() {
@@ -454,15 +441,55 @@ printSuccess() {
 		NEWROOT="/target"
 		LOGOUTPUT="/var/log/installer/success_command.log"
 		PACKAGES="openssh-server"
-
+		SCRIPTDIR="$( dirname "$0" )"
+	EOF
+	echo "USERNAME='$USERNAME'"
+	cat <<-"EOF"
 		main() {
-			setupLog || true
-			setupChrootNetwork || true
+			setupLog
+			enablePasswordlessSudo
+			# It would be nice to use in-target, but it doesn't seem to work right
+			# (or I just am not using it right). This may be ugly, but it's relatively
+			# simple and it works
+			setupChrootNetwork
 			installPackages
 			undoChrootNetwork
+			getSshKeys
+			disableGnomeInitialSetup
+		}
+		disableGnomeInitialSetup() {
+			if ! sudo mkdir -p "$NEWROOT/home/$USERNAME/.config" \
+				|| ! touch "$NEWROOT/home/$USERNAME/.config/gnome-initial-setup-done" \
+				|| ! sudo chroot "$NEWROOT" chown "$USERNAME" "/home/$USERNAME/.config" \
+					"/home/$USERNAME/.config/gnome-initial-setup-done"; then
+				echo "Unable to disable gnome-initial-setup" >&2
+				return 1
+			fi
+		}
+		enablePasswordlessSudo() {
+			echo "Enabling passwordless sudo for user '$USERNAME'"
+			tmpfile="$(mktemp)"
+			if ! echo "$USERNAME ALL = (ALL) NOPASSWD: ALL" >"$tmpfile" \
+				|| ! sudo mv "$tmpfile" "$NEWROOT/etc/sudoers.d/$USERNAME"; then
+				echo "Error: Unable to enable passwordless sudo for user '$USERNAME'" >&2
+				rm -f "$tmpfile"
+				return 1
+			fi
+		}
+		getSshKeys() {
+			if [ -e "$SCRIPTDIR/authorized_keys" ]; then
+				if ! sudo mkdir -p "$NEWROOT/home/$USERNAME/.ssh/" \
+					|| ! sudo cp "$SCRIPTDIR/authorized_keys" "$NEWROOT/home/$USERNAME/.ssh/authorized_keys" \
+					|| ! sudo chroot "$NEWROOT" chown "$USERNAME" "/home/$USERNAME/.ssh/authorized_keys" "/home/$USERNAME/.ssh" \
+					|| ! sudo chmod 0600 "$NEWROOT/home/$USERNAME/.ssh/authorized_keys" \
+					|| ! sudo chmod 0700 "$NEWROOT/home/$USERNAME/.ssh"; then
+					echo "Unable to configure ssh for user '$USERNAME'" >&2
+					return 1
+				fi
+			fi
 		}
 		installPackages() {
-			if ! sudo chroot "$NEWROOT" apt -y install "$PACKAGES"; then
+			if ! sudo chroot "$NEWROOT" apt-get -q -y install "$PACKAGES"; then
 				echo "Unable to install additional packages" >&2
 				return 1
 			fi
@@ -478,15 +505,16 @@ printSuccess() {
 		setupLog() {
 			if ! sudo mkdir -p "$(dirname "$NEWROOT$LOGOUTPUT")" \
 				|| ! sudo touch "$NEWROOT$LOGOUTPUT" \
-				|| ! sudo chmod 0666 "$NEWROOT$LOGOUTPUT" \
-				|| ! date +%Y-%m-%dT%H:%M:%S%z >> "$NEWROOT$LOGOUTPUT"; then
+				|| ! sudo chmod 0644 "$NEWROOT$LOGOUTPUT" \
+				|| ! TIMESTAMP="$( date +%Y-%m-%dT%H:%M:%S%z )" echo "$TIMESTAMP Running $0" >> "$NEWROOT$LOGOUTPUT"; then
 				echo "Unable to write log to '$NEWROOT$LOGOUTPUT'" >&2
 				return 1
 			fi
 			exec >"$NEWROOT$LOGOUTPUT" 2>&1
 		}
 		undoChrootNetwork() {
-			if ! sudo mv -f "$NEWROOT"/run/systemd/resolve/stub-resolv.conf.orig "$NEWROOT"/run/systemd/resolve/stub-resolv.conf; then
+			if ! sudo mv -f "$NEWROOT"/run/systemd/resolve/stub-resolv.conf.orig \
+				"$NEWROOT"/run/systemd/resolve/stub-resolv.conf; then
 				echo "Unable to undo the target network change; the new system may not work" >&2
 				return 1
 			fi
@@ -494,10 +522,46 @@ printSuccess() {
 		main
 	EOF
 }
+resetVM() {
+	echo "Resetting virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
+	if ! getVMBaseSnapshotId \
+		|| ! "$PRLCTL" snapshot-switch "$LINUX_VM_NAME" -i "$VM_BASESNAPSHOT_ID" >"$DEBUGOUT"; then
+		echo "Error: Unable to reset virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >&2
+		return 1
+	fi
+}
 sshIsRunning() {
 	# returns error if not connectable, including
 	# if the hostname is not found
 	nc -z "$LINUX_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
+}
+updateBaseSystem() {
+	echo "Updating the base installation on '$LINUX_VM_NAME'" >"$VERBOSEOUT"
+	if ! resetVM || ! updateSystem; then
+		echo "Error: Unable to update the base installation on '$LINUX_VM_NAME'" >&2
+		return 1
+	fi
+}
+updateSystem() {
+	echo "Updating '$LINUX_VM_NAME'" >"$VERBOSEOUT"
+	if ! vmIsRunning; then
+		if ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT"; then
+			echo "Error: Unable to start virtual machine" >&2
+			return 1
+		fi
+	fi
+	if ! sshIsRunning; then
+		if ! waitForSsh; then
+			echo "Error: Unable to access virtual machine" >&2
+			return 1
+		fi
+	fi
+	echo "Updating Linux system" >"$VERBOSEOUT"
+	if ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get update -q -y >"$DEBUGOUT" \
+		|| ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get upgrade -q -y >"$DEBUGOUT"; then
+		echo "Error: Unable to update Linux system" >&2
+		return 1
+	fi
 }
 vmIsRunning() {
 	VM_STATUS=""
@@ -565,6 +629,22 @@ waitForInstallation() {
 		fi
 		if [ "$((time - starttime))" -ge "$maxtime" ]; then
 			echo "Error: Timed out; VM never shut down" >&2
+			return 1
+		fi
+		sleep 5
+	done
+}
+waitForSsh() {
+	starttime="$(getTime)"
+	maxtime="$((10 * 60))" # 10 minutes, in seconds
+	while ! sshIsRunning; do
+		time="$(getTime)"
+		if [ -z "$starttime" ] || [ -z "$time" ]; then
+			echo "Error: Unable to get the installation time" >&2
+			return 1
+		fi
+		if [ "$((time - starttime))" -ge "$maxtime" ]; then
+			echo "Error: Timed out; SSH not available" >&2
 			return 1
 		fi
 		sleep 5
