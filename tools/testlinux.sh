@@ -68,10 +68,10 @@ cleanup() {
 	if [ -n "${LINUX_INSTALLER_DIR:=}" ] && [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
 		umount "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" 2>&1 || true
 	fi
-	if [ -n "$LINUX_INSTALLER_DEV" ]; then
+	if [ -n "${LINUX_INSTALLER_DEV:=}" ]; then
 		hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT" 2>&1 || true
 	fi
-	if [ -n "$MFFER_TEST_TMPDIR" ] && [ -n "$MFFER_TEST_TMPDIR_NEW" ]; then
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -n "${MFFER_TEST_TMPDIR_NEW:=}" ]; then
 		chmod -R u+w "$MFFER_TEST_TMPDIR"
 		rm -rf "$MFFER_TEST_TMPDIR"
 	fi
@@ -228,6 +228,16 @@ getAttachedDevice() {
 	fi
 	echo "$device"
 }
+getOptionalVmArg() {
+	if [ "$#" -eq 0 ]; then
+		if [ -z "$LINUX_VM_NAME" ]; then
+			return 1
+		fi
+		echo "$LINUX_VM_NAME"
+	else
+		echo "$1"
+	fi
+}
 getParallels() { # sets PRLCTL if not already
 	if [ -n "$PRLCTL" ]; then
 		if ! "$PRLCTL" --version >"$DEBUGOUT" 2>&1; then
@@ -245,6 +255,69 @@ getParallels() { # sets PRLCTL if not already
 	echo "Error: Unable to find 'prlctl'." >&2
 	echo "       Ensure Parallels Desktop is installed and activated." >&2
 	return 1
+}
+getSnapshotId() {
+	# Usage: getSnapshotId vm snapshot
+
+	# Prints the ID of the snapshot named snapshot on the VM named vm (including
+	# the surrounding braces).
+	if [ "$#" -ne 2 ]; then
+		echo "Error: getSnapshotId() requires 2 arguments" >&2
+		return 255
+	fi
+	if ! vmExists "$1"; then
+		echo "Error: Unable to find VM '$1'" >&2
+		return 1
+	fi
+	snapshots="$(getSnapshots "$1")"
+	if ! ids="$(echo "$snapshots" | base64 -d | plutil -extract snapshots raw -o - -)" \
+		|| [ -z "$ids" ]; then
+		echo "Error: Unable to retrieve list of snapshots for VM '$LINUX_VM_NAME'" >&2
+		return 1
+	fi
+	for id in $ids; do
+		name="$(echo "$snapshots" | base64 -d | plutil -extract "snapshots.$id.name" raw - -o -)"
+		if [ "$2" = "$name" ]; then
+			echo "$id"
+			return 0
+		fi
+	done
+	echo "Error: Unable to find snapshot '$2' in VM '$1'" >&2
+	return 1
+}
+getSnapshots() {
+	# Usage: getSnapshots [vm]
+
+	# Prints a base64-encoded plist of the snapshots in the VM named vm. If vm
+	# is not given, defaults to $LINUX_VM_NAME. If vm is not given and
+	# LINUX_VM_NAME is unset or null, prints error and returns 255. If there is
+	# not a VM named vm, prints error and returns 127. If another error occurs,
+	# prints error and returns 1. If there are no snapshots, prints nothing
+	# rather than a base64-encoded empty plist.
+	vm=""
+	if ! vm="$(getOptionalVmArg "$@")"; then
+		echo "Error: getSnapshots() requires an argument or defined LINUX_VM_NAME" >&2
+		return 255
+	fi
+	if ! vmExists "$vm"; then
+		echo "Error: VM '$vm' not found" >&2
+		return 127
+	fi
+	if ! snapshots="$(prlctl snapshot-list "$vm" -j)"; then
+		echo "Error: Unable to obtain list of snapshots for VM '$vm'" >&2
+		return 1
+	fi
+	if [ -z "$snapshots" ]; then
+		return 0
+	fi
+	if ! output="$(plutil -create binary1 - -o - \
+		| plutil -insert snapshots -json "$snapshots" - -o - \
+		| base64)" \
+		|| [ -z "$output" ]; then
+		echo "Error: Unable to format list of snapshots for VM '$vm'" >&2
+		return 1
+	fi
+	echo "$output"
 }
 getTempDir() { # creates and sets MFFER_TEST_TMPDIR if not already
 	if [ -n "$MFFER_TEST_TMPDIR" ]; then
@@ -267,7 +340,7 @@ getTempDir() { # creates and sets MFFER_TEST_TMPDIR if not already
 getTime() {
 	date +%s
 }
-getVMBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
+getVmBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
 	getParallels || return 1
 	if [ -n "$VM_BASESNAPSHOT_ID" ]; then
 		if [ -z "$("$PRLCTL" snapshot-list "$LINUX_VM_NAME" -i "$VM_BASESNAPSHOT_ID")" ]; then
@@ -337,7 +410,7 @@ getLinuxVirtualMachine() { # creates virtual machine if not already, validates
 		echo "Creating virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
 		createLinuxVirtualMachine || return 1
 	fi
-	getVMBaseSnapshotId || return 1
+	getVmBaseSnapshotId || return 1
 }
 printGrubConf() {
 	cat <<-EOF
@@ -524,7 +597,7 @@ printSuccess() {
 }
 resetVM() {
 	echo "Resetting virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
-	if ! getVMBaseSnapshotId \
+	if ! getVmBaseSnapshotId \
 		|| ! "$PRLCTL" snapshot-switch "$LINUX_VM_NAME" -i "$VM_BASESNAPSHOT_ID" >"$DEBUGOUT"; then
 		echo "Error: Unable to reset virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >&2
 		return 1
@@ -536,12 +609,30 @@ sshIsRunning() {
 	nc -z "$LINUX_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
 }
 updateBaseSystem() {
-	echo "Updating the base installation on '$LINUX_VM_NAME'" >"$VERBOSEOUT"
+	# This will update the system with snapshot 'Base Installation' and change
+	# the snapshot to point to the new system. This removes the previous snapshot.
 	if ! resetVM || ! updateSystem; then
 		echo "Error: Unable to update the base installation on '$LINUX_VM_NAME'" >&2
 		return 1
 	fi
+	echo "Changing snapshot '$VM_BASESNAPSHOT' to the updated system" >"$VERBOSEOUT"
+	getVmBaseSnapshotId
+	if ! old_id="$VM_BASESNAPSHOT_ID" \
+		|| [ -z "$old_id" ] \
+		|| ! old_desc="$("$PRLCTL" snapshot-list "$LINUX_VM_NAME" -i "$old_id" \
+			| sed -e '/^Description: /!d' -e 's/^Description: //' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')"; then
+		echo "Error: Unable to access original snapshot '$VM_BASESNAPSHOT' on VM '$LINUX_VM_NAME'" >&2
+		return 1
+	fi
+	new_desc=""
+	if [ -n "$old_desc" ]; then
+		new_desc="$old_desc [Updated]"
+	fi
+	"$PRLCTL" snapshot "$LINUX_VM_NAME" -n "$VM_BASESNAPSHOT" -d "$new_desc" >"$DEBUGOUT"
+	"$PRLCTL" snapshot-delete "$LINUX_VM_NAME" -i "$old_id" >"$DEBUGOUT"
+	VM_BASESNAPSHOT_ID=""
 }
+
 updateSystem() {
 	echo "Updating '$LINUX_VM_NAME'" >"$VERBOSEOUT"
 	if ! vmIsRunning; then
@@ -556,10 +647,20 @@ updateSystem() {
 			return 1
 		fi
 	fi
-	echo "Updating Linux system" >"$VERBOSEOUT"
 	if ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get update -q -y >"$DEBUGOUT" \
 		|| ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get upgrade -q -y >"$DEBUGOUT"; then
 		echo "Error: Unable to update Linux system" >&2
+		return 1
+	fi
+}
+vmExists() {
+	vm=""
+	if ! vm="$(getOptionalVmArg "$@")"; then
+		echo "Error: vmExists() requires an argument or defined LINUX_VM_NAME" >&2
+		return 255
+	fi
+	getParallels || return 1
+	if ! "$PRLCTL" status "$vm" >"$DEBUGOUT" 2>&1; then
 		return 1
 	fi
 }
