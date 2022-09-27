@@ -320,6 +320,9 @@ for file in config.py googleplay.py; do
 done
 
 echo "Downloading APKs" >"$VERBOSEOUT"
+echo "using:" >"$DEBUGOUT"
+python3 --version >"$DEBUGOUT"
+pip3 freeze >"$DEBUGOUT"
 # Gets a version label formatted like "8.1.0-195390" while downloading the files
 if ! VERSION_LABEL="$(
 	python3 <<EOF
