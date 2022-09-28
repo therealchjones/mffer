@@ -164,6 +164,16 @@ if [ "$#" != "0" ]; then
 	usage >&2
 	exit 1
 fi
+if [ -z "${MFFOUTPUTDIR+1}" ]; then
+	echo "Error: Output directory not set" >&2
+	usage >&2
+	exit 1
+fi
+if [ -z "$MFFOUTPUTDIR" ]; then
+	echo "Error: Output directory name must not be null" >&2
+	usage >&2
+	exit 1
+fi
 if [ 0 -lt "$vees" ]; then VERBOSE=Y; fi
 if [ 1 -lt "$vees" ]; then DEBUG=Y; fi
 DEBUGOUT=/dev/null
@@ -205,16 +215,6 @@ else
 	throwfatal "Unable to create temporary directory. Exiting."
 fi
 
-if [ -z "${MFFOUTPUTDIR+1}" ]; then
-	echo "Error: Output directory not set" >&2
-	usage >&2
-	exit 1
-fi
-if [ -z "$MFFOUTPUTDIR" ]; then
-	echo "Error: Output directory name must not be null" >&2
-	usage >&2
-	exit 1
-fi
 if ! mkdir -p -- "$MFFOUTPUTDIR" >"$DEBUGOUT" 2>&1; then
 	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
 	usage >&2
@@ -287,6 +287,11 @@ if sys.version_info.major != 3:
 if sys.version_info.minor < 9:
     print( "$0 requires Python 3.9 or higher", file=sys.stderr)
     exit(1)
+if
+import ssl
+if ssl.OPENSSL_VERSION_INFO[0:3] != (1,1,1)
+    print( f"Warning: Using OpenSSL version '{ssl.OPENSSL_VERSION}'; this may not work.", file=sys.stderr)
+if
 EOF
 else
 	echo "Error: Unable to find temporary python environment" >&2

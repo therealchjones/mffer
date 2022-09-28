@@ -117,6 +117,7 @@ The other tools, [apkdl](apkdl.md) and [autoanalyze](autoanalyze.md), have furth
 -   POSIX-like typical development environment (required for apkdl and
     autoanalyze)
 -   Python 3.9 or higher (required for apkdl)
+-   OpenSSL 1.1.1 (required for apkdl)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
     (required for autoanalyze)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)
@@ -136,6 +137,64 @@ distribution freely available from
 Additionally, other programs are downloaded and run by the `apkdl` and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
+
+#### Python & OpenSSL
+
+The specific versions of Python and OpenSSL are necessary for proper performance
+of the apkdl program. There are likely many methods for ensuring these are
+correct. The following appear to be the simplest.
+
+##### Python & OpenSSL on macOS
+
+-   Installing the
+    ["official" Python 3 release](https://www.python.org/downloads/macos/) from the
+    [Python web site](https://www.python.org) will concurrently install a "private" copy of
+    OpenSSL 1.1.1 that Python will use when needed. This is sufficient for apkdl.
+-   Installing Python 3.9 (python@3.9) or higher or pyenv via Homebrew will
+    automatically install OpenSSL 1.1.1 as a requirement.
+
+##### Python & OpenSSL on Windows
+
+Installing Python 3.10 from the Microsoft Store includes OpenSSL 1.1.1.
+
+##### Python & OpenSSL on Linux
+
+The Python packages available on systems that track the latest versions of
+programs may connect to later versions of OpenSSL by default. (This occurs, for
+instance, on Ubuntu 22.04.) These often will not work properly with apkdl. If
+this is the case, the easiest approach appears to be installing OpenSSL from
+source and then installing the Python version of your choice using pyenv.
+
+After setting up the
+[recommended pyenv buildenvironment](https://github.com/pyenv/pyenv/wiki#suggested-build-environment),
+[install git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if
+necessary, and then some variant of the following will (probably) be sufficient:
+
+```
+curl -O https://www.openssl.org/source/openssl-1.1.1q.tar.gz
+tar xzf openssl-1.1.1q.tar.gz
+cd openssl-1.1.1q
+./config
+make
+make test
+sudo make install
+git clone https://github.org/pyenv/pyenv.git ~/.pyenv
+export PYENV_ROOT=~/.pyenv
+export PATH="~/.pyenv/bin:$PATH"
+eval "$( pyenv init - )"
+LDFLAGS="-Wl,-rpath,/usr/local" CONFIGURE_OPTS="--with-openssl=/usr/local" pyenv install 3.10.6
+```
+
+Finally, before using apkdl, activate this version of Python using
+
+```
+pyenv shell 3.10.6
+```
+
+For further guidance, please refer to the
+[OpenSSL 1.1.1 INSTALL file](https://github.com/openssl/openssl/blob/OpenSSL_1_1_1-stable/INSTALL), the
+[pyenv installation instructions](https://github.com/pyenv/pyenv/#installation), and the
+[pyenv common build problems](https://github.com/pyenv/pyenv/wiki/Common-build-problems).
 
 ### The mffer workflow
 
