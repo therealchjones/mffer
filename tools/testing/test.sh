@@ -2,35 +2,16 @@
 
 # Run mffer build & function tests. This script is expected to be run from
 # within the mffer development environment (see the mffer Development Guide for
-# details). It will not preemptively check for needed requirements in that
-# environment but will print an error and exit with a nonzero status if any are
-# not available.
+# details).
 
 # This script accepts no command line arguments or options. Some settings may be
 # modified using environment variables.
 
-# Environment variables changing output behavior:
-DEBUG="${DEBUG:-}"      # if nonempty, print extensive traces of the script and output of called commands
-VERBOSE="${VERBOSE:-y}" # if nonempty, print one-line progress and pass/fail messages
-
-DEBUGOUT=/dev/null
-VERBOSEOUT=/dev/null
-if [ -n "$DEBUG" ]; then
-	set -x
-	set -e
-	set -u
-	VERBOSE=y
-	DEBUGOUT="/dev/stdout"
-fi
-if [ -n "$VERBOSE" ]; then
-	VERBOSEOUT="/dev/stdout"
-fi
-if [ "$#" -ne "0" ]; then
-	echo "Error: No command line arguments are supported" >&2
-	exit 1
-fi
-export VERBOSE DEBUG
 MFFER_TEST_PROGRAM="$0"
+MFFER_TEST_DIR="$(basename "$MFFER_TEST_PROGRAM")"
+VERBOSE="${VERBOSE:-y}"
+. "$MFFER_TEST_DIR"/common/testfxns.sh
+
 MFFER_TEST_NESTED="${MFFER_TEST_NESTED:=}"
 MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"
 MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:=}"

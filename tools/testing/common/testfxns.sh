@@ -1,21 +1,21 @@
 #!/bin/sh
 
-# platform-independent functions for mffer testing
-#
-# This file should be "source"d rather than run; it should include only
-# function definitions and settings. Functions here are platform-independent
-# in the sense that they are expected to be run in a POSIX-like shell
-# environment on any of the mffer-supported platforms *or* access and manage
-# Parallels Desktop virtual machines on a macOS host system where the virtual
-# machines may be any of the mffer-supported platforms.
+# function definitions and startup configuration for mffer testing
 
-# Functions rely on several already-defined environment variables/parameters.
-#
-# Variables affecting general program behavior
-DEBUG="${DEBUG:-}"      # output everything, including script tracing
-VERBOSE="${VERBOSE:-y}" # output brief progress information
+# This file should be "source"d rather than run. It should include function
+# definitions, settings, and shared startup behavior such as processing the
+# DEBUG and VERBOSE environment variables and defining common parameters.
+# Functions in this script should generally not depend upon the operating system
+# deployed in a testing virtual machine, and should be expected to run only in a
+# POSIX-like shell environment. Specifically, settings and functions specific to
+# other areas should be in different files:
+# - functions managing Parallels Desktop or Parallels virtual machines should be
+#   in testing/common/parallels.sh
+# - functions managing specific operating system installations or running
+#   command on those systems should be in testing/<operating system name>/
+
 PATH="${PATH:+$PATH:}/usr/local/bin:${HOME:-}/.dotnet"
-#
+
 # Parameters used throughout the program. The program will try to determine
 # most of them dynamically if not explicitly set in the environment
 MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}"   # url
@@ -56,12 +56,6 @@ ALL_VMS=""
 # getSomething - prints value, potentially also determining that value and
 #                setting the appropriate environment variable(s) if not already
 
-createTempDir() {
-	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" \
-		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
-		return 1
-	fi
-}
 # prints MFFER_VM_BASESNAP_ID, determining and setting it if not already
 getBaseVmId() {
 	if [ -n "$MFFER_VM_BASESNAP_ID" ]; then
@@ -100,7 +94,7 @@ getBaseVmId() {
 }
 getTempDir() {
 	if [ -z "${MFFER_TEST_TMPDIR:=}" ]; then
-		if ! createTempDir; then
+		if ! setTmpDir; then
 			return 1
 		fi
 	fi
@@ -111,6 +105,72 @@ getTempDir() {
 getVms() {
 	if [ -z "${ALL_VMS:=}" ]; then setVms || return 1; fi
 	echo "$ALL_VMS"
+}
+isRoot() {
+	[ 0 = "$(id -u)" ]
+}
+# isSudo
+# Evaluates whether the effective user is root and sudo user is not root
+# (regular). Returns 0 if the real (sudo) user is a regular user and the
+# effective user is root, otherwise returns 1.
+isSudo() {
+	if ! isRoot || [ -z "$SUDO_UID" ] || [ "$SUDO_UID" = "0" ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+# setPasswordlessSudo
+#
+# Enables passwordless sudo for the primary user on the virtual machine with the
+# name $MFFER_TEST_VM is such a virtual machine exists. Uses sudo, so requires
+# entering password per regular sudo rules. Prints error and returns 255 if the
+# VM does not exist, prints error and returns 1 if unsuccessful or cancelled.
+setPasswordlessSudo() {
+	echo "Enabling passwordless sudo on virtual machine" >"$VERBOSEOUT"
+	if [ -z "$MFFER_TEST_VM" ] || [ -z "$MFFER_TEST_VM_HOSTNAME" ]; then
+		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty; run setVm before setPasswordlessSudo" >&2
+		return 255
+	elif ! vmExists "$MFFER_TEST_VM"; then
+		echo "Error: No VM named '$MFFER_TEST_VM' is registered with Parallels Desktop" >&2
+		return 255
+	fi
+	if ! username="$(ssh "$MFFER_TEST_VM_HOSTNAME" 'echo $USER')" \
+		|| [ -z "$username" ]; then
+		echo "Error: Unable to get name of primary user for VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
+	echo "Warning: Password for user '$username' on VM '$MFFER_TEST_VM' may be required" >&2
+	if ! ssh -t "$MFFER_TEST_VM_HOSTNAME" "echo $username ALL = (ALL) NOPASSWD: ALL | sudo EDITOR='tee -a' visudo" >"$DEBUGOUT"; then
+		echo "Error: Unable to enable passwordless sudo for user '$username' on VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
+}
+setTmpdir() {
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -d "$MFFER_TEST_TMPDIR" ]; then
+		return 0
+	fi
+	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" || [ -z "$MFFER_TEST_TMPDIR" ] || [ ! -d "$MFFER_TEST_TMPDIR" ]; then
+		echo "Error: Unable to create temporary directory" >&2
+		return 1
+	fi
+}
+setVerbosity() {
+	DEBUG="${DEBUG:-}"
+	VERBOSE="${VERBOSE:-}"
+	DEBUGOUT="/dev/null"
+	VERBOSEOUT="/dev/null"
+	if [ -n "$DEBUG" ]; then
+		set -x
+		set -e
+		set -u
+		VERBOSE=y
+		DEBUGOUT="/dev/stdout"
+	fi
+	if [ -n "$VERBOSE" ]; then
+		VERBOSEOUT="/dev/stdout"
+	fi
+	export DEBUG VERBOSE
 }
 # uses any of MFFER_VM_NAME, MFFER_VM_HOSTNAME, MFFER_VM_OS, MFFER_VM_BASESNAP_ID, and
 # MFFER_VM_BASESNAP_NAME (in that order of priority) that are already set to
@@ -151,25 +211,21 @@ setVms() {
 	ALL_VMS="$plist"
 	return 0
 }
+
+# vmExists vmname
+# Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
+# and 255 if a usage error occurs
 vmExists() {
-	if [ "$#" -ne "1" ] || [ -z "$1" ]; then
-		echo "Error: vmExists() requires a single nonempty argument" >&2
+	if [ "$#" -ne 1 ]; then
+		echo "Error: vmExists() requires a single argument" >&2
+		return 255
+	fi
+	if ! output="$(prlctl status "$1" 2>&1)" \
+		|| ! { echo "$output" | grep "^VM $1 exist " >/dev/null; } \
+		|| [ -z "$output" ]; then
+		echo "$output" >"$DEBUGOUT"
 		return 1
 	fi
-	vms="$(getVms)"
-	if ! vmcount="$(echo "$vms" | base64 -d \
-		| plutil -extract vms raw -expect array - -o -)" \
-		|| [ -z "$vmcount" ] \
-		|| [ "$vmcount" = "0" ]; then
-		return 1
-	fi
-	i=0
-	while [ "$i" -lt "$vmcount" ]; do
-		vmname="$(
-			echo "$vms" | base64 -d \
-				| plutil -extract "vms.$vmcount.Name" raw - -o -
-		)"
-		if [ "$1" = "$vmname" ]; then return 0; fi
-	done
-	return 1
 }
+
+setVerbosity
