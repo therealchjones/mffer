@@ -611,15 +611,22 @@ good" output from prior builds. There are standardized methods for creating the
 virtual machines and for testing mffer on them. Scripts are provided to create
 virtual machines for Parallels Desktop and test mffer on the virtual machines,
 all running on a macOS host machine with Parallels Desktop Pro and Command Line
-Tools for XCode. These scripts are available in the `tools/` directory.
-
-(Further information on using the command line to build and interact with
-Paralells Desktop is available
-[on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
-the latest version should be available
-[here](https://www.parallels.com/products/desktop/resources/).)
+Tools for XCode. These scripts are available in the `tools/testing/` hierarchy.
 
 ### Testing on macOS
+
+The "macOS Testing" virtual machine is created using
+[mkmacvm](https://github.com/therealchjones/mkmacvm) with some minor
+customizations:
+
+-   Enable passwordless sudo
+-   Create a "Base Installation" snapshot
+
+Initial building of the virtual machine with the above changes is performed via:
+
+```
+sh tools/testing/macos/createvm.sh
+```
 
 Software used to fulfill the [build requirements](#build-requirements) and
 runtime requirements is installed automatically on the virtual machine as needed
@@ -634,7 +641,7 @@ uses:
 -   Ghidra
 
 ```
-sh tools/testmac.sh
+sh tools/testing/macos/testmac.sh
 ```
 
 This script:
@@ -660,6 +667,20 @@ This script:
 
 ### Windows
 
+The "Windows Testing" virtual machine is a "clean" installation of Windows 10 (21H2) Pro with minimal customization:
+
+-   Autologon enabled
+-   SSH server enabled and user account given public key admin access
+-   KMS activation key used (thus not activated)
+-   NuGet added as package provider in PowerShell
+-   PSWindowsUpdate module installed in PowerShell
+
+Initial building of the virtual machine with the above changes is performed via:
+
+```
+sh tools/testing/windows/createvm.sh
+```
+
 1. Install Windows 10 & apply all available updates
 2. Install Parallels Tools
 3. Test mffer
@@ -672,11 +693,6 @@ This script:
 9. Test autoanalyze
 
 ### Testing releases
-
-"Semi-automated" testing of [releases](#releasing-mffer) is currently done
-using virtual machines as noted above. Testing is simply ensuring the programs
-run as expected; output files are not strictly compared due to expected minor
-variations.
 
 In order to ensure bugs are not the result of building on different systems, and
 to ensure the minimum of additional software is sufficient, the aforementioned
