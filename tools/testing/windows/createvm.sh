@@ -1,42 +1,12 @@
 #!/bin/sh
 
-# Test mffer build and operation on a Windows virtual machine
+# Create a Windows virtual machine appropriate for building and testing mffer
 
-# Options are set via the below environment variables; there are no command-line
-# flags or switches
+# Options are set via environment variables; there are no command-line flags or
+# switches
 
-set -e
-set -u
-
-VERBOSE="${VERBOSE:-y}"
-DEBUG="${DEBUG:-}"
-
-VERBOSEOUT="/dev/null"
-DEBUGOUT="/dev/null"
-if [ -n "$DEBUG" ]; then
-	set -x
-	VERBOSE=y
-	DEBUGOUT="/dev/stdout"
-fi
-if [ -n "$VERBOSE" ]; then
-	VERBOSEOUT="/dev/stdout"
-fi
-
-if [ 0 != "$#" ]; then
-	echo "$(basename "$0") does not accept arguments." >&2
-	echo "Usage: sh '$0'" >&2
-	exit 1
-fi
-trap cleanup EXIT
-
-MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"
-MFFER_TEST_TMPDIR_NEW=""
-PRLCTL="${PRLCTL:-}"
-PROGRAMDIR="$(dirname "$0")"
+MFFER_TEST_VM="${MFFER_TEST_VM:-Windows Testing}"
 SSH_IDENTITY="${SSH_IDENTITY:-$HOME/.ssh/id_ecdsa}"
-USERNAME="$(id -un)"
-VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
-VM_BASESNAPSHOT_ID=""
 WINDOWS_INSTALLER="${WINDOWS_INSTALLER:-}"
 # We use an unofficial URL so we don't need to fill out a form for the download
 WINDOWS_INSTALLER_URL="${WINDOWS_INSTALLER_URL:-https://www.itechtics.com/?dl_id=151}"
@@ -45,30 +15,33 @@ WINDOWS_INSTALLER_URL="${WINDOWS_INSTALLER_URL:-https://www.itechtics.com/?dl_id
 # https://www.microsoft.com/en-us/software-download/windows10ISO under the
 # heading "Verify your download"
 WINDOWS_INSTALLER_CKSUM="7f6538f0eb33c30f0a5cbbf2f39973d4c8dea0d64f69bd18e406012f17a8234f"
-WINDOWS_VM_NAME="${WINDOWS_VM_NAME:-Windows Testing}"
-WINDOWS_VM_HOSTNAME="${WINDOWS_VM_HOSTNAME:-windows-testing}"
 
-export DEBUG VERBOSE
+if [ -r "$(dirname "$0")"/../common/base.sh ]; then
+	. "$(dirname "$0")"/../common/base.sh
+else
+	echo "Error: Unable to load script definitions for $0" >&2
+	exit 1
+fi
+
+PRLCTL="${PRLCTL:-}"
+PROGRAMDIR="$(dirname "$0")"
+USERNAME="$(id -un)"
+
+MFFER_TEST_VM_HOSTNAME="${MFFER_TEST_VM_HOSTNAME:-windows-testing}"
 
 main() {
-	getTempDir || exit 1
+	setTempDir || exit 1
 	getWindowsVirtualMachine || exit 1
 
 }
-cleanup() {
-	echo "Cleaning up" >"$VERBOSEOUT"
-	if [ -n "$MFFER_TEST_TMPDIR" ] && [ -n "$MFFER_TEST_TMPDIR_NEW" ]; then
-		rm -rf "$MFFER_TEST_TMPDIR"
-	fi
-}
 createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 	getParallels || return 1
-	if "$PRLCTL" list "$WINDOWS_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Error: Virtual machine '$WINDOWS_VM_NAME'" >&2
+	if "$PRLCTL" list "$MFFER_TEST_VM" >"$DEBUGOUT" 2>&1; then
+		echo "Error: Virtual machine '$MFFER_TEST_VM'" >&2
 		echo "       already exists. Consider deleting it." >&2
 		return 1
 	fi
-	getTempDir || return 1
+	setTempDir || return 1
 	getWindowsInstaller || return 1
 	WINDOWS_SETUP_DIR="$MFFER_TEST_TMPDIR/WindowsSetup"
 	WINDOWS_SETUP_IMG="$MFFER_TEST_TMPDIR/WindowsSetup.iso"
@@ -117,45 +90,45 @@ createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 		echo "Error: Unable to configure Windows installation" >&2
 		return 1
 	fi
-	if ! "$PRLCTL" create "$WINDOWS_VM_NAME" -d win-10 >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$WINDOWS_VM_NAME" --isolate-vm on >"$DEBUGOUT"; then
-		echo "Error: Unable to create virtual machine '$WINDOWS_VM_NAME'" >&2
+	if ! "$PRLCTL" create "$MFFER_TEST_VM" -d win-10 >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --isolate-vm on >"$DEBUGOUT"; then
+		echo "Error: Unable to create virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	if ! "$PRLCTL" set "$WINDOWS_VM_NAME" --device-set "cdrom0" \
+	if ! "$PRLCTL" set "$MFFER_TEST_VM" --device-set "cdrom0" \
 		--image "$WINDOWS_INSTALLER" --connect >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$WINDOWS_VM_NAME" --device-add cdrom \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --device-add cdrom \
 			--image "$WINDOWS_SETUP_IMG" --connect >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$WINDOWS_VM_NAME" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" \
 			--device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT"; then
-		echo "Error: Unable to configure new virtual machine '$WINDOWS_VM_NAME'" >&2
+		echo "Error: Unable to configure new virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 	echo "Installing Windows on new virtual machine" >"$VERBOSEOUT"
-	if ! "$PRLCTL" start "$WINDOWS_VM_NAME" >"$DEBUGOUT"; then
+	if ! "$PRLCTL" start "$MFFER_TEST_VM" >"$DEBUGOUT"; then
 		echo "Error: Unable to install Windows" >&2
 		return 1
 	fi
 	echo 'Waiting for installation to finish' >"$VERBOSEOUT"
 	waitForInstallation
 	echo "Removing old SSH authorization keys" >"$VERBOSEOUT"
-	ssh-keygen -R "$WINDOWS_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
-	ssh-keygen -R "$WINDOWS_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
 	echo "Setting up new SSH authorization" >"$VERBOSEOUT"
 	# Need to wait for updates to finish, shutdown machine, remove installation
 	# media & 2nd cdrom, restart, then save snapshot; maybe download latest
 	# cumulative update package and include in offlineservice component of the
 	# unattend file
-	if ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$WINDOWS_VM_HOSTNAME" \
+	if ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$MFFER_TEST_VM_HOSTNAME" \
 		shutdown /s >"$VERBOSEOUT"; then
 		echo "Error: Unable to connect to VM via SSH" >&2
 		return 1
 	fi
-	echo "Saving VM snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
-	if ! prlctl snapshot "$WINDOWS_VM_NAME" -n "$VM_BASESNAPSHOT" \
+	echo "Saving VM snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
+	if ! prlctl snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" \
 		-d "Initial installation without additional software. User $USERNAME, no password. Public key SSH enabled." \
 		>"$DEBUGOUT"; then
-		echo "Error: Unable to save VM snapshot '$VM_BASESNAPSHOT'" >&2
+		echo "Error: Unable to save VM snapshot '$MFFER_TEST_SNAPSHOT'" >&2
 		return 1
 	fi
 }
@@ -177,42 +150,21 @@ getParallels() { # sets PRLCTL if not already
 	echo "       Ensure Parallels Desktop is installed and activated." >&2
 	return 1
 }
-getTempDir() { # creates and sets MFFER_TEST_TMPDIR if not already
-	if [ -n "$MFFER_TEST_TMPDIR" ]; then
-		if [ ! -d "$MFFER_TEST_TMPDIR" ] \
-			|| ! ls "$MFFER_TEST_TMPDIR" >"$DEBUGOUT"; then
-			echo "Error: 'MFFER_TEST_TMPDIR' is set to '$MFFER_TEST_TMPDIR'," >&2
-			echo "       but that isn't working." >&2
-			return 1
-		fi
-		return 0
-	fi
-	MFFER_TEST_TMPDIR_NEW=y
-	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" \
-		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
-		echo "Error: Unable to create temporary directory" >&2
-		return 1
-	fi
-	return 0
-}
-getTime() {
-	date +%s
-}
-getVMBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
+getVMBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 	getParallels || return 1
-	if [ -n "$VM_BASESNAPSHOT_ID" ]; then
-		if [ -z "$("$PRLCTL" snapshot-list "$WINDOWS_VM_NAME" -i "$VM_BASESNAPSHOT_ID")" ]; then
-			echo "Error: 'VM_BASESNAPSHOT_ID' is set to '$VM_BASESNAPSHOT_ID'," >&2
+	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID")" ]; then
+			echo "Error: 'MFFER_TEST_SNAPSHOT_ID' is set to '$MFFER_TEST_SNAPSHOT_ID'," >&2
 			echo "       which isn't working." >&2
 			return 1
 		fi
 		return 0
 	fi
-	if ! "$PRLCTL" list "$WINDOWS_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Error: Unable to find virtual machine '$WINDOWS_VM_NAME'" >&2
+	if ! "$PRLCTL" list "$MFFER_TEST_VM" >"$DEBUGOUT" 2>&1; then
+		echo "Error: Unable to find virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	if ! SNAPSHOTLIST="$(prlctl snapshot-list "$WINDOWS_VM_NAME" -j)" \
+	if ! SNAPSHOTLIST="$(prlctl snapshot-list "$MFFER_TEST_VM" -j)" \
 		|| ! SNAPSHOTS="$(
 			plutil -create xml1 - -o - \
 				| plutil -insert snapshots \
@@ -220,18 +172,18 @@ getVMBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
 		)" \
 		|| [ -z "$SNAPSHOTS" ]; then
 		echo 'Error: Unable to obtain list of virtual machine snapshots.' >&2
-		echo "       The virtual machine '$WINDOWS_VM_NAME'" >&2
+		echo "       The virtual machine '$MFFER_TEST_VM'" >&2
 		echo "       may be invalid; consider deleting it." >&2
 		return 1
 	fi
-	VM_BASESNAPSHOT_ID="$(
+	MFFER_TEST_SNAPSHOT_ID="$(
 		echo "$SNAPSHOTS" \
 			| plutil -extract snapshots raw - -o - \
 			| while read -r snapshotid; do
 				if snapshots="$(echo "$SNAPSHOTS" | plutil -extract snapshots xml1 - -o -)" \
 					&& snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
 					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$VM_BASESNAPSHOT" ]; then
+					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
 					snapshotid="${snapshotid#\{}"
 					snapshotid="${snapshotid%\}}"
 					echo "$snapshotid"
@@ -239,16 +191,16 @@ getVMBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
 				fi
 			done
 	)"
-	if [ -z "$VM_BASESNAPSHOT_ID" ]; then
-		echo "Error: virtual machine '$WINDOWS_VM_NAME'" >&2
-		echo "       does not include snapshot '$VM_BASESNAPSHOT'" >&2
+	if [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		echo "Error: virtual machine '$MFFER_TEST_VM'" >&2
+		echo "       does not include snapshot '$MFFER_TEST_SNAPSHOT'" >&2
 		echo "       Consider deleting this VM; we can rebuild it." >&2
 		return 1
 	fi
 	return 0
 }
 getWindowsInstaller() { # downloads and sets WINDOWS_INSTALLER if not already
-	getTempDir || return 1
+	setTempDir || return 1
 	if [ -z "$WINDOWS_INSTALLER" ]; then
 		WINDOWS_INSTALLER="$MFFER_TEST_TMPDIR/Win10_21H2_English_x64.iso"
 	fi
@@ -270,10 +222,10 @@ getWindowsInstaller() { # downloads and sets WINDOWS_INSTALLER if not already
 }
 getWindowsVirtualMachine() { # creates virtual machine if not already, validates
 	getParallels || return 1
-	if "$PRLCTL" list "$WINDOWS_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Using virtual machine '$WINDOWS_VM_NAME'" >"$VERBOSEOUT"
+	if "$PRLCTL" list "$MFFER_TEST_VM" >"$DEBUGOUT" 2>&1; then
+		echo "Using virtual machine '$MFFER_TEST_VM'" >"$VERBOSEOUT"
 	else
-		echo "Creating virtual machine '$WINDOWS_VM_NAME'" >"$VERBOSEOUT"
+		echo "Creating virtual machine '$MFFER_TEST_VM'" >"$VERBOSEOUT"
 		createWindowsVirtualMachine || return 1
 	fi
 	getVMBaseSnapshotId || return 1
@@ -414,7 +366,7 @@ printAutounattend() {
 			</settings>
 			<settings pass="specialize">
 				<component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-					<ComputerName>$WINDOWS_VM_HOSTNAME</ComputerName>
+					<ComputerName>$MFFER_TEST_VM_HOSTNAME</ComputerName>
 				</component>
 			</settings>
 		</unattend>
@@ -441,11 +393,6 @@ printWinSetup() {
 		Get-WindowsUpdate -AcceptAll -AutoReboot -Install
 		Restart-Computer
 	EOF
-}
-sshIsRunning() {
-	# returns error if not connectable, including
-	# if the hostname is not found
-	nc -z "$WINDOWS_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
 }
 waitForInstallation() {
 	starttime="$(getTime)"

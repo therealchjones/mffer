@@ -4,45 +4,48 @@
 # within the mffer development environment (see the mffer Development Guide for
 # details).
 
-# This script accepts no command line arguments or options. Some settings may be
-# modified using environment variables.
+# This script evaluates no command line arguments or options. Some settings may
+# be modified using environment variables.
+
+VERBOSE="${VERBOSE:-y}" # Include brief progress updates and PASSED notices
 
 MFFER_TEST_PROGRAM="$0"
-MFFER_TEST_DIR="$(basename "$MFFER_TEST_PROGRAM")"
-VERBOSE="${VERBOSE:-y}"
-. "$MFFER_TEST_DIR"/common/testfxns.sh
-
-MFFER_TEST_NESTED="${MFFER_TEST_NESTED:=}"
-MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"
-MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:=}"
+MFFER_TEST_BASENAME="$(basename "$MFFER_TEST_PROGRAM")"
+MFFER_TEST_DIR="$(dirname "$MFFER_TEST_PROGRAM")"
+MFFER_TREE_ROOT="$MFFER_TEST_DIR/../.."
+# Ensure the directory tree is as we expect it. Not foolproof.
+if [ ! -f "$MFFER_TREE_ROOT/tools/testing/$MFFER_TEST_BASENAME" ]; then
+	message="Error: Unexpected location of '$0';"
+	message="\n       run as mffer/tools/testing/$MFFER_TEST_BASENAME,"
+	message="\n       where mffer is the root of the mffer repository."
+	echo "$message" >&2
+	exit 1
+fi
+if [ -r "$MFFER_TEST_DIR"/common/base.sh ]; then
+	. "$MFFER_TEST_DIR"/common/base.sh
+else
+	echo "Error: Unable to load test definitions" >&2
+	exit 1
+fi
 
 main() {
-	if [ -n "${MFFER_TEST_NESTED:=}" ]; then
-		runNested "$MFFER_TEST_NESTED"
-	else
-		setMfferSource || exitFromError
-		trap cleanup EXIT
-		setTmpdir || exitFromError
-		buildOn local || exitFromError
-		testOn local || exitFromError
-		for os in macos linux windows; do
-			buildOn "$os"
-		done
-		for os in macos linux windows; do
-			testOn "$os"
-		done
-	fi
-	exit
-}
-cleanup() {
-	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
-		rm -rf "${MFFER_TEST_TMPDIR:=}"
-	fi
+	buildOn local || exitFromError
+	testOn local || exitFromError
+	for os in macos linux windows; do
+		buildOn "$os"
+	done
+	for os in macos linux windows; do
+		testOn "$os"
+	done
 }
 buildDocs() {
+	setTmpdir || return 1
 	echo "building documentation" >"$VERBOSEOUT"
-	python3 -m venv "$MFFER_TEST_TMPDIR"/python
+	python3 -m venv "$MFFER_TEST_TMPDIR"/python || return 1
 	if ! (
+		# The 'activate' script is present only transiently when this is
+		# running; disable shellcheck's complaint about not finding it
+		# shellcheck disable=SC1091
 		. "$MFFER_TEST_TMPDIR"/python/bin/activate \
 			&& pip3 install --upgrade pip >"$DEBUGOUT" \
 			&& pip3 install -r "$MFFER_TREE_ROOT"/tools/requirements.txt >"$DEBUGOUT" \
@@ -394,16 +397,6 @@ setMffer() {
 	if [ ! -x "$MFFER" ]; then
 		echo "Error: Unable to open mffer executable '$MFFER' for testing" >&2
 		return 1
-	fi
-}
-setMfferSource() {
-	MFFER_TREE_ROOT="${MFFER_TREE_ROOT:-$(dirname "$MFFER_TEST_PROGRAM")/..}"
-	if [ ! -d "$MFFER_TREE_ROOT" ] \
-		|| [ ! -f "$MFFER_TREE_ROOT"/mffer.csproj ]; then
-		echo "Error: $0 does not appear to be in the proper location." >&2
-		echo "       Run 'mffer/tools/test.sh' (where 'mffer' is the root of the" >&2
-		echo "       mffer source repository) instead." >&2
-		exit 1
 	fi
 }
 # setSnapshotid

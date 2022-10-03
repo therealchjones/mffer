@@ -18,16 +18,16 @@ PATH="${PATH:+$PATH:}/usr/local/bin:${HOME:-}/.dotnet"
 
 # Parameters used throughout the program. The program will try to determine
 # most of them dynamically if not explicitly set in the environment
-MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}"   # url
-MFFER_SOURCE_DIR="${MFFER_SOURCE_DIR:-}"                              # where the local tree is or the download should go
-MFFER_SOURCE_COMMIT="${MFFER_SOURCE_COMMIT:-}"                        # which commit to test
-MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"                            # disposable temporary directory
-MFFER_USE_LOCAL="${MFFER_USE_LOCAL:-}"                                # if nonempty, use a local source tree rather than download
-MFFER_VM_BASESNAP_NAME="${MFFER_VM_BASESNAP_NAME:-Base Installation}" # Name of the "clean install" snapshot on the testing VM
-MFFER_VM_BASESNAP_ID="${MFFER_VM_BASESNAP_ID:-}"                      # ID of the "clean install" snapshot on the testing VM
-MFFER_VM_HOSTNAME="${MFFER_VM_HOSTNAME:-}"                            # hostname of the VM on which to test
-MFFER_VM_NAME="${MFFER_VM_NAME:-}"                                    # Name of the VM on which to test
-MFFER_VM_OS="${MFFER_VM_OS:-}"                                        # OS of the VM on which to test
+MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}" # url
+MFFER_SOURCE_DIR="${MFFER_SOURCE_DIR:-}"                            # where the local tree is or the download should go
+MFFER_SOURCE_COMMIT="${MFFER_SOURCE_COMMIT:-}"                      # which commit to test
+MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"                          # disposable temporary directory
+MFFER_USE_LOCAL="${MFFER_USE_LOCAL:-}"                              # if nonempty, use a local source tree rather than download
+MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"     # Name of the "clean install" snapshot on the testing VM
+MFFER_TEST_SNAPSHOT_ID="${MFFER_TEST_SNAPSHOT_ID:-}"                # ID of the "clean install" snapshot on the testing VM
+MFFER_VM_HOSTNAME="${MFFER_VM_HOSTNAME:-}"                          # hostname of the VM on which to test
+MFFER_VM_NAME="${MFFER_VM_NAME:-}"                                  # Name of the VM on which to test
+MFFER_VM_OS="${MFFER_VM_OS:-}"                                      # OS of the VM on which to test
 #
 # Variables regarding other software that may be used for testing; leave blank
 # to use whatever is available and found automatically
@@ -56,10 +56,24 @@ ALL_VMS=""
 # getSomething - prints value, potentially also determining that value and
 #                setting the appropriate environment variable(s) if not already
 
-# prints MFFER_VM_BASESNAP_ID, determining and setting it if not already
+# cleanup
+#
+# function to be run just before exiting the script (that is, the one sourcing this one)
+cleanup() {
+	exitstatus="$?"
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
+		if ! rm -rf "$MFFER_TEST_TMPDIR" >"$DEBUGOUT" 2>&1 \
+			|| ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR"; }; then
+			echo "Error: Unable to delete temporary directory '$MFFER_TEST_TMPDIR'" >&2
+			if [ "$exitstatus" -eq 0 ]; then exitstatus=1; fi
+		fi
+	fi
+	exit "$exitstatus"
+}
+# prints MFFER_TEST_SNAPSHOT_ID, determining and setting it if not already
 getBaseVmId() {
-	if [ -n "$MFFER_VM_BASESNAP_ID" ]; then
-		echo "$MFFER_VM_BASESNAP_ID"
+	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		echo "$MFFER_TEST_SNAPSHOT_ID"
 		return 0
 	fi
 	setParallels || return 1
@@ -81,7 +95,7 @@ getBaseVmId() {
 			| while read -r snapshotid; do
 				if snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
 					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$MFFER_VM_BASESNAP_NAME" ]; then
+					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
 					echo "$snapshotid"
 					break
 				fi
@@ -89,16 +103,11 @@ getBaseVmId() {
 	)" || [ -z "$snapshot_id" ]; then
 		return 1
 	fi
-	MFFER_VM_BASESNAP_ID="$snapshot_id"
-	echo "$MFFER_VM_BASESNAP_ID"
+	MFFER_TEST_SNAPSHOT_ID="$snapshot_id"
+	echo "$MFFER_TEST_SNAPSHOT_ID"
 }
-getTempDir() {
-	if [ -z "${MFFER_TEST_TMPDIR:=}" ]; then
-		if ! setTmpDir; then
-			return 1
-		fi
-	fi
-	echo "$MFFER_TEST_TMPDIR"
+getTime() {
+	date +%s
 }
 # Prints (and sets, if necessary) the ALL_VMS parameter, a long string with all the Parallels
 # virtual machine info in plist format
@@ -146,6 +155,10 @@ setPasswordlessSudo() {
 		return 1
 	fi
 }
+# setTmpdir
+#
+# If MFFER_TEST_TMPDIR doesn't already point to an existing directory, create a
+# temporary directory and set MFFER_TEST_TMPDIR to its name
 setTmpdir() {
 	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -d "$MFFER_TEST_TMPDIR" ]; then
 		return 0
@@ -172,14 +185,14 @@ setVerbosity() {
 	fi
 	export DEBUG VERBOSE
 }
-# uses any of MFFER_VM_NAME, MFFER_VM_HOSTNAME, MFFER_VM_OS, MFFER_VM_BASESNAP_ID, and
-# MFFER_VM_BASESNAP_NAME (in that order of priority) that are already set to
+# uses any of MFFER_VM_NAME, MFFER_VM_HOSTNAME, MFFER_VM_OS, MFFER_TEST_SNAPSHOT_ID, and
+# MFFER_TEST_SNAPSHOT (in that order of priority) that are already set to
 # set MFFER_VM_NAME, MFFER_VM_HOSTNAME, and MFFER_VM_OS; if possible with the provided settings,
 # will set the others as well. If multiple sets of values or no sets of values would be
 # consistent with the initial set values, prints an error and returns 1
 setVm() {
-	if [ -z "$MFFER_VM_BASESNAP_NAME" ] && [ -z "$MFFER_VM_BASESNAP_ID" ]; then
-		echo "Error: Neither MFFER_VM_BASESNAP_NAME nor MFFER_VM_BASESNAP_ID is" >&2
+	if [ -z "$MFFER_TEST_SNAPSHOT" ] && [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		echo "Error: Neither MFFER_TEST_SNAPSHOT nor MFFER_TEST_SNAPSHOT_ID is" >&2
 		echo "       set. Cannot define the virtual machine and snapshot to use." >&2
 		return 1
 	fi
@@ -211,7 +224,17 @@ setVms() {
 	ALL_VMS="$plist"
 	return 0
 }
-
+# sshIsRunning
+#
+# Returns 0 if able to connect to MFFER_TEST_VM_HOSTNAME on
+# port 22, nonzero otherwise
+sshIsRunning() {
+	if ! command -v nc >"$DEBUGOUT" 2>&1; then
+		echo "Error: 'nc' command not found" >&2
+		return 1
+	fi
+	nc -z "$MFFER_TEST_VM_HOSTNAME" 22 >"$DEBUGOUT" 2>&1
+}
 # vmExists vmname
 # Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
 # and 255 if a usage error occurs
@@ -229,3 +252,4 @@ vmExists() {
 }
 
 setVerbosity
+trap cleanup EXIT
