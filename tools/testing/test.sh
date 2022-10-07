@@ -2,35 +2,74 @@
 
 # Run mffer build & function tests. This script is expected to be run from
 # within the mffer development environment (see the mffer Development Guide for
-# details).
+# details). This script needs to be self-contained to the extent required for
+# running commands on a virtual machine, e.g., so we can copy this script alone
+# to a VM for portions of testing.
 
 # This script evaluates no command line arguments or options. Some settings may
 # be modified using environment variables.
 
 VERBOSE="${VERBOSE:-y}" # Include brief progress updates and PASSED notices
 
-MFFER_TEST_PROGRAM="$0"
-MFFER_TEST_BASENAME="$(basename "$MFFER_TEST_PROGRAM")"
-MFFER_TEST_DIR="$(dirname "$MFFER_TEST_PROGRAM")"
-MFFER_TREE_ROOT="$MFFER_TEST_DIR/../.."
-# Ensure the directory tree is as we expect it. Not foolproof.
-if [ ! -f "$MFFER_TREE_ROOT/tools/testing/$MFFER_TEST_BASENAME" ]; then
-	message="Error: Unexpected location of '$0';"
-	message="\n       run as mffer/tools/testing/$MFFER_TEST_BASENAME,"
-	message="\n       where mffer is the root of the mffer repository."
+# This is a ridiculously complex way to guess the location of the script given
+# the limitations noted in https://mywiki.wooledge.org/BashFAQ/028 and falling
+# back to "Run this script from within the mffer repository" if needed. This is
+# necessary to note where to build source or obtain built releases, so we also
+# use it for modularizing scripts.
+MFFER_TREE_ROOT="${MFFER_TREE_ROOT:-}"
+if {
+	[ -z "$MFFER_TREE_ROOT" ] && ! MFFER_TREE_ROOT="$(
+		findTreeRoot() {
+			oldpwd=""
+			while [ "${PWD:-}" != "$oldpwd" ] && [ ! -f "${PWD:-}/mffer.csproj" ]; do
+				oldpwd="${PWD:-}"
+				cd .. || break
+			done
+			possdir="${PWD:-}"
+			# Ensure the directory tree is as we expect it. Not foolproof.
+			# See https://mywiki.wooledge.org/BashFAQ/028
+			if [ -z "$possdir" ] \
+				|| [ ! -f "$possdir/mffer.csproj" ] \
+				|| [ ! -d "$possdir/tools/testing" ]; then
+				return 1
+			fi
+			echo "$possdir"
+		}
+		startdir="${PWD:-}"
+		if ! findTreeRoot; then
+			cd "$startdir" && cd "$(dirname "$0")" && findTreeRoot
+		fi
+	)" 2>"${DEBUGOUT:-/dev/null}"
+} \
+	|| [ -z "${MFFER_TREE_ROOT:=}" ]; then
+	message="Error: Unable to find the root of the mffer repository. Please run"
+	message="$message\n       this script from within the mffer repository."
 	echo "$message" >&2
 	exit 1
 fi
-if [ -r "$MFFER_TEST_DIR"/common/base.sh ]; then
-	. "$MFFER_TEST_DIR"/common/base.sh
-else
-	echo "Error: Unable to load test definitions" >&2
+
+MFFER_TEST_DIR="$MFFER_TREE_ROOT/tools/testing"
+# Allow continuing if these importable scripts don't exist, i.e., if we're
+# running this one alone on a virtual machine.
+if [ -r "$MFFER_TEST_DIR"/common/base.sh ] \
+	&& ! . "$MFFER_TEST_DIR"/common/base.sh; then
+	echo "Error: Unable to load script definitions" >&2
 	exit 1
 fi
+MFFER_TEST_VM_SYSTEM=""
+if [ -r "$MFFER_TEST_DIR"/common/parallels.sh ] \
+	&& ! . "$MFFER_TEST_DIR"/common/parallels.sh; then
+	echo "Warning: Unable to load Parallels Desktop definitions" >&2
+fi
+MFFER_TEST_VM_HOSTNAME="$(echo "$MFFER_TEST_VM" | tr 'A-Z ' 'a-z-')"
 
 main() {
 	buildOn local || exitFromError
 	testOn local || exitFromError
+	if [ -z "$MFFER_TEST_VM_SYSTEM" ]; then
+		echo "Warning: No virtual machine system found. Skipping virtual machine tests." >&2
+		exit 0
+	fi
 	for os in macos linux windows; do
 		buildOn "$os"
 	done
@@ -48,7 +87,8 @@ buildDocs() {
 		# shellcheck disable=SC1091
 		. "$MFFER_TEST_TMPDIR"/python/bin/activate \
 			&& pip3 install --upgrade pip >"$DEBUGOUT" \
-			&& pip3 install -r "$MFFER_TREE_ROOT"/tools/requirements.txt >"$DEBUGOUT" \
+			&& pip3 install \
+				-r "$MFFER_TREE_ROOT"/tools/requirements.txt >"$DEBUGOUT" \
 			&& cd "$MFFER_TREE_ROOT" \
 			&& sh tools/mkdocs.sh >"$DEBUGOUT"
 	); then
@@ -72,6 +112,9 @@ buildMffer() {
 	fi
 	echo "PASSED building mffer" >"$VERBOSEOUT"
 }
+# buildOn ( local | macos | linux | windows )
+#
+#
 buildOn() {
 	if [ "$#" -ne 1 ]; then
 		echo "Error: buildOn() requires a single argument" >&2
@@ -124,13 +167,13 @@ buildOn() {
 }
 # checkVm
 # ensures a VM named MFFER_TEST_VM exists and includes a base installation
-# snapshot and sets MFFER_TEST_SNAPSHOT_ID
+# snapshot
 checkVm() {
 	if ! vmExists "$MFFER_TEST_VM"; then
 		echo "Error: VM '$MFFER_TEST_VM' was not found" >&2
 		return 1
 	fi
-	if ! setSnapshotId; then
+	if ! hasSnapshot "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT"; then
 		echo "Error: VM '$MFFER_TEST_VM' is not properly configured" >&2
 		return 1
 	fi
@@ -179,65 +222,6 @@ installOnVm() {
 			return 1
 			;;
 	esac
-}
-# resetVm
-# resets the VM named MFFER_TEST_VM to the snapshot with ID MFFER_TEST_SNAPSHOT_ID and
-# ensures the VM is running and accepting ssh connections. If either of the variables are empty, if the reset fails, or
-# if it cannot be confirmed that the VM is running and accepting ssh connections, returns 1.
-# Additionally sets MFFER_TEST_VM_HOSTNAME.
-resetVm() {
-	if [ -z "$MFFER_TEST_VM" ]; then
-		echo "MFFER_TEST_VM is empty. Use setVm() before resetVm()." >&2
-		return 1
-	fi
-	if [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
-		echo "MFFER_TEST_SNAPSHOT_ID is empty. Use setSnapshotId() before resetVm()." >&2
-		return 1
-	fi
-	echo "Resetting virtual machine '$MFFER_TEST_VM'" >"$VERBOSEOUT"
-	if ! prlctl snapshot-switch "$MFFER_TEST_VM" --id "$MFFER_TEST_SNAPSHOT_ID" >"$DEBUGOUT"; then
-		echo "Error: Unable to reset VM '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_SNAPSHOT'" >&2
-		return 1
-	fi
-	tries=5
-	until [ "$tries" -lt 1 ]; do
-		vm_status=""
-		if ! vm_status="$(prlctl status "$MFFER_TEST_VM")" \
-			|| [ -z "$vm_status" ]; then
-			echo "Error: Unable to get status of VM '$MFFER_TEST_VM'" >&2
-			return 1
-		fi
-		vm_status="${vm_status#VM "$MFFER_TEST_VM" exist }"
-		case "$vm_status" in
-			stopped | suspended)
-				if ! prlctl start "$MFFER_TEST_VM" >"$DEBUGOUT"; then
-					echo "Error: Unable to start VM '$MFFER_TEST_VM'" >&2
-					return 1
-				fi
-				;;
-			running)
-				break
-				;;
-			*)
-				sleep 5
-				;;
-		esac
-	done
-	if [ "running" != "$vm_status" ]; then
-		echo "Error: VM '$MFFER_TEST_VM' did not start" >&2
-		return 1
-	fi
-	# wait for the VM to start
-	tries=12
-	MFFER_TEST_VM_HOSTNAME="$(echo "$MFFER_TEST_VM" | tr 'A-Z ' 'a-z-')"
-	until scp -q -o ConnectTimeout=30 "$0" "$MFFER_TEST_VM_HOSTNAME": || [ "$tries" -lt 1 ]; do
-		sleep 5
-		tries="$((tries - 1))"
-	done
-	if [ "$tries" -lt 1 ]; then
-		echo "Error: Unable to connect to reset virtual machine '$MFFER_TEST_VM' ('$MFFER_TEST_VM_HOSTNAME')" >&2
-		return 1
-	fi
 }
 runApkdl() {
 	echo "Running apkdl" >"$VERBOSEOUT"
@@ -311,15 +295,14 @@ setAutoanalyze() {
 	AUTOANALYZE="$MFFER_RUN_DIR/autoanalyze"
 }
 setBuildEnv() {
-	if [ -z "${MFFER_TEST_VM:=}" ] \
-		|| [ -z "${MFFER_TEST_OS:=}" ]; then
-		echo "Error: MFFER_TEST_VM or MFFER_TEST_OS is empty. Run setVm() before setBuildEnv()." >&2
+	if [ -z "${MFFER_TEST_VM:=}" ] || [ -z "${MFFER_TEST_VM_HOSTNAME:=}" ]; then
+		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty. Run setVm() before setBuildEnv()." >&2
 		return 1
 	fi
 	if ! tar cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
 		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME:" mkdir -p mffer-tree \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME:" tar xf mffer-tree.tar -C mffer-tree; then
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer-tree \
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar xf mffer-tree.tar -C mffer-tree; then
 		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
@@ -399,38 +382,6 @@ setMffer() {
 		return 1
 	fi
 }
-# setSnapshotid
-# Sets MFFER_TEST_SNAPSHOT_ID to the ID of a snapshot named MFFER_TEST_SNAPSHOT
-# in the VM named MFFER_TEST_VM. If no such VM exists or it does not contain such
-# a snapshot, prints an error message and returns 1.
-setSnapshotId() {
-	if [ -z "${MFFER_TEST_VM:=}" ] || ! vmExists "$MFFER_TEST_VM"; then
-		echo "Error: Unable to identify VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
-	output=""
-	if ! output="$(prlctl snapshot-list "$MFFER_TEST_VM" -j)"; then
-		echo "Error: Unable to get the list of snapshots for VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
-	if [ -z "$output" ]; then
-		return 1
-	fi
-	snapshots=""
-	snapshots="$(plutil -create xml1 - -o - | plutil -insert snapshots -json "$output" - -o -)"
-	if [ -z "$snapshots" ]; then
-		echo "Error: Unable to parse the list of snapshots for VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
-	for snapshotid in $(echo "$snapshots" | plutil -extract snapshots raw -expect dictionary - -o -); do
-		snapshotname="$(echo "$snapshots" | plutil -extract "snapshots.$snapshotid.name" raw -expect string - -o -)"
-		if [ "${MFFER_TEST_SNAPSHOT:-Base Installation}" = "$snapshotname" ]; then
-			MFFER_TEST_SNAPSHOT_ID="$snapshotid"
-			return 0
-		fi
-	done
-	return 1
-}
 setTmpdir() {
 	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -d "$MFFER_TEST_TMPDIR" ]; then
 		return 0
@@ -441,16 +392,16 @@ setTmpdir() {
 	fi
 }
 # setVm [os]
+#
 # Sets MFFER_TEST_OS to os, ensures there is a virtual machine running os that is appropriate for testing
 # and/or building mffer, sets MFFER_TEST_VM and MFFER_TEST_SNAPSHOT_ID, then
-# resets the VM named MFFER_TEST_VM to the snapshot MFFER_TEST_SNAPSHOT_ID
+# resets the VM named MFFER_TEST_VM to the snapshot MFFER_TEST_SNAPSHOT_ID and sets MFFER_TEST_VM_HOSTNAME
 setVm() {
 	if [ "$#" -ne 1 ]; then
 		echo "Error: setVm() requires a single argument" >&2
 		return 1
 	fi
 	MFFER_TEST_VM=""
-	MFFER_TEST_SNAPSHOT_ID=""
 	case "$1" in
 		linux)
 			MFFER_TEST_VM="Linux Testing"
@@ -467,8 +418,9 @@ setVm() {
 			;;
 	esac
 	MFFER_TEST_OS="$1"
-	checkVm || return 1
-	resetVm || return 1
+	checkVm "$MFFER_TEST_VM" || return 1
+	MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
+	resetVm "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT" || return 1
 }
 testOn() {
 	if [ "$#" -ne 1 ]; then
@@ -519,20 +471,5 @@ testOn() {
 			return 1
 			;;
 	esac
-}
-# vmExists vmname
-# Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
-# and 255 if a usage error occurs
-vmExists() {
-	if [ "$#" -ne 1 ]; then
-		echo "Error: vmExists() requires a single argument" >&2
-		return 255
-	fi
-	if ! output="$(prlctl status "$1" 2>&1)" \
-		|| ! { echo "$output" | grep "^VM $1 exist " >/dev/null; } \
-		|| [ -z "$output" ]; then
-		echo "$output" >"$DEBUGOUT"
-		return 1
-	fi
 }
 main

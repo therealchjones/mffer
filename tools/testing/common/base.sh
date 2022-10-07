@@ -63,7 +63,7 @@ cleanup() {
 	exitstatus="$?"
 	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
 		if ! rm -rf "$MFFER_TEST_TMPDIR" >"$DEBUGOUT" 2>&1 \
-			|| ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR"; }; then
+			&& ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR"; }; then
 			echo "Error: Unable to delete temporary directory '$MFFER_TEST_TMPDIR'" >&2
 			if [ "$exitstatus" -eq 0 ]; then exitstatus=1; fi
 		fi
@@ -234,21 +234,6 @@ sshIsRunning() {
 		return 1
 	fi
 	nc -z "$MFFER_TEST_VM_HOSTNAME" 22 >"$DEBUGOUT" 2>&1
-}
-# vmExists vmname
-# Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
-# and 255 if a usage error occurs
-vmExists() {
-	if [ "$#" -ne 1 ]; then
-		echo "Error: vmExists() requires a single argument" >&2
-		return 255
-	fi
-	if ! output="$(prlctl status "$1" 2>&1)" \
-		|| ! { echo "$output" | grep "^VM $1 exist " >/dev/null; } \
-		|| [ -z "$output" ]; then
-		echo "$output" >"$DEBUGOUT"
-		return 1
-	fi
 }
 
 setVerbosity
