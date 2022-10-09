@@ -615,17 +615,18 @@ Tools for XCode. These scripts are available in the `tools/testing/` hierarchy.
 
 ### Testing on macOS
 
-The "macOS Testing" virtual machine is created using
-[mkmacvm](https://github.com/therealchjones/mkmacvm) with some minor
-customizations:
+The "macOS Testing" virtual machine running macOS 12.6 Monterey is created using
+[mkmacvm](https://github.com/therealchjones/mkmacvm) with some customizations:
 
+-   Enable the SSH server (which is done by mkmacvm)
 -   Enable passwordless sudo
 -   Create a "Base Installation" snapshot
 
-Initial building of the virtual machine with the above changes is performed via:
+Initial building of the virtual machine requires `sudo` access; to
+create the VM with the above changes and minimal interaction, use:
 
 ```
-sh tools/testing/macos/createvm.sh
+sudo sh tools/testing/macos/createvm.sh
 ```
 
 Software used to fulfill the [build requirements](#build-requirements) and
@@ -633,12 +634,13 @@ runtime requirements is installed automatically on the virtual machine as needed
 for the various phases of testing. The current testing environment on macOS
 uses:
 
--   macOS 12.2.1 Monterey
 -   Xcode Command Line Tools
 -   Node.js 16.13.2
 -   .NET 5.0 SDK
 -   Temurin JRE 11.0.14.1_1
 -   Ghidra
+
+To perform all tests noninteractively, run:
 
 ```
 sh tools/testing/macos/testmac.sh
@@ -659,38 +661,39 @@ This script:
 
 ### Linux
 
-1. Install Ubuntu 20.04 & apply all available updates
-2. Install Parallels Tools
-3. Test mffer
-4. Test apkdl
-5. Test autoanalyze
+The "Linux Testing" virtual machine is created using an Ubuntu Desktop 22.04
+installer with some customizations:
+
+-   Enable passwordless sudo
+-   Disable gnome-initial-setup
+-   Install and enable the SSH server
+-   Download and install software updates
+-   Create a "Base Installation" snapshot
+
+Initial building of the virtual machine with the above changes is performed
+noninteractively via:
+
+```
+sh tools/testing/linux/createvm.sh
+```
 
 ### Windows
 
-The "Windows Testing" virtual machine is a "clean" installation of Windows 10 (21H2) Pro with minimal customization:
+The "Windows Testing" virtual machine is a "clean" installation of Windows 10
+(21H2) Pro with some customization:
 
 -   Autologon enabled
 -   SSH server enabled and user account given public key admin access
--   KMS activation key used (thus not activated)
+-   KMS activation key used (thus the system is not activated)
 -   NuGet added as package provider in PowerShell
 -   PSWindowsUpdate module installed in PowerShell
 
-Initial building of the virtual machine with the above changes is performed via:
+Initial building of the virtual machine with the above changes is performed
+noninteractively via:
 
 ```
 sh tools/testing/windows/createvm.sh
 ```
-
-1. Install Windows 10 & apply all available updates
-2. Install Parallels Tools
-3. Test mffer
-4. Install
-   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
-5. Install Git (with Git Bash)
-6. Test apkdl
-7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
-8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
-9. Test autoanalyze
 
 ### Testing releases
 
@@ -734,7 +737,8 @@ tested on each reference system, resulting in a testing checklist such as:
 ## Releasing mffer
 
 1. Merge all code for the release into the main branch
-2. Declare a "feature freeze" and create a new branch from main named for the release
+2. Declare a "feature freeze" and create a new branch from main named for the
+   release
 3. Serially test and modify the release branch, building with the environment
    variable `VersionString=`_`releasename`_`-pre`.
 4. Once testing is complete (including full testing _one last time_), `git tag -a `_`releasename`_ on the release branch.

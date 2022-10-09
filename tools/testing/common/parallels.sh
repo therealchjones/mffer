@@ -91,9 +91,29 @@ hasSnapshot() {
 	return 0
 }
 
+# renameVm vmname newname
+#
+# Renames the VM named `vmname` as `newname`. If unsuccessful, prints an error
+# message and returns 1. Otherwise returns 0.
+renameVm() {
+	if [ "$#" -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
+		echo "Error: renameVm() requires two arguments" >&2
+		return 1
+	fi
+	if ! vmExists "$1"; then
+		echo "Error: VM '$1' not found" >&2
+		return 1
+	fi
+	echo "renaming VM '$1' as '$2'" >"$VERBOSEOUT"
+	if ! "$PRLCTL" set "$1" --name "$2" >"$DEBUGOUT"; then
+		echo "Error: Unable to rename VM '$1' as '$2'" >&2
+		return 1
+	fi
+}
+
 # resetVm vmname snapshotname
 #
-# resets the VM named `vmname`` to the snapshot named `snapshotname` and ensures
+# resets the VM named `vmname` to the snapshot named `snapshotname` and ensures
 # the VM is running and accepting ssh connections. If either of the variables is
 # empty, if the reset fails, or if it cannot be confirmed that the VM is running
 # and accepting ssh connections, returns 1.
@@ -103,7 +123,7 @@ resetVm() {
 		return 1
 	fi
 	if ! snapshotid="$(getSnapshotId "$1" "$2")"; then return 1; fi
-	echo "Resetting virtual machine '$1'" >"$VERBOSEOUT"
+	echo "resetting virtual machine '$1'" >"$VERBOSEOUT"
 	if ! "$PRLCTL" snapshot-switch "$1" --id "$snapshotid" >"$DEBUGOUT"; then
 		echo "Error: Unable to reset VM '$1' to snapshot '$2'" >&2
 		return 1
@@ -148,6 +168,65 @@ resetVm() {
 		return 1
 	fi
 }
+# saveSnapshot vmname snapshotname [snapshotdescription]
+#
+# Creates a new snapshot named 'snapshotname' (with description
+# 'snapshotdescription' if given) on the virtual machine namd 'vmname'. Returns
+# 0 if successful, prints an error message and returns 1 otherwise.
+saveSnapshot() {
+	if [ "$#" -lt 2 ] || [ "$#" -gt 3 ] || [ -z "$1" ] || [ -z "$2" ]; then
+		echo "Error: saveSnapshot() requires 2 or 3 arguments" >&2
+		return 1
+	fi
+	if ! vmExists "$1"; then
+		echo "Error: VM '$1' not found" >&2
+		return 1
+	fi
+	fail=0
+	if [ -z "$3" ]; then
+		if ! "$PRLCTL" snapshot "$1" -n "$2" >"$DEBUGOUT"; then
+			fail=1
+		fi
+	else
+		if ! "$PRLCTL" snapshot "$1" -n "$2" -d "$3" >"$DEBUGOUT"; then
+			fail=1
+		fi
+	fi
+	if [ "$fail" = 1 ]; then
+		echo "Error: Unable to create snapshot '$2' for VM '$1'" >&2
+		return 1
+	fi
+	return 0
+}
+
+# startVm vmname
+#
+# Starts the virtual machine named vmname; does not return until the VM is
+# running or times out. Returns 0 if started successfully, prints an error and
+# returns 1 otherwise.
+startVm() {
+	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+		echo "Error: startVm() requires a single argument" >&2
+		return 1
+	fi
+	if ! vmExists "$1"; then
+		echo "Error: VM '$1' not found" >&2
+		return 1
+	fi
+	tries=10
+	until vmIsRunning "$1" || [ "$tries" -lt 1 ]; do
+		if ! "$PRLCTL" start "$1" >"$DEBUGOUT"; then
+			echo "Error: Unable to start VM '$1'" >&2
+			return 1
+		fi
+		tries="$((tries - 1))"
+		sleep 5
+	done
+	if [ "$tries" -lt 1 ]; then
+		echo "Error: Starting VM '$1' timed out" >&2
+		return 1
+	fi
+}
 # vmExists vmname
 # Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
 # and 255 if a usage error occurs
@@ -161,6 +240,70 @@ vmExists() {
 		|| [ -z "$output" ]; then
 		echo "$output" >"$DEBUGOUT"
 		return 1
+	fi
+}
+# vmIsRunning vmname
+#
+# Returns 0 if the VM named vmname is currently running, 1 if it is not, 2 if
+# checking fails, and 255 if a usage error occurs. Allows a single spurious done
+# or error status without returning.
+vmIsRunning() {
+	if [ "$#" -ne 1 ]; then
+		echo "Error: vmIsRunning() requires a single argument" >&2
+		return 255
+	fi
+	vm_status=""
+	if ! vm_status="$("$PRLCTL" status "$1")" 2>"$DEBUGOUT"; then
+		return 2
+	fi
+	if [ -z "${vm_status##VM "$1" exist *}" ]; then # this is in the right format
+		vm_error=""
+		if [ "stopped" = "${vm_status##* }" ]; then # the last word is 'stopped'
+			if [ -z "$vm_done" ]; then                 # it might be a fluke; try one more time
+				vm_done=true
+				sleep 1
+				if ! vmIsRunning "$1"; then # nope, really done or errored
+					vm_done=""
+					return 1
+				else # false alarm
+					vm_done=""
+					return 0
+				fi
+			else # ah, this happened before
+				vm_done=""
+				return 1
+			fi
+		else # everything looks good, and the last word isn't 'stopped'
+			vm_done=""
+			return 0
+		fi
+	else                         # uh, that didn't work right
+		if [ -z "$vm_error" ]; then # okay, it's the first time, try once more
+			vm_error=true
+			sleep 1
+			vmIsRunning "$1"
+			case "$?" in
+				2) # yeah, it's real
+					vm_error=""
+					return 2
+					;;
+				1) # what, now it's stopped? Fine.
+					vm_error=""
+					return 1
+					;;
+				0) # yay, we recovered by just checking it again!
+					vm_error=""
+					return 0
+					;;
+				*) # some other error, I guess
+					vm_error=""
+					return 2
+					;;
+			esac
+		else # we've been here before
+			vm_error=""
+			return 2
+		fi
 	fi
 }
 # Used in script sourcing this one

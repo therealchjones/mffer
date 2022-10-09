@@ -4,11 +4,13 @@
 
 # This file should be "source"d rather than run. It should include function
 # definitions, settings, and shared startup behavior such as processing the
-# DEBUG and VERBOSE environment variables and defining common parameters.
-# Functions in this script should generally not depend upon the operating system
-# deployed in a testing virtual machine, and should be expected to run only in a
-# POSIX-like shell environment. Specifically, settings and functions specific to
-# other areas should be in different files:
+# DEBUG and VERBOSE environment variables and defining common parameters. The
+# script may be sourced more than once; take precautions to ensure you're not
+# overwriting something changed since the last time. Functions in this script
+# should generally not depend upon the operating system deployed in a testing
+# virtual machine, and should be expected to run only in a POSIX-like shell
+# environment. Specifically, settings and functions specific to other areas
+# should be in different files:
 # - functions managing Parallels Desktop or Parallels virtual machines should be
 #   in testing/common/parallels.sh
 # - functions managing specific operating system installations or running
@@ -52,7 +54,7 @@ ALL_VMS=""
 #                   setting the appropriate environment variable if not already;
 #                   usually should be called by getSomething rather than
 #                   directly
-# setSomething - sets one or more environment variables, no output (probably not even needed)
+# setSomething - sets one or more environment variables, no output
 # getSomething - prints value, potentially also determining that value and
 #                setting the appropriate environment variable(s) if not already
 
@@ -106,6 +108,16 @@ getBaseVmId() {
 	MFFER_TEST_SNAPSHOT_ID="$snapshot_id"
 	echo "$MFFER_TEST_SNAPSHOT_ID"
 }
+# getTempDir
+#
+# Prints the path of MFFER_TEST_TMPDIR, setting MFFER_TEST_TMPDIR to a new
+# temporary directory if it is null or unset. Returns 0 if successful, 1
+# otherwise.
+getTempDir() {
+	setTmpdir || return 1
+	echo "$MFFER_TEST_TMPDIR"
+}
+
 getTime() {
 	date +%s
 }
@@ -115,10 +127,14 @@ getVms() {
 	if [ -z "${ALL_VMS:=}" ]; then setVms || return 1; fi
 	echo "$ALL_VMS"
 }
+# isRoot
+#
+# Returns 0 if the effective user id is 0, i.e., the root user; returns 1 otherwise
 isRoot() {
 	[ 0 = "$(id -u)" ]
 }
 # isSudo
+#
 # Evaluates whether the effective user is root and sudo user is not root
 # (regular). Returns 0 if the real (sudo) user is a regular user and the
 # effective user is root, otherwise returns 1.
@@ -150,7 +166,7 @@ setPasswordlessSudo() {
 		return 1
 	fi
 	echo "Warning: Password for user '$username' on VM '$MFFER_TEST_VM' may be required" >&2
-	if ! ssh -t "$MFFER_TEST_VM_HOSTNAME" "echo $username ALL = (ALL) NOPASSWD: ALL | sudo EDITOR='tee -a' visudo" >"$DEBUGOUT"; then
+	if ! ssh -qt "$MFFER_TEST_VM_HOSTNAME" "echo $username ALL = (ALL) NOPASSWD: ALL | sudo EDITOR='tee -a' visudo" >"$DEBUGOUT"; then
 		echo "Error: Unable to enable passwordless sudo for user '$username' on VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
@@ -160,19 +176,28 @@ setPasswordlessSudo() {
 # If MFFER_TEST_TMPDIR doesn't already point to an existing directory, create a
 # temporary directory and set MFFER_TEST_TMPDIR to its name
 setTmpdir() {
-	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -d "$MFFER_TEST_TMPDIR" ]; then
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
+		if [ ! -d "$MFFER_TEST_TMPDIR" ] \
+			|| ! output="$(ls "$MFFER_TEST_TMPDIR")"; then
+			echo "$output" >"$DEBUGOUT"
+			echo "Error: 'MFFER_TEST_TMPDIR' is set to '$MFFER_TEST_TMPDIR'," >&2
+			echo "       but that isn't working." >&2
+			return 1
+		fi
 		return 0
 	fi
-	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" || [ -z "$MFFER_TEST_TMPDIR" ] || [ ! -d "$MFFER_TEST_TMPDIR" ]; then
+	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" \
+		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
 		echo "Error: Unable to create temporary directory" >&2
 		return 1
 	fi
+	return 0
 }
 setVerbosity() {
 	DEBUG="${DEBUG:-}"
 	VERBOSE="${VERBOSE:-}"
-	DEBUGOUT="/dev/null"
-	VERBOSEOUT="/dev/null"
+	DEBUGOUT="${DEBUGOUT:-/dev/null}"
+	VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
 	if [ -n "$DEBUG" ]; then
 		set -x
 		set -e

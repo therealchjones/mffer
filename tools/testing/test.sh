@@ -71,10 +71,10 @@ main() {
 		exit 0
 	fi
 	for os in macos linux windows; do
-		buildOn "$os"
+		buildOn "$os" || true
 	done
 	for os in macos linux windows; do
-		testOn "$os"
+		testOn "$os" || true
 	done
 }
 buildDocs() {
@@ -123,13 +123,9 @@ buildOn() {
 	FAILS=0
 	case "$1" in
 		local)
-			echo "Building release on the local system" >"$VERBOSEOUT"
-			if ! buildMffer; then
-				echo "Error: Failed building mffer on the local system" >&2
-			fi
-			if ! buildDocs; then
-				echo "Error: Failed building documentation on the local system" >&2
-			fi
+			echo "building release on the local system" >"$VERBOSEOUT"
+			buildMffer || true
+			buildDocs || true
 			if [ "${FAILS:=0}" -gt 0 ]; then
 				echo "FAILED building release on the local system" >&2
 				return 1
@@ -142,7 +138,7 @@ buildOn() {
 				echo "SKIPPED building release on $1" >"$VERBOSEOUT"
 				return 1
 			else
-				echo "Building release on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
+				echo "building release on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
 				if ! setBuildEnv "$1"; then
 					echo "SKIPPED building release on $1" >"$VERBOSEOUT"
 					return 1
@@ -195,8 +191,8 @@ installOnVm() {
 	case "$1" in
 		shell)
 			if [ "$MFFER_TEST_OS" = "windows" ]; then
-				if ! ssh "$MFFER_TEST_VM:" curl -LSsO https://github.com/git-for-windows/git/releases/download/v2.37.3.windows.1/Git-2.37.3-64-bit.exe >"$DEBUGOUT" \
-					|| ! ssh "$MFFER_TEST_VM:" Git-2.37.3-64-bit.exe >"$DEBUGOUT"; then
+				if ! ssh "$MFFER_TEST_VM_HOSTNAME" curl -LSsO https://github.com/git-for-windows/git/releases/download/v2.37.3.windows.1/Git-2.37.3-64-bit.exe >"$DEBUGOUT" \
+					|| ! ssh "$MFFER_TEST_VM_HOSTNAME" Git-2.37.3-64-bit.exe >"$DEBUGOUT"; then
 					echo "Error: Unable to install '$1' on $MFFER_TEST_VM" >&2
 					return 1
 				fi
@@ -299,10 +295,11 @@ setBuildEnv() {
 		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty. Run setVm() before setBuildEnv()." >&2
 		return 1
 	fi
-	if ! tar cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
+	if ! dotnet clean "$MFFER_TREE_ROOT" >"$DEBUGOUT" \
+		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
 		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer-tree \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar xf mffer-tree.tar -C mffer-tree; then
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer \
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer; then
 		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
