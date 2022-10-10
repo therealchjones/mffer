@@ -622,11 +622,12 @@ The "macOS Testing" virtual machine running macOS 12.6 Monterey is created using
 -   Enable passwordless sudo
 -   Create a "Base Installation" snapshot
 
-Initial building of the virtual machine requires `sudo` access; to
-create the VM with the above changes and minimal interaction, use:
+mkmacvm requires `sudo` access, so initial building of the virtual machine may
+not be entirely noninteractive; to create the VM with the above changes and
+minimal interaction, use:
 
 ```
-sudo sh tools/testing/macos/createvm.sh
+sh tools/testing/macos/createvm.sh
 ```
 
 Software used to fulfill the [build requirements](#build-requirements) and

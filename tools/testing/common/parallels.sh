@@ -93,8 +93,9 @@ hasSnapshot() {
 
 # renameVm vmname newname
 #
-# Renames the VM named `vmname` as `newname`. If unsuccessful, prints an error
-# message and returns 1. Otherwise returns 0.
+# Renames the VM named `vmname` as `newname`. Additionally replaces any matching
+# SSH host lines in ~/.ssh/known_hosts. If unsuccessful, prints an error message
+# and returns 1; otherwise returns 0.
 renameVm() {
 	if [ "$#" -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
 		echo "Error: renameVm() requires two arguments" >&2
@@ -105,9 +106,29 @@ renameVm() {
 		return 1
 	fi
 	echo "renaming VM '$1' as '$2'" >"$VERBOSEOUT"
+	oldhost="$(getVmHostname "$1")"
+	newhost="$(getVmHostname "$2")"
 	if ! "$PRLCTL" set "$1" --name "$2" >"$DEBUGOUT"; then
 		echo "Error: Unable to rename VM '$1' as '$2'" >&2
 		return 1
+	fi
+	oldhostlines="$(ssh-keygen -F "${oldhost%.shared}")" || true
+	oldhostsharedlines="$(ssh-keygen -F "${oldhost%.shared}.shared")" || true
+	newhostlines="$(
+		printf '%s\n%s' "${oldhostlines:=}" "${oldhostsharedlines:=}" \
+			| sed -E -e '/#/d' \
+				-e "s/^${oldhost%.shared}"'[[:space:]]+/'"$newhost /" \
+				-e "s/^${oldhost%.shared}.shared"'[[:space:]]+/'"$newhost.shared /"
+	)" || true
+	if [ -n "$newhostlines" ]; then
+		ssh-keygen -R "${oldhost%.shared}" >"$DEBUGOUT" 2>&1 || true
+		ssh-keygen -R "${oldhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
+		ssh-keygen -R "${newhost%.shared}" >"$DEBUGOUT" 2>&1 || true
+		ssh-keygen -R "${newhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
+		if ! { echo "$newhostlines" >>"$HOME/.ssh/known_hosts"; } >"$DEBUGOUT"; then
+			echo "Error: Unable to update $HOME/.ssh/known_hosts with hostname for VM '$2'" >&2
+			return 1
+		fi
 	fi
 }
 
@@ -259,7 +280,7 @@ vmIsRunning() {
 	if [ -z "${vm_status##VM "$1" exist *}" ]; then # this is in the right format
 		vm_error=""
 		if [ "stopped" = "${vm_status##* }" ]; then # the last word is 'stopped'
-			if [ -z "$vm_done" ]; then                 # it might be a fluke; try one more time
+			if [ -z "${vm_done:=}" ]; then             # it might be a fluke; try one more time
 				vm_done=true
 				sleep 1
 				if ! vmIsRunning "$1"; then # nope, really done or errored

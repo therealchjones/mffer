@@ -27,10 +27,10 @@ MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"                          # disposable
 MFFER_USE_LOCAL="${MFFER_USE_LOCAL:-}"                              # if nonempty, use a local source tree rather than download
 MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"     # Name of the "clean install" snapshot on the testing VM
 MFFER_TEST_SNAPSHOT_ID="${MFFER_TEST_SNAPSHOT_ID:-}"                # ID of the "clean install" snapshot on the testing VM
-MFFER_VM_HOSTNAME="${MFFER_VM_HOSTNAME:-}"                          # hostname of the VM on which to test
-MFFER_VM_NAME="${MFFER_VM_NAME:-}"                                  # Name of the VM on which to test
+MFFER_TEST_VM_HOSTNAME="${MFFER_TEST_VM_HOSTNAME:-}"                # hostname of the VM on which to test
+MFFER_TEST_VM="${MFFER_TEST_VM:-}"                                  # Name of the VM on which to test
 MFFER_VM_OS="${MFFER_VM_OS:-}"                                      # OS of the VM on which to test
-#
+
 # Variables regarding other software that may be used for testing; leave blank
 # to use whatever is available and found automatically
 DOTNET_VERSION="${DOTNET_VERSION:-}"
@@ -80,7 +80,7 @@ getBaseVmId() {
 	fi
 	setParallels || return 1
 	setVm || return 1
-	if ! snapshots="$("$PRLCTL" snapshot-list "$MFFER_VM_NAME" -j)"; then
+	if ! snapshots="$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -j)"; then
 		echo 'Error: Unable to obtain list of virtual machine snapshots.' >&2
 		return 1
 	fi
@@ -153,7 +153,7 @@ isSudo() {
 # VM does not exist, prints error and returns 1 if unsuccessful or cancelled.
 setPasswordlessSudo() {
 	echo "Enabling passwordless sudo on virtual machine" >"$VERBOSEOUT"
-	if [ -z "$MFFER_TEST_VM" ] || [ -z "$MFFER_TEST_VM_HOSTNAME" ]; then
+	if [ -z "${MFFER_TEST_VM:=}" ] || [ -z "${MFFER_TEST_VM_HOSTNAME:=}" ]; then
 		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty; run setVm before setPasswordlessSudo" >&2
 		return 255
 	elif ! vmExists "$MFFER_TEST_VM"; then
@@ -166,7 +166,7 @@ setPasswordlessSudo() {
 		return 1
 	fi
 	echo "Warning: Password for user '$username' on VM '$MFFER_TEST_VM' may be required" >&2
-	if ! ssh -qt "$MFFER_TEST_VM_HOSTNAME" "echo $username ALL = (ALL) NOPASSWD: ALL | sudo EDITOR='tee -a' visudo" >"$DEBUGOUT"; then
+	if ! ssh -qt "$MFFER_TEST_VM_HOSTNAME" "echo $username 'ALL = (ALL) NOPASSWD: ALL' | sudo EDITOR='tee -a' visudo"; then
 		echo "Error: Unable to enable passwordless sudo for user '$username' on VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
@@ -186,7 +186,9 @@ setTmpdir() {
 		fi
 		return 0
 	fi
-	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" \
+	cmd="mktemp -d -t mffer-test"
+	if isSudo; then cmd="sudo -u $SUDO_USER $cmd"; fi
+	if ! MFFER_TEST_TMPDIR="$($cmd)" \
 		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
 		echo "Error: Unable to create temporary directory" >&2
 		return 1
@@ -210,20 +212,20 @@ setVerbosity() {
 	fi
 	export DEBUG VERBOSE
 }
-# uses any of MFFER_VM_NAME, MFFER_VM_HOSTNAME, MFFER_VM_OS, MFFER_TEST_SNAPSHOT_ID, and
+# uses any of MFFER_TEST_VM, MFFER_TEST_VM_HOSTNAME, MFFER_VM_OS, MFFER_TEST_SNAPSHOT_ID, and
 # MFFER_TEST_SNAPSHOT (in that order of priority) that are already set to
-# set MFFER_VM_NAME, MFFER_VM_HOSTNAME, and MFFER_VM_OS; if possible with the provided settings,
+# set MFFER_TEST_VM, MFFER_TEST_VM_HOSTNAME, and MFFER_VM_OS; if possible with the provided settings,
 # will set the others as well. If multiple sets of values or no sets of values would be
 # consistent with the initial set values, prints an error and returns 1
 setVm() {
-	if [ -z "$MFFER_TEST_SNAPSHOT" ] && [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+	if [ -z "${MFFER_TEST_SNAPSHOT:=}" ] && [ -z "${MFFER_TEST_SNAPSHOT_ID:=}" ]; then
 		echo "Error: Neither MFFER_TEST_SNAPSHOT nor MFFER_TEST_SNAPSHOT_ID is" >&2
 		echo "       set. Cannot define the virtual machine and snapshot to use." >&2
 		return 1
 	fi
-	if [ -n "$MFFER_VM_NAME" ]; then
-		if ! vmExists "$MFFER_VM_NAME"; then
-			echo "Error: 'MFFER_VM_NAME' is set to '$MFFER_VM_NAME', which was" >&2
+	if [ -n "${MFFER_TEST_VM:=}" ]; then
+		if ! vmExists "$MFFER_TEST_VM"; then
+			echo "Error: 'MFFER_TEST_VM' is set to '$MFFER_TEST_VM', which was" >&2
 			echo "       not found." >&2
 			return 1
 		fi
