@@ -2,25 +2,45 @@
 
 # Test mffer build and operation on a Linux virtual machine
 
-# Options are set via the below environment variables; there are no command-line
+# Options are set via environment variables; there are no command-line
 # flags or switches
+
+# This script can only be run by a process that sets "$0" to the real (relative)
+# path of the script. This limits, for instance, the ability to run via stdin or
+# (theoretically) some shell interpreters. See also
+# https://mywiki.wooledge.org/BashFAQ/028
+SCRIPT_FILE=""
+if [ -n "${0:-}" ]; then
+	if [ -z "${0%%/*}" ]; then # $0 is the full path
+		SCRIPT_FILE="$0"
+	elif [ -n "${PWD:-}" ]; then # $0 is a relative path
+		SCRIPT_FILE="$PWD/$0"
+	fi
+fi
+if [ -z "$SCRIPT_FILE" ] || [ ! -f "$SCRIPT_FILE" ]; then
+	echo "Error: Unable to determine script location" >&2
+	echo "\$0: $0" >&2
+	echo "\$PWD: $PWD" >&2
+	echo "\$SCRIPT_FILE: $SCRIPT_FILE" >&2
+	exit 1
+fi
+if ! SCRIPT_DIR="$(dirname "$SCRIPT_FILE")" \
+	|| ! MFFER_TEST_DIR="$SCRIPT_DIR"/.. \
+	|| ! MFFER_TREE_ROOT="$MFFER_TEST_DIR/../.." \
+	|| [ ! -d "$MFFER_TREE_ROOT" ] \
+	|| [ ! -d "$MFFER_TEST_DIR" ] \
+	|| [ ! -f "$MFFER_TEST_DIR"/common/base.sh ]; then
+	echo "Error: mffer source tree has unknown structure" >&2
+	exit 1
+fi
+. "$SCRIPT_DIR/../common/base.sh"
+
+if [ -z "${MFFER_TEST_VM_SYSTEM:-}" ]; then
+	. "$SCRIPT_DIR/../common/parallels.sh"
+fi
 
 set -e
 set -u
-
-VERBOSE="${VERBOSE:-y}"
-DEBUG="${DEBUG:-}"
-
-VERBOSEOUT="/dev/null"
-DEBUGOUT="/dev/null"
-if [ -n "$DEBUG" ]; then
-	set -x
-	VERBOSE=y
-	DEBUGOUT="/dev/stdout"
-fi
-if [ -n "$VERBOSE" ]; then
-	VERBOSEOUT="/dev/stdout"
-fi
 
 if [ 0 != "$#" ]; then
 	echo "$(basename "$0") does not accept arguments." >&2
@@ -29,61 +49,19 @@ if [ 0 != "$#" ]; then
 fi
 LINUX_INSTALLER="${LINUX_INSTALLER:-}" # ISO for Ubuntu Desktop 22.04; won't work with Ubuntu Server
 LINUX_INSTALLER_URL="${LINUX_INSTALLER_URL:-https://releases.ubuntu.com/jammy/ubuntu-22.04.1-desktop-amd64.iso}"
-LINUX_VM_NAME="${LINUX_VM_NAME:-Linux Testing}"
-LINUX_VM_HOSTNAME="${LINUX_VM_HOSTNAME:-linux-testing}"
-MFFER_TEST_TMPDIR="${MFFER_TEST_TMPDIR:-}"
-MFFER_TEST_TMPDIR_NEW=""
-PRLCTL="${PRLCTL:-}"
+MFFER_TEST_VM="${MFFER_TEST_VM:-Linux Testing}"
+MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
 SSH_IDENTITY="${SSH_IDENTITY:-$HOME/.ssh/id_ecdsa}"
 USERNAME="$(id -un)"
-VM_BASESNAPSHOT="${VM_BASESNAPSHOT:-Base Installation}"
-VM_BASESNAPSHOT_ID=""
 
-export DEBUG VERBOSE
+if vmExists "${MFFER_TEST_VM:=}"; then
+	echo "virtual machine '$MFFER_TEST_VM' already exists; consider removing" >&2
+	exit 1
+fi
+echo "Creating virtual machine '${MFFER_TEST_VM:=}'" >"$VERBOSEOUT"
 
-main() {
-	getTempDir || exit 1
-	getLinuxVirtualMachine || exit 1
-}
-cleanup() {
-	EXITCODE="$?"
-	if [ "$EXITCODE" != 0 ] && [ -n "$DEBUG" ]; then
-		echo "Exiting with errors and DEBUG enabled; will leave" >"$VERBOSEOUT"
-		echo "any new virtual machines, temporary files and directories, and" >"$VERBOSEOUT"
-		echo "mounted filesystems in place." "$VERBOSEOUT"
-
-		if [ -n "$PRLCTL" ]; then
-			"$PRLCTL" status "$LINUX_VM_NAME" >"$VERBOSEOUT" || true
-		fi
-		echo "MFFER_TEST_TMPDIR: ${MFFER_TEST_TMPDIR:-unset}" >"$VERBOSEOUT"
-		if [ -n "${LINUX_INSTALLER_DIR:=}" ]; then
-			mount | grep "$LINUX_INSTALLER_DIR" >"$VERBOSEOUT" || true
-		fi
-		exit "$EXITCODE"
-	fi
-	echo "Cleaning up" >"$VERBOSEOUT"
-	if vmIsRunning >"$DEBUGOUT" 2>&1; then
-		"$PRLCTL" stop "$LINUX_VM_NAME" --kill >"$DEBUGOUT" 2>&1 || true
-	fi
-	if [ -n "${LINUX_INSTALLER_DIR:=}" ] && [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
-		umount "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" 2>&1 || true
-	fi
-	if [ -n "${LINUX_INSTALLER_DEV:=}" ]; then
-		hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT" 2>&1 || true
-	fi
-	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -n "${MFFER_TEST_TMPDIR_NEW:=}" ]; then
-		chmod -R u+w "$MFFER_TEST_TMPDIR"
-		rm -rf "$MFFER_TEST_TMPDIR"
-	fi
-}
-createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
-	getParallels || return 1
-	if "$PRLCTL" list "$LINUX_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Error: Virtual machine '$LINUX_VM_NAME'" >&2
-		echo "       already exists. Consider deleting it." >&2
-		return 1
-	fi
-	getTempDir || return 1
+main() { # builds a new linux VM, errors if name exists
+	setTmpdir || return 1
 	getLinuxInstaller || return 1
 	LINUX_INSTALLER_DIR="$MFFER_TEST_TMPDIR/LinuxInstaller"
 	LINUX_SETUP_DIR="$MFFER_TEST_TMPDIR/LinuxSetup"
@@ -155,50 +133,81 @@ createLinuxVirtualMachine() { # builds a new linux VM, errors if name exists
 		return 1
 	fi
 
-	echo "Building virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
-	if ! "$PRLCTL" create "$LINUX_VM_NAME" -d ubuntu >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --isolate-vm on >"$DEBUGOUT"; then
-		echo "Error: Unable to build virtual machine '$LINUX_VM_NAME'" >&2
+	echo "Building virtual machine '$MFFER_TEST_VM'" >"$VERBOSEOUT"
+	if ! "$PRLCTL" create "$MFFER_TEST_VM" -d ubuntu >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --isolate-vm on >"$DEBUGOUT"; then
+		echo "Error: Unable to build virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	if ! "$PRLCTL" set "$LINUX_VM_NAME" --device-add hdd \
+	if ! "$PRLCTL" set "$MFFER_TEST_VM" --device-add hdd \
 		--image "$LINUX_SETUP_HDD" >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" \
 			--device-bootorder 'hdd1' >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --efi-boot on >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder hdd1 >"$DEBUGOUT"; then
-		echo "Error: Unable to configure virtual machine '$LINUX_VM_NAME'" >&2
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --efi-boot on >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --device-bootorder hdd1 >"$DEBUGOUT"; then
+		echo "Error: Unable to configure virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	echo "Installing Linux on virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
-	if ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT" \
+	echo "Installing Linux on virtual machine '$MFFER_TEST_VM'" >"$VERBOSEOUT"
+	if ! "$PRLCTL" start "$MFFER_TEST_VM" >"$DEBUGOUT" \
 		|| ! waitForInstallation \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-del hdd1 >"$DEBUGOUT" \
-		|| ! "$PRLCTL" set "$LINUX_VM_NAME" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT" \
-		|| ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT"; then
-		echo "Error: Unable to install Linux on virtual machine '$LINUX_VM_NAME'" >&2
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --device-del hdd1 >"$DEBUGOUT" \
+		|| ! "$PRLCTL" set "$MFFER_TEST_VM" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT" \
+		|| ! "$PRLCTL" start "$MFFER_TEST_VM" >"$DEBUGOUT"; then
+		echo "Error: Unable to install Linux on virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 
 	echo "Removing old SSH authorization keys" >"$VERBOSEOUT"
-	ssh-keygen -R "$LINUX_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
-	ssh-keygen -R "$LINUX_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
 	echo "Setting up new SSH authorization" >"$VERBOSEOUT"
 
 	if ! waitForSsh \
-		|| ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$LINUX_VM_HOSTNAME" \
+		|| ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$MFFER_TEST_VM_HOSTNAME" \
 			true >"$VERBOSEOUT"; then
 		echo "Error: Unable to connect to VM via SSH" >&2
 		return 1
 	fi
-	echo "Saving VM snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
-	if ! "$PRLCTL" snapshot "$LINUX_VM_NAME" -n "$VM_BASESNAPSHOT" \
+	echo "Saving VM snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
+	if ! "$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" \
 		-d "Initial installation with only openssh-server added. User $USERNAME, password 'MyPassword'. Public key SSH, passwordless sudo." \
 		>"$DEBUGOUT"; then
-		echo "Error: Unable to save VM snapshot '$VM_BASESNAPSHOT'" >&2
+		echo "Error: Unable to save VM snapshot '$MFFER_TEST_SNAPSHOT'" >&2
 		return 1
 	fi
 	updateBaseSystem || return 1
+}
+cleanup() {
+	EXITCODE="$?"
+	if [ "$EXITCODE" != 0 ] && [ -n "$DEBUG" ]; then
+		echo "Exiting with errors and DEBUG enabled; will leave" >"$VERBOSEOUT"
+		echo "any new virtual machines, temporary files and directories, and" >"$VERBOSEOUT"
+		echo "mounted filesystems in place." "$VERBOSEOUT"
+
+		if [ -n "$PRLCTL" ]; then
+			"$PRLCTL" status "$MFFER_TEST_VM" >"$VERBOSEOUT" || true
+		fi
+		echo "MFFER_TEST_TMPDIR: ${MFFER_TEST_TMPDIR:-unset}" >"$VERBOSEOUT"
+		if [ -n "${LINUX_INSTALLER_DIR:=}" ]; then
+			mount | grep "$LINUX_INSTALLER_DIR" >"$VERBOSEOUT" || true
+		fi
+		exit "$EXITCODE"
+	fi
+	echo "Cleaning up" >"$VERBOSEOUT"
+	if vmIsRunning >"$DEBUGOUT" 2>&1; then
+		"$PRLCTL" stop "$MFFER_TEST_VM" --kill >"$DEBUGOUT" 2>&1 || true
+	fi
+	if [ -n "${LINUX_INSTALLER_DIR:=}" ] && [ "${LINUX_INSTALLER_DIR#"$MFFER_TEST_TMPDIR"}" != "${LINUX_INSTALLER_DIR}" ]; then
+		umount "$LINUX_INSTALLER_DIR" >"$DEBUGOUT" 2>&1 || true
+	fi
+	if [ -n "${LINUX_INSTALLER_DEV:=}" ]; then
+		hdiutil detach "$LINUX_INSTALLER_DEV" >"$DEBUGOUT" 2>&1 || true
+	fi
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ] && [ -n "${MFFER_TEST_TMPDIR_NEW:=}" ]; then
+		chmod -R u+w "$MFFER_TEST_TMPDIR"
+		rm -rf "$MFFER_TEST_TMPDIR"
+	fi
 }
 getAttachedDevice() {
 	if [ -z "$1" ]; then
@@ -230,31 +239,13 @@ getAttachedDevice() {
 }
 getOptionalVmArg() {
 	if [ "$#" -eq 0 ]; then
-		if [ -z "$LINUX_VM_NAME" ]; then
+		if [ -z "$MFFER_TEST_VM" ]; then
 			return 1
 		fi
-		echo "$LINUX_VM_NAME"
+		echo "$MFFER_TEST_VM"
 	else
 		echo "$1"
 	fi
-}
-getParallels() { # sets PRLCTL if not already
-	if [ -n "$PRLCTL" ]; then
-		if ! "$PRLCTL" --version >"$DEBUGOUT" 2>&1; then
-			echo "Error: PRLCTL is set to '$PRLCTL', which doesn't work" >&2
-			return 1
-		fi
-		return 0
-	fi
-	for file in prlctl /usr/local/bin/prlctl "/Applications/Parallels Desktop.app/Contents/MacOS/prlctl"; do
-		if "$file" --version >"$DEBUGOUT" 2>&1; then
-			PRLCTL="$file"
-			return 0
-		fi
-	done
-	echo "Error: Unable to find 'prlctl'." >&2
-	echo "       Ensure Parallels Desktop is installed and activated." >&2
-	return 1
 }
 getSnapshotId() {
 	# Usage: getSnapshotId vm snapshot
@@ -272,7 +263,7 @@ getSnapshotId() {
 	snapshots="$(getSnapshots "$1")"
 	if ! ids="$(echo "$snapshots" | base64 -d | plutil -extract snapshots raw -o - -)" \
 		|| [ -z "$ids" ]; then
-		echo "Error: Unable to retrieve list of snapshots for VM '$LINUX_VM_NAME'" >&2
+		echo "Error: Unable to retrieve list of snapshots for VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 	for id in $ids; do
@@ -289,14 +280,14 @@ getSnapshots() {
 	# Usage: getSnapshots [vm]
 
 	# Prints a base64-encoded plist of the snapshots in the VM named vm. If vm
-	# is not given, defaults to $LINUX_VM_NAME. If vm is not given and
-	# LINUX_VM_NAME is unset or null, prints error and returns 255. If there is
+	# is not given, defaults to $MFFER_TEST_VM. If vm is not given and
+	# MFFER_TEST_VM is unset or null, prints error and returns 255. If there is
 	# not a VM named vm, prints error and returns 127. If another error occurs,
 	# prints error and returns 1. If there are no snapshots, prints nothing
 	# rather than a base64-encoded empty plist.
 	vm=""
 	if ! vm="$(getOptionalVmArg "$@")"; then
-		echo "Error: getSnapshots() requires an argument or defined LINUX_VM_NAME" >&2
+		echo "Error: getSnapshots() requires an argument or defined MFFER_TEST_VM" >&2
 		return 255
 	fi
 	if ! vmExists "$vm"; then
@@ -319,42 +310,20 @@ getSnapshots() {
 	fi
 	echo "$output"
 }
-getTempDir() { # creates and sets MFFER_TEST_TMPDIR if not already
-	if [ -n "$MFFER_TEST_TMPDIR" ]; then
-		if [ ! -d "$MFFER_TEST_TMPDIR" ] \
-			|| ! ls "$MFFER_TEST_TMPDIR" >"$DEBUGOUT"; then
-			echo "Error: 'MFFER_TEST_TMPDIR' is set to '$MFFER_TEST_TMPDIR'," >&2
-			echo "       but that isn't working." >&2
-			return 1
-		fi
-		return 0
-	fi
-	MFFER_TEST_TMPDIR_NEW=y
-	if ! MFFER_TEST_TMPDIR="$(mktemp -d -t mffer-test)" \
-		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
-		echo "Error: Unable to create temporary directory" >&2
-		return 1
-	fi
-	return 0
-}
-getTime() {
-	date +%s
-}
-getVmBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
-	getParallels || return 1
-	if [ -n "$VM_BASESNAPSHOT_ID" ]; then
-		if [ -z "$("$PRLCTL" snapshot-list "$LINUX_VM_NAME" -i "$VM_BASESNAPSHOT_ID")" ]; then
-			echo "Error: 'VM_BASESNAPSHOT_ID' is set to '$VM_BASESNAPSHOT_ID'," >&2
+getVmBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
+	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID")" ]; then
+			echo "Error: 'MFFER_TEST_SNAPSHOT_ID' is set to '$MFFER_TEST_SNAPSHOT_ID'," >&2
 			echo "       which isn't working." >&2
 			return 1
 		fi
 		return 0
 	fi
-	if ! "$PRLCTL" list "$LINUX_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Error: Unable to find virtual machine '$LINUX_VM_NAME'" >&2
+	if ! "$PRLCTL" list "$MFFER_TEST_VM" >"$DEBUGOUT" 2>&1; then
+		echo "Error: Unable to find virtual machine '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	if ! SNAPSHOTLIST="$(prlctl snapshot-list "$LINUX_VM_NAME" -j)" \
+	if ! SNAPSHOTLIST="$(prlctl snapshot-list "$MFFER_TEST_VM" -j)" \
 		|| ! SNAPSHOTS="$(
 			plutil -create xml1 - -o - \
 				| plutil -insert snapshots \
@@ -362,18 +331,18 @@ getVmBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
 		)" \
 		|| [ -z "$SNAPSHOTS" ]; then
 		echo 'Error: Unable to obtain list of virtual machine snapshots.' >&2
-		echo "       The virtual machine '$LINUX_VM_NAME'" >&2
+		echo "       The virtual machine '$MFFER_TEST_VM'" >&2
 		echo "       may be invalid; consider deleting it." >&2
 		return 1
 	fi
-	VM_BASESNAPSHOT_ID="$(
+	MFFER_TEST_SNAPSHOT_ID="$(
 		echo "$SNAPSHOTS" \
 			| plutil -extract snapshots raw - -o - \
 			| while read -r snapshotid; do
 				if snapshots="$(echo "$SNAPSHOTS" | plutil -extract snapshots xml1 - -o -)" \
 					&& snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
 					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$VM_BASESNAPSHOT" ]; then
+					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
 					snapshotid="${snapshotid#\{}"
 					snapshotid="${snapshotid%\}}"
 					echo "$snapshotid"
@@ -381,16 +350,16 @@ getVmBaseSnapshotId() { # sets VM_BASESNAPSHOT_ID if not already
 				fi
 			done
 	)"
-	if [ -z "$VM_BASESNAPSHOT_ID" ]; then
-		echo "Error: virtual machine '$LINUX_VM_NAME'" >&2
-		echo "       does not include snapshot '$VM_BASESNAPSHOT'" >&2
+	if [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+		echo "Error: virtual machine '$MFFER_TEST_VM'" >&2
+		echo "       does not include snapshot '$MFFER_TEST_SNAPSHOT'" >&2
 		echo "       Consider deleting this VM; we can rebuild it." >&2
 		return 1
 	fi
 	return 0
 }
 getLinuxInstaller() { # downloads and sets LINUX_INSTALLER if not already
-	getTempDir || return 1
+	setTmpdir || return 1
 	if [ -z "$LINUX_INSTALLER" ]; then
 		LINUX_INSTALLER="$MFFER_TEST_TMPDIR/$(basename "$LINUX_INSTALLER_URL")"
 	fi
@@ -401,16 +370,6 @@ getLinuxInstaller() { # downloads and sets LINUX_INSTALLER if not already
 			return 1
 		fi
 	fi
-}
-getLinuxVirtualMachine() { # creates virtual machine if not already, validates
-	getParallels || return 1
-	if "$PRLCTL" list "$LINUX_VM_NAME" >"$DEBUGOUT" 2>&1; then
-		echo "Using virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
-	else
-		echo "Creating virtual machine '$LINUX_VM_NAME'" >"$VERBOSEOUT"
-		createLinuxVirtualMachine || return 1
-	fi
-	getVmBaseSnapshotId || return 1
 }
 printGrubConf() {
 	cat <<-EOF
@@ -596,47 +555,52 @@ printSuccess() {
 	EOF
 }
 resetVM() {
-	echo "Resetting virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >"$VERBOSEOUT"
+	echo "Resetting virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
 	if ! getVmBaseSnapshotId \
-		|| ! "$PRLCTL" snapshot-switch "$LINUX_VM_NAME" -i "$VM_BASESNAPSHOT_ID" >"$DEBUGOUT"; then
-		echo "Error: Unable to reset virtual machine '$LINUX_VM_NAME' to snapshot '$VM_BASESNAPSHOT'" >&2
+		|| ! "$PRLCTL" snapshot-switch "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID" >"$DEBUGOUT"; then
+		echo "Error: Unable to reset virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_SNAPSHOT'" >&2
 		return 1
 	fi
 }
 sshIsRunning() {
 	# returns error if not connectable, including
 	# if the hostname is not found
-	nc -z "$LINUX_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
+	nc -z "$MFFER_TEST_VM_HOSTNAME.shared" 22 >"$DEBUGOUT" 2>&1
 }
 updateBaseSystem() {
 	# This will update the system with snapshot 'Base Installation' and change
 	# the snapshot to point to the new system. This removes the previous snapshot.
 	if ! resetVM || ! updateSystem; then
-		echo "Error: Unable to update the base installation on '$LINUX_VM_NAME'" >&2
+		echo "Error: Unable to update the base installation on '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	echo "Changing snapshot '$VM_BASESNAPSHOT' to the updated system" >"$VERBOSEOUT"
+	echo "Changing snapshot '$MFFER_TEST_SNAPSHOT' to the updated system" >"$VERBOSEOUT"
 	getVmBaseSnapshotId
-	if ! old_id="$VM_BASESNAPSHOT_ID" \
+	if ! old_id="$MFFER_TEST_SNAPSHOT_ID" \
 		|| [ -z "$old_id" ] \
-		|| ! old_desc="$("$PRLCTL" snapshot-list "$LINUX_VM_NAME" -i "$old_id" \
+		|| ! old_desc="$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$old_id" \
 			| sed -e '/^Description: /!d' -e 's/^Description: //' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')"; then
-		echo "Error: Unable to access original snapshot '$VM_BASESNAPSHOT' on VM '$LINUX_VM_NAME'" >&2
+		echo "Error: Unable to access original snapshot '$MFFER_TEST_SNAPSHOT' on VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 	new_desc=""
 	if [ -n "$old_desc" ]; then
 		new_desc="$old_desc [Updated]"
 	fi
-	"$PRLCTL" snapshot "$LINUX_VM_NAME" -n "$VM_BASESNAPSHOT" -d "$new_desc" >"$DEBUGOUT"
-	"$PRLCTL" snapshot-delete "$LINUX_VM_NAME" -i "$old_id" >"$DEBUGOUT"
-	VM_BASESNAPSHOT_ID=""
+	sleep 30 # waiting for restart
+	if ! waitForSsh; then
+		echo "Error: updated system did not restart" >&2
+		return 1
+	fi
+	"$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" -d "$new_desc" >"$DEBUGOUT"
+	"$PRLCTL" snapshot-delete "$MFFER_TEST_VM" -i "$old_id" >"$DEBUGOUT"
+	MFFER_TEST_SNAPSHOT_ID=""
 }
 
 updateSystem() {
-	echo "Updating '$LINUX_VM_NAME'" >"$VERBOSEOUT"
+	echo "Updating '$MFFER_TEST_VM'" >"$VERBOSEOUT"
 	if ! vmIsRunning; then
-		if ! "$PRLCTL" start "$LINUX_VM_NAME" >"$DEBUGOUT"; then
+		if ! "$PRLCTL" start "$MFFER_TEST_VM" >"$DEBUGOUT"; then
 			echo "Error: Unable to start virtual machine" >&2
 			return 1
 		fi
@@ -647,8 +611,9 @@ updateSystem() {
 			return 1
 		fi
 	fi
-	if ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get update -q -y >"$DEBUGOUT" \
-		|| ! ssh -q -t ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$LINUX_VM_HOSTNAME" sudo apt-get upgrade -q -y >"$DEBUGOUT"; then
+	if ! ssh -q ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$MFFER_TEST_VM_HOSTNAME" sudo apt-get update -q -y >"$DEBUGOUT" \
+		|| ! ssh -q ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$MFFER_TEST_VM_HOSTNAME" sudo apt-get upgrade -q -y >"$DEBUGOUT" \
+		|| ! ssh -q ${SSH_IDENTITY:+-i "$SSH_IDENTITY"} "$USERNAME@$MFFER_TEST_VM_HOSTNAME" sudo shutdown -r now >"$DEBUGOUT"; then
 		echo "Error: Unable to update Linux system" >&2
 		return 1
 	fi
@@ -656,20 +621,19 @@ updateSystem() {
 vmExists() {
 	vm=""
 	if ! vm="$(getOptionalVmArg "$@")"; then
-		echo "Error: vmExists() requires an argument or defined LINUX_VM_NAME" >&2
+		echo "Error: vmExists() requires an argument or defined MFFER_TEST_VM" >&2
 		return 255
 	fi
-	getParallels || return 1
 	if ! "$PRLCTL" status "$vm" >"$DEBUGOUT" 2>&1; then
 		return 1
 	fi
 }
 vmIsRunning() {
 	VM_STATUS=""
-	if ! VM_STATUS="$("$PRLCTL" status "$LINUX_VM_NAME")" 2>"$DEBUGOUT"; then
+	if ! VM_STATUS="$("$PRLCTL" status "$MFFER_TEST_VM")" 2>"$DEBUGOUT"; then
 		return 2
 	fi
-	if [ -z "${VM_STATUS##VM "$LINUX_VM_NAME" exist *}" ]; then # this is in the right format
+	if [ -z "${VM_STATUS##VM "$MFFER_TEST_VM" exist *}" ]; then # this is in the right format
 		VM_ERROR=""
 		if [ "stopped" = "${VM_STATUS##* }" ]; then # the last word is 'stopped'
 			if [ -z "$VM_DONE" ]; then                 # it might be a fluke; try one more time
