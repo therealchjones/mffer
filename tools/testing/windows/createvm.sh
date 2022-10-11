@@ -1,9 +1,52 @@
 #!/bin/sh
 
-# Create a Windows virtual machine appropriate for building and testing mffer
+# Test mffer build and operation on a Windows virtual machine
 
-# Options are set via environment variables; there are no command-line flags or
-# switches
+# Options are set via environment variables; there are no command-line
+# flags or switches
+
+# This script can only be run by a process that sets "$0" to the real (relative)
+# path of the script. This limits, for instance, the ability to run via stdin or
+# (theoretically) some shell interpreters. See also
+# https://mywiki.wooledge.org/BashFAQ/028
+SCRIPT_FILE=""
+if [ -n "${0:-}" ]; then
+	if [ -z "${0%%/*}" ]; then # $0 is the full path
+		SCRIPT_FILE="$0"
+	elif [ -n "${PWD:-}" ]; then # $0 is a relative path
+		SCRIPT_FILE="$PWD/$0"
+	fi
+fi
+if [ -z "$SCRIPT_FILE" ] || [ ! -f "$SCRIPT_FILE" ]; then
+	echo "Error: Unable to determine script location" >&2
+	echo "\$0: $0" >&2
+	echo "\$PWD: $PWD" >&2
+	echo "\$SCRIPT_FILE: $SCRIPT_FILE" >&2
+	exit 1
+fi
+if ! SCRIPT_DIR="$(dirname "$SCRIPT_FILE")" \
+	|| ! MFFER_TEST_DIR="$SCRIPT_DIR"/.. \
+	|| ! MFFER_TREE_ROOT="$MFFER_TEST_DIR/../.." \
+	|| [ ! -d "$MFFER_TREE_ROOT" ] \
+	|| [ ! -d "$MFFER_TEST_DIR" ] \
+	|| [ ! -f "$MFFER_TEST_DIR"/common/base.sh ]; then
+	echo "Error: mffer source tree has unknown structure" >&2
+	exit 1
+fi
+. "$SCRIPT_DIR/../common/base.sh"
+
+if [ -z "${MFFER_TEST_VM_SYSTEM:-}" ]; then
+	. "$SCRIPT_DIR/../common/parallels.sh"
+fi
+
+set -e
+set -u
+
+if [ 0 != "$#" ]; then
+	echo "$(basename "$0") does not accept arguments." >&2
+	echo "Usage: sh '$0'" >&2
+	exit 1
+fi
 
 MFFER_TEST_VM="${MFFER_TEST_VM:-Windows Testing}"
 SSH_IDENTITY="${SSH_IDENTITY:-$HOME/.ssh/id_ecdsa}"
@@ -16,32 +59,24 @@ WINDOWS_INSTALLER_URL="${WINDOWS_INSTALLER_URL:-https://www.itechtics.com/?dl_id
 # heading "Verify your download"
 WINDOWS_INSTALLER_CKSUM="7f6538f0eb33c30f0a5cbbf2f39973d4c8dea0d64f69bd18e406012f17a8234f"
 
-if [ -r "$(dirname "$0")"/../common/base.sh ]; then
-	. "$(dirname "$0")"/../common/base.sh
-else
-	echo "Error: Unable to load script definitions for $0" >&2
-	exit 1
-fi
-
-PRLCTL="${PRLCTL:-}"
 PROGRAMDIR="$(dirname "$0")"
 USERNAME="$(id -un)"
 
-MFFER_TEST_VM_HOSTNAME="${MFFER_TEST_VM_HOSTNAME:-windows-testing}"
+MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
+
+if vmExists "${MFFER_TEST_VM:=}"; then
+	echo "virtual machine '$MFFER_TEST_VM' already exists; consider removing" >&2
+	exit 1
+fi
+echo "Creating virtual machine '${MFFER_TEST_VM:=}'" >"$VERBOSEOUT"
 
 main() {
-	setTempDir || exit 1
+	setTmpdir || exit 1
 	getWindowsVirtualMachine || exit 1
 
 }
 createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
-	getParallels || return 1
-	if "$PRLCTL" list "$MFFER_TEST_VM" >"$DEBUGOUT" 2>&1; then
-		echo "Error: Virtual machine '$MFFER_TEST_VM'" >&2
-		echo "       already exists. Consider deleting it." >&2
-		return 1
-	fi
-	setTempDir || return 1
+	setTmpdir || return 1
 	getWindowsInstaller || return 1
 	WINDOWS_SETUP_DIR="$MFFER_TEST_TMPDIR/WindowsSetup"
 	WINDOWS_SETUP_IMG="$MFFER_TEST_TMPDIR/WindowsSetup.iso"
@@ -115,13 +150,23 @@ createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME" >"$DEBUGOUT" 2>&1 || true
 	ssh-keygen -R "$MFFER_TEST_VM_HOSTNAME".shared >"$DEBUGOUT" 2>&1 || true
 	echo "Setting up new SSH authorization" >"$VERBOSEOUT"
-	# Need to wait for updates to finish, shutdown machine, remove installation
-	# media & 2nd cdrom, restart, then save snapshot; maybe download latest
-	# cumulative update package and include in offlineservice component of the
-	# unattend file
 	if ! ssh -o StrictHostKeyChecking=no -i "$SSH_IDENTITY" "$USERNAME"@"$MFFER_TEST_VM_HOSTNAME" \
 		shutdown /s >"$VERBOSEOUT"; then
 		echo "Error: Unable to connect to VM via SSH" >&2
+		return 1
+	fi
+	# Need to remove installation
+	# media & 2nd cdrom, restart, then save snapshot; maybe download latest
+	# cumulative update package and include in offlineservice component of the
+	# unattend file
+	echo "completing configuration of VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
+	if ! waitForShutdown \
+		|| ! prlctl set "$MFFER_TEST_VM" --device-set cdrom0 --image '' >"$DEBUGOUT" \
+		|| ! prlctl set "$MFFER_TEST_VM" --device-del cdrom1 >"$DEBUGOUT" \
+		|| ! prlctl set "$MFFER_TEST_VM" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT" \
+		|| ! prlctl start "$MFFER_TEST_VM" >"$DEBUGOUT" \
+		|| ! waitForStartup; then
+		echo "Error: Unable to complete configuration of VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 	echo "Saving VM snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
@@ -200,7 +245,7 @@ getVMBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 	return 0
 }
 getWindowsInstaller() { # downloads and sets WINDOWS_INSTALLER if not already
-	setTempDir || return 1
+	setTmpdir || return 1
 	if [ -z "$WINDOWS_INSTALLER" ]; then
 		WINDOWS_INSTALLER="$MFFER_TEST_TMPDIR/Win10_21H2_English_x64.iso"
 	fi
@@ -397,6 +442,38 @@ printWinSetup() {
 waitForInstallation() {
 	starttime="$(getTime)"
 	maxtime="$((4 * 60 * 60))" # 4 hours, in seconds
+	until sshIsRunning; do
+		time="$(getTime)"
+		if [ -z "$starttime" ] || [ -z "$time" ]; then
+			echo "Error: Unable to get the installation time" >&2
+			return 1
+		fi
+		if [ "$((time - starttime))" -ge "$maxtime" ]; then
+			echo "Error: Timed out; VM never made SSH accessible" >&2
+			return 1
+		fi
+		sleep 5
+	done
+}
+waitForShutdown() {
+	starttime="$(getTime)"
+	maxtime="$((10 * 60))" # 10 minutes, in seconds
+	until ! vmIsRunning "$MFFER_TEST_VM"; do
+		time="$(getTime)"
+		if [ -z "$starttime" ] || [ -z "$time" ]; then
+			echo "Error: Unable to get the waiting time" >&2
+			return 1
+		fi
+		if [ "$((time - starttime))" -ge "$maxtime" ]; then
+			echo "Error: Timed out; VM never shut down" >&2
+			return 1
+		fi
+		sleep 5
+	done
+}
+waitForStartup() {
+	starttime="$(getTime)"
+	maxtime="$((10 * 60))" # 10 minutes, in seconds
 	until sshIsRunning; do
 		time="$(getTime)"
 		if [ -z "$starttime" ] || [ -z "$time" ]; then
