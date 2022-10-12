@@ -93,9 +93,9 @@ hasSnapshot() {
 
 # renameVm vmname newname
 #
-# Renames the VM named `vmname` as `newname`. Additionally replaces any matching
-# SSH host lines in ~/.ssh/known_hosts. If unsuccessful, prints an error message
-# and returns 1; otherwise returns 0.
+# Renames the VM named `vmname` as `newname`. Additionally removes any
+# ~/.ssh/known_hosts entries for `newname` and replaces any for `vmname` with
+# ones for `newname`.
 renameVm() {
 	if [ "$#" -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
 		echo "Error: renameVm() requires two arguments" >&2
@@ -112,24 +112,16 @@ renameVm() {
 		echo "Error: Unable to rename VM '$1' as '$2'" >&2
 		return 1
 	fi
-	oldhostlines="$(ssh-keygen -F "${oldhost%.shared}")" || true
-	oldhostsharedlines="$(ssh-keygen -F "${oldhost%.shared}.shared")" || true
-	newhostlines="$(
-		printf '%s\n%s' "${oldhostlines:=}" "${oldhostsharedlines:=}" \
-			| sed -E -e '/#/d' \
-				-e "s/^${oldhost%.shared}"'[[:space:]]+/'"$newhost /" \
-				-e "s/^${oldhost%.shared}.shared"'[[:space:]]+/'"$newhost.shared /"
-	)" || true
-	if [ -n "$newhostlines" ]; then
-		ssh-keygen -R "${oldhost%.shared}" >"$DEBUGOUT" 2>&1 || true
-		ssh-keygen -R "${oldhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
-		ssh-keygen -R "${newhost%.shared}" >"$DEBUGOUT" 2>&1 || true
-		ssh-keygen -R "${newhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
-		if ! { echo "$newhostlines" >>"$HOME/.ssh/known_hosts"; } >"$DEBUGOUT"; then
-			echo "Error: Unable to update $HOME/.ssh/known_hosts with hostname for VM '$2'" >&2
-			return 1
-		fi
-	fi
+	newlines="$(
+		grep -E "(^|,)[[:space:]]*${oldhost%.shared}(\.shared)?([[:space:]]|,)" "$HOME/.ssh/known_hosts" \
+			| sed -E -e 's/(^|,)[[:space:]]*'"${oldhost%.shared}"'.shared([[:space:]]|,)/\1'"${oldhost%.shared}"'\2/g' \
+				-e 's/(^|,)'"${oldhost%.shared}"'([[:space:]]|,)/\1'"${newhost%.shared},${newhost%.shared}.shared"'\2/g'
+	)"
+	ssh-keygen -R "${oldhost%.shared}" >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "${oldhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "${newhost%.shared}" >"$DEBUGOUT" 2>&1 || true
+	ssh-keygen -R "${newhost%.shared}.shared" >"$DEBUGOUT" 2>&1 || true
+	echo "$newlines" >>"$HOME/.ssh/known_hosts"
 }
 
 # resetVm vmname snapshotname
@@ -199,12 +191,13 @@ saveSnapshot() {
 		echo "Error: saveSnapshot() requires 2 or 3 arguments" >&2
 		return 1
 	fi
+	echo "Saving snapshot '$2' on virtual machine '$1'" >"$VERBOSEOUT"
 	if ! vmExists "$1"; then
 		echo "Error: VM '$1' not found" >&2
 		return 1
 	fi
 	fail=0
-	if [ -z "$3" ]; then
+	if [ -z "${3:-}" ]; then
 		if ! "$PRLCTL" snapshot "$1" -n "$2" >"$DEBUGOUT"; then
 			fail=1
 		fi
