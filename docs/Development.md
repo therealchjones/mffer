@@ -613,7 +613,7 @@ virtual machines for Parallels Desktop and test mffer on the virtual machines,
 all running on a macOS host machine with Parallels Desktop Pro and Command Line
 Tools for XCode. These scripts are available in the `tools/testing/` hierarchy.
 
-### Testing on macOS
+#### Testing on macOS
 
 The "macOS Testing" virtual machine running macOS 12.6 Monterey is created using
 [mkmacvm](https://github.com/therealchjones/mkmacvm) with some customizations:
@@ -641,26 +641,7 @@ uses:
 -   Temurin JRE 11.0.14.1_1
 -   Ghidra
 
-To perform all tests noninteractively, run:
-
-```
-sh tools/testing/macos/testmac.sh
-```
-
-This script:
-
-1. Creates a macOS virtual machine if needed
-2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
-3. Builds mffer
-4. Resets the virtual machine
-5. Tests apkdl (which requires manual interaction)
-6. Resets the virtual machine
-7. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
-8. Tests autoanalyze
-9. Resets the virtual machine
-10. Tests mffer
-
-### Linux
+#### Testing on Linux
 
 The "Linux Testing" virtual machine is created using an Ubuntu Desktop 22.04
 installer with some customizations:
@@ -678,7 +659,7 @@ noninteractively via:
 sh tools/testing/linux/createvm.sh
 ```
 
-### Windows
+#### Testing on Windows
 
 The "Windows Testing" virtual machine is a "clean" installation of Windows 10
 (21H2) Pro with some customization:
@@ -734,6 +715,24 @@ tested on each reference system, resulting in a testing checklist such as:
 >
 > -   [ ] gmail
 > -   [ ] google workspace
+
+The script `tools/testing/test.sh` (along with its helpers in the
+`tools/testing` hierarchy) automates the process of building and testing on the
+various platforms. Specific steps for the different platforms vary, but the
+general flow for building and testing on a single platform is:
+
+1. Reset the virtual machine to the "Base Installation" snapshot
+2. Install [build requirements](#build-requirements)
+3. Build an mffer release (and save the resulting files on the host system)
+4. Reset the virtual machine
+5. Install the requirements for apkdl
+6. Test apkdl
+7. Reset the virtual machine
+8. Install the requirements for autoanalyze
+9. Test autoanalyze
+10. Reset the virtual machine
+11. Install the requirements for mffer
+12. Test mffer
 
 ## Releasing mffer
 
