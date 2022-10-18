@@ -9,6 +9,10 @@
 # the Parallels virtual machines other than that obtainable via the Parallels
 # command-line tools themselves.
 
+# shellcheck disable=SC2034 # (used in calling script)
+MFFER_TEST_SNAPSHOT_ID=""                            # ID of the "clean install" snapshot on the testing VM
+MFFER_TEST_VM_HOSTNAME="${MFFER_TEST_VM_HOSTNAME:-}" # hostname of the VM on which to test
+
 if [ "Darwin" != "$(uname -s)" ]; then
 	echo "Error: Not on macOS." >&2
 	exit 1
@@ -69,6 +73,8 @@ getSnapshotId() {
 }
 
 # getVmHostname vmname
+#
+# Prints the hostname for the virtual machine named `vmname`. Returns 1 on a usage error, 0 otherwise.
 getVmHostname() {
 	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
 		echo "Error: getVmHostname() requires one argument" >&2
