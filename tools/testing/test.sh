@@ -45,7 +45,6 @@ if [ ! -r "$MFFER_TEST_DIR"/common/parallels.sh ] \
 	|| ! . "$MFFER_TEST_DIR"/common/parallels.sh; then
 	echo "Warning: Unable to load Parallels Desktop definitions" >&2
 fi
-
 main() {
 	setSources || exitFromError
 	buildOn local || exitFromError
@@ -74,6 +73,7 @@ buildOn() {
 		local)
 			echo "building release on the local system" >"$VERBOSEOUT"
 			failure=""
+			MFFER_BUILD_OS="local"
 			sh "$MFFER_TEST_DIR/common/build-mffer.sh" || failure="y"
 			sh "$MFFER_TEST_DIR/common/build-docs.sh" || failure="y"
 			if [ -n "$failure" ]; then
@@ -84,11 +84,16 @@ buildOn() {
 			return 0
 			;;
 		macos | linux | windows)
-			if ! setVm "$1"; then
+			if ! setVm "$1" || [ -z "$MFFER_TEST_VM" ]; then
 				echo "SKIPPED building release on $1" >"$VERBOSEOUT"
 				return 1
 			else
 				echo "building release on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
+				if [ -z "${MFFER_TEST_SNAPSHOT:=}" ]; then
+					echo "Error: MFFER_TEST_SNAPSHOT is empty" >&2
+					return 1
+				fi
+				resetVm "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT"
 				if ! setBuildEnv "$1"; then
 					echo "SKIPPED building release on $1" >"$VERBOSEOUT"
 					return 1
@@ -124,13 +129,22 @@ installOnVm() {
 		echo "Error: MFFER_TEST_VM is empty." >&2
 		return 1
 	fi
-	MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
+	if ! MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"; then
+		echo "Error: Unable to get hostname for VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
 	case "$1" in
 		shell)
 			if [ "$MFFER_TEST_OS" = "windows" ]; then
-				if ! ssh "$MFFER_TEST_VM_HOSTNAME" curl -LSsO https://github.com/git-for-windows/git/releases/download/v2.37.3.windows.1/Git-2.37.3-64-bit.exe >"$DEBUGOUT" \
-					|| ! ssh "$MFFER_TEST_VM_HOSTNAME" Git-2.37.3-64-bit.exe >"$DEBUGOUT"; then
-					echo "Error: Unable to install '$1' on $MFFER_TEST_VM" >&2
+				if ! scp "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": \
+					|| ! ssh windows-testing disable-uac.bat \
+					|| ! ssh windows-testing shutdown \
+					|| ! waitForShutdown "$MFFER_TEST_VM" \
+					|| ! startVm "$MFFER_TEST_VM" \
+					|| ! waitForStartup "$MFFER_TEST_VM" \
+					|| ! scp "$MFFER_TEST_DIR/windows/install-shell.bat" "$MFFER_TEST_VM_HOSTNAME": \
+					|| ! ssh windows-testing install-shell.bat; then
+					echo "Error: Unable to install shell on Windows" >&2
 					return 1
 				fi
 			fi
@@ -170,14 +184,6 @@ setBuildEnv() {
 		return 1
 	fi
 	MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
-	if ! dotnet clean "$MFFER_TREE_ROOT" >"$DEBUGOUT" \
-		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
-		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer; then
-		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
 	if ! installOnVm shell \
 		|| ! installOnVm dotnet \
 		|| ! installOnVm node \
@@ -185,6 +191,14 @@ setBuildEnv() {
 		|| ! installOnVm python \
 		|| ! installOnVm doxygen; then
 		echo "Error: Unable to set up development environment on VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
+	if ! dotnet clean "$MFFER_TEST_SOURCE" >"$DEBUGOUT" \
+		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TEST_SOURCE" . \
+		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer \
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer; then
+		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 }
@@ -198,7 +212,9 @@ testOn() {
 	case "$1" in
 		local)
 			echo "Testing on the local system" >"$VERBOSEOUT"
-			MFFER_TEST_OS="${MFFER_BUILD_OS:=}"
+			MFFER_BUILD_OS=""
+			setBuildOs
+			MFFER_TEST_OS="$MFFER_BUILD_OS"
 			MFFER_BUILD_OS="local"
 			updateEnv || return 1
 			if ! runTest mffer; then

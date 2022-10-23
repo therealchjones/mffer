@@ -160,12 +160,12 @@ createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 	# cumulative update package and include in offlineservice component of the
 	# unattend file
 	echo "completing configuration of VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
-	if ! waitForShutdown \
+	if ! waitForShutdown "$MFFER_TEST_VM" \
 		|| ! prlctl set "$MFFER_TEST_VM" --device-set cdrom0 --image '' >"$DEBUGOUT" \
 		|| ! prlctl set "$MFFER_TEST_VM" --device-del cdrom1 >"$DEBUGOUT" \
 		|| ! prlctl set "$MFFER_TEST_VM" --device-bootorder 'hdd0 cdrom0' >"$DEBUGOUT" \
 		|| ! prlctl start "$MFFER_TEST_VM" >"$DEBUGOUT" \
-		|| ! waitForStartup; then
+		|| ! waitForStartup "$MFFER_TEST_VM"; then
 		echo "Error: Unable to complete configuration of VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
@@ -442,38 +442,6 @@ printWinSetup() {
 waitForInstallation() {
 	starttime="$(getTime)"
 	maxtime="$((4 * 60 * 60))" # 4 hours, in seconds
-	until sshIsRunning; do
-		time="$(getTime)"
-		if [ -z "$starttime" ] || [ -z "$time" ]; then
-			echo "Error: Unable to get the installation time" >&2
-			return 1
-		fi
-		if [ "$((time - starttime))" -ge "$maxtime" ]; then
-			echo "Error: Timed out; VM never made SSH accessible" >&2
-			return 1
-		fi
-		sleep 5
-	done
-}
-waitForShutdown() {
-	starttime="$(getTime)"
-	maxtime="$((10 * 60))" # 10 minutes, in seconds
-	until ! vmIsRunning "$MFFER_TEST_VM"; do
-		time="$(getTime)"
-		if [ -z "$starttime" ] || [ -z "$time" ]; then
-			echo "Error: Unable to get the waiting time" >&2
-			return 1
-		fi
-		if [ "$((time - starttime))" -ge "$maxtime" ]; then
-			echo "Error: Timed out; VM never shut down" >&2
-			return 1
-		fi
-		sleep 5
-	done
-}
-waitForStartup() {
-	starttime="$(getTime)"
-	maxtime="$((10 * 60))" # 10 minutes, in seconds
 	until sshIsRunning; do
 		time="$(getTime)"
 		if [ -z "$starttime" ] || [ -z "$time" ]; then

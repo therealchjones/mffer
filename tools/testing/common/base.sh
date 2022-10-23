@@ -8,7 +8,10 @@
 # instance, in the `mffer` repository the tools/testing/test.sh script sources
 # this one just after determining its own location. Similarly, GitHub Actions
 # testing workflows can source this script to ensure environment variables are
-# properly stored for multiple steps.
+# properly stored for multiple steps. Note that when this is sourced by another
+# script functions remain available in the calling script, but when used for
+# setting environment variables (as in GitHub actions), functions are not
+# included.
 
 # This file should include function definitions, settings, and shared startup
 # behavior such as processing the DEBUG and VERBOSE environment variables and
@@ -60,6 +63,7 @@ MFFER_EXPORT_VARS='
 	VERBOSEOUT
 	MFFER_BUILD_OS
 	MFFER_EXPORT_VARS
+	MFFER_TEST_DIR
 	MFFER_TEST_OS
 	MFFER_TEST_RUNDIR
 	MFFER_TEST_SOURCE
@@ -98,7 +102,7 @@ cleanup() {
 # checkVm
 #
 # ensures a VM named $MFFER_TEST_VM exists and includes a base installation
-# snapshot named $MFFER_TEST_VM_SNAPSHOT
+# snapshot named $MFFER_TEST_SNAPSHOT
 checkVm() {
 	if ! vmExists "$MFFER_TEST_VM"; then
 		echo "Error: VM '$MFFER_TEST_VM' was not found" >&2
@@ -147,6 +151,40 @@ getBaseVmId() {
 	fi
 	MFFER_TEST_SNAPSHOT_ID="$snapshot_id"
 	echo "$MFFER_TEST_SNAPSHOT_ID"
+}
+# getEnv
+#
+# Prints the current values of the MFFER_EXPORT_VARS in a manner similar to
+# export -p so that they may be reimported
+getEnv() {
+	for var in $MFFER_EXPORT_VARS; do
+		value=""
+		eval "value=\$$var"
+		printf "%s='%s'\n" "$var" "$value"
+	done
+}
+# getScript scriptbase
+#
+# Prints the path to the appropriate script for MFFER_TEST_OS with the base name
+# scriptbase
+getScript() {
+	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+		echo "Error: getScript() requires a single argument" >&2
+		return 1
+	elif [ -z "$MFFER_TEST_OS" ]; then
+		echo "Error: 'MFFER_TEST_OS' is required for getScript()" >&2
+		return 1
+	elif [ -z "$MFFER_TEST_DIR" ]; then
+		echo "Error: 'MFFER_TEST_DIR' is required for getScript()" >&2
+		return 1
+	fi
+	for file in "$MFFER_TEST_DIR/$MFFER_TEST_OS/$1.sh" "$MFFER_TEST_DIR/$MFFER_TEST_OS/$1.bat" "$MFFER_TEST_DIR/common/$1.sh"; do
+		if [ -r "$file" ]; then
+			echo "$file"
+			return 0
+		fi
+	done
+	return 1
 }
 # getTempDir
 #
@@ -202,35 +240,21 @@ isTreeClean() {
 	return 0
 }
 runTest() {
+	script=""
 	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
 		echo "Error: runTest() requires a single argument" >&2
 		return 1
-	fi
-	if [ -z "$MFFER_TEST_OS" ]; then
-		echo "Error: 'MFFER_TEST_OS' is required for runTest()" >&2
-		return 1
-	fi
-	if [ -z "$MFFER_TEST_RUNDIR" ]; then
+	elif [ -z "$MFFER_TEST_RUNDIR" ]; then
 		echo "Error: 'MFFER_TEST_RUNDIR' is required for runTest()" >&2
 		return 1
-	fi
-	if [ -z "$MFFER_TEST_DIR" ]; then
-		echo "Error: 'MFFER_TEST_DIR' is required for runTest()" >&2
-		return 1
-	fi
-	status=""
-	for file in "$MFFER_TEST_DIR/$MFFER_TEST_OS/test-$1.sh" "$MFFER_TEST_DIR/$MFFER_TEST_OS/test-$1.bat" "$MFFER_TEST_DIR/common/test-$1.sh"; do
-		if [ -r "$file" ]; then
-			sh "$file"
-			status="$?"
-			break
-		fi
-	done
-	if [ -z "$status" ]; then
+	elif ! script="$(getScript test-"$1")" || [ -z "$script" ]; then
 		echo "Error: test script for '$1' not found" >&2
-		status=1
+		return 1
+	elif ! sh "$script"; then
+		return $?
+	else
+		return 0
 	fi
-	return "$status"
 }
 setBuildOs() {
 	if [ -n "${MFFER_BUILD_OS:=}" ]; then
@@ -394,25 +418,41 @@ setVerbosity() {
 	fi
 	export DEBUG VERBOSE
 }
-# setVm vmname
+# setVm vmos
 #
-# Sets the MFFER_TEST_VM variable to `vmname` and confirms it exists and has a
-# snapshot named $MFFER_TEST_VM_SNAPSHOT (or "Base Installation" if that value
-# is empty). Prints an error and returns 1 if no VM with the name `vmname`
-# exists or it doesn't have a snapshot named appropriately. Prints an error and
-# returns 255 if a usage error occurs. Returns 0 otherwise.
+# Sets the MFFER_TEST_VM variable to the appropriate name for OS `vmos` and
+# confirms it exists and has a snapshot named $MFFER_TEST_SNAPSHOT (or "Base
+# Installation" if that value is empty). Prints an error and returns 1 if no VM
+# with the appropriate name exists or it doesn't have a snapshot named
+# appropriately. Prints an error and returns 255 if a usage error occurs.
+# Returns 0 otherwise.
 setVm() {
 	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
 		echo "Error: setVm() requires a single argument" >&2
-		return 1
+		return 255
 	fi
-	MFFER_TEST_VM="$1"
-	MFFER_TEST_VM_SNAPSHOT="${MFFER_TEST_VM_SNAPSHOT:-Base Installation}"
+	case "$1" in
+		macos)
+			MFFER_TEST_VM="macOS Testing"
+			;;
+		linux)
+			MFFER_TEST_VM="Linux Testing"
+			;;
+		windows)
+			MFFER_TEST_VM="Windows Testing"
+			;;
+		*)
+			echo "Error: unknown argument to setVm() '$1'" >&2
+			return 1
+			;;
+	esac
+	MFFER_TEST_OS="$1"
+	MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"
 	if ! checkVm; then
 		echo "Error: Unable to use virtual machine '$1'" >&2
 		return 1
 	fi
-
+	updateEnv
 }
 # sshIsRunning
 #
@@ -432,12 +472,47 @@ sshIsRunning() {
 updateEnv() {
 	# shellcheck disable=SC2034 # (used in called scripts)
 	MFFER_TEST_RUNDIR="${MFFER_TEST_TMPDIR:-}/built-on-${MFFER_BUILD_OS:-}/${MFFER_TEST_OS:-}"
+	MFFER_TEST_DIR="${MFFER_TREE_ROOT:-}/tools/testing"
 	if [ -n "${MFFER_EXPORT_VARS}" ]; then
 		for var in $MFFER_EXPORT_VARS; do
 			export "${var?}"
-			# and something to put it in the GitHub env file
 		done
 	fi
+	if [ -n "${GITHUB_ENV:=}" ] && [ -r "$GITHUB_ENV" ]; then
+		getEnv >>"$GITHUB_ENV"
+	fi
+}
+waitForShutdown() {
+	starttime="$(getTime)"
+	maxtime="$((10 * 60))" # 10 minutes, in seconds
+	until ! vmIsRunning "$1"; do
+		time="$(getTime)"
+		if [ -z "$starttime" ] || [ -z "$time" ]; then
+			echo "Error: Unable to get the waiting time" >&2
+			return 1
+		fi
+		if [ "$((time - starttime))" -ge "$maxtime" ]; then
+			echo "Error: Timed out; VM never shut down" >&2
+			return 1
+		fi
+		sleep 5
+	done
+}
+waitForStartup() {
+	starttime="$(getTime)"
+	maxtime="$((10 * 60))" # 10 minutes, in seconds
+	until sshIsRunning "$1"; do
+		time="$(getTime)"
+		if [ -z "$starttime" ] || [ -z "$time" ]; then
+			echo "Error: Unable to get the installation time" >&2
+			return 1
+		fi
+		if [ "$((time - starttime))" -ge "$maxtime" ]; then
+			echo "Error: Timed out; VM never made SSH accessible" >&2
+			return 1
+		fi
+		sleep 5
+	done
 }
 setVerbosity
 setTmpdir
