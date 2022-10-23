@@ -138,7 +138,7 @@ installOnVm() {
 			if [ "$MFFER_TEST_OS" = "windows" ]; then
 				if ! scp "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": \
 					|| ! ssh windows-testing disable-uac.bat \
-					|| ! ssh windows-testing shutdown \
+					|| ! ssh windows-testing shutdown /s \
 					|| ! waitForShutdown "$MFFER_TEST_VM" \
 					|| ! startVm "$MFFER_TEST_VM" \
 					|| ! waitForStartup "$MFFER_TEST_VM" \
