@@ -137,13 +137,13 @@ installOnVm() {
 		shell)
 			if [ "$MFFER_TEST_OS" = "windows" ]; then
 				if ! scp "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": \
-					|| ! ssh windows-testing disable-uac.bat \
-					|| ! ssh windows-testing shutdown /s \
+					|| ! ssh windows-testing cmd.exe /C disable-uac.bat \
+					|| ! ssh windows-testing cmd.exe /C shutdown /s \
 					|| ! waitForShutdown "$MFFER_TEST_VM" \
 					|| ! startVm "$MFFER_TEST_VM" \
 					|| ! waitForStartup "$MFFER_TEST_VM" \
 					|| ! scp "$MFFER_TEST_DIR/windows/install-shell.bat" "$MFFER_TEST_VM_HOSTNAME": \
-					|| ! ssh windows-testing install-shell.bat; then
+					|| ! ssh windows-testing cmd.exe /C install-shell.bat; then
 					echo "Error: Unable to install shell on Windows" >&2
 					return 1
 				fi
