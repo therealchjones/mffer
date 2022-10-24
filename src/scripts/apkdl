@@ -287,11 +287,9 @@ if sys.version_info.major != 3:
 if sys.version_info.minor < 9:
     print( "$0 requires Python 3.9 or higher", file=sys.stderr)
     exit(1)
-if
 import ssl
-if ssl.OPENSSL_VERSION_INFO[0:3] != (1,1,1)
+if ssl.OPENSSL_VERSION_INFO[0:3] != (1,1,1):
     print( f"Warning: Using OpenSSL version '{ssl.OPENSSL_VERSION}'; this may not work.", file=sys.stderr)
-if
 EOF
 else
 	echo "Error: Unable to find temporary python environment" >&2
