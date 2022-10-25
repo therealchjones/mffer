@@ -119,6 +119,12 @@ namespace Mffer {
 						Skill newSkill = new Skill( skill.GetValue().ToString() );
 						newLevel.Skills.Add( newSkill );
 					}
+					if ( newLevel.Skills.Count > 11 ) {
+						throw new ApplicationException( "Too many skills found for character entry" );
+					}
+					while ( newLevel.Skills.Count < 11 ) {
+						newLevel.Skills.Add( new Skill( "0" ) );
+					}
 					newLevel.Skills.Add( new Skill( entry.uniformSkillId.ToString() ) );
 					if ( String.IsNullOrEmpty( character.BaseName ) ) {
 						if ( uniform.UniformGroupId == "0" ) {
@@ -177,9 +183,10 @@ namespace Mffer {
 				"Passive Skill",
 				"Skill 4",
 				"Skill 5",
-				"T2 Passive Skill",
-				"T3 Skill",
-				"Awakened Skill",
+				"T2 Passive Skill", // from HeroData_get_tier2SkillId
+				"T3 Skill", // from HeroData_get_tier3SkillId
+				"Awakened Skill", // from HeroData_get_awakeSkillId
+				"T4 Skill", // from HeroData_get_tier4SkillId
 				"Uniform Skill"
 			};
 			file.WriteLine( String.Join( delimiter, header ) );
@@ -209,7 +216,7 @@ namespace Mffer {
 					}
 					entries.Add( abilities );
 					entries.Add( uniform.RaidAbility );
-					for ( int i = 0; i < 11; i++ ) {
+					for ( int i = 0; i < uniform.Skills.Count; i++ ) {
 						if ( i < uniform.Skills.Count && uniform.Skills[i].SkillId != "0" ) {
 							entries.Add( uniform.Skills[i].SkillId );
 						} else {
