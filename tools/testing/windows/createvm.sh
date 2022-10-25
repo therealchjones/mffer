@@ -87,7 +87,7 @@ createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 	for file in Autounattend.xml WinSetup.ps1; do
 		if [ -r "$PROGRAMDIR/$file" ]; then
 			echo "Warning: Using separate $file from $PROGRAMDIR/$file" >&2
-			cp "$PROGRAMDIR/Autounattend.xml" "$WINDOWS_SETUP_DIR/Autounattend.xml" || return 1
+			cp "$PROGRAMDIR/$file" "$WINDOWS_SETUP_DIR/$file" || return 1
 		fi
 	done
 	if [ ! -r "$WINDOWS_SETUP_DIR/Autounattend.xml" ]; then

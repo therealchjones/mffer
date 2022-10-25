@@ -47,6 +47,7 @@ MFFER_TEST_SOURCE="" # where the local tree to test is
 MFFER_TEST_TMPDIR="" # disposable temporary directory
 # shellcheck disable=SC2034 # (used in calling scripts)
 MFFER_TEST_VM_SYSTEM="" # set by the appropriate script when virtual machine functions are loaded
+MFFER_TEST_OS=""
 
 # Variables regarding other software that may be used for testing; leave blank
 # to use whatever is available and found automatically
@@ -90,9 +91,13 @@ MFFER_EXPORT_VARS='
 # function to be run just before exiting the script (that is, the one sourcing this one)
 cleanup() {
 	exitstatus="$?"
+	trap - EXIT
+	echo "Cleaning up" >"${VERBOSEOUT:=/dev/null}"
 	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
-		if ! rm -rf "$MFFER_TEST_TMPDIR" >"$DEBUGOUT" 2>&1 \
-			&& ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR"; }; then
+		if [ 0 != "$exitstatus" ] && [ -n "${DEBUG:=}" ]; then
+			echo "Warning: Testing files in progress retained in ${MFFER_TEST_TMPDIR}" >&2
+		elif ! rm -rf "$MFFER_TEST_TMPDIR" >"${DEBUGOUT:=/dev/null}" 2>&1 \
+			&& ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR" >"${DEBUGOUT:=/dev/null}" 2>&1; }; then
 			echo "Error: Unable to delete temporary directory '$MFFER_TEST_TMPDIR'" >&2
 			if [ "$exitstatus" -eq 0 ]; then exitstatus=1; fi
 		fi
@@ -151,6 +156,14 @@ getBaseVmId() {
 	fi
 	MFFER_TEST_SNAPSHOT_ID="$snapshot_id"
 	echo "$MFFER_TEST_SNAPSHOT_ID"
+}
+getCanonicalDir() {
+	if [ -n "${1:-}" ] && [ -d "$1" ] && (cd "$1" && pwd); then
+		return 0
+	else
+		warnError "Unable to access directory '${1:-}'"
+		return 1
+	fi
 }
 # getEnv
 #

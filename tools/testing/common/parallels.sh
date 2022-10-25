@@ -39,7 +39,7 @@ done
 # contain such a snapshot, prints an error message and returns 1.
 getSnapshotId() {
 	if [ "$#" -ne 2 ] || [ -z "$1" ] || [ -z "$2" ]; then
-		echo "Error: setSnapshotId() requires two arguments" >&2
+		echo "Error: getSnapshotId() requires two arguments" >&2
 		return 1
 	fi
 	if ! vmExists "$1"; then
@@ -82,7 +82,6 @@ getVmHostname() {
 	fi
 	echo "$1" | tr 'A-Z ' 'a-z-'
 }
-
 # hasSnapshot vmname snapshotname
 #
 # Returns 0 if the virtual machine named `vmname` includes a snapshot named
