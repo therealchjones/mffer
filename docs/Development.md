@@ -234,7 +234,7 @@ running the programs.
 -   [Node.js with npm](https://nodejs.dev) (with the `npm` command in your path)
 -   [Google account](https://myaccount.google.com/) with access to [Google Apps Script](https://script.google.com/)
 -   [git](https://git-scm.com)
--   Python 3
+-   Python 3.9 or higher
 -   Doxygen (for building documentation)
 -   a vaguely modern computer with an undetermined minimum quantity of RAM that
     is probably several gigabytes
@@ -355,6 +355,8 @@ Code.) The following tools are set up within the `mffer/tools` directory tree:
     -   clasp
     -   @types/google-apps-script
     -   stream-json
+-   Python 3 virtual environment
+    -   multiple packages from the `mffer/tools/requirements.txt` file
 
 All of these tools can be removed (along with their installed dependencies and the
 `mffer/build` and `mffer/release` directories) by running:
@@ -365,9 +367,9 @@ dotnet clean
 
 #### Additional setup
 
-Though they may be included in the `dotnet restore` command at some point, at the
-time of this writing it's necessary to set up Python and Jython separately if
-you wish to work on the apkdl script, the documentation build process, and
+Though it may be included in the `dotnet restore` command at some point, at the
+time of this writing it's necessary to set up Jython separately if
+you wish to work on
 Ghidra analysis. It's not necessary to setup Python beyond the system version to
 run apkdl, autoanalyze, or Ghidra, just to make changes to them. It's not
 required to set up Python to build the documentation if you're only making
@@ -375,7 +377,7 @@ document edits, but it may be good for testing that those edits appear the way
 you want them to before submitting the pull request.
 
 After cloning the repository, ensure you're using a recommended version of
-Python and/or Jython, as noted in the `/.python-version` file. This is probably
+Jython as noted in the `/.python-version` file. This is probably
 easiest if you're using pyenv, which will automatically refer to that file; you
 can see if it's using the appropriate versions anywhere in the repository by
 running
@@ -392,17 +394,7 @@ pyenv install <version>
 
 and it will then be used automatically within the repository.
 
-After that, we recommend setting up virtual environments with the necessary
-tools within the repository. Within the `/tools` directory, run:
-
-```
-python -m venv python
-. python/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-Rather than Python, Ghidra scripts use Jython. Because Jython is based upon the deprecated Python 2.7, setting up for development of autoanalyze or other Ghidra analysis requires further steps. The pyenv commands above will similarly work to install the appropriate Jython version. However, Jython additionally requires a Java distribution, and requires installation of the virtualenv module within pyenv's copy of Jython. Once you have Jython working on your system, you can install virtualenv with:
+Rather than Python, Ghidra scripts use Jython. Because Jython is based upon the deprecated Python 2.7, setting up for development of autoanalyze or other Ghidra analysis requires further steps. The pyenv commands above will work to install the appropriate Jython version. However, Jython additionally requires a Java distribution, and requires installation of the virtualenv module within pyenv's copy of Jython. Once you have Jython working on your system, you can install virtualenv with:
 
 ```
 jython -m easy_install virtualenv==15.2.0
@@ -610,74 +602,74 @@ created in a reproducible way. Where possible, output is then compared to "known
 good" output from prior builds. There are standardized methods for creating the
 virtual machines and for testing mffer on them. Scripts are provided to create
 virtual machines for Parallels Desktop and test mffer on the virtual machines,
-all running on a macOS host machine with only the addition of Parallels Desktop
-Pro required to build the virtual machines. These scripts are available in the
-`tools/` directory.
+all running on a macOS host machine with Parallels Desktop Pro and Command Line
+Tools for XCode. These scripts are available in the `tools/testing/` hierarchy.
 
-(Further information on using the command line to build and interact with
-Paralells Desktop is available
-[on the Parallels website](https://download.parallels.com/desktop/v17/docs/en_US/Parallels%20Desktop%20Pro%20Edition%20Command-Line%20Reference/);
-the latest version should be available
-[here](https://www.parallels.com/products/desktop/resources/).)
+#### Testing on macOS
 
-### Testing on macOS
+The "macOS Testing" virtual machine running macOS 12.6 Monterey is created using
+[mkmacvm](https://github.com/therealchjones/mkmacvm) with some customizations:
+
+-   Enable the SSH server (which is done by mkmacvm)
+-   Enable passwordless sudo
+-   Create a "Base Installation" snapshot
+
+mkmacvm requires `sudo` access, so initial building of the virtual machine may
+not be entirely noninteractive; to create the VM with the above changes and
+minimal interaction, use:
+
+```
+sh tools/testing/macos/createvm.sh
+```
 
 Software used to fulfill the [build requirements](#build-requirements) and
 runtime requirements is installed automatically on the virtual machine as needed
 for the various phases of testing. The current testing environment on macOS
 uses:
 
--   macOS 12.2.1 Monterey
 -   Xcode Command Line Tools
 -   Node.js 16.13.2
 -   .NET 5.0 SDK
 -   Temurin JRE 11.0.14.1_1
 -   Ghidra
 
+#### Testing on Linux
+
+The "Linux Testing" virtual machine is created using an Ubuntu Desktop 22.04
+installer with some customizations:
+
+-   Enable passwordless sudo
+-   Disable gnome-initial-setup
+-   Install and enable the SSH server
+-   Download and install software updates
+-   Create a "Base Installation" snapshot
+
+Initial building of the virtual machine with the above changes is performed
+noninteractively via:
+
 ```
-sh tools/testmac.sh
+sh tools/testing/linux/createvm.sh
 ```
 
-This script:
+#### Testing on Windows
 
-1. Creates a macOS virtual machine if needed
-2. Installs Xcode Command Line Tools, Node.js, and .NET SDK
-3. Builds mffer
-4. Resets the virtual machine
-5. Tests apkdl (which requires manual interaction)
-6. Resets the virtual machine
-7. Installs Temurin, .NET SDK, Ghidra, and Xcode Command Line Tools
-8. Tests autoanalyze
-9. Resets the virtual machine
-10. Tests mffer
+The "Windows Testing" virtual machine is a "clean" installation of Windows 10
+(21H2) Pro with some customization:
 
-### Linux
+-   Autologon enabled
+-   SSH server enabled and user account given public key admin access
+-   KMS activation key used (thus the system is not activated)
+-   NuGet added as package provider in PowerShell
+-   PSWindowsUpdate module installed in PowerShell
 
-1. Install Ubuntu 20.04 & apply all available updates
-2. Install Parallels Tools
-3. Test mffer
-4. Test apkdl
-5. Test autoanalyze
+Initial building of the virtual machine with the above changes is performed
+noninteractively via:
 
-### Windows
-
-1. Install Windows 10 & apply all available updates
-2. Install Parallels Tools
-3. Test mffer
-4. Install
-   [Temurin 11](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot)
-5. Install Git (with Git Bash)
-6. Test apkdl
-7. Install [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases)
-8. Install [.NET 5.0](https://dotnet.microsoft.com/download/dotnet/5.0)
-9. Test autoanalyze
+```
+sh tools/testing/windows/createvm.sh
+```
 
 ### Testing releases
-
-"Semi-automated" testing of [releases](#releasing-mffer) is currently done
-using virtual machines as noted above. Testing is simply ensuring the programs
-run as expected; output files are not strictly compared due to expected minor
-variations.
 
 In order to ensure bugs are not the result of building on different systems, and
 to ensure the minimum of additional software is sufficient, the aforementioned
@@ -716,10 +708,29 @@ tested on each reference system, resulting in a testing checklist such as:
 > -   [ ] gmail
 > -   [ ] google workspace
 
+The script `tools/testing/test.sh` (along with its helpers in the
+`tools/testing` hierarchy) automates the process of building and testing on the
+various platforms. Specific steps for the different platforms vary, but the
+general flow for building and testing on a single platform is:
+
+1. Reset the virtual machine to the "Base Installation" snapshot
+2. Install [build requirements](#build-requirements)
+3. Build an mffer release (and save the resulting files on the host system)
+4. Reset the virtual machine
+5. Install the requirements for apkdl
+6. Test apkdl
+7. Reset the virtual machine
+8. Install the requirements for autoanalyze
+9. Test autoanalyze
+10. Reset the virtual machine
+11. Install the requirements for mffer
+12. Test mffer
+
 ## Releasing mffer
 
 1. Merge all code for the release into the main branch
-2. Declare a "feature freeze" and create a new branch from main named for the release
+2. Declare a "feature freeze" and create a new branch from main named for the
+   release
 3. Serially test and modify the release branch, building with the environment
    variable `VersionString=`_`releasename`_`-pre`.
 4. Once testing is complete (including full testing _one last time_), `git tag -a `_`releasename`_ on the release branch.
