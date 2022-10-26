@@ -8,7 +8,7 @@ failure=''
 if [ -z "${MFFER_TEST_RUNDIR:=}" ]; then
 	echo "Error:'MFFER_TEST_RUNDIR' is unset or empty" >&2
 	failure=y
-elif [ ! -x "$MFFER_TEST_RUNDIR/mffer" ]; then
+elif [ ! -x "$MFFER_TEST_RUNDIR/mffer" ] && [ ! -x "$MFFER_TEST_RUNDIR"/mffer.exe ]; then
 	echo "Error:'$MFFER_TEST_RUNDIR/mffer' is not found or not executable" >&2
 	failure=y
 elif ! {

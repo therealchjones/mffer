@@ -72,11 +72,10 @@ buildOn() {
 	case "$1" in
 		local)
 			echo "building release on the local system" >"$VERBOSEOUT"
-			failure=""
 			MFFER_BUILD_OS="local"
-			sh "$MFFER_TEST_DIR/common/build-mffer.sh" || failure="y"
-			sh "$MFFER_TEST_DIR/common/build-docs.sh" || failure="y"
-			if [ -n "$failure" ]; then
+			sh "$MFFER_TEST_DIR/common/build-mffer.sh" || FAILS="$((FAILS + 1))"
+			sh "$MFFER_TEST_DIR/common/build-docs.sh" || FAILS="$((FAILS + 1))"
+			if [ "$FAILS" -gt 0 ]; then
 				echo "FAILED building release on the local system" >&2
 				return 1
 			fi
@@ -89,18 +88,17 @@ buildOn() {
 				return 1
 			else
 				echo "building release on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
-				if [ -z "${MFFER_TEST_SNAPSHOT:=}" ]; then
-					echo "Error: MFFER_TEST_SNAPSHOT is empty" >&2
-					return 1
-				fi
-				resetVm "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT"
-				if ! setBuildEnv "$1"; then
+				MFFER_TEST_OS="$1"
+				MFFER_BUILD_OS="$1"
+				if ! resetVm "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT" \
+					|| ! setBuildEnv "$1"; then
 					echo "SKIPPED building release on $1" >"$VERBOSEOUT"
 					return 1
 				fi
-				runOnVm buildMffer \
+				updateEnv
+				runOnVm build-mffer \
 					|| echo "Error: Failed building mffer on $1" >&2
-				runOnVm buildDocs \
+				runOnVm build-docs \
 					|| echo "Error: Failed building documentation on $1" >&2
 				if [ "${FAILS:=0}" -gt 0 ]; then
 					echo "FAILED building release on $1" >&2
@@ -150,19 +148,49 @@ installOnVm() {
 			fi
 			;;
 		dotnet)
-			true
+			if ! runOnVm install-dotnet; then
+				echo "Error: Unable to install .NET SDK" >&2
+				return 1
+			fi
 			;;
 		node)
-			true
+			if ! runOnVm install-node; then
+				echo "Error: unable to install Node.js" >&2
+				return 1
+			fi
 			;;
 		git)
+			if [ "$MFFER_TEST_OS" = "macos" ]; then
+				runOnVm install-commandlinetools || return 1
+			elif [ "$MFFER_TEST_OS" = "linux" ]; then
+				runOnVm install-git || return 1
+			fi
 			true
 			;;
 		python)
+			if ! runOnVm install-python; then
+				echo "Error: unable to install Python" >&2
+				return 1
+			fi
 			true
 			;;
 		doxygen)
+			if ! runOnVm install-doxygen; then
+				echo "Error: unable to install Doxygen" >&2
+				return 1
+			fi
 			true
+			;;
+		java)
+			if [ "$MFFER_TEST_OS" = "macos" ]; then
+				runOnVm install-temurin || return 1
+			fi
+			;;
+		ghidra)
+			if ! runOnVm install-ghidra; then
+				echo "Error: unable to install Ghidra" >&2
+				return 1
+			fi
 			;;
 		*)
 			echo "Error: No recipe to install '$1' on virtual machine" >&2
@@ -175,8 +203,46 @@ runOnVm() {
 		echo "Error: runOnVm() requires one or more arguments" >&2
 		return 1
 	fi
-	echo "Error: runOnVm() not yet implemented" >&2
-	return 1
+	if [ -z "${MFFER_TEST_OS:=}" ]; then
+		echo "Error: MFFER_TEST_OS is empty" >&2
+	fi
+	script=""
+	script="$(getScript "$1")"
+	scp "$script" "$MFFER_TEST_VM_HOSTNAME:" >"$DEBUGOUT"
+	basename="$(basename "$script")"
+	if [ "$script" != "${script%.bat}" ]; then
+		shell="cmd.exe"
+		scriptfile="runscript.bat"
+		# shellcheck disable=SC2087 # allow expansion of the below variables on the client side
+		ssh -q "$MFFER_TEST_VM_HOSTNAME" "cmd.exe /C more > $scriptfile" <<-EOF
+			${DEBUG:+@echo off}
+			$basename
+		EOF
+	else
+		shell="sh"
+		scriptfile="runscript.sh"
+		# shellcheck disable=SC2087 # allow expansion of the below variables on the client side
+		ssh -q "$MFFER_TEST_VM_HOSTNAME" "sh -c 'cat > $scriptfile'" <<-EOF
+			#!/bin/sh
+
+			export DEBUG="$DEBUG"
+			if [ -n "$DEBUG" ]; then set +x; fi
+
+			export MFFER_TEST_TMPDIR="tmpdir"
+			export MFFER_TEST_SOURCE="mffer-source"
+			export MFFER_TEST_RUNDIR=mffer
+			export MFFER_TEST_OS="$MFFER_TEST_OS"
+			export MFFER_TEST_COMMIT="$MFFER_TEST_COMMIT"
+			export MFFER_BUILD_OS="$MFFER_BUILD_OS"
+			export DEBUGOUT="$DEBUGOUT"
+			export PYTHON_VERSION="$PYTHON_VERSION"
+			export VERBOSEOUT="$VERBOSEOUT"
+			export PATH="$PATH:$HOME/.dotnet"
+
+			sh $basename
+		EOF
+	fi
+	ssh -q "$MFFER_TEST_VM_HOSTNAME" "$shell $scriptfile"
 }
 setBuildEnv() {
 	if [ -z "${MFFER_TEST_VM:=}" ]; then
@@ -196,8 +262,8 @@ setBuildEnv() {
 	if ! dotnet clean "$MFFER_TEST_SOURCE" >"$DEBUGOUT" \
 		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TEST_SOURCE" . \
 		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer; then
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer-source \
+		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer-source; then
 		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
