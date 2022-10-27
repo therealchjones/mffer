@@ -134,14 +134,14 @@ installOnVm() {
 	case "$1" in
 		shell)
 			if [ "$MFFER_TEST_OS" = "windows" ]; then
-				if ! scp "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": \
-					|| ! ssh windows-testing cmd.exe /C disable-uac.bat \
-					|| ! ssh windows-testing cmd.exe /C shutdown /s \
+				if ! scp -q "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
+					|| ! ssh -q windows-testing cmd.exe /C disable-uac.bat >"$DEBUGOUT" \
+					|| ! ssh -q windows-testing cmd.exe /C shutdown /s >"$DEBUGOUT" \
 					|| ! waitForShutdown "$MFFER_TEST_VM" \
 					|| ! startVm "$MFFER_TEST_VM" \
 					|| ! waitForStartup "$MFFER_TEST_VM" \
-					|| ! scp "$MFFER_TEST_DIR/windows/install-shell.bat" "$MFFER_TEST_VM_HOSTNAME": \
-					|| ! ssh windows-testing cmd.exe /C install-shell.bat; then
+					|| ! scp -q "$MFFER_TEST_DIR/windows/install-shell.bat" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
+					|| ! ssh -q windows-testing cmd.exe /C install-shell.bat >"$DEBUGOUT"; then
 					echo "Error: Unable to install shell on Windows" >&2
 					return 1
 				fi
@@ -207,7 +207,10 @@ runOnVm() {
 		echo "Error: MFFER_TEST_OS is empty" >&2
 	fi
 	script=""
-	script="$(getScript "$1")"
+	if ! script="$(getScript "$1")" || [ -z "$script" ]; then
+		echo "Error: Unable to find script for '$1'" >&2
+		return 1
+	fi
 	scp "$script" "$MFFER_TEST_VM_HOSTNAME:" >"$DEBUGOUT"
 	basename="$(basename "$script")"
 	if [ "$script" != "${script%.bat}" ]; then
@@ -216,6 +219,10 @@ runOnVm() {
 		# shellcheck disable=SC2087 # allow expansion of the below variables on the client side
 		ssh -q "$MFFER_TEST_VM_HOSTNAME" "cmd.exe /C more > $scriptfile" <<-EOF
 			${DEBUG:+@echo off}
+			set DEBUGOUT=NUL
+			${DEBUG:+set DEBUGOUT=CON}
+			set VERBOSEOUT=NUL
+			${VERBOSE:+set VERBOSEOUT=CON}
 			$basename
 		EOF
 	else
