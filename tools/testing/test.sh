@@ -233,7 +233,16 @@ runOnVm() {
 			#!/bin/sh
 
 			export DEBUG="$DEBUG"
-			if [ -n "$DEBUG" ]; then set +x; fi
+			export VERBOSE="$VERBOSE"
+			if [ -n "$DEBUG" ]; then set -x; fi
+			if [ ! -w "/dev/stdout" ]; then
+				DEBUGOUT="/dev/null"
+				VERBOSEOUT="/dev/null"
+			else
+				DEBUGOUT="${DEBUGOUT:-/dev/null}"
+				VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
+			fi
+			export DEBUGOUT VERBOSEOUT
 
 			export MFFER_TEST_TMPDIR="tmpdir"
 			export MFFER_TEST_SOURCE="mffer-source"
@@ -241,14 +250,53 @@ runOnVm() {
 			export MFFER_TEST_OS="$MFFER_TEST_OS"
 			export MFFER_TEST_COMMIT="$MFFER_TEST_COMMIT"
 			export MFFER_BUILD_OS="$MFFER_BUILD_OS"
-			export DEBUGOUT="$DEBUGOUT"
 			export PYTHON_VERSION="$PYTHON_VERSION"
-			export VERBOSEOUT="$VERBOSEOUT"
 			export PATH="$PATH:$HOME/.dotnet"
-
+			# For MSYS2 (e.g., Git Bash), disable the "automatic path mangling".
+			# See https://www.msys2.org/wiki/Porting/#filesystem-namespaces.
+			export MSYS2_ARG_CONV_EXCL='*'
 			sh $basename
 		EOF
 	fi
+	# Git Bash (MSYS2) behaves strangely over Windows 10 OpenSSH. It requires
+	# the ssh client to demand a pseudoterminal for /dev/stdin, /dev/stdout, and
+	# /dev/stderr to work properly. Additionally, quoting is strange as OpenSSH
+	# on Windows loses multiple layers of quotes when using a TTY; see
+	# https://github.com/PowerShell/Win32-OpenSSH/issues/1082#issuecomment-435626493
+	# and
+	# https://github.com/bingbing8/openssh-portable/blob/latestw_all/contrib/win32/win32compat/w32-doexec.c.
+	# For most OpenSSH servers given a "command string" cstring by an OpenSSH
+	# client, the server passes cstring to the default shell as a string to be
+	# interpreted, e.g.,
+	# sh -c cstring
+	# cstring is created from the command line of the OpenSSH client by taking
+	# its final arguments and concatenating them with spaces into a single
+	# string (which may contain spaces or other normally word-ending characters).
+	# Specifically, assuming you're running an OpenSSH client from a POSIX-compatible shell,
+	# ssh hostname command arg1 arg2
+	# results in the shell expanding command, arg1, and arg2 via its usual
+	# rules, the ssh client concatenating them with spaces and sending it all as
+	# a single string to the OpenSSH server, and the OpenSSH server running that
+	# single string argument to sh -c. Something similar happens with OpenSSH on
+	# Windows if and only if a pseudoterminal is allocated. The single string
+	# received by the server is used to build a new command with normal space
+	# delineation, and without escaping any spaces in the single string. This
+	# results in the equivalent of running
+	# sh -c command arg1 arg2
+	# instead of
+	# sh -c "command arg1 arg2"
+	# and these two are not equivalent. The first is (roughly) equivalent to running
+	# sh -c "command arg2"
+	# and setting the name of the process ($0) to arg1
+
+	# Other systems, including Windows when not specifically requesting a TTY,
+	# will take ssh -q hostname command arg1 arg2 to be the same as ssh -q
+	# hostname command arg1 arg2 which is run on the server as shell optionarg
+	# "command arg1 arg2" However, Windows with a TTY runs it as shell optionarg
+	# command arg1 arg2 which, in compliance with POSIX, means run command with
+	# $0 set to arg1 and $1 set to arg2 When double-quoting on other systems,
+	# ssh -q hostname '"command arg1 arg2"'
+
 	ssh -q "$MFFER_TEST_VM_HOSTNAME" "$shell $scriptfile"
 }
 setBuildEnv() {
