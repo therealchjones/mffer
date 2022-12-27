@@ -19,6 +19,7 @@ EOF
 
 if [ "$#" -gt 1 ]; then
 	usage >&2
+	exit 1
 elif [ "--prebuild" = "$1" ]; then
 	PREBUILD_ONLY="Y"
 elif [ "-h" = "$1" ] || [ "--help" = "$1" ]; then
