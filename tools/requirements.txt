@@ -3,7 +3,7 @@ altgraph==0.17
 Babel==2.10.1
 breathe==4.33.1
 cachetools==4.1.1
-certifi==2020.6.20
+certifi==2022.12.7
 cffi==1.14.3
 chardet==3.0.4
 charset-normalizer==2.0.12
