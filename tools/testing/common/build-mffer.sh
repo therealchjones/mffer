@@ -39,7 +39,8 @@ if [ -z "$failure" ]; then
 		dir="$MFFER_TEST_TMPDIR/built-on-$MFFER_BUILD_OS/$os"
 		if ! mkdir -p "$dir" \
 			|| [ ! -r "$file" ] \
-			|| ! unzip "$file" -d "$dir" >"$DEBUGOUT"; then
+			|| ! unzip "$file" "$dir" >"$DEBUGOUT" \
+			|| ! sudo chmod -R a+r "$dir"; then
 			echo "Error: Unable to save the $os release built on $MFFER_BUILD_OS" >&2
 			failure=y
 		fi

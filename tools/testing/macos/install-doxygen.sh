@@ -1,16 +1,21 @@
 #!/bin/sh
 
-notify "Installing Doxygen 1.9.5"
-if curl -Ss -OL https://www.doxygen.nl/files/Doxygen-1.9.5.dmg >"$DEBUGOUT"; then
-	if ! isRoot; then
-		warnError "Doxygen must be installed as root. Using sudo..."
-	fi
-	if {
-		sudo cp -a /Volumes/Doxygen/Doxygen.app /Applications/ \
-			&& ln -s /Applications/Doxygen.app/Contents/Resources/doxygen /usr/local/bin/doxygen
-	} >"$DEBUGOUT"; then
-		exit 0
-	fi
+echo "Installing Doxygen 1.9.5..." >"${VERBOSEOUT:=/dev/null}"
+if ! curl -Ss -OL https://www.doxygen.nl/files/Doxygen-1.9.5.dmg >"$DEBUGOUT"; then
+	echo "Unable to download Doxygen" >&2
+	exit 1
 fi
-echo "Error: Unable to install Doxygen"
-exit 1
+if ! hdiutil attach -quiet "Doxygen-1.9.5.dmg"; then
+	echo "Unable to mount Doxygen installer" >&2
+	exit 1
+fi
+if ! {
+	sudo cp -a /Volumes/Doxygen/Doxygen.app /Applications/ \
+		&& sudo ln -s /Applications/Doxygen.app/Contents/Resources/doxygen /usr/local/bin/doxygen
+} >"$DEBUGOUT"; then
+	echo "Unable to install Doxygen" >&2
+	retval=1
+else
+	retval=0
+fi
+exit "$retval"

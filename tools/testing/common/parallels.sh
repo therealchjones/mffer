@@ -9,8 +9,10 @@
 # the Parallels virtual machines other than that obtainable via the Parallels
 # command-line tools themselves.
 
+PARALLELS_VERSION="${PARALLELS_VERSION:-}"
+
 # shellcheck disable=SC2034 # (used in calling script)
-MFFER_TEST_SNAPSHOT_ID=""                            # ID of the "clean install" snapshot on the testing VM
+MFFER_TEST_VM_SNAPSHOT_ID=""                         # ID of the "clean install" snapshot on the testing VM
 MFFER_TEST_VM_HOSTNAME="${MFFER_TEST_VM_HOSTNAME:-}" # hostname of the VM on which to test
 
 if [ "Darwin" != "$(uname -s)" ]; then
@@ -31,7 +33,45 @@ for path in "$PRLCTL" "$PRLSRVCTL" "$PRLDISKTOOL"; do
 		exit 1
 	fi
 done
-
+# prints MFFER_TEST_VM_SNAPSHOT_ID, determining and setting it if not already
+getBaseVmId() {
+	if [ -n "$MFFER_TEST_VM_SNAPSHOT_ID" ]; then
+		echo "$MFFER_TEST_VM_SNAPSHOT_ID"
+		return 0
+	fi
+	if [ -z "${MFFER_TEST_VM:-}" ]; then
+		echo "Error: MFFER_TEST_VM is not defined or is empty" >&2
+		return 1
+	fi
+	setParallels || return 1
+	if ! snapshots="$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -j)"; then
+		echo 'Error: Unable to obtain list of virtual machine snapshots.' >&2
+		return 1
+	fi
+	if ! snapshots="$(
+		plutil -create xml1 - -o - \
+			| plutil -insert snapshots \
+				-json "$snapshots" - -o -
+	)"; then
+		return 1
+	fi
+	if ! snapshot_id="$(
+		echo "$snapshots" \
+			| plutil -extract snapshots raw - -o - \
+			| while read -r snapshotid; do
+				if snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
+					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
+					&& [ "$snapshotname" = "$MFFER_TEST_VM_SNAPSHOT" ]; then
+					echo "$snapshotid"
+					break
+				fi
+			done
+	)" || [ -z "$snapshot_id" ]; then
+		return 1
+	fi
+	MFFER_TEST_VM_SNAPSHOT_ID="$snapshot_id"
+	echo "$MFFER_TEST_VM_SNAPSHOT_ID"
+}
 # getSnapshotid vmname snapshotname
 #
 # Prints the ID (with curly brackets) of the snapshot named `snapshotname` on
@@ -81,6 +121,54 @@ getVmHostname() {
 		return 1
 	fi
 	echo "$1" | tr 'A-Z ' 'a-z-'
+}
+# getVmStatus vmname
+#
+# Prints the non-transient status ('running','suspended', or 'stopped') for the
+# virtual machine named `vmname.` Returns 1 on a usage error or if the status is
+# not recognized.
+#
+# The 'status' of a VM (`prlctl status vmname`) includes the run state as the
+# last word of output, which we'll be lazy and just call the status here.
+# Nonintuitively, the status cannot be changed from all states to all others. We
+# abstractify this where necessary by transiently switching to an allowed state
+# first. Additionally, some of the transient states such as "stopping" or
+# "starting" delay us until a "desired" state can be obtained. See startVm(),
+# stopVm(), and resetVm() for implementation. (Here, since "paused" behaves
+# similarly to "suspended", we print only the latter.)
+getVmStatus() {
+	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+		echo "Error: getVmStatus requires one argument" >&2
+		return 1
+	fi
+	vm_status=""
+	tries=5
+	until [ "$tries" -lt 1 ]; do
+		if ! vm_status="$("$PRLCTL" status "$1")" \
+			|| [ -z "$vm_status" ]; then
+			echo "Error: Unable to get status of VM '$1'" >&2
+			return 1
+		fi
+		vm_status="${vm_status#VM "$1" exist }"
+		case "$vm_status" in
+			stopped | suspended | running)
+				echo "$vm_status"
+				return 0
+				;;
+			paused)
+				echo "suspended"
+				return 0
+				;;
+			*)
+				# We'll do multiple tries to allow for transient statuses like
+				# "stopping" or "resuming"
+				sleep 5
+				tries="$((tries - 1))"
+				;;
+		esac
+	done
+	echo "Unknown status for VM '$1': $vm_status" >&2
+	return 1
 }
 # hasSnapshot vmname snapshotname
 #
@@ -142,42 +230,26 @@ resetVm() {
 	fi
 	if ! snapshotid="$(getSnapshotId "$1" "$2")"; then return 1; fi
 	echo "resetting virtual machine '$1'" >"$VERBOSEOUT"
+	tries=5
+	vm_status=""
+	vm_status="$(getVmStatus "$1")" || return 1
+	if [ "$vm_status" = "suspended" ]; then # For no good reason, can't stop a suspended/paused VM
+		startVm "$1" || return 1
+	fi
+	vm_status="$(getVmStatus "$1")" || return 1
+	if [ "$vm_status" != "stopped" ]; then # For no good reason, can't switch a suspended or running VM
+		stopVm "$1" || return 1
+	fi
 	if ! "$PRLCTL" snapshot-switch "$1" --id "$snapshotid" >"$DEBUGOUT"; then
 		echo "Error: Unable to reset VM '$1' to snapshot '$2'" >&2
 		return 1
 	fi
-	tries=5
-	until [ "$tries" -lt 1 ]; do
-		vm_status=""
-		if ! vm_status="$("$PRLCTL" status "$1")" \
-			|| [ -z "$vm_status" ]; then
-			echo "Error: Unable to get status of VM '$1'" >&2
-			return 1
-		fi
-		vm_status="${vm_status#VM "$1" exist }"
-		case "$vm_status" in
-			stopped | suspended)
-				if ! "$PRLCTL" start "$1" >"$DEBUGOUT"; then
-					echo "Error: Unable to start VM '$1'" >&2
-					return 1
-				fi
-				;;
-			running)
-				break
-				;;
-			*)
-				sleep 5
-				;;
-		esac
-	done
-	if [ "running" != "$vm_status" ]; then
-		echo "Error: VM '$1' did not start" >&2
-		return 1
-	fi
+	sleep 5 # For a few moments after a restore, the machine may improperly report that it's running?
+	startVm "$1" || return 1
 	# wait for the VM to start
 	hostname="$(getVmHostname "$1")"
-	tries=12
-	until ssh -q -o ConnectTimeout=30 "$hostname" exit || [ "$tries" -lt 1 ]; do
+	tries=5
+	until sshWithDebugging "$hostname" exit || [ "$tries" -lt 1 ]; do
 		sleep 5
 		tries="$((tries - 1))"
 	done
@@ -225,27 +297,57 @@ saveSnapshot() {
 # returns 1 otherwise.
 startVm() {
 	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-		echo "Error: startVm() requires a single argument" >&2
+		echo "Error: startVm requires a single argument" >&2
 		return 1
 	fi
-	if ! vmExists "$1"; then
-		echo "Error: VM '$1' not found" >&2
-		return 1
-	fi
-	tries=10
-	until vmIsRunning "$1" || [ "$tries" -lt 1 ]; do
+	tries=5
+	vm_status=""
+	vm_status="$(getVmStatus "$1")" || return 1
+	until [ "$vm_status" = "running" ] || [ "$tries" -lt 1 ]; do
 		if ! "$PRLCTL" start "$1" >"$DEBUGOUT"; then
 			echo "Error: Unable to start VM '$1'" >&2
 			return 1
 		fi
 		tries="$((tries - 1))"
 		sleep 5
+		vm_status="$(getVmStatus "$1")" || return 1
 	done
 	if [ "$tries" -lt 1 ]; then
 		echo "Error: Starting VM '$1' timed out" >&2
 		return 1
 	fi
 }
+# stopVm vmname
+#
+# Starts the virtual machine named vmname; does not return until the VM is
+# stopped or times out. Returns 0 if stopped successfully, prints an error and
+# returns 1 otherwise.
+stopVm() {
+	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+		echo "Error: stopVm requires a single argument" >&2
+		return 1
+	fi
+	tries=5
+	vm_status=""
+	vm_status="$(getVmStatus "$1")" || return 1
+	until [ "$vm_status" = "stopped" ] || [ "$tries" -lt 1 ]; do
+		if [ "$vm_status" = "suspended" ]; then
+			startVm "$1" || return 1
+		fi
+		if ! "$PRLCTL" stop "$1" --kill >"$DEBUGOUT"; then
+			echo "Error: Unable to stop VM '$1'" >&2
+			return 1
+		fi
+		tries="$((tries - 1))"
+		sleep 5
+		vm_status="$(getVmStatus "$1")" || return 1
+	done
+	if [ "$tries" -lt 1 ]; then
+		echo "Error: Stopping VM '$1' timed out" >&2
+		return 1
+	fi
+}
+
 # vmExists vmname
 # Returns 0 if a VM named vmname exists, 1 if it does not or if checking fails,
 # and 255 if a usage error occurs
@@ -254,12 +356,10 @@ vmExists() {
 		echo "Error: vmExists() requires a single argument" >&2
 		return 255
 	fi
-	if ! output="$(prlctl status "$1" 2>&1)" \
-		|| ! { echo "$output" | grep "^VM $1 exist " >/dev/null; } \
-		|| [ -z "$output" ]; then
-		echo "$output" >"$DEBUGOUT"
+	if ! getVmStatus "$1" >/dev/null 2>&1; then
 		return 1
 	fi
+	return 0
 }
 # vmIsRunning vmname
 #

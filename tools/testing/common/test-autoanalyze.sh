@@ -5,14 +5,14 @@ set -u
 
 echo "testing autoanalyze" >"${VERBOSEOUT:=/dev/stdout}"
 failure=''
-if [ -z "${MFFER_TEST_RUNDIR:=}" ]; then
-	echo "Error:'MFFER_TEST_RUNDIR' is unset or empty" >&2
+if [ -z "${MFFER_TEST_BINDIR:=}" ]; then
+	echo "Error:'MFFER_TEST_BINDIR' is unset or empty" >&2
 	failure=y
-elif [ ! -x "$MFFER_TEST_RUNDIR/autoanalyze" ]; then
-	echo "Error:'$MFFER_TEST_RUNDIR/autoanalyze' is not found or not executable" >&2
+elif [ ! -x "$MFFER_TEST_BINDIR/autoanalyze" ]; then
+	echo "Error:'$MFFER_TEST_BINDIR/autoanalyze' is not found or not executable" >&2
 	failure=y
 elif ! {
-	"$MFFER_TEST_RUNDIR/autoanalyze" -h
+	"$MFFER_TEST_BINDIR/autoanalyze" -h
 } >"${DEBUGOUT:=/dev/null}"; then
 	failure=y
 fi

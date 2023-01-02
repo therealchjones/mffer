@@ -169,11 +169,11 @@ main() { # builds a new linux VM, errors if name exists
 		echo "Error: Unable to connect to VM via SSH" >&2
 		return 1
 	fi
-	echo "Saving VM snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
-	if ! "$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" \
+	echo "Saving VM snapshot '$MFFER_TEST_VM_SNAPSHOT'" >"$VERBOSEOUT"
+	if ! "$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_VM_SNAPSHOT" \
 		-d "Initial installation with only openssh-server added. User $USERNAME, password 'MyPassword'. Public key SSH, passwordless sudo." \
 		>"$DEBUGOUT"; then
-		echo "Error: Unable to save VM snapshot '$MFFER_TEST_SNAPSHOT'" >&2
+		echo "Error: Unable to save VM snapshot '$MFFER_TEST_VM_SNAPSHOT'" >&2
 		return 1
 	fi
 	updateBaseSystem || return 1
@@ -310,10 +310,10 @@ getSnapshots() {
 	fi
 	echo "$output"
 }
-getVmBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
-	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
-		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID")" ]; then
-			echo "Error: 'MFFER_TEST_SNAPSHOT_ID' is set to '$MFFER_TEST_SNAPSHOT_ID'," >&2
+getVmBaseSnapshotId() { # sets MFFER_TEST_VM_SNAPSHOT_ID if not already
+	if [ -n "$MFFER_TEST_VM_SNAPSHOT_ID" ]; then
+		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_VM_SNAPSHOT_ID")" ]; then
+			echo "Error: 'MFFER_TEST_VM_SNAPSHOT_ID' is set to '$MFFER_TEST_VM_SNAPSHOT_ID'," >&2
 			echo "       which isn't working." >&2
 			return 1
 		fi
@@ -335,14 +335,14 @@ getVmBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 		echo "       may be invalid; consider deleting it." >&2
 		return 1
 	fi
-	MFFER_TEST_SNAPSHOT_ID="$(
+	MFFER_TEST_VM_SNAPSHOT_ID="$(
 		echo "$SNAPSHOTS" \
 			| plutil -extract snapshots raw - -o - \
 			| while read -r snapshotid; do
 				if snapshots="$(echo "$SNAPSHOTS" | plutil -extract snapshots xml1 - -o -)" \
 					&& snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
 					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
+					&& [ "$snapshotname" = "$MFFER_TEST_VM_SNAPSHOT" ]; then
 					snapshotid="${snapshotid#\{}"
 					snapshotid="${snapshotid%\}}"
 					echo "$snapshotid"
@@ -350,9 +350,9 @@ getVmBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 				fi
 			done
 	)"
-	if [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+	if [ -z "$MFFER_TEST_VM_SNAPSHOT_ID" ]; then
 		echo "Error: virtual machine '$MFFER_TEST_VM'" >&2
-		echo "       does not include snapshot '$MFFER_TEST_SNAPSHOT'" >&2
+		echo "       does not include snapshot '$MFFER_TEST_VM_SNAPSHOT'" >&2
 		echo "       Consider deleting this VM; we can rebuild it." >&2
 		return 1
 	fi
@@ -555,10 +555,10 @@ printSuccess() {
 	EOF
 }
 resetVM() {
-	echo "Resetting virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
+	echo "Resetting virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_VM_SNAPSHOT'" >"$VERBOSEOUT"
 	if ! getVmBaseSnapshotId \
-		|| ! "$PRLCTL" snapshot-switch "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID" >"$DEBUGOUT"; then
-		echo "Error: Unable to reset virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_SNAPSHOT'" >&2
+		|| ! "$PRLCTL" snapshot-switch "$MFFER_TEST_VM" -i "$MFFER_TEST_VM_SNAPSHOT_ID" >"$DEBUGOUT"; then
+		echo "Error: Unable to reset virtual machine '$MFFER_TEST_VM' to snapshot '$MFFER_TEST_VM_SNAPSHOT'" >&2
 		return 1
 	fi
 }
@@ -574,13 +574,13 @@ updateBaseSystem() {
 		echo "Error: Unable to update the base installation on '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	echo "Changing snapshot '$MFFER_TEST_SNAPSHOT' to the updated system" >"$VERBOSEOUT"
+	echo "Changing snapshot '$MFFER_TEST_VM_SNAPSHOT' to the updated system" >"$VERBOSEOUT"
 	getVmBaseSnapshotId
-	if ! old_id="$MFFER_TEST_SNAPSHOT_ID" \
+	if ! old_id="$MFFER_TEST_VM_SNAPSHOT_ID" \
 		|| [ -z "$old_id" ] \
 		|| ! old_desc="$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$old_id" \
 			| sed -e '/^Description: /!d' -e 's/^Description: //' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')"; then
-		echo "Error: Unable to access original snapshot '$MFFER_TEST_SNAPSHOT' on VM '$MFFER_TEST_VM'" >&2
+		echo "Error: Unable to access original snapshot '$MFFER_TEST_VM_SNAPSHOT' on VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
 	new_desc=""
@@ -592,9 +592,9 @@ updateBaseSystem() {
 		echo "Error: updated system did not restart" >&2
 		return 1
 	fi
-	"$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" -d "$new_desc" >"$DEBUGOUT"
+	"$PRLCTL" snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_VM_SNAPSHOT" -d "$new_desc" >"$DEBUGOUT"
 	"$PRLCTL" snapshot-delete "$MFFER_TEST_VM" -i "$old_id" >"$DEBUGOUT"
-	MFFER_TEST_SNAPSHOT_ID=""
+	MFFER_TEST_VM_SNAPSHOT_ID=""
 }
 
 updateSystem() {

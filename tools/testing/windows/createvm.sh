@@ -169,11 +169,11 @@ createWindowsVirtualMachine() { # builds a new windows VM, errors if name exists
 		echo "Error: Unable to complete configuration of VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-	echo "Saving VM snapshot '$MFFER_TEST_SNAPSHOT'" >"$VERBOSEOUT"
-	if ! prlctl snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_SNAPSHOT" \
+	echo "Saving VM snapshot '$MFFER_TEST_VM_SNAPSHOT'" >"$VERBOSEOUT"
+	if ! prlctl snapshot "$MFFER_TEST_VM" -n "$MFFER_TEST_VM_SNAPSHOT" \
 		-d "Initial installation without additional software. User $USERNAME, no password. Public key SSH enabled." \
 		>"$DEBUGOUT"; then
-		echo "Error: Unable to save VM snapshot '$MFFER_TEST_SNAPSHOT'" >&2
+		echo "Error: Unable to save VM snapshot '$MFFER_TEST_VM_SNAPSHOT'" >&2
 		return 1
 	fi
 }
@@ -195,11 +195,11 @@ getParallels() { # sets PRLCTL if not already
 	echo "       Ensure Parallels Desktop is installed and activated." >&2
 	return 1
 }
-getVMBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
+getVMBaseSnapshotId() { # sets MFFER_TEST_VM_SNAPSHOT_ID if not already
 	getParallels || return 1
-	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
-		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_SNAPSHOT_ID")" ]; then
-			echo "Error: 'MFFER_TEST_SNAPSHOT_ID' is set to '$MFFER_TEST_SNAPSHOT_ID'," >&2
+	if [ -n "$MFFER_TEST_VM_SNAPSHOT_ID" ]; then
+		if [ -z "$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -i "$MFFER_TEST_VM_SNAPSHOT_ID")" ]; then
+			echo "Error: 'MFFER_TEST_VM_SNAPSHOT_ID' is set to '$MFFER_TEST_VM_SNAPSHOT_ID'," >&2
 			echo "       which isn't working." >&2
 			return 1
 		fi
@@ -221,14 +221,14 @@ getVMBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 		echo "       may be invalid; consider deleting it." >&2
 		return 1
 	fi
-	MFFER_TEST_SNAPSHOT_ID="$(
+	MFFER_TEST_VM_SNAPSHOT_ID="$(
 		echo "$SNAPSHOTS" \
 			| plutil -extract snapshots raw - -o - \
 			| while read -r snapshotid; do
 				if snapshots="$(echo "$SNAPSHOTS" | plutil -extract snapshots xml1 - -o -)" \
 					&& snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
 					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
+					&& [ "$snapshotname" = "$MFFER_TEST_VM_SNAPSHOT" ]; then
 					snapshotid="${snapshotid#\{}"
 					snapshotid="${snapshotid%\}}"
 					echo "$snapshotid"
@@ -236,9 +236,9 @@ getVMBaseSnapshotId() { # sets MFFER_TEST_SNAPSHOT_ID if not already
 				fi
 			done
 	)"
-	if [ -z "$MFFER_TEST_SNAPSHOT_ID" ]; then
+	if [ -z "$MFFER_TEST_VM_SNAPSHOT_ID" ]; then
 		echo "Error: virtual machine '$MFFER_TEST_VM'" >&2
-		echo "       does not include snapshot '$MFFER_TEST_SNAPSHOT'" >&2
+		echo "       does not include snapshot '$MFFER_TEST_VM_SNAPSHOT'" >&2
 		echo "       Consider deleting this VM; we can rebuild it." >&2
 		return 1
 	fi

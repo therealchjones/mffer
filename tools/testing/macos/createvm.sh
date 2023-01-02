@@ -73,11 +73,39 @@ if ! sudo DEBUG="${DEBUG:-}" VERBOSE="${VERBOSE:-}" "$MFFER_TEST_TMPDIR"/mkmacvm
 	echo "Error: Unable to build virtual machine '$MFFER_TEST_VM'" >&2
 	exit 1
 fi
+
+# setPasswordlessSudo
+#
+# Enables passwordless sudo for the primary user on the virtual machine with the
+# name $MFFER_TEST_VM if such a virtual machine exists. Uses sudo, so requires
+# entering password per regular sudo rules. Prints error and returns 255 if the
+# VM does not exist, prints error and returns 1 if unsuccessful or cancelled.
+setPasswordlessSudo() {
+	echo "Enabling passwordless sudo on virtual machine" >"$VERBOSEOUT"
+	if [ -z "${MFFER_TEST_VM:=}" ] || [ -z "${MFFER_TEST_VM_HOSTNAME:=}" ]; then
+		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty; run setVm before setPasswordlessSudo" >&2
+		return 255
+	elif ! vmExists "$MFFER_TEST_VM"; then
+		echo "Error: No VM named '$MFFER_TEST_VM' is registered with Parallels Desktop" >&2
+		return 255
+	fi
+	if ! username="$(ssh "$MFFER_TEST_VM_HOSTNAME" 'echo $USER')" \
+		|| [ -z "$username" ]; then
+		echo "Error: Unable to get name of primary user for VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
+	echo "Warning: Password for user '$username' on VM '$MFFER_TEST_VM' may be required" >&2
+	if ! ssh -qt "$MFFER_TEST_VM_HOSTNAME" "echo $username 'ALL = (ALL) NOPASSWD: ALL' | sudo EDITOR='tee -a' visudo"; then
+		echo "Error: Unable to enable passwordless sudo for user '$username' on VM '$MFFER_TEST_VM'" >&2
+		return 1
+	fi
+}
+
 if ! renameVm macvm "$MFFER_TEST_VM" >"$DEBUGOUT" \
 	|| ! startVm "$MFFER_TEST_VM" \
 	|| ! MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")" \
 	|| ! setPasswordlessSudo \
-	|| ! saveSnapshot "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT" >"$DEBUGOUT"; then
+	|| ! saveSnapshot "$MFFER_TEST_VM" "$MFFER_TEST_VM_SNAPSHOT" >"$DEBUGOUT"; then
 	echo "Error: Unable to configure virtual machine '${MFFER_TEST_VM}'"
 	exit 1
 fi

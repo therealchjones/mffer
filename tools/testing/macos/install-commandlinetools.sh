@@ -14,9 +14,6 @@ if ! CMDLINETOOLS="$(softwareupdate -l 2>/dev/null \
 	echo "Error: Unable to find Xcode Command Line Tools" >&2
 	exit 1
 fi
-if [ "$(id -u)" -ne 0 ]; then
-	echo "Warning: ${CMDLINETOOLS} must be installed as root. Using sudo..." >&2
-fi
 if ! output="$(sudo softwareupdate -i "$CMDLINETOOLS" 2>&1)"; then
 	echo "$output" >&2
 	echo "Error: Unable to install $CMDLINETOOLS" >&2

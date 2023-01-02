@@ -18,73 +18,20 @@
 # defining common parameters. The script may be sourced more than once; take
 # precautions to ensure you're not overwriting something changed since the last
 # time. Functions in this script should generally not depend upon the operating
-# system deployed in a testing virtual machine, and should be expected to run
+# system on which it is being run, and should be expected to run
 # only in a POSIX-like shell environment. Specifically, settings and functions
 # specific to other areas should be in different files:
 
-# - functions managing Parallels Desktop or Parallels virtual machines should be
-#   in testing/common/parallels.sh
+# - functions utilizing virtual machines without regard to the VM framework
+#   (e.g., Parallels Desktop) should be in testing/test.sh or similar
+#   higher-level scripts
+# - functions directly managing virtual machines at the level of the VM
+#   framework (e.g., Parallels Desktop) should be in
+#   testing/common/<framework>.sh, e.g., testing/common/parallels.sh
 # - functions managing specific operating system installations or running
-#   command on those systems should be in testing/<operating system name>/
+#   commands on those systems should be in testing/<operating system name>/
 
-export PATH="${PATH:+$PATH:}/usr/local/bin:${HOME:-}/.dotnet"
-
-# Parameters used throughout the program. The program will try to determine
-# them dynamically if not explicitly set in the environment
-MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}" # url
-MFFER_TEST_COMMIT="${MFFER_TEST_COMMIT:-}"                          # which commit to test
-MFFER_TEST_DIR="${MFFER_TEST_DIR:-}"                                # directory containing `test.sh` and the subdirectories of the testing tree
-MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"     # Name of the "clean install" snapshot on the testing VM
-MFFER_TEST_VM="${MFFER_TEST_VM:-}"                                  # Name of the VM on which to test
-MFFER_TREE_ROOT="${MFFER_TREE_ROOT:-}"                              # Root directory of the local mffer repository
-
-# Intentionally global parameters set within the program. These are dynamically
-# configured and should not be user-configurable
-# shellcheck disable=SC2034 # (used in called scripts)
-MFFER_TEST_RUNDIR=""
-# shellcheck disable=SC2034 # (used in called scripts)
-MFFER_TEST_SOURCE="" # where the local tree to test is
-MFFER_TEST_TMPDIR="" # disposable temporary directory
-# shellcheck disable=SC2034 # (used in calling scripts)
-MFFER_TEST_VM_SYSTEM="" # set by the appropriate script when virtual machine functions are loaded
-MFFER_TEST_OS=""
-
-# Variables regarding other software that may be used for testing; leave blank
-# to use whatever is available and found automatically
-DOTNET_VERSION="${DOTNET_VERSION:-}"
-NODE_VERSION="${NODE_VERSION:-}"
-PARALLELS_VERSION="${PARALLELS_VERSION:-}"
-PYTHON_VERSION="${PYTHON_VERSION:-3.10.6}"
-
-# Variables that should be available to child processes or job processes
-MFFER_EXPORT_VARS='
-	DEBUG
-	DEBUGOUT
-	VERBOSE
-	VERBOSEOUT
-	MFFER_BUILD_OS
-	MFFER_EXPORT_VARS
-	MFFER_TEST_DIR
-	MFFER_TEST_OS
-	MFFER_TEST_RUNDIR
-	MFFER_TEST_SOURCE
-	MFFER_TEST_TMPDIR
-'
-
-# In an effort to have some consistency, functions should be named in
-# camelCase using the following conventions:
-#
-# isSomething, hasSomething, or somethingExists - returns 0 or 1, no output
-# checkSomething - ensures consistency or appropriate setting, returns 0 or 1,
-#                  no output
-# createSomething - make changes to a persistent store of some kind, like the
-#                   filesystem or Parallels Desktop VM registry, potentially
-#                   setting the appropriate environment variable if not already;
-#                   usually should be called by getSomething rather than
-#                   directly
-# setSomething - sets one or more environment variables, no output
-# getSomething - prints value, potentially also determining that value and
-#                setting the appropriate environment variable(s) if not already
+export PATH="${PATH:+$PATH:}/usr/local/bin"
 
 # cleanup
 #
@@ -104,58 +51,14 @@ cleanup() {
 	fi
 	exit "$exitstatus"
 }
-# checkVm
-#
-# ensures a VM named $MFFER_TEST_VM exists and includes a base installation
-# snapshot named $MFFER_TEST_SNAPSHOT
-checkVm() {
-	if ! vmExists "$MFFER_TEST_VM"; then
-		echo "Error: VM '$MFFER_TEST_VM' was not found" >&2
+endBuild() {
+	if [ "${buildfails:=0}" -gt 0 ]; then
+		echo "FAILED building '$1'" >&2
 		return 1
-	fi
-	if ! hasSnapshot "$MFFER_TEST_VM" "$MFFER_TEST_SNAPSHOT"; then
-		echo "Error: VM '$MFFER_TEST_VM' is not properly configured" >&2
-		return 1
-	fi
-}
-# prints MFFER_TEST_SNAPSHOT_ID, determining and setting it if not already
-getBaseVmId() {
-	if [ -n "$MFFER_TEST_SNAPSHOT_ID" ]; then
-		echo "$MFFER_TEST_SNAPSHOT_ID"
+	else
+		echo "PASSED building '$1'" >"$VERBOSEOUT"
 		return 0
 	fi
-	if [ -z "${MFFER_TEST_VM:-}" ]; then
-		echo "Error: MFFER_TEST_VM is not defined or is empty" >&2
-		return 1
-	fi
-	setParallels || return 1
-	if ! snapshots="$("$PRLCTL" snapshot-list "$MFFER_TEST_VM" -j)"; then
-		echo 'Error: Unable to obtain list of virtual machine snapshots.' >&2
-		return 1
-	fi
-	if ! snapshots="$(
-		plutil -create xml1 - -o - \
-			| plutil -insert snapshots \
-				-json "$snapshots" - -o -
-	)"; then
-		return 1
-	fi
-	if ! snapshot_id="$(
-		echo "$snapshots" \
-			| plutil -extract snapshots raw - -o - \
-			| while read -r snapshotid; do
-				if snapshot="$(echo "$snapshots" | plutil -extract "$snapshotid" xml1 - -o -)" \
-					&& snapshotname="$(echo "$snapshot" | plutil -extract name raw - -o -)" \
-					&& [ "$snapshotname" = "$MFFER_TEST_SNAPSHOT" ]; then
-					echo "$snapshotid"
-					break
-				fi
-			done
-	)" || [ -z "$snapshot_id" ]; then
-		return 1
-	fi
-	MFFER_TEST_SNAPSHOT_ID="$snapshot_id"
-	echo "$MFFER_TEST_SNAPSHOT_ID"
 }
 getCanonicalDir() {
 	if [ -n "${1:-}" ] && [ -d "$1" ] && (cd "$1" && pwd); then
@@ -210,7 +113,9 @@ getTempDir() {
 	fi
 	echo "$MFFER_TEST_TMPDIR"
 }
-
+# getTime
+#
+# Prints the time in a standardized YYYYMMDD format
 getTime() {
 	date +%s
 }
@@ -252,13 +157,40 @@ isTreeClean() {
 	fi
 	return 0
 }
+runBuild() {
+	system=''
+	system="$(getLocalOs)" || return 1
+	testdir=''
+	testdir="$(getTestDir)" || return 1
+	buildscript=''
+	for systemname in "$system" common; do
+		for filename in "build-$1.sh" "build-$1.bat"; do
+			if [ -r "$testdir/$systemname/$filename" ]; then
+				buildscript="$testdir/$systemname/$filename"
+				break 2
+			fi
+		done
+	done
+	if [ -z "$buildscript" ]; then
+		echo "Error: unable to find a build script for '$1'" >&2
+		return 1
+	fi
+	if MFFER_TEST_FRAMEWORK="$MFFER_TEST_FRAMEWORK" sh "$buildscript"; then
+		echo "FAILED building '$1' with '$buildscript'" >&2
+		buildfails="$(("${buildfails:=0}" + 1))"
+		return 1
+	else
+		echo "PASSED building '$1' with '$buildscript'" >"$VERBOSEOUT"
+		return 0
+	fi
+}
 runTest() {
 	script=""
 	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
 		echo "Error: runTest() requires a single argument" >&2
 		return 1
-	elif [ -z "$MFFER_TEST_RUNDIR" ]; then
-		echo "Error: 'MFFER_TEST_RUNDIR' is required for runTest()" >&2
+	elif [ -z "$MFFER_TEST_BINDIR" ]; then
+		echo "Error: 'MFFER_TEST_BINDIR' is required for runTest()" >&2
 		return 1
 	elif ! script="$(getScript test-"$1")" || [ -z "$script" ]; then
 		echo "Error: test script for '$1' not found" >&2
@@ -290,32 +222,6 @@ setBuildOs() {
 			MFFER_BUILD_OS="windows"
 			;;
 	esac
-}
-# setPasswordlessSudo
-#
-# Enables passwordless sudo for the primary user on the virtual machine with the
-# name $MFFER_TEST_VM is such a virtual machine exists. Uses sudo, so requires
-# entering password per regular sudo rules. Prints error and returns 255 if the
-# VM does not exist, prints error and returns 1 if unsuccessful or cancelled.
-setPasswordlessSudo() {
-	echo "Enabling passwordless sudo on virtual machine" >"$VERBOSEOUT"
-	if [ -z "${MFFER_TEST_VM:=}" ] || [ -z "${MFFER_TEST_VM_HOSTNAME:=}" ]; then
-		echo "Error: MFFER_TEST_VM or MFFER_TEST_VM_HOSTNAME is empty; run setVm before setPasswordlessSudo" >&2
-		return 255
-	elif ! vmExists "$MFFER_TEST_VM"; then
-		echo "Error: No VM named '$MFFER_TEST_VM' is registered with Parallels Desktop" >&2
-		return 255
-	fi
-	if ! username="$(ssh "$MFFER_TEST_VM_HOSTNAME" 'echo $USER')" \
-		|| [ -z "$username" ]; then
-		echo "Error: Unable to get name of primary user for VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
-	echo "Warning: Password for user '$username' on VM '$MFFER_TEST_VM' may be required" >&2
-	if ! ssh -qt "$MFFER_TEST_VM_HOSTNAME" "echo $username 'ALL = (ALL) NOPASSWD: ALL' | sudo EDITOR='tee -a' visudo"; then
-		echo "Error: Unable to enable passwordless sudo for user '$username' on VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
 }
 # setSources
 #
@@ -414,69 +320,9 @@ setTmpdir() {
 	fi
 	return 0
 }
-setVerbosity() {
-	DEBUG="${DEBUG:-}"
-	VERBOSE="${VERBOSE:-}"
-	DEBUGOUT="${DEBUGOUT:-/dev/null}"
-	VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
-	if [ -n "$DEBUG" ]; then
-		set -x
-		set -e
-		set -u
-		VERBOSE=y
-		DEBUGOUT="/dev/stdout"
-	fi
-	if [ -n "$VERBOSE" ]; then
-		VERBOSEOUT="/dev/stdout"
-	fi
-	export DEBUG VERBOSE
-}
-# setVm vmos
-#
-# Sets the MFFER_TEST_VM variable to the appropriate name for OS `vmos` and
-# confirms it exists and has a snapshot named $MFFER_TEST_SNAPSHOT (or "Base
-# Installation" if that value is empty). Prints an error and returns 1 if no VM
-# with the appropriate name exists or it doesn't have a snapshot named
-# appropriately. Prints an error and returns 255 if a usage error occurs.
-# Returns 0 otherwise.
-setVm() {
-	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-		echo "Error: setVm() requires a single argument" >&2
-		return 255
-	fi
-	case "$1" in
-		macos)
-			MFFER_TEST_VM="macOS Testing"
-			;;
-		linux)
-			MFFER_TEST_VM="Linux Testing"
-			;;
-		windows)
-			MFFER_TEST_VM="Windows Testing"
-			;;
-		*)
-			echo "Error: unknown argument to setVm() '$1'" >&2
-			return 1
-			;;
-	esac
-	MFFER_TEST_OS="$1"
-	MFFER_TEST_SNAPSHOT="${MFFER_TEST_SNAPSHOT:-Base Installation}"
-	if ! checkVm; then
-		echo "Error: Unable to use virtual machine '$1'" >&2
-		return 1
-	fi
-	updateEnv
-}
-# sshIsRunning
-#
-# Returns 0 if able to connect to MFFER_TEST_VM_HOSTNAME on
-# port 22, nonzero otherwise
-sshIsRunning() {
-	if ! command -v nc >"$DEBUGOUT" 2>&1; then
-		echo "Error: 'nc' command not found" >&2
-		return 1
-	fi
-	nc -z "$MFFER_TEST_VM_HOSTNAME" 22 >"$DEBUGOUT" 2>&1
+startBuild() {
+	echo "Starting build '$1'" >"$VERBOSEOUT"
+	buildfails=0
 }
 # updateEnv
 #
@@ -484,7 +330,7 @@ sshIsRunning() {
 # GitHub Actions environment for steps of the same job
 updateEnv() {
 	# shellcheck disable=SC2034 # (used in called scripts)
-	MFFER_TEST_RUNDIR="${MFFER_TEST_TMPDIR:-}/built-on-${MFFER_BUILD_OS:-}/${MFFER_TEST_OS:-}"
+	MFFER_TEST_BINDIR="${MFFER_TEST_TMPDIR:-}/built-on-${MFFER_BUILD_OS:-}/${MFFER_TEST_OS:-}"
 	MFFER_TEST_DIR="${MFFER_TREE_ROOT:-}/tools/testing"
 	if [ -n "${MFFER_EXPORT_VARS}" ]; then
 		for var in $MFFER_EXPORT_VARS; do
@@ -495,40 +341,6 @@ updateEnv() {
 		getEnv >>"$GITHUB_ENV"
 	fi
 }
-waitForShutdown() {
-	starttime="$(getTime)"
-	maxtime="$((10 * 60))" # 10 minutes, in seconds
-	until ! vmIsRunning "$1"; do
-		time="$(getTime)"
-		if [ -z "$starttime" ] || [ -z "$time" ]; then
-			echo "Error: Unable to get the waiting time" >&2
-			return 1
-		fi
-		if [ "$((time - starttime))" -ge "$maxtime" ]; then
-			echo "Error: Timed out; VM never shut down" >&2
-			return 1
-		fi
-		sleep 5
-	done
-}
-waitForStartup() {
-	starttime="$(getTime)"
-	maxtime="$((10 * 60))" # 10 minutes, in seconds
-	until sshIsRunning "$1"; do
-		time="$(getTime)"
-		if [ -z "$starttime" ] || [ -z "$time" ]; then
-			echo "Error: Unable to get the installation time" >&2
-			return 1
-		fi
-		if [ "$((time - starttime))" -ge "$maxtime" ]; then
-			echo "Error: Timed out; VM never made SSH accessible" >&2
-			return 1
-		fi
-		sleep 5
-	done
-}
-setVerbosity
 setTmpdir
-setBuildOs
 trap cleanup EXIT
 updateEnv
