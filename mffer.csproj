@@ -75,17 +75,11 @@
 	  StandardOutputImportance="low"
 	  Condition="'$(OS)' == 'Windows_NT'" />
   </Target>
-  <Target Name="CheckPythonPath">
-	<!-- Set PythonPath to empty if it doesn't work -->
-	<PropertyGroup>
-	  <TryPythonPath>$(PythonPath)</TryPythonPath>
-	  <TryPythonPath Condition="'$(TryPythonPath)' == ''">python3</TryPythonPath>
-	  <PythonPath></PythonPath>
-	</PropertyGroup>
-	<Exec Command='"$(TryPythonPath)" --version' StandardOutputImportance="low"/>
-	<PropertyGroup>
-	  <PythonPath>$(TryPythonPath)</PythonPath>
-	</PropertyGroup>
+  <Target Name="CheckPythonCommand" Condition="'$(PythonCommand)' == ''">
+    <Exec Command="pyenv exec python3 --version >/dev/null" IgnoreExitCode="true" ContinueOnError="true" Outputs="pyenv exec python3">
+		<Output TaskParameter="ExitCode" PropertyName="ExitCode"/>
+		<Output TaskParameter="Outputs" PropertyName="PythonCommand" Condition="$(ExitCode) == 0"/></Exec>
+	<PropertyGroup><PythonCommand Condition="'$(PythonCommand)' == ''">python3</PythonCommand></PropertyGroup>
   </Target>
   <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
 	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)" Condition="Exists('$(ToolsDirectory)/.config')" />
@@ -95,9 +89,9 @@
 	<Exec Command='npm install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' == 'Windows_NT'" />
 	<Message Text="Restored Node.js tools."/>
   </Target>
-  <Target Name="RestorePythonVenv" DependsOnTargets="CheckPythonPath" AfterTargets="Restore">
-    <Exec Command='"$(PythonPath)" -m venv python; . python/bin/activate; pip install --upgrade pip; pip install -r requirements.txt'
-		WorkingDirectory="$(ToolsDirectory)" Condition="'$(PythonPath)' != ''" StandardOutputImportance="low"/>
+  <Target Name="RestorePythonVenv" DependsOnTargets="CheckPythonCommand" AfterTargets="Restore">
+    <Exec Command='$(PythonCommand) -m venv python; . python/bin/activate; pip install --upgrade pip; pip install -r requirements.txt'
+		WorkingDirectory="$(ToolsDirectory)" Condition="'$(PythonCommand)' != ''" StandardOutputImportance="low"/>
 	<Message Text="Restored Python virtual environment."/>
   </Target>
 
