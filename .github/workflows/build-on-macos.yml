@@ -1,11 +1,11 @@
 name: Build on macOS
 on:
   workflow_dispatch:
-  pull_request:
 jobs:
   build-mffer:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: build
+      - uses: actions/setup-python@v4
+      - name: Build
         run: dotnet build
