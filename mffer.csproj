@@ -75,30 +75,37 @@
 	  StandardOutputImportance="low"
 	  Condition="'$(OS)' == 'Windows_NT'" />
   </Target>
-  <Target Name="CheckPythonPath">
-	<!-- Set PythonPath to empty if it doesn't work -->
-	<PropertyGroup>
-	  <TryPythonPath>$(PythonPath)</TryPythonPath>
-	  <TryPythonPath Condition="'$(TryPythonPath)' == ''">python3</TryPythonPath>
-	  <PythonPath></PythonPath>
-	</PropertyGroup>
-	<Exec Command='"$(TryPythonPath)" --version' StandardOutputImportance="low"/>
-	<PropertyGroup>
-	  <PythonPath>$(TryPythonPath)</PythonPath>
-	</PropertyGroup>
-  </Target>
   <Target Name="RestoreDotnetTools" DependsOnTargets="CheckDotnetPath" AfterTargets="Restore">
-	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' WorkingDirectory="$(ToolsDirectory)" Condition="Exists('$(ToolsDirectory)/.config')" />
+	<Exec Command='"$(DOTNET_HOST_PATH)" tool restore -v quiet' Condition="Exists('.config/dotnet-tools.json') Or Exists('dotnet-tools.json')"
+	  StandardOutputImportance="low"/>
+	<Message Text="Dotnet tools restored."/>
   </Target>
   <Target Name="RestoreNodeTools" DependsOnTargets="CheckNpmPath" AfterTargets="Restore">
 	<Exec Command='"$(NpmPath)" install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' != 'Windows_NT'" />
 	<Exec Command='npm install --loglevel silent' WorkingDirectory="$(ToolsDirectory)" Condition="'$(OS)' == 'Windows_NT'" />
-	<Message Text="Restored Node.js tools."/>
+	<Message Text="Node.js tools restored."/>
   </Target>
-  <Target Name="RestorePythonVenv" DependsOnTargets="CheckPythonPath" AfterTargets="Restore">
-    <Exec Command='"$(PythonPath)" -m venv python; . python/bin/activate; pip install --upgrade pip; pip install -r requirements.txt'
-		WorkingDirectory="$(ToolsDirectory)" Condition="'$(PythonPath)' != ''" StandardOutputImportance="low"/>
-	<Message Text="Restored Python virtual environment."/>
+
+  <!-- create or update Python virtual environment -->
+  <ItemGroup>
+    <PythonVenvDirectories Include="$(ToolsDirectory)/python/lib/*/site-packages/*"/>
+  </ItemGroup>
+  <Target Name="CheckPythonPath">
+	<PropertyGroup>
+	  <PythonPath Condition="'$(PythonPath)' == ''">python3</PythonPath>
+	</PropertyGroup>
+	<Exec Command='"$(PythonPath)" --version' StandardOutputImportance="normal"/>
+  </Target>
+  <Target Name="CreatePythonVenv" DependsOnTargets="CheckPythonPath" Condition="!Exists('$(ToolsDirectory)/python/bin/activate')">
+    <Exec Command="'$(PythonPath)' -m venv '$(ToolsDirectory)/python'"/>
+	<Message Text="Python virtual environment created at '$(ToolsDirectory)/python'"/>
+  </Target>
+  <!-- Don't worry about incrementalizing this; pip will only update the packages that need to be based on a new requirements.txt. -->
+  <Target Name="RestorePythonVenv" DependsOnTargets="CheckPythonPath;CreatePythonVenv"
+    AfterTargets="Restore">
+    <Exec Command='. python/bin/activate; pip install --upgrade pip; pip install -r requirements.txt'
+		WorkingDirectory="$(ToolsDirectory)" StandardOutputImportance="low"/>
+	<Message Text="Python virtual environment restored."/>
   </Target>
 
   <!-- dotnet publish -->
