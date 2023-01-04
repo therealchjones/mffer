@@ -1,24 +1,15 @@
 #!/bin/sh
 
-set -e
-set -u
+# Ensure this variable was exported by script calling this one
+[ -n "${MFFER_TEST_FRAMEWORK:=}" ] || exit 1
+# shellcheck disable=SC1090 # source a non-constant file
+. "$MFFER_TEST_FRAMEWORK"
 
-echo "testing mffer" >"${VERBOSEOUT:=/dev/stdout}"
-failure=''
-if [ -z "${MFFER_TEST_BINDIR:=}" ]; then
-	echo "Error:'MFFER_TEST_BINDIR' is unset or empty" >&2
-	failure=y
-elif [ ! -x "$MFFER_TEST_BINDIR/mffer" ] && [ ! -x "$MFFER_TEST_BINDIR"/mffer.exe ]; then
-	echo "Error:'$MFFER_TEST_BINDIR/mffer' is not found or not executable" >&2
-	failure=y
-elif ! {
-	"$MFFER_TEST_BINDIR/mffer" -h
-} >"${DEBUGOUT:=/dev/null}"; then
-	failure=y
-fi
-if [ -n "$failure" ]; then
+echo "testing mffer"
+if ! "$(getSourceDir)/release/$(getOs)/mffer" -h; then
 	echo "FAILED testing mffer" >"$VERBOSEOUT"
 	exit 1
 else
 	echo "PASSED testing mffer" >"$VERBOSEOUT"
+	exit 0
 fi

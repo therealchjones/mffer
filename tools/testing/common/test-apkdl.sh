@@ -1,22 +1,17 @@
 #!/bin/sh
 
-set -e
-set -u
+#!/bin/sh
 
-echo "testing apkdl" >"${VERBOSEOUT:=/dev/stdout}"
-failure=''
-file="$MFFER_TEST_BINDIR/apkdl"
-if [ -z "$failure" ] && [ ! -x "$file" ]; then
-	echo "Error:'$MFFER_TEST_BINDIR/apkdl' is not found or not executable" >&2
-	failure=y
-elif [ -z "$failure" ] && ! {
-	"$MFFER_TEST_BINDIR/apkdl" -h
-} >"${DEBUGOUT:=/dev/null}"; then
-	failure=y
-fi
-if [ -n "$failure" ]; then
+# Ensure this variable was exported by script calling this one
+[ -n "${MFFER_TEST_FRAMEWORK:=}" ] || exit 1
+# shellcheck disable=SC1090 # source a non-constant file
+. "$MFFER_TEST_FRAMEWORK"
+
+echo "testing apkdl"
+if ! "$(getSourceDir)/release/$(getOs)/apkdl" -h; then
 	echo "FAILED testing apkdl" >"$VERBOSEOUT"
 	exit 1
 else
 	echo "PASSED testing apkdl" >"$VERBOSEOUT"
+	exit 0
 fi

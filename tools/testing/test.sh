@@ -138,8 +138,14 @@ if [ ! -r "$MFFER_TEST_DIR"/common/parallels.sh ] \
 	echo "Warning: Unable to load Parallels Desktop definitions" >&2
 fi
 
+# The new framework
+export MFFER_TEST_FRAMEWORK="${MFFER_TREE_ROOT}/tools/testing/common/framework.sh"
+# shellcheck disable=SC1090 # source a non-constant file
+. "$MFFER_TEST_FRAMEWORK"
+
 main() {
 	getArgs "$@" || exitFromError
+	foo || exit 1
 	setSources || exitFromError
 	buildOn local || exitFromError
 	testOn local || exitFromError

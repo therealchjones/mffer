@@ -1,33 +1,21 @@
 #!/bin/sh
 
-set -e
-set -u
+# Ensure this variable was exported by script calling this one
+[ -n "${MFFER_TEST_FRAMEWORK:=}" ] || exit 1
+# shellcheck disable=SC1090 # source a non-constant file
+. "$MFFER_TEST_FRAMEWORK"
 
-echo "building documentation" >"${VERBOSEOUT:=/dev/stdout}"
-failure=''
-if [ -z "${MFFER_TEST_SOURCE:=${GITHUB_WORKSPACE:-}}" ]; then
-	echo "Error:'MFFER_TEST_SOURCE' and 'GITHUB_WORKSPACE' are not defined or are empty" >&2
-	failure=y
-elif [ -z "${MFFER_TEST_TMPDIR:=}" ]; then
-	echo "Error:'MFFER_TEST_TMPDIR' is not defined or is empty" >&2
-	failure=y
-elif ! {
+echo "building documentation"
+if ! {
 	# shellcheck disable=SC1091 # (for virtual environment activate script)
-	tmpdir="$MFFER_TEST_TMPDIR" \
-		&& python3 -m venv "$tmpdir"/python \
-		&& . "$tmpdir"/python/bin/activate \
-		&& pip3 install --upgrade pip \
-		&& pip3 install wheel \
-		&& pip3 install \
-			-r "$MFFER_TEST_SOURCE"/tools/requirements.txt \
-		&& cd "$MFFER_TEST_SOURCE" \
+	cd "$(getSourceDir)" \
+		&& dotnet restore \
+		&& . tools/python/bin/activate \
 		&& sh tools/mkdocs.sh
-} >"${DEBUGOUT:=/dev/null}"; then
-	failure=y
-fi
-if [ -n "$failure" ]; then
-	echo "FAILED building documentation" >"$VERBOSEOUT"
+}; then
+	echo "FAILED building documentation"
 	exit 1
 else
-	echo "PASSED building documentation" >"$VERBOSEOUT"
+	echo "PASSED building documentation"
+	exit 0
 fi
