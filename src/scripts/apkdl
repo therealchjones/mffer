@@ -12,7 +12,7 @@ usage() {
 description() {
 	echo "mandatory arguments:"
 	echo "	-o output_directory"
-	echo '		place game program files in an apks-<date>/ directory'
+	echo '		place game program files in an mff-apks-<version>/ directory'
 	echo '		within output_directory'
 	echo "options:"
 	echo "	-h	print this summarized help message and quit"
@@ -23,7 +23,7 @@ GOOGLE_EMAIL=""
 GOOGLE_PASSWORD=""
 
 # Non-POSIX tools used in this script:
-# git, python3 (3.9 or higher), pip3, mktemp
+# curl, python3 (3.9 or higher), mktemp
 
 # Prints an absolute pathname corresponding to path $1
 #
@@ -55,7 +55,7 @@ getexec() {
 		return 1
 	fi
 	for filename in "$@"; do
-		if type "$filename" >/dev/null 2>&1; then
+		if command -v "$filename" >/dev/null 2>&1; then
 			echo "$filename"
 			return 0
 		fi
@@ -83,13 +83,6 @@ cleanup() {
 			;;
 	esac
 	echo "Cleaning up" >"$VERBOSEOUT"
-	# Temp directories may still be in use by child processes
-	trap '' EXIT HUP INT QUIT TERM
-	if [ -n "$1" ]; then
-		kill -s "$1" 0
-	else
-		kill 0
-	fi
 	# Allow cancelling further if, e.g., someone hits Ctrl-C while cleanup is
 	# happening
 	trap - EXIT HUP INT QUIT TERM
@@ -98,7 +91,6 @@ cleanup() {
 		rm -rf -- "$MFFTEMPDIR" || echo "Unable to complete cleanup" >&2
 	}
 	if [ -n "$1" ]; then
-		kill -s "$1" 0
 		# Shells do not portably exit despite POSIX specification
 		# on some of the above signals (e.g., bash ignores SIGQUIT)
 		exit 1
@@ -138,8 +130,9 @@ trapforcleanup() {
 	trap 'signal TERM' TERM
 }
 
-DEBUG=""
-VERBOSE=""
+DEBUG="${DEBUG:-}"
+VERBOSE="${VERBOSE:-}"
+vees=0
 
 while getopts 'hvo:' option; do
 	case "$option" in
@@ -155,10 +148,7 @@ while getopts 'hvo:' option; do
 			fi
 			;;
 		v)
-			if [ "Y" = "$VERBOSE" ]; then
-				DEBUG=Y
-			fi
-			VERBOSE=Y
+			vees="$((vees + 1))"
 			;;
 		o)
 			MFFOUTPUTDIR="$OPTARG"
@@ -174,15 +164,26 @@ if [ "$#" != "0" ]; then
 	usage >&2
 	exit 1
 fi
-
+if [ -z "${MFFOUTPUTDIR+1}" ]; then
+	echo "Error: Output directory not set" >&2
+	usage >&2
+	exit 1
+fi
+if [ -z "$MFFOUTPUTDIR" ]; then
+	echo "Error: Output directory name must not be null" >&2
+	usage >&2
+	exit 1
+fi
+if [ 0 -lt "$vees" ]; then VERBOSE=Y; fi
+if [ 1 -lt "$vees" ]; then DEBUG=Y; fi
 DEBUGOUT=/dev/null
 VERBOSEOUT=/dev/null
-if [ "$DEBUG" = "Y" ]; then
+if [ -n "$DEBUG" ]; then
 	set -x
 	DEBUGOUT=/dev/stdout
 	VERBOSE=Y
 fi
-if [ "$VERBOSE" = "Y" ]; then
+if [ -n "$VERBOSE" ]; then
 	VERBOSEOUT=/dev/stdout
 fi
 
@@ -214,16 +215,6 @@ else
 	throwfatal "Unable to create temporary directory. Exiting."
 fi
 
-if [ -z "${MFFOUTPUTDIR+1}" ]; then
-	echo "Error: Output directory not set" >&2
-	usage >&2
-	exit 1
-fi
-if [ -z "$MFFOUTPUTDIR" ]; then
-	echo "Error: Output directory name must not be null" >&2
-	usage >&2
-	exit 1
-fi
 if ! mkdir -p -- "$MFFOUTPUTDIR" >"$DEBUGOUT" 2>&1; then
 	echo "Error: Unable to create output directory '$MFFOUTPUTDIR'" >&2
 	usage >&2
@@ -232,8 +223,43 @@ fi
 MFFOUTPUTDIR="$(getdir "$MFFOUTPUTDIR")"
 
 echo "Setting up temporary environment" >"$VERBOSEOUT"
-if ! PYTHON3="$(which python3)" >"$DEBUGOUT" 2>&1; then
-	echo "Error: unable to locate python3 executable" >&2
+# Get the python 3 executable to use. Requires Python 3.9. If not already set in
+# the PYTHON3 environment variable, will check to see if python or python3
+# satisfies this. If not, will check for the highest 3.x (up to 3.99) such that
+# python3.x is in the PATH.
+checkPython() {
+	if [ -z "$1" ]; then
+		echo 'Usage: checkPython <python_command>' >&2
+		return 1
+	fi
+	if command -v "$1" >"$DEBUGOUT" 2>&1; then
+		if minorversion="$("$1" -c 'import sys; print(sys.version_info.minor);')" 2>"$DEBUGOUT" \
+			&& [ 9 -le "$minorversion" ]; then
+			return 0
+		fi
+	fi
+	return 1
+}
+if [ -z "${PYTHON3:=}" ]; then
+	for file in python python3; do
+		if checkPython "$file"; then
+			PYTHON3="$file"
+			break
+		fi
+	done
+fi
+if [ -z "$PYTHON3" ]; then
+	ver=99
+	while [ 9 -le "$ver" ]; do
+		if checkPython python3.$ver; then
+			PYTHON3="python3.$ver"
+			break
+		fi
+		ver="$((ver - 1))"
+	done
+fi
+if [ -z "$PYTHON3" ]; then
+	echo "Error: unable to locate Python 3.9 or greater" >&2
 	exit 1
 fi
 if ! "$PYTHON3" -m venv "$MFFTEMPDIR/python"; then
@@ -247,7 +273,6 @@ if [ -r "$MFFTEMPDIR/python/bin/activate" ]; then
 		echo "Error: Unable to activate temporary python environment" >&2
 		exit 1
 	fi <<EOF
-import string
 import sys
 if sys.prefix == sys.base_prefix:
     print( "Not in a virtual environment", file=sys.stderr)
@@ -262,36 +287,45 @@ if sys.version_info.major != 3:
 if sys.version_info.minor < 9:
     print( "$0 requires Python 3.9 or higher", file=sys.stderr)
     exit(1)
+import ssl
+if ssl.OPENSSL_VERSION_INFO[0:3] != (1,1,1):
+    print( f"Warning: Using OpenSSL version '{ssl.OPENSSL_VERSION}'; this may not work.", file=sys.stderr)
 EOF
 else
 	echo "Error: Unable to find temporary python environment" >&2
 	exit 1
 fi
 echo "Getting required software" >"$VERBOSEOUT"
-if ! OUTPUT="$(git clone https://github.com/marty0678/googleplay-api "$MFFTEMPDIR/googleplay-api" 2>&1)"; then
-	echo "$OUTPUT"
-	exit 1
-elif [ -n "$DEBUG" ]; then
-	echo "$OUTPUT"
-fi
 
-# Order of installation is important. "Old" gpapi gets installed from pip, since
-# it includes the built protobuf files obviating the need for protoc to be
-# installed. Then install the requirements (with versions where needed) for the
-# "new" gpapi, so they're not overwritten by the old one's requirements, and
-# finally copy over the plain python files from the new one so they're the ones
-# actually used when importing.
-pip3 install --upgrade pip >"$DEBUGOUT"
-pip3 --disable-pip-version-check install gpapi >"$DEBUGOUT"
-pip3 --disable-pip-version-check install -r "$MFFTEMPDIR/googleplay-api/requirements.txt" >"$DEBUGOUT"
+# Install the few packages requiring specific versions, then the old gpapi, then
+# just copy the python code for the new gpapi into place; this lets everything
+# work properly without the need to install protoc to build or upgrade the
+# protobuf files.
+if ! pip3 install --upgrade 'pip==22.2.2' >"$DEBUGOUT" \
+	|| ! pip3 install 'protobuf==3.20.0' >"$DEBUGOUT" \
+	|| ! pip3 install 'requests==2.24.0' >"$DEBUGOUT" \
+	|| ! pip3 install 'gpapi==0.4.4' >"$DEBUGOUT"; then
+	echo 'Unable to install required python packages' >&2
+	exit 1
+fi
 GPAPIDIR="$(find "$MFFTEMPDIR/python" -type d -name "gpapi")"
 if [ -z "$GPAPIDIR" ]; then
 	echo "Error: Unable to upgrade googleplay-api." >&2
 	exit 1
 fi
-cp -a "$MFFTEMPDIR/googleplay-api/gpapi/"* "$GPAPIDIR" || exit 1
+for file in config.py googleplay.py; do
+	if ! curl -LSs -o "$GPAPIDIR/$file" \
+		https://raw.githubusercontent.com/marty0678/googleplay-api/aa193ea198ac789f2b7d7a6650174078a93710a5/gpapi/"$file" \
+		>"$DEBUGOUT"; then
+		echo 'Error: Unable to obtain working version of googleplay-api.' >&2
+		exit 1
+	fi
+done
 
-echo "Downloading files" >"$VERBOSEOUT"
+echo "Downloading APKs" >"$VERBOSEOUT"
+echo "using:" >"$DEBUGOUT"
+python3 --version >"$DEBUGOUT"
+pip3 freeze >"$DEBUGOUT"
 # Gets a version label formatted like "8.1.0-195390" while downloading the files
 if ! VERSION_LABEL="$(
 	python3 <<EOF

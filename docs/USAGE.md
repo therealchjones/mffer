@@ -23,7 +23,7 @@ prefer reading the [mffer Development Guide](Development.md).
 [Marvel Future Fight](http://www.marvelfuturefight.com/) (MFF) is a mobile (iOS
 & Android) online role-playing game by
 [Netmarble](https://company.netmarble.com/). It's set in the extended
-[Marvel](https://www.marvel.com/) multiverse and has more than 200 characters to
+[Marvel](https://www.marvel.com/) multiverse, has more than 200 characters to
 collect and modify with dozens of different resources, and enough game modes to
 make mastering all of them nigh impossible.
 
@@ -53,9 +53,9 @@ The project currently includes multiple components:
 
 ## Using the mffer webapp
 
-The mffer webapp is at https://mffer.org.
+The mffer webapp is at [https://mffer.org].
 
-The mffer webapp presents [mffer](mffer.md)-extracted data in a format to
+The mffer webapp presents mffer-extracted data in a format to
 help with in-game decision making.
 
 The webapp should be intuitive. If additional explanation is required for proper
@@ -65,8 +65,8 @@ something is unclear.
 
 ### Requirements
 
-The mffer webapp is built on Google Apps Script and uses Google Sheets as a
-data store. It requires a web browser with robust JavaScript support for most
+The mffer webapp is built on Google Apps Script and uses Google Sheets and Google Drive for
+data storage. It requires a web browser with robust JavaScript support for most
 functionality. An Internet connection is required to use the webapp; it does not
 have an "offline" mode.
 
@@ -77,8 +77,8 @@ using it, see [Deploying the webapp](Development.md#deploying-the-webapp).
 
 ## Using the mffer command line tools
 
-The mffer command line tools obtain the latest version of Marvel Future Fight,
-extract its usable data, process the data into a format suitable for human
+The mffer command line tools obtain the latest version of Marvel Future Fight's program and data files,
+extract their usable data, process the data into a format suitable for human
 review or computer use, and provide the data to the webapp. It is not necessary
 to use the command line tools to
 [just use the webapp yourself](https://mffer.org).
@@ -107,16 +107,17 @@ files in a single directory. Unzip the package into a directory of your choice.
 
 ### Requirements
 
-The mffer tool itself does not require any other specific software. It will
+The [mffer](mffer.md) tool itself does not require any other specific software. It will
 run on a system that
 [supports .NET 5.0](https://github.com/dotnet/core/blob/main/release-notes/5.0/5.0-supported-os.md),
 but no .NET or Mono runtime needs to be separately installed.
 
-The other tools, apkdl and autoanalyze, have a few other requirements:
+The other tools, [apkdl](apkdl.md) and [autoanalyze](autoanalyze.md), have further requirements:
 
 -   POSIX-like typical development environment (required for apkdl and
     autoanalyze)
--   Python 3 (required for apkdl)
+-   Python 3.9 or higher (required for apkdl)
+-   OpenSSL 1.1.1 (required for apkdl)
 -   [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
     (required for autoanalyze)
 -   [.NET 5.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/5.0)
@@ -128,7 +129,7 @@ macOS and most Linux distributions satisfy the needs for the "typical
 development environment"; Windows requires additional POSIX-like software such
 as Git Bash or Cygwin. (In addition to the defined
 [POSIX utilities](https://pubs.opengroup.org/onlinepubs/9699919799/), `tar`,
-`mktemp`, `git`, and other common utilities are used.) Most modern systems
+`mktemp`, `git`, `curl` and other common utilities are used.) Most modern systems
 require installation of a Java runtime (or SDK); we recommend the "Temurin" OpenJDK 11
 distribution freely available from
 [Adoptium.net](https://adoptium.net/temurin/releases/?version=11).
@@ -137,13 +138,78 @@ Additionally, other programs are downloaded and run by the `apkdl` and
 `autoanalyze` scripts, so the system on which they are run must support these
 programs, though the programs themselves do not need to be separately installed.
 
+#### Python & OpenSSL
+
+The specific versions of Python and OpenSSL are necessary for proper performance
+of the apkdl program. There are likely many methods for ensuring these are
+correct. The following appear to be the simplest.
+
+##### Python & OpenSSL on macOS
+
+-   Installing the
+    ["official" Python 3 release](https://www.python.org/downloads/macos/) from the
+    [Python web site](https://www.python.org) will concurrently install a "private" copy of
+    OpenSSL 1.1.1 that Python will use when needed. This is sufficient for apkdl.
+-   Installing Python 3.9 (python@3.9) or higher or pyenv via Homebrew will
+    automatically install OpenSSL 1.1.1 as a requirement.
+
+##### Python & OpenSSL on Windows
+
+Installing Python 3.10 from the Microsoft Store includes OpenSSL 1.1.1.
+
+##### Python & OpenSSL on Linux
+
+The Python packages available on systems that track the latest versions of
+programs may connect to later versions of OpenSSL by default. (This occurs, for
+instance, on Ubuntu 22.04.) These often will not work properly with apkdl. If
+this is the case, the easiest approach appears to be installing OpenSSL from
+source and then installing the Python version of your choice using pyenv.
+
+After setting up the
+[recommended pyenv buildenvironment](https://github.com/pyenv/pyenv/wiki#suggested-build-environment),
+[install git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) if
+necessary, and then some variant of the following will (probably) be sufficient:
+
+```
+curl -O https://www.openssl.org/source/openssl-1.1.1q.tar.gz
+tar xzf openssl-1.1.1q.tar.gz
+cd openssl-1.1.1q
+./config
+make
+make test
+sudo make install
+git clone https://github.org/pyenv/pyenv.git ~/.pyenv
+export PYENV_ROOT=~/.pyenv
+export PATH="~/.pyenv/bin:$PATH"
+eval "$( pyenv init - )"
+LDFLAGS="-Wl,-rpath,/usr/local" CONFIGURE_OPTS="--with-openssl=/usr/local" pyenv install 3.10.6
+```
+
+Finally, before using apkdl, activate this version of Python using
+
+```
+pyenv shell 3.10.6
+```
+
+For further guidance, please refer to the
+[OpenSSL 1.1.1 INSTALL file](https://github.com/openssl/openssl/blob/OpenSSL_1_1_1-stable/INSTALL), the
+[pyenv installation instructions](https://github.com/pyenv/pyenv/#installation), and the
+[pyenv common build problems](https://github.com/pyenv/pyenv/wiki/Common-build-problems).
+
 ### The mffer workflow
 
 #### Obtaining and processing the data files
 
+From the command line, in the directory to which you unzipped the mffer files, run:
+
 ```
-mffer --outputdir output_directory
+mffer --download-assets --outputdir asset_directory
+mffer --datadir asset_directory --outputdir output_directory
 ```
+
+The first command downloads the latest data files from Netmarble servers. The
+second extracts information from the data files and reformats it into readable
+files.
 
 #### Exploring the data
 
@@ -155,7 +221,7 @@ levels. The JSON file is a large human- and machine-readable file that includes
 all the data mffer knows how to process (such as characters, uniforms,
 dictionaries, and skills) as well as readable versions of all the other
 text-based data that is downloadable. The files in the
-_`output_directory`_`/files` subdirectory are the raw [Unity](https://unity.com)
+_`asset_directory`_`/mff-assets-`_`version`_ subdirectory are the raw [Unity](https://unity.com)
 data files called
 "[AssetBundle](https://docs.unity3d.com/Manual/AssetBundlesIntro.html)s" used by
 Marvel Future Fight. Exploring these are the best way to identify previously
@@ -165,15 +231,15 @@ data, and background music) can be explored with tools like
 
 #### Using and presenting the data
 
-Upload the results using the webapp.
+Upload the `Roster-`_`version`_`.csv` file using the webapp.
 
 #### Exploring the code
 
 A great deal of information may be accessible via the raw files in
-_`output_directory`_`/files`, but the majority of code for running the game,
+_`asset_directory`_`/mff-assets-`_`version`_, but the majority of code for running the game,
 including algorithms and use of the data, are less easily evaluated directly.
 More details and specifics of how the program works are given in
-[The structure of Marvel Future Fight](mff.md), but much of the code you'll want to review is in a
+[The Structure of Marvel Future Fight](mff.md), but much of the code you'll want to review is in a
 file that is part of MFF's installation named `libil2cpp.so`. The mffer tools
 can help facilitate this review by automatically processing this file before you manually
 evaluate it further:
@@ -185,14 +251,14 @@ evaluate it further:
     apkdl -o output_directory
     ```
 
-    It may be several minutes before you are prompted for a Google username and
+    This requires you to enter a Google username and
     [app password](https://support.google.com/accounts/answer/185833).
 
 2.  Use [autoanalyze](autoanalyze.md) to create and populate a Ghidra project
     with this version of Marvel Future Fight's program code:
 
     ```
-    autoanalyze -i output_directory -o output_directory
+    autoanalyze -i output_directory/mff-apks-<version> -o output_directory
     ```
 
     This may take several hours to complete.

@@ -30,7 +30,7 @@ getexec() {
 		return 1
 	fi
 	for filename in "$@"; do
-		if type "$filename" >/dev/null 2>&1; then
+		if command -v "$filename" >/dev/null 2>&1; then
 			echo "$filename"
 			return 0
 		fi
