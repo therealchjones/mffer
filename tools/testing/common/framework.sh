@@ -108,3 +108,6 @@ runBuild() {
 runScript() {
 	sh "$(getScript "${1:-}")" || return 1
 }
+runTest() {
+	runScript "test-${1:-}" || return 1
+}

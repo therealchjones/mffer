@@ -9,9 +9,9 @@
 
 echo "testing apkdl"
 if ! "$(getSourceDir)/release/$(getOs)/apkdl" -h; then
-	echo "FAILED testing apkdl" >"$VERBOSEOUT"
+	echo "FAILED testing apkdl"
 	exit 1
 else
-	echo "PASSED testing apkdl" >"$VERBOSEOUT"
+	echo "PASSED testing apkdl"
 	exit 0
 fi

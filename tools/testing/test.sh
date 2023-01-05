@@ -8,52 +8,14 @@ usage() {
 	echo "Usage: sh $0 [ local | linux | macos | windows | all ]"
 }
 
-# General flow of this and accompanying scripts:
-# sh tools/testing/test.sh
-# - source ${MFFER_TEST_ENV:=$HOME/mffer_test_env.sh} if it exists
-# - find MFFER_TREE_ROOT
-# - source common/base.sh, which will
-# - - define helpers and determine most MFFER_* values
-# - evaluate arguments and environment variables to determine test system
-# - - check for VM framework and alter tests or error as needed
-# - create a clean source tree from which to build and test
-# - build on local if appropriate
-# - - if on GitHub actions or VM (defined in mffer_test_env) install dependencies as needed
-# - test on local if appropriate
-# - for each requested system:
-# - - if VM, reset
-# - - set mffer_test_env.sh variables to describe system and next step (build)
-# - - copy source tree if needed and run system version of this script, which will
-# - - - install dependencies if not local system and build
-# - - save release builds
-# - for each requested system, for each available release, for each test:
-# - - reset VM, set mffer_test_env.sh variables to describe system and next test
-# - - copy release and copy source tree if needed, run system version of this script, which will
-# - - - install dependencies and run test
-# - clean up any local changes (no need on GitHub Actions or VMs)
-
-if [ -r "${MFFER_TEST_ENV:=$HOME/mffer_test_env.sh}" ]; then
-	# shellcheck disable=SC1090 # The env script won't be included in shellcheck parsing
-	. "$MFFER_TEST_ENV"
-	MFFER_TEST_NESTED=y
-fi
-
-# Though this might be better defined in the base.sh script, we want to be able
-# to debug as early as possible
-VERBOSE="${VERBOSE:-y}" # Include brief progress updates and PASSED notices
-DEBUG="${DEBUG:-}"      # Include trace, exit on errors, error on undefined variables
-DEBUGOUT="${DEBUGOUT:-/dev/null}"
-VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
-if [ -n "$DEBUG" ]; then
-	set -x
-	set -e
-	set -u
-	VERBOSE=y
-	DEBUGOUT="/dev/stdout"
-fi
-if [ -n "$VERBOSE" ]; then
-	VERBOSEOUT="/dev/stdout"
-fi
+# A few environment variables are used, if present:
+# MFFER_TREE_ROOT: root directory of the mffer repository
+# MFFER_TEST_INCLUDE_LOCAL
+# MFFER_TEST_INCLUDE_LINUX
+# MFFER_TEST_INCLUDE_MACOS
+# MFFER_TEST_INCLUDE_WINDOWS:
+# Setting any of these to a nonempty value results in the same behavior as
+# including the related arguments on the command line
 
 # This is a simplified way to guess the location of the script given the
 # limitations noted in https://mywiki.wooledge.org/BashFAQ/028 and thus
@@ -78,9 +40,11 @@ if [ -z "$MFFER_TREE_ROOT" ]; then
 	echo "Error: Unable to find script location. Try setting MFFER_TREE_ROOT." >&2
 	exit 1
 fi
-MFFER_TEST_DIR="$MFFER_TREE_ROOT/tools/testing"
-if [ ! -r "$MFFER_TEST_DIR"/common/base.sh ] \
-	|| ! . "$MFFER_TEST_DIR"/common/base.sh; then
+if [ -r "$MFFER_TREE_ROOT"/tools/testing/common/framework.sh ]; then
+	export MFFER_TEST_FRAMEWORK="$MFFER_TREE_ROOT/tools/testing/common/framework.sh"
+fi
+# shellcheck source=./common/framework.sh
+if ! . "$MFFER_TREE_ROOT"/tools/testing/common/framework.sh; then
 	echo "Error: Unable to load script definitions" >&2
 	exit 1
 fi
@@ -99,52 +63,33 @@ MFFER_TEST_SOURCE="" # where the local tree to test is
 MFFER_TEST_TMPDIR="" # disposable temporary directory
 MFFER_TEST_OS=""     # OS currently being tested
 
-# Variables that should be available to child processes or job processes
-MFFER_EXPORT_VARS='
-	DEBUG
-	DEBUGOUT
-	VERBOSE
-	VERBOSEOUT
-	MFFER_BUILD_OS
-	MFFER_EXPORT_VARS
-	MFFER_TEST_DIR
-	MFFER_TEST_NESTED
-	MFFER_TEST_OS
-	MFFER_TEST_BINDIR
-	MFFER_TEST_SOURCE
-	MFFER_TEST_TMPDIR
-'
-
-# In an effort to have some consistency, functions should be named in
-# camelCase using the following conventions:
-#
-# isSomething, hasSomething, or somethingExists - returns 0 or 1, no output
-# checkSomething - ensures consistency or appropriate setting, returns 0 or 1,
-#                  no output
-# createSomething - make changes to a persistent store of some kind, like the
-#                   filesystem or Parallels Desktop VM registry, potentially
-#                   setting the appropriate environment variable if not already;
-#                   usually should be called by getSomething rather than
-#                   directly
-# setSomething - sets one or more environment variables, no output
-# getSomething - prints value, potentially also determining that value and
-#                setting the appropriate environment variable(s) if not already
-
 MFFER_TEST_VM_SNAPSHOT="${MFFER_TEST_VM_SNAPSHOT:-Base Installation}" # Name of the "clean install" snapshot on the testing VM
 MFFER_TEST_VM="${MFFER_TEST_VM:-}"                                    # Name of the VM on which to test
 MFFER_TEST_VM_SYSTEM=""                                               # set by the appropriate script when virtual machine functions are loaded
-if [ ! -r "$MFFER_TEST_DIR"/common/parallels.sh ] \
-	|| ! . "$MFFER_TEST_DIR"/common/parallels.sh; then
+if [ ! -r "$(getTestDir)"/common/parallels.sh ] \
+	|| ! . "$(getTestDir)"/common/parallels.sh; then
 	echo "Warning: Unable to load Parallels Desktop definitions" >&2
 fi
 
-# The new framework
-export MFFER_TEST_FRAMEWORK="${MFFER_TREE_ROOT}/tools/testing/common/framework.sh"
-# shellcheck disable=SC1090 # source a non-constant file
-. "$MFFER_TEST_FRAMEWORK"
-
 main() {
-	getArgs "$@" || exitFromError
+	getArgs "$@" || return 1
+
+	if [ -n "$MFFER_TEST_INCLUDE_LOCAL" ]; then
+		echo "building on local system"
+		if ! runBuild 'local'; then
+			echo "FAILED building on local system"
+			return 1
+		else
+			echo "PASSED building on local system"
+		fi
+		echo "testing on local system"
+		if ! runTest 'local'; then
+			echo "FAILED testing on local system"
+			return 1
+		else
+			echo "PASSED testing on local system"
+		fi
+	fi
 	foo || exit 1
 	setSources || exitFromError
 	buildOn local || exitFromError
@@ -759,4 +704,4 @@ waitForStartup() {
 	done
 }
 
-main "$@"
+main "$@" || exit 1

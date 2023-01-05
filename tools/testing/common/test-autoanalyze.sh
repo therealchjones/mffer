@@ -9,9 +9,9 @@
 
 echo "testing autoanalyze"
 if ! "$(getSourceDir)/release/$(getOs)/autoanalyze" -h; then
-	echo "FAILED testing autoanalyze" >"$VERBOSEOUT"
+	echo "FAILED testing autoanalyze"
 	exit 1
 else
-	echo "PASSED testing autoanalyze" >"$VERBOSEOUT"
+	echo "PASSED testing autoanalyze"
 	exit 0
 fi

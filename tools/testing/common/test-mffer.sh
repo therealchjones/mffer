@@ -7,9 +7,9 @@
 
 echo "testing mffer"
 if ! "$(getSourceDir)/release/$(getOs)/mffer" -h; then
-	echo "FAILED testing mffer" >"$VERBOSEOUT"
+	echo "FAILED testing mffer"
 	exit 1
 else
-	echo "PASSED testing mffer" >"$VERBOSEOUT"
+	echo "PASSED testing mffer"
 	exit 0
 fi
