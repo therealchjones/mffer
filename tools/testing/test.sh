@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -u
+
 # Run mffer build & function tests. This script is expected to be run from
 # within the mffer development environment (see the mffer Development Guide for
 # details).
@@ -42,26 +45,14 @@ if [ -z "$MFFER_TREE_ROOT" ]; then
 fi
 if [ -r "$MFFER_TREE_ROOT"/tools/testing/common/framework.sh ]; then
 	export MFFER_TEST_FRAMEWORK="$MFFER_TREE_ROOT/tools/testing/common/framework.sh"
+else
+	echo "Error: Unable to locate testing framework" >&2
 fi
 # shellcheck source=./common/framework.sh
-if ! . "$MFFER_TREE_ROOT"/tools/testing/common/framework.sh; then
-	echo "Error: Unable to load script definitions" >&2
+if ! . "$MFFER_TEST_FRAMEWORK"; then
+	echo "Error: Unable to load testing framework" >&2
 	exit 1
 fi
-
-# Parameters used throughout the program. The program will try to determine
-# them dynamically if not explicitly set in the environment
-MFFER_REPO="${MFFER_REPO:-https://github.com/therealchjones/mffer}" # url
-MFFER_TEST_COMMIT="${MFFER_TEST_COMMIT:-}"                          # which commit to test
-MFFER_TEST_DIR="${MFFER_TEST_DIR:-}"                                # directory containing `test.sh` and the subdirectories of the testing tree
-MFFER_TREE_ROOT="${MFFER_TREE_ROOT:-}"                              # Root directory of the local mffer repository
-
-# Intentionally global parameters set within the program. These are dynamically
-# configured and should not be user-configurable.
-MFFER_TEST_BINDIR="" # where built binaries for the currrent test are
-MFFER_TEST_SOURCE="" # where the local tree to test is
-MFFER_TEST_TMPDIR="" # disposable temporary directory
-MFFER_TEST_OS=""     # OS currently being tested
 
 MFFER_TEST_VM_SNAPSHOT="${MFFER_TEST_VM_SNAPSHOT:-Base Installation}" # Name of the "clean install" snapshot on the testing VM
 MFFER_TEST_VM="${MFFER_TEST_VM:-}"                                    # Name of the VM on which to test
@@ -90,20 +81,24 @@ main() {
 			echo "PASSED testing on local system"
 		fi
 	fi
-	foo || exit 1
-	setSources || exitFromError
-	buildOn local || exitFromError
-	testOn local || exitFromError
-	if [ -z "${MFFER_TEST_VM_SYSTEM:=}" ]; then
-		echo "Warning: No virtual machine system found. Skipping virtual machine tests." >&2
-		exit 0
+	if [ -n "$MFFER_TEST_INCLUDE_LINUX" ]; then
+		buildOn linux || true
 	fi
-	for os in macos linux windows; do
-		buildOn "$os" || true
-	done
-	for os in macos linux windows; do
-		testOn "$os" || true
-	done
+	if [ -n "$MFFER_TEST_INCLUDE_MACOS" ]; then
+		buildOn macos || true
+	fi
+	if [ -n "$MFFER_TEST_INCLUDE_WINDOWS" ]; then
+		buildOn windows || true
+	fi
+	if [ -n "$MFFER_TEST_INCLUDE_LINUX" ]; then
+		testOn linux || true
+	fi
+	if [ -n "$MFFER_TEST_INCLUDE_MACOS" ]; then
+		testOn macos || true
+	fi
+	if [ -n "$MFFER_TEST_INCLUDE_WINDOWS" ]; then
+		testOn windows || true
+	fi
 }
 # buildOn ( local | macos | linux | windows )
 #
@@ -215,18 +210,7 @@ checkVm() {
 	fi
 	return 0
 }
-exitFromError() {
-	echo "Testing is unable to continue due to errors." >&2
-	exit 1
-}
 getArgs() {
-	if [ -n "${MFFER_TEST_NESTED:=}" ]; then
-		if [ -n "${MFFER_TEST_INCLUDE_LINUX:=}${MFFER_TEST_INCLUDE_MACOS:=}${MFFER_TEST_INCLUDE_WINDOWS:=}" ]; then
-			echo "Warning: Performing system tests. Ignoring requested VM testing." >&2
-		fi
-		MFFER_TEST_INCLUDE_LOCAL=y
-		return 0
-	fi
 	nonargs=''
 	# If any are already defined from env, pretend they're included explicitly
 	# This allows adding but not removing systems on the commandline
@@ -260,7 +244,7 @@ getArgs() {
 			*)
 				echo "Error: Invalid argument '$arg'" >&2
 				usage >&2
-				exitFromError
+				return 1
 				;;
 		esac
 	done
@@ -524,44 +508,6 @@ setBuildEnv() {
 		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
 		return 1
 	fi
-}
-# setVm vmos
-#
-# Sets the MFFER_TEST_VM variable to the appropriate name for OS `vmos` and
-# confirms it exists and has a snapshot named $MFFER_TEST_VM_SNAPSHOT (or "Base
-# Installation" if that value is empty). Sets other variables dependent upon
-# these, such as MFFER_TEST_VM_HOSTNAME. Prints an error and returns 1 if no VM
-# with the appropriate name exists or it doesn't have a snapshot named
-# appropriately. Prints an error and returns 255 if a usage error occurs.
-# Returns 0 otherwise.
-setVm() {
-	if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-		echo "Error: setVm() requires a single argument" >&2
-		return 255
-	fi
-	case "$1" in
-		macos)
-			MFFER_TEST_VM="macOS Testing"
-			;;
-		linux)
-			MFFER_TEST_VM="Linux Testing"
-			;;
-		windows)
-			MFFER_TEST_VM="Windows Testing"
-			;;
-		*)
-			echo "Error: unknown argument to setVm() '$1'" >&2
-			return 1
-			;;
-	esac
-	MFFER_TEST_OS="$1"
-	MFFER_TEST_VM_SNAPSHOT="${MFFER_TEST_VM_SNAPSHOT:-Base Installation}"
-	MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
-	if ! checkVm; then
-		echo "Error: Unable to use virtual machine '$1'" >&2
-		return 1
-	fi
-	updateEnv
 }
 # sshIsRunning
 #
