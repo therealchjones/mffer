@@ -19,6 +19,7 @@ usage() {
 # MFFER_TEST_INCLUDE_WINDOWS:
 # Setting any of these to a nonempty value results in the same behavior as
 # including the related arguments on the command line
+# MFFER_TEST_VM_SNAPSHOT: name of the "base" snapshot to which VMs should be reset
 
 # This is a simplified way to guess the location of the script given the
 # limitations noted in https://mywiki.wooledge.org/BashFAQ/028 and thus
@@ -55,8 +56,6 @@ if ! . "$MFFER_TEST_FRAMEWORK"; then
 fi
 
 MFFER_TEST_VM_SNAPSHOT="${MFFER_TEST_VM_SNAPSHOT:-Base Installation}" # Name of the "clean install" snapshot on the testing VM
-MFFER_TEST_VM="${MFFER_TEST_VM:-}"                                    # Name of the VM on which to test
-MFFER_TEST_VM_SYSTEM=""                                               # set by the appropriate script when virtual machine functions are loaded
 if [ ! -r "$(getTestDir)"/common/parallels.sh ] \
 	|| ! . "$(getTestDir)"/common/parallels.sh; then
 	echo "Warning: Unable to load Parallels Desktop definitions" >&2
@@ -64,7 +63,8 @@ fi
 
 main() {
 	getArgs "$@" || return 1
-
+	trap cleanup EXIT
+	setTmpdir
 	if [ -n "$MFFER_TEST_INCLUDE_LOCAL" ]; then
 		echo "building on local system"
 		if ! runBuild 'local'; then
@@ -100,68 +100,38 @@ main() {
 		testOn windows || true
 	fi
 }
-# buildOn ( local | macos | linux | windows )
+# buildOn ( macos | linux | windows )
 #
 #
-buildOn() {
+buildOn() (
 	if [ "$#" -ne 1 ]; then
 		echo "Error: buildOn() requires a single argument" >&2
 		return 1
 	fi
-	FAILS=0
 	case "$1" in
-		local)
-			if [ -n "${MFFER_TEST_NESTED:=}" ]; then
-				# this is not the master test script, everything is defined, just build
-				sh "$MFFER_TEST_DIR/common/build-mffer.sh" || FAILS="$((FAILS + 1))"
-				sh "$MFFER_TEST_DIR/common/build-docs.sh" || FAILS="$((FAILS + 1))"
-				if [ "$FAILS" -gt 0 ]; then
-					return 1
-				else
-					return 0
-				fi
-			fi
-
-			echo "building release on the local system" >"$VERBOSEOUT"
-			MFFER_BUILD_OS="local"
-			echo "PASSED building release on the local system" >"$VERBOSEOUT"
-			return 0
-			;;
 		macos | linux | windows)
-			if ! setVm "$1" || [ -z "$MFFER_TEST_VM" ]; then
-				echo "SKIPPED building release on $1" >"$VERBOSEOUT"
+			echo "building release on $1 using VM '$(getVm "$1")'"
+			if ! resetVm "$(getVm "$1")" "${MFFER_TEST_VM_SNAPSHOT:-}" \
+				|| ! setBuildEnv "$(getVm "$1")"; then
+				echo "SKIPPED building release on $1"
 				return 1
-			else
-				echo "building release on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
-				MFFER_TEST_OS="$1"
-				MFFER_BUILD_OS="$1"
-				if ! resetVm "$MFFER_TEST_VM" "$MFFER_TEST_VM_SNAPSHOT" \
-					|| ! setBuildEnv "$1"; then
-					echo "SKIPPED building release on $1" >"$VERBOSEOUT"
-					return 1
-				fi
-				updateEnv
-				runOnVm build-mffer \
-					|| FAILS="$((FAILS + 1))"
-				runOnVm build-docs \
-					|| FAILS="$((FAILS + 1))"
-				if [ "${FAILS:=0}" -gt 0 ]; then
-					echo "FAILED building release on $1" >&2
-					return 1
-				fi
-				if ! scp -qr "$MFFER_TEST_VM_HOSTNAME:tmpdir/built-on-$1" "$MFFER_TEST_TMPDIR"; then
-					echo "Warning: Unable to obtain releases built on $1" >&2
-				fi
-				echo "PASSED building release on $1" >"$VERBOSEOUT"
-				return 0
 			fi
+			if ! remoteBuild "$(getVmHostname "$1")" 'local'; then
+				echo "FAILED building release on $1" >&2
+				return 1
+			fi
+			if ! scp -qr "$(getVmHostname "$1"):mffer/release" "$MFFER_TEST_TMPDIR/built-on-$1"; then
+				echo "Warning: Unable to obtain releases built on $1" >&2
+			fi
+			echo "PASSED building release on $1"
+			return 0
 			;;
 		*)
 			echo "Error: Unknown system '$1'; unable to build" >&2
 			return 1
 			;;
 	esac
-}
+)
 # checkVm [ system | name ] [ snapshot ]
 #
 # ensures a VM running `system` or with the name `name` (default $MFFER_TEST_VM)
@@ -210,6 +180,22 @@ checkVm() {
 	fi
 	return 0
 }
+# cleanup
+#
+# function to be run just before exiting the script (that is, the one sourcing this one)
+cleanup() (
+	exitstatus="$?"
+	trap - EXIT
+	echo "Cleaning up"
+	if [ -n "${MFFER_TEST_TMPDIR:-}" ]; then
+		if ! rm -rf "$MFFER_TEST_TMPDIR" \
+			&& ! { chmod -R u+w "$MFFER_TEST_TMPDIR" && rm -rf "$MFFER_TEST_TMPDIR"; }; then
+			echo "Error: Unable to delete temporary directory '$MFFER_TEST_TMPDIR'" >&2
+			if [ "$exitstatus" -eq 0 ]; then exitstatus=1; fi
+		fi
+	fi
+	exit "$exitstatus"
+)
 getArgs() {
 	nonargs=''
 	# If any are already defined from env, pretend they're included explicitly
@@ -304,30 +290,24 @@ getVm() {
 	fi
 	return 1
 }
-installOnVm() {
-	if [ "$#" -ne "1" ] || [ -z "$1" ]; then
-		echo "Error: installOnVm() requires a single argument" >&2
+installOnVm() (
+	if ! hostname="$(getVmHostname "${1:-}")"; then
+		echo "Error: Unable to get hostname for VM '${1:-}'" >&2
 		return 1
 	fi
-	if [ -z "${MFFER_TEST_VM:=}" ]; then
-		echo "Error: MFFER_TEST_VM is empty." >&2
-		return 1
-	fi
-	if ! MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"; then
-		echo "Error: Unable to get hostname for VM '$MFFER_TEST_VM'" >&2
-		return 1
-	fi
-	case "$1" in
+	os="$(getVmOs "$1")"
+	hostname="$(getVmHostname "$1")"
+	case "${2:-}" in
 		shell)
-			if [ "$MFFER_TEST_OS" = "windows" ]; then
-				if ! scp -q "$MFFER_TEST_DIR/windows/disable-uac.bat" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-					|| ! ssh -q windows-testing cmd.exe /C disable-uac.bat >"$DEBUGOUT" \
-					|| ! ssh -q windows-testing cmd.exe /C shutdown /s >"$DEBUGOUT" \
-					|| ! waitForShutdown "$MFFER_TEST_VM" \
-					|| ! startVm "$MFFER_TEST_VM" \
-					|| ! waitForStartup "$MFFER_TEST_VM" \
-					|| ! scp -q "$MFFER_TEST_DIR/windows/install-shell.bat" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-					|| ! ssh -q windows-testing cmd.exe /C install-shell.bat >"$DEBUGOUT"; then
+			if [ "$os" = "windows" ]; then
+				if ! scp -q "$MFFER_TREE_ROOT/tools/testing/windows/disable-uac.bat" "$hostname": \
+					|| ! ssh -q "$hostname" cmd.exe /C disable-uac.bat \
+					|| ! ssh -q "$hostname" cmd.exe /C shutdown /s \
+					|| ! waitForShutdown "$(getVm "$1")" \
+					|| ! startVm "$(getVm "$1")" \
+					|| ! waitForStartup "$(getVm "$1")" \
+					|| ! scp -q "$MFFER_TREE_ROOT/tools/testing/windows/install-shell.bat" "$hostname": \
+					|| ! ssh -q "$hostname" cmd.exe /C install-shell.bat; then
 					echo "Error: Unable to install shell on Windows" >&2
 					return 1
 				fi
@@ -346,9 +326,9 @@ installOnVm() {
 			fi
 			;;
 		git)
-			if [ "$MFFER_TEST_OS" = "macos" ]; then
+			if [ "$os" = "macos" ]; then
 				runOnVm install-commandlinetools || return 1
-			elif [ "$MFFER_TEST_OS" = "linux" ]; then
+			elif [ "$os" = "linux" ]; then
 				runOnVm install-git || return 1
 			fi
 			true
@@ -368,7 +348,7 @@ installOnVm() {
 			true
 			;;
 		java)
-			if [ "$MFFER_TEST_OS" = "macos" ]; then
+			if [ "$os" = "macos" ]; then
 				runOnVm install-temurin || return 1
 			fi
 			;;
@@ -379,38 +359,21 @@ installOnVm() {
 			fi
 			;;
 		*)
-			echo "Error: No recipe to install '$1' on virtual machine" >&2
+			echo "Error: No recipe to install '$2' on virtual machine" >&2
 			return 1
 			;;
 	esac
-}
-runOnVm() {
-	if [ "$#" -eq 0 ]; then
-		echo "Error: runOnVm() requires one or more arguments" >&2
-		return 1
-	fi
-	if [ -z "${MFFER_TEST_OS:=}" ]; then
-		echo "Error: MFFER_TEST_OS is empty" >&2
-	fi
+)
+runOnVm() (
 	script=""
-	if ! script="$(getScript "$1")" || [ -z "$script" ]; then
+	if ! script="$(getScript "$2")" || [ -z "$script" ]; then
 		echo "Error: Unable to find script for '$1'" >&2
 		return 1
 	fi
-	scp "$script" "$MFFER_TEST_VM_HOSTNAME:" >"$DEBUGOUT"
-	basename="$(basename "$script")"
+	vmscript="mffer/${script#"$MFFER_TREE_ROOT"}"
 	if [ "$script" != "${script%.bat}" ]; then
 		shell="cmd.exe"
-		scriptfile="runscript.bat"
-		# shellcheck disable=SC2087 # allow expansion of the below variables on the client side
-		ssh -q "$MFFER_TEST_VM_HOSTNAME" "cmd.exe /C more > $scriptfile" <<-EOF
-			${DEBUG:+@echo off}
-			set DEBUGOUT=NUL
-			${DEBUG:+set DEBUGOUT=CON}
-			set VERBOSEOUT=NUL
-			${VERBOSE:+set VERBOSEOUT=CON}
-			$basename
-		EOF
+		scriptfile="$vmscript"
 	else
 		shell="sh"
 		scriptfile="runscript.sh"
@@ -418,30 +381,11 @@ runOnVm() {
 		ssh -q "$MFFER_TEST_VM_HOSTNAME" "sh -c 'cat > $scriptfile'" <<-EOF
 			#!/bin/sh
 
-			export DEBUG="$DEBUG"
-			export VERBOSE="$VERBOSE"
-			if [ -n "$DEBUG" ]; then set -x; fi
-			if [ ! -w "/dev/stdout" ]; then
-				DEBUGOUT="/dev/null"
-				VERBOSEOUT="/dev/null"
-			else
-				DEBUGOUT="${DEBUGOUT:-/dev/null}"
-				VERBOSEOUT="${VERBOSEOUT:-/dev/null}"
-			fi
-			export DEBUGOUT VERBOSEOUT
-
-			export MFFER_TEST_TMPDIR="tmpdir"
-			export MFFER_TEST_SOURCE="mffer-source"
-			export MFFER_TEST_BINDIR=mffer
-			export MFFER_TEST_OS="$MFFER_TEST_OS"
-			export MFFER_TEST_COMMIT="$MFFER_TEST_COMMIT"
-			export MFFER_BUILD_OS="$MFFER_BUILD_OS"
-			export PYTHON_VERSION="$PYTHON_VERSION"
 			export PATH="$PATH:$HOME/.dotnet"
 			# For MSYS2 (e.g., Git Bash), disable the "automatic path mangling".
 			# See https://www.msys2.org/wiki/Porting/#filesystem-namespaces.
 			export MSYS2_ARG_CONV_EXCL='*'
-			sh $basename
+			sh "$vmscript"
 		EOF
 	fi
 	# Git Bash (MSYS2) behaves strangely over Windows 10 OpenSSH. It requires
@@ -483,31 +427,51 @@ runOnVm() {
 	# $0 set to arg1 and $1 set to arg2 When double-quoting on other systems,
 	# ssh -q hostname '"command arg1 arg2"'
 
-	ssh -q "$MFFER_TEST_VM_HOSTNAME" "$shell $scriptfile"
-}
-setBuildEnv() {
-	if [ -z "${MFFER_TEST_VM:=}" ]; then
-		echo "Error: MFFER_TEST_VM is empty." >&2
+	ssh -q "$(getVmHostname "${1:-}")" "$shell $scriptfile"
+)
+setBuildEnv() (
+	if ! installOnVm "$1" shell \
+		|| ! installOnVm "$1" dotnet \
+		|| ! installOnVm "$1" node \
+		|| ! installOnVm "$1" git \
+		|| ! installOnVm "$1" python \
+		|| ! installOnVm "$1" doxygen; then
+		echo "Error: Unable to set up development environment on VM '${1:-}'" >&2
 		return 1
 	fi
-	MFFER_TEST_VM_HOSTNAME="$(getVmHostname "$MFFER_TEST_VM")"
-	if ! installOnVm shell \
-		|| ! installOnVm dotnet \
-		|| ! installOnVm node \
-		|| ! installOnVm git \
-		|| ! installOnVm python \
-		|| ! installOnVm doxygen; then
-		echo "Error: Unable to set up development environment on VM '$MFFER_TEST_VM'" >&2
+	hostname="$(getVmHostname "${1:-}")"
+	if ! dotnet clean "$MFFER_TREE_ROOT" \
+		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
+		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$hostname": >"$DEBUGOUT" \
+		|| ! ssh -q "$hostname" mkdir -p mffer \
+		|| ! ssh -q "$hostname" tar -xf mffer-tree.tar -m -C mffer; then
+		echo "Error: Unable to copy source code to VM '$hostname'" >&2
 		return 1
 	fi
-	if ! dotnet clean "$MFFER_TEST_SOURCE" >"$DEBUGOUT" \
-		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TEST_SOURCE" . \
-		|| ! scp -q "$MFFER_TEST_TMPDIR/mffer-tree.tar" "$MFFER_TEST_VM_HOSTNAME": >"$DEBUGOUT" \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" mkdir -p mffer-source \
-		|| ! ssh -q "$MFFER_TEST_VM_HOSTNAME" tar -xf mffer-tree.tar -m -C mffer-source; then
-		echo "Error: Unable to copy source code to VM '$MFFER_TEST_VM'" >&2
+)
+# setTmpdir
+#
+# If MFFER_TEST_TMPDIR doesn't already point to an existing directory, create a
+# temporary directory and set MFFER_TEST_TMPDIR to its name
+setTmpdir() {
+	if [ -n "${MFFER_TEST_TMPDIR:=}" ]; then
+		if [ ! -d "$MFFER_TEST_TMPDIR" ] \
+			|| ! output="$(ls "$MFFER_TEST_TMPDIR")"; then
+			echo "$output"
+			echo "Error: 'MFFER_TEST_TMPDIR' is set to '$MFFER_TEST_TMPDIR'," >&2
+			echo "       but that isn't working." >&2
+			return 1
+		fi
+		return 0
+	fi
+	cmd="mktemp -d -t mffer-test"
+	if isSudo; then cmd="sudo -u $SUDO_USER $cmd"; fi
+	if ! MFFER_TEST_TMPDIR="$($cmd)" \
+		|| [ -z "$MFFER_TEST_TMPDIR" ]; then
+		echo "Error: Unable to create temporary directory" >&2
 		return 1
 	fi
+	return 0
 }
 # sshIsRunning
 #
@@ -536,13 +500,11 @@ testOn() {
 		return 1
 	fi
 	FAILS=0
-	MFFER_TEST_OS=""
 	case "$1" in
 		local)
 			echo "Testing on the local system" >"$VERBOSEOUT"
 			MFFER_BUILD_OS=""
 			setBuildOs
-			MFFER_TEST_OS="$MFFER_BUILD_OS"
 			MFFER_BUILD_OS="local"
 			updateEnv || return 1
 			if ! runTest mffer; then
@@ -570,7 +532,6 @@ testOn() {
 				return 1
 			else
 				echo "testing on $1 using VM '$MFFER_TEST_VM'" >"$VERBOSEOUT"
-				MFFER_TEST_OS="$1"
 				passed=''
 				for release in linux macos windows; do
 					releasefails=0

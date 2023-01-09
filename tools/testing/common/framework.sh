@@ -102,6 +102,20 @@ isSourceTreeClean() (
 	fi
 	return 0
 )
+remoteBuild() {
+	remoteRun "${1:-}" "build-${2:-}" || return 1
+}
+remoteInstall() {
+	remoteRun "${1:-}" "install-${2:-}" || return 1
+}
+remoteRun() (
+	scriptpath="$(getScript "${2:-}")" || return 1
+	scriptpath="mffer/${scriptpath#"$(getTestDir)"}"
+	ssh -q "${1:-}" "sh '$scriptpath'" || return 1
+)
+remoteTest() {
+	remoteRun "${1:-}" "test-${2:-}" || return 1
+}
 runBuild() {
 	runScript "build-${1:-}" || return 1
 }

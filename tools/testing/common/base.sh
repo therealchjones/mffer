@@ -341,6 +341,5 @@ updateEnv() {
 		getEnv >>"$GITHUB_ENV"
 	fi
 }
-setTmpdir
-trap cleanup EXIT
+
 updateEnv
