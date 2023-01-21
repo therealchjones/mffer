@@ -119,24 +119,6 @@ getTempDir() {
 getTime() {
 	date +%s
 }
-# isRoot
-#
-# Returns 0 if the effective user id is 0, i.e., the root user; returns 1 otherwise
-isRoot() {
-	[ 0 = "$(id -u)" ]
-}
-# isSudo
-#
-# Evaluates whether the effective user is root and sudo user is not root
-# (regular). Returns 0 if the real (sudo) user is a regular user and the
-# effective user is root, otherwise returns 1.
-isSudo() {
-	if ! isRoot || [ -z "$SUDO_UID" ] || [ "$SUDO_UID" = "0" ]; then
-		return 1
-	else
-		return 0
-	fi
-}
 # isTreeClean dirname
 #
 # Evaluates whether dirname is in a clean git repository, i.e., one without

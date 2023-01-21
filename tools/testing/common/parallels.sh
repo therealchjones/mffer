@@ -122,6 +122,22 @@ getVmHostname() {
 	fi
 	echo "$1" | tr 'A-Z ' 'a-z-'
 }
+getVmOs() {
+	case "${1:-}" in
+		linux | macos | windows)
+			echo "$1"
+			return 0
+			;;
+		*\ Testing)
+			echo "$1" | cut -f1 -d' ' | tr '[:upper:]' '[:lower:]'
+			return 0
+			;;
+		*)
+			echo "Unable to determine OS of VM '${1:-}'" >&2
+			return 1
+			;;
+	esac
+}
 # getVmStatus vmname
 #
 # Prints the non-transient status ('running','suspended', or 'stopped') for the
@@ -229,7 +245,7 @@ resetVm() {
 		return 1
 	fi
 	if ! snapshotid="$(getSnapshotId "$1" "$2")"; then return 1; fi
-	echo "resetting virtual machine '$1'" >"$VERBOSEOUT"
+	echo "resetting virtual machine '$1'"
 	tries=5
 	vm_status=""
 	vm_status="$(getVmStatus "$1")" || return 1
@@ -240,7 +256,7 @@ resetVm() {
 	if [ "$vm_status" != "stopped" ]; then # For no good reason, can't switch a suspended or running VM
 		stopVm "$1" || return 1
 	fi
-	if ! "$PRLCTL" snapshot-switch "$1" --id "$snapshotid" >"$DEBUGOUT"; then
+	if ! "$PRLCTL" snapshot-switch "$1" --id "$snapshotid"; then
 		echo "Error: Unable to reset VM '$1' to snapshot '$2'" >&2
 		return 1
 	fi

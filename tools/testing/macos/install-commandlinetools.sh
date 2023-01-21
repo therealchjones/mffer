@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "Installing Xcode Command Line Tools..." >"${VERBOSEOUT:=/dev/null}"
+echo "Installing Xcode Command Line Tools..."
 CMDLINETOOLTMP="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
 touch "$CMDLINETOOLTMP"
 if ! CMDLINETOOLS="$(softwareupdate -l 2>/dev/null \

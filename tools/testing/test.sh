@@ -314,34 +314,34 @@ installOnVm() (
 			fi
 			;;
 		dotnet)
-			if ! runOnVm install-dotnet; then
+			if ! runOnVm "$hostname" install-dotnet; then
 				echo "Error: Unable to install .NET SDK" >&2
 				return 1
 			fi
 			;;
 		node)
-			if ! runOnVm install-node; then
+			if ! runOnVm "$hostname" install-node; then
 				echo "Error: unable to install Node.js" >&2
 				return 1
 			fi
 			;;
 		git)
 			if [ "$os" = "macos" ]; then
-				runOnVm install-commandlinetools || return 1
+				runOnVm "$hostname" install-commandlinetools || return 1
 			elif [ "$os" = "linux" ]; then
-				runOnVm install-git || return 1
+				runOnVm "$hostname" install-git || return 1
 			fi
 			true
 			;;
 		python)
-			if ! runOnVm install-python; then
+			if ! runOnVm "$hostname" install-python; then
 				echo "Error: unable to install Python" >&2
 				return 1
 			fi
 			true
 			;;
 		doxygen)
-			if ! runOnVm install-doxygen; then
+			if ! runOnVm "$hostname" install-doxygen; then
 				echo "Error: unable to install Doxygen" >&2
 				return 1
 			fi
@@ -349,24 +349,45 @@ installOnVm() (
 			;;
 		java)
 			if [ "$os" = "macos" ]; then
-				runOnVm install-temurin || return 1
+				runOnVm "$hostname" install-temurin || return 1
 			fi
 			;;
 		ghidra)
-			if ! runOnVm install-ghidra; then
+			if ! runOnVm "$hostname" install-ghidra; then
 				echo "Error: unable to install Ghidra" >&2
 				return 1
 			fi
 			;;
 		*)
-			echo "Error: No recipe to install '$2' on virtual machine" >&2
+			echo "Error: No recipe to install '$2' on virtual machine '$1'" >&2
 			return 1
 			;;
 	esac
 )
+# isRoot
+#
+# Returns 0 if the effective user id is 0, i.e., the root user; returns 1 otherwise
+isRoot() {
+	[ 0 = "$(id -u)" ]
+}
+# isSudo
+#
+# Evaluates whether the effective user is root and sudo user is not root
+# (regular). Returns 0 if the real (sudo) user is a regular user and the
+# effective user is root, otherwise returns 1.
+isSudo() {
+	if ! isRoot || [ -z "$SUDO_UID" ] || [ "$SUDO_UID" = "0" ]; then
+		return 1
+	else
+		return 0
+	fi
+}
 runOnVm() (
+	# TODO: this finds the wrong script if VM and host have different OS
+	# Can probably fix by having a wrapper script we run from common/ like
+	# `install-build-environment`.
 	script=""
-	if ! script="$(getScript "$2")" || [ -z "$script" ]; then
+	if ! script="$(getScript "${2:-}")" || [ -z "$script" ]; then
 		echo "Error: Unable to find script for '$1'" >&2
 		return 1
 	fi
@@ -378,7 +399,7 @@ runOnVm() (
 		shell="sh"
 		scriptfile="runscript.sh"
 		# shellcheck disable=SC2087 # allow expansion of the below variables on the client side
-		ssh -q "$MFFER_TEST_VM_HOSTNAME" "sh -c 'cat > $scriptfile'" <<-EOF
+		ssh -q "$(getVmHostname "$1")" "sh -c 'cat > $scriptfile'" <<-EOF
 			#!/bin/sh
 
 			export PATH="$PATH:$HOME/.dotnet"
@@ -430,15 +451,6 @@ runOnVm() (
 	ssh -q "$(getVmHostname "${1:-}")" "$shell $scriptfile"
 )
 setBuildEnv() (
-	if ! installOnVm "$1" shell \
-		|| ! installOnVm "$1" dotnet \
-		|| ! installOnVm "$1" node \
-		|| ! installOnVm "$1" git \
-		|| ! installOnVm "$1" python \
-		|| ! installOnVm "$1" doxygen; then
-		echo "Error: Unable to set up development environment on VM '${1:-}'" >&2
-		return 1
-	fi
 	hostname="$(getVmHostname "${1:-}")"
 	if ! dotnet clean "$MFFER_TREE_ROOT" \
 		|| ! tar -cf "$MFFER_TEST_TMPDIR"/mffer-tree.tar -C "$MFFER_TREE_ROOT" . \
@@ -448,6 +460,7 @@ setBuildEnv() (
 		echo "Error: Unable to copy source code to VM '$hostname'" >&2
 		return 1
 	fi
+	installOnVm "$1" buildenv || return 1
 )
 # setTmpdir
 #
@@ -478,17 +491,17 @@ setTmpdir() {
 # Returns 0 if able to connect to MFFER_TEST_VM_HOSTNAME on
 # port 22, nonzero otherwise
 sshIsRunning() {
-	if ! command -v nc >"$DEBUGOUT" 2>&1; then
+	if ! command -v nc; then
 		echo "Error: 'nc' command not found" >&2
 		return 1
 	fi
-	nc -z "$MFFER_TEST_VM_HOSTNAME" 22 >"$DEBUGOUT" 2>&1
+	nc -z "$MFFER_TEST_VM_HOSTNAME" 22 2>&1
 }
 # sshWithDebugging
 #
 # Adds the -q flag if DEBUG is empty or null, the -v flag otherwise.
 sshWithDebugging() {
-	if [ -n "$DEBUG" ]; then
+	if [ -n "${DEBUG:-}" ]; then
 		ssh -v "$@"
 	else
 		ssh -q "$@"
