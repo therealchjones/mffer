@@ -14,7 +14,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);docs/**;tools/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
-	<PackageReference Include="AssetsTools.NET" Version="2.0.11" />
+	<PackageReference Include="AssetsTools.NET" Version="3.0-preview2" />
 	<PackageReference Include="Community.Archives.Apk" Version="1.2.0" />
 	<PackageReference Include="GooglePlayStoreApi" Version="1.0.7" />
     <PackageReference Include="MessagePack" Version="2.2.85" />
