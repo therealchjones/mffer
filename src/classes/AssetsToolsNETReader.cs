@@ -51,9 +51,6 @@ namespace Mffer {
 			path = Path.GetFullPath( path );
 			if ( !assetBundles.ContainsKey( path ) ) {
 				BundleFileInstance assetsBundleInstance = assetsManager.LoadBundleFile( path );
-				if ( assetsBundleInstance.file.NumFiles != 1 ) {
-					throw new NotSupportedException( $"Unable to evaluate asset bundle '{path}'; its format is unusual." );
-				}
 				AssetsToolsNETBundle assetsToolsNETBundle = new(
 					path,
 					assetsBundleInstance,
@@ -65,17 +62,17 @@ namespace Mffer {
 				// since we never load an asset bundle without looking for
 				// assets
 				AssetsFileInstance assetFileInst = assetsManager.LoadAssetsFileFromBundle( assetsBundleInstance, 0 );
-				List<AssetFileInfoEx> assetBundleInfos = assetFileInst.table.GetAssetsOfType( (int)AssetClassID.AssetBundle );
+				List<AssetFileInfo> assetBundleInfos = assetFileInst.file.GetAssetsOfType( (int)AssetClassID.AssetBundle );
 				if ( assetBundleInfos.Count != 1 ) throw new NotSupportedException( $"Unable to evaluate asset bundle '{path}'; bundle catalog is invalid." );
-				AssetTypeValueField assetInfoArray = assetsManager.GetTypeInstance( assetFileInst, assetBundleInfos[0] ).GetBaseField().Get( "m_Container" ).Get( "Array" );
+				AssetTypeValueField assetInfoArray = assetsManager.GetBaseField( assetFileInst, assetBundleInfos[0] ).Get( "m_Container" ).Get( "Array" );
 				Dictionary<long, string> assetIDs = new();
-				foreach ( AssetTypeValueField asset in assetInfoArray.children ) {
-					assetIDs.Add( asset[1].Get( "asset" ).Get( "m_PathID" ).GetValue().AsInt64(), asset[0].GetValue().AsString() );
+				foreach ( AssetTypeValueField asset in assetInfoArray.Children ) {
+					assetIDs.Add( asset[1].Get( "asset" ).Get( "m_PathID" ).Value.AsLong, asset[0].AsString );
 				}
-				foreach ( AssetFileInfoEx asset in assetFileInst.table.assetFileInfo ) {
-					if ( assetIDs.ContainsKey( asset.index ) ) {
+				foreach ( AssetFileInfo asset in assetFileInst.file.AssetInfos ) {
+					if ( assetIDs.ContainsKey( asset.PathId ) ) {
 						assetsToolsNETBundle.AssetInfo.Add(
-							assetIDs[asset.index],
+							assetIDs[asset.PathId],
 							asset
 						);
 					}
@@ -93,16 +90,15 @@ namespace Mffer {
 			if ( !assetBundle.Contains( assetName ) )
 				throw new KeyNotFoundException( $"Asset bundle {assetBundle.Path} does not contain an asset named '{assetName}'." );
 			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null ) {
-				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundle.Path].AssetInfo[assetName].index );
+				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundle.Path].AssetInfo[assetName].PathId );
 			}
 			Asset asset = assetBundle.Assets[assetName];
 			AssetsFileInstance assetsFileInstance = assetsManager.LoadAssetsFileFromBundle( assetBundles[assetBundle.Path].AssetBundleInstance, 0 );
-			AssetTypeInstance assetInstance = assetsManager.GetTypeInstance( assetsFileInstance, assetBundles[assetBundle.Path].AssetInfo[assetName] );
-			asset.Name = assetInstance.GetBaseField().Get( "m_Name" ).GetValue().AsString();
-			asset.PathID = assetBundles[assetBundle.Path].AssetInfo[assetName].index;
+			asset.PathID = assetBundles[assetBundle.Path].AssetInfo[assetName].PathId;
+			asset.Name = assetsManager.GetBaseField( assetsFileInstance, asset.PathID ).Get( "m_Name" ).AsString;
 			SortedDictionary<string, GameObject> children = new();
-			foreach ( AssetTypeValueField child in assetInstance.GetBaseField().GetChildrenList() ) {
-				children.Add( child.GetName(), child.ToGameObject() );
+			foreach ( AssetTypeValueField child in assetsManager.GetBaseField( assetsFileInstance, asset.PathID ).Children ) {
+				children.Add( child.FieldName, child.ToGameObject() );
 			}
 			asset.Value = children.ToGameObject().Value;
 			return asset;
@@ -117,18 +113,17 @@ namespace Mffer {
 			CheckAssetBundle( assetBundle );
 			AssetsFileInstance assetsFileInstance =
 				assetsManager.LoadAssetsFileFromBundle( assetBundles[assetBundle.Path].AssetBundleInstance, 0 );
-			foreach ( KeyValuePair<string, AssetFileInfoEx> entry in assetBundles[assetBundle.Path].AssetInfo ) {
+			foreach ( KeyValuePair<string, AssetFileInfo> entry in assetBundles[assetBundle.Path].AssetInfo ) {
 				if ( !assetBundle.Assets.ContainsKey( entry.Key ) || assetBundle.Assets[entry.Key] is null ) {
-					assetBundle.Assets[entry.Key] = new Asset( entry.Value.index );
+					assetBundle.Assets[entry.Key] = new Asset( entry.Value.PathId );
 				}
 				Asset asset = assetBundle.Assets[entry.Key];
 				if ( asset.Value is null ) {
-					AssetTypeInstance assetInstance = assetsManager.GetTypeInstance( assetsFileInstance, entry.Value );
-					asset.Name = assetInstance.GetBaseField().Get( "m_Name" ).GetValue().AsString();
-					asset.PathID = entry.Value.index;
+					asset.PathID = entry.Value.PathId;
+					asset.Name = assetsManager.GetBaseField( assetsFileInstance, asset.PathID ).Get( "m_Name" ).AsString;
 					SortedDictionary<string, GameObject> assetDictionary = new SortedDictionary<string, GameObject>();
-					foreach ( AssetTypeValueField child in assetInstance.GetBaseField().GetChildrenList() ) {
-						assetDictionary.Add( child.GetName(), child.ToGameObject() );
+					foreach ( AssetTypeValueField child in assetsManager.GetBaseField( assetsFileInstance, asset.PathID ).Children ) {
+						assetDictionary.Add( child.FieldName, child.ToGameObject() );
 					}
 					asset.Value = assetDictionary.ToGameObject().Value;
 				}
@@ -164,7 +159,7 @@ namespace Mffer {
 			/// <summary>
 			/// The data on individual assets within this <see cref="AssetBundle"/>
 			/// </summary>
-			internal Dictionary<string, AssetFileInfoEx> AssetInfo { get; }
+			internal Dictionary<string, AssetFileInfo> AssetInfo { get; }
 			/// <summary>
 			/// Creates a new <see cref="AssetsToolsNETBundle"/> from the given objects
 			/// </summary>
@@ -192,26 +187,26 @@ namespace Mffer {
 		/// <returns>a <see cref="GameObject"/> representation of <paramref name="assetField"/></returns>
 		/// <exception cref="ApplicationException"> if the field cannot be converted to a <see cref="GameObject"/></exception>
 		public static GameObject ToGameObject( this AssetTypeValueField assetField ) {
-			if ( assetField.templateField.isArray == true ) {
+			if ( assetField.TemplateField.IsArray == true ) {
 				List<GameObject> array = new();
-				foreach ( AssetTypeValueField child in assetField.GetChildrenList() ) {
+				foreach ( AssetTypeValueField child in assetField.Children ) {
 					array.Add( child.ToGameObject() );
 				}
 				return array.ToGameObject();
-			} else if ( assetField.GetChildrenCount() == 0 ) {
-				if ( assetField.GetValue() is null ) {
+			} else if ( assetField.Children.Count == 0 ) {
+				if ( assetField.Value is null ) {
 					return new GameObject();
 				} else {
-					return assetField.GetValue().AsString().ToGameObject();
+					return assetField.AsString.ToGameObject();
 				}
-			} else if ( assetField.GetChildrenCount() < 0 ) {
-				throw new ApplicationException( $"Unable to convert field '{assetField.GetName()}' to a GameObject" );
-			} else if ( assetField.GetChildrenCount() == 1 && assetField.GetChildrenList()[0].templateField.isArray == true ) {
-				return assetField.GetChildrenList()[0].ToGameObject();
+			} else if ( assetField.Children.Count < 0 ) {
+				throw new ApplicationException( $"Unable to convert field '{assetField.FieldName}' to a GameObject" );
+			} else if ( assetField.Children.Count == 1 && assetField.Children[0].TemplateField.IsArray == true ) {
+				return assetField.Children[0].ToGameObject();
 			} else {
 				SortedDictionary<string, GameObject> dictionary = new();
-				foreach ( AssetTypeValueField child in assetField.GetChildrenList() ) {
-					dictionary.Add( child.GetName(), child.ToGameObject() );
+				foreach ( AssetTypeValueField child in assetField.Children ) {
+					dictionary.Add( child.FieldName, child.ToGameObject() );
 				}
 				return dictionary.ToGameObject();
 			}
