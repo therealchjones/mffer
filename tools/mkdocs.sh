@@ -78,6 +78,8 @@ if [ "True" = "$READTHEDOCS" ]; then # running on the ReadTheDocs servers
 fi
 
 # Dumb workaround for https://github.com/doxygen/doxygen/issues/9362
+# though fixed in current, rtd uses doxygen 1.9.1, so we will continue
+# to use this workaround
 SRCDIR="$(echo "$SRCDIR" | sed 's/\//\\\//g')"
 sed "s/\$(SRCDIR)/$SRCDIR/g" "$CONFIGDIR"/Doxyfile \
 	| DOXYGEN_OUTPUT="$(setdir "$BUILDDIR/doxygen")" doxygen -
@@ -86,4 +88,6 @@ if [ "Y" = "$PREBUILD_ONLY" ]; then
 	exit 0
 fi
 
-sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"
+# sphinx-build -a -b dirhtml -n -c "$CONFIGDIR" "$DOCDIR" "$BUILDDIR/sphinx"
+python -m sphinx -a -T -E -W -n --keep-going -b dirhtml -c "$CONFIGDIR" -d "$BUILDDIR/doctrees" \
+	-D language=en "$DOCDIR" "$BUILDDIR/sphinx"
