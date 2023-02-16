@@ -39,8 +39,10 @@ try:
 except ImportError:
 	pass
 
+from ghidra.app.services import DataTypeManagerService
+from ghidra.app.plugin.core.analysis import DefaultDataTypeManagerService
 from ghidra.app.util.cparser.CPP import PreProcessor, ParseException
-from ghidra.app.util.cparser.C import CParser, ParseException as CParserException
+from ghidra.app.util.cparser.C import CParser, CParserUtils, ParseException as CParserException
 from java.io import ByteArrayOutputStream, ByteArrayInputStream, FileOutputStream, PrintStream
 
 errorDefault = "CParserError.log"
@@ -86,39 +88,37 @@ if not os.access(headerFile,os.F_OK):
 if str(errorLog) == "":
 	errorLog = errorDefault
 
-try:
-	cpp = PreProcessor()
-	cpp.setArgs( [ "-D_GHIDRA_" ] )
-	headerStream = ByteArrayOutputStream()
-	cpp.setOutputStream( headerStream )
-	cpp.parse( str(headerFile) )
-except ParseException as e:
-	println("Unable to parse Il2CppInspector header file '" + headerFile + "'")
-	println("Saving incomplete generated C header file to " + errorLog)
-	try:
-		fileOut = PrintStream(FileOutputStream(errorLog))
-		fileOut.println(headerStream)
-	except:
-		println("Unable to save generated file.")
-	finally:
-		println("Last successfully parsed token '" + e.currentToken.image + "'")
-		println("ends at line " + str(e.currentToken.endLine) + ", column " + str(e.currentToken.endColumn) )
-		fileOut.close()
-		headerStream.close()
-		errorExit()
+def containsDtm(dtmarray, dtmname):
+    for dtm in dtmarray:
+        if dtm.getName() == dtmname:
+            return True
+    return False
 
-dtMgr = currentProgram.getDataTypeManager()
-cpp.getDefinitions().populateDefineEquates(dtMgr)
+dataTypeService = None
 
-cParser = CParser(dtMgr, True, None)
-inputStream = ByteArrayInputStream(headerStream.toByteArray())
-try:
-	cParser.parse( inputStream )
-except CParserException as e:
-	println("Unable to create C data types:")
-	print(e.getMessage())
-	inputStream.close()
-	headerStream.close()
-	errorExit()
+if state is not None and state.getTool() is not None:
+    dataTypeService = state.getTool.getService(DataTypeManagerService)
+else: # as when in headless mode
+    dataTypeService = DefaultDataTypeManagerService()
+
+openDtms = dataTypeService.getDataTypeManagers()
+if not containsDtm( openDtms, "generic_clib" ):
+    dataTypeService.openDataTypeArchive("generic_clib")
+    openDtms = dataTypeService.getDataTypeManagers()
+builtInDtm = dataTypeService.getBuiltInDataTypesManager()
+if not containsDtm ( openDtms, builtInDtm.getName() ):
+    openDtms.append(builtInDtm)
+
+parserOutput = CParserUtils.parseHeaderFiles(
+    openDtms,
+    [ headerFile ],
+    [ "-D_GHIDRA_" ],
+    getCurrentProgram().getDataTypeManager(),
+    PreProcessor(),
+    getMonitor()
+)
+
+if parserOutput is not None and len(parserOutput) > 0:
+    errorExit(parserOutput)
 
 println(successString)

@@ -253,11 +253,11 @@ I2CIDIR="$MFFTEMPDIR/Il2CppInspector"
 HEADERDIR="$I2CIDIR/Il2CppInspector.CLI/cpp/appdata"
 SCRIPTDIR="$I2CIDIR/Il2CppInspector.CLI"
 
-# Should really be pinning a specific version (or maybe forking my own)
-git clone "$GITOPTS" --recursive https://github.com/djkaty/Il2CppInspector "$I2CIDIR" >"$DEBUGOUT" || {
+if ! git clone "$GITOPTS" --recurse-submodules --branch 2023.1 \
+	https://github.com/therealchjones/Il2CppInspector "$I2CIDIR" >"$DEBUGOUT"; then
 	echo 'Unable to obtain Il2CppInspector. Exiting.' >&2
 	exit 1
-}
+fi
 echo 'Building Il2CppInspector...' >"$VERBOSEOUT"
 OS=""
 case "$(uname)" in
