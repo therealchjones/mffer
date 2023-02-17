@@ -312,7 +312,7 @@ namespace Mffer {
 		/// </summary>
 		/// <param name="param">Parameters in URL (HTTP GET) format</param>
 		/// <returns>A decrypted document in <see cref="JsonDocument"/> format</returns>
-		static JsonDocument GetWww( string param ) {
+		static public JsonDocument GetWww( string param ) {
 			HttpRequestMessage request = GetWwwRequest( param );
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
 			string text = null;
@@ -320,6 +320,14 @@ namespace Mffer {
 				text = ResponseDecrypt( responseBytes );
 			} else {
 				text = Encoding.UTF8.GetString( responseBytes );
+			}
+			if ( text[0] != '{' ) {
+				string key = GetPacketKey();
+				byte[] keyBytes = Encoding.UTF8.GetBytes( key );
+				byte[] decryptedBytes = DecryptBytes( responseBytes, keyBytes, keyBytes );
+				int decompressedLength = Snappy.GetUncompressedLength( decryptedBytes );
+				byte[] decompressedBytes = Snappy.DecompressToArray( decryptedBytes );
+				text = Encoding.UTF8.GetString( decompressedBytes );
 			}
 			return JsonDocument.Parse( text );
 		}

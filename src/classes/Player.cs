@@ -35,6 +35,23 @@ namespace Mffer {
 		/// </summary>
 		public Player() : base() {
 		}
+		public Player( long uID ) : this() {
+
+		}
+		public Player( string nick ) : this() {
+			string encodedNick = Convert.ToBase64String( System.Text.Encoding.UTF8.GetBytes( nick ) );
+			JsonDocument result = NetworkData.GetWww( "SearchUID?targetNick=" + encodedNick );
+			JsonElement playerJson;
+			if ( !result.RootElement.TryGetProperty( "desc", out JsonElement jsonDesc )
+				|| !jsonDesc.TryGetProperty( "targetUser", out playerJson ) ) {
+				throw new Exception( "Unable to obtain player data" );
+			}
+			JsonElement playerData = playerJson.Clone();
+			result.Dispose();
+			Load( playerData );
+			GetPlayerData( Id );
+			// Now see UserInfoData.Parse()
+		}
 		/// <summary>
 		/// Creates an instance of the <see cref="Player"/> class with data from the
 		/// provided <see cref="JsonElement"/>
@@ -58,6 +75,10 @@ namespace Mffer {
 				&& tempJson.ValueKind == JsonValueKind.Number
 				&& tempJson.TryGetInt64( out long tempLong ) )
 				Id = tempLong;
+		}
+		public JsonDocument GetPlayerData( long playerId ) {
+			JsonDocument result = NetworkData.GetWww( $"ViewBuddyInfo?buddyUID={playerId.ToString()}" );
+			return result;
 		}
 		/// <summary>
 		/// Represents the settings and data for the current state of a
