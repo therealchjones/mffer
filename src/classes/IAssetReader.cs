@@ -13,8 +13,9 @@ namespace Mffer {
 		/// <param name="name">name of <see cref="Asset"/> to seek</param>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> to
 		/// search</param>
-		/// <returns><c>true</c> if <paramref name="assetBundle"/> contains <paramref
-		/// name="name"/>, <c>false</c> otherwise</returns>
+		/// <returns><c>true</c> if <paramref name="assetBundle"/> contains an
+		/// asset named <paramref name="name"/> or an asset representing a class
+		/// named <paramref name="name"/>, <c>false</c> otherwise</returns>
 		public bool Contains( string name, AssetBundle assetBundle );
 		/// <summary>
 		/// Loads data from a file into a new <see cref="AssetBundle"/>
@@ -26,7 +27,7 @@ namespace Mffer {
 		/// <summary>
 		/// Obtain an <see cref="Asset"/> from an <see cref="AssetBundle"/>
 		/// </summary>
-		/// <param name="assetName">name of the <see cref="Asset"/></param>
+		/// <param name="assetName">name of the <see cref="Asset"/> or a class name represented by the asset</param>
 		/// <param name="assetBundle"><see cref="AssetBundle"/> containing the
 		/// <see cref="Asset"/></param>
 		/// <returns></returns>

@@ -31,7 +31,13 @@ namespace Mffer {
 		/// <inheritdoc/>
 		public bool Contains( string name, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
-			return assetBundles[assetBundle.Path].AssetInfo.ContainsKey( name );
+			return Contains( name, assetBundles[Path.GetFullPath( assetBundle.Path )] );
+		}
+		private bool Contains( string name, AssetsToolsNETBundle assetBundle ) {
+			if ( assetBundle.AssetInfo.ContainsKey( name ) ) return true;
+			if ( assetBundle.Classes.ContainsKey( name )
+				&& assetBundle.AssetInfo.ContainsKey( assetBundle.Classes[name] ) ) return true;
+			return false;
 		}
 		/// <inheritdoc/>
 		/// <exception cref="ArgumentNullException"> if <paramref name="path"/>
@@ -62,21 +68,39 @@ namespace Mffer {
 				// since we never load an asset bundle without looking for
 				// assets
 				AssetsFileInstance assetFileInst = assetsManager.LoadAssetsFileFromBundle( assetsBundleInstance, 0 );
-				List<AssetFileInfo> assetBundleInfos = assetFileInst.file.GetAssetsOfType( (int)AssetClassID.AssetBundle );
+				List<AssetFileInfo> assetBundleInfos = assetFileInst.file.GetAssetsOfType( AssetClassID.AssetBundle );
 				if ( assetBundleInfos.Count != 1 ) throw new NotSupportedException( $"Unable to evaluate asset bundle '{path}'; bundle catalog is invalid." );
 				AssetTypeValueField assetInfoArray = assetsManager.GetBaseField( assetFileInst, assetBundleInfos[0] ).Get( "m_Container" ).Get( "Array" );
 				Dictionary<long, string> assetIDs = new();
+				Dictionary<long, AssetTypeValueField> assetCatalog = new();
 				foreach ( AssetTypeValueField asset in assetInfoArray.Children ) {
 					assetIDs.Add( asset[1].Get( "asset" ).Get( "m_PathID" ).Value.AsLong, asset[0].AsString );
+					assetCatalog.Add( asset[1].Get( "asset" ).Get( "m_PathID" ).Value.AsLong, asset );
 				}
-				foreach ( AssetFileInfo asset in assetFileInst.file.AssetInfos ) {
-					if ( assetIDs.ContainsKey( asset.PathId ) ) {
+				foreach ( AssetFileInfo asset in assetFileInst.file.GetAssetsOfType( AssetClassID.TextAsset ) ) {
+					if ( !assetIDs.ContainsKey( asset.PathId ) ) {
+						throw new KeyNotFoundException( $"Unable to identify asset with path ID {asset.PathId}" );
+					} else {
 						assetsToolsNETBundle.AssetInfo.Add(
 							assetIDs[asset.PathId],
 							asset
 						);
 					}
-					// probably still need to do something here with MonoBehaviors & MonoScripts
+				}
+				Dictionary<long, string> scriptClasses = new();
+				foreach ( AssetFileInfo script in assetFileInst.file.GetAssetsOfType( AssetClassID.MonoScript ) ) {
+					string className = assetsManager.GetBaseField( assetFileInst, script ).Get( "m_ClassName" ).AsString;
+					scriptClasses.Add( script.PathId, className );
+				}
+				Dictionary<long, string> classNames = new();
+				foreach ( AssetFileInfo behaviour in assetFileInst.file.GetAssetsOfType( AssetClassID.MonoBehaviour ) ) {
+					AssetTypeValueField behaviourAsset = assetsManager.GetBaseField( assetFileInst, behaviour );
+					long scriptPathId = behaviourAsset.Get( "m_Script" ).Get( "m_PathID" ).AsLong;
+					if ( !scriptClasses.ContainsKey( scriptPathId ) ) {
+						throw new KeyNotFoundException( "Unable to identify script class for behaviour" );
+					}
+					assetsToolsNETBundle.Classes.Add( scriptClasses[scriptPathId], assetIDs[behaviour.PathId] );
+					assetsToolsNETBundle.AssetInfo.Add( assetIDs[behaviour.PathId], behaviour );
 				}
 			}
 			return assetBundles[path].AssetBundle;
@@ -87,13 +111,18 @@ namespace Mffer {
 		/// within the provided <see cref="AssetBundle"/></exception>
 		public Asset GetAsset( string assetName, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
-			if ( !assetBundle.Contains( assetName ) )
+			string assetBundlePath = Path.GetFullPath( assetBundle.Path );
+			AssetsToolsNETBundle assetNETBundle = assetBundles[assetBundlePath];
+			if ( !Contains( assetName, assetNETBundle ) )
 				throw new KeyNotFoundException( $"Asset bundle {assetBundle.Path} does not contain an asset named '{assetName}'." );
-			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null ) {
-				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundle.Path].AssetInfo[assetName].PathId );
+			if ( !assetNETBundle.AssetInfo.ContainsKey( assetName ) && assetNETBundle.Classes.ContainsKey( assetName ) ) {
+				assetName = assetNETBundle.Classes[assetName];
+			}
+			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null || assetBundle.Assets[assetName].Value is null ) {
+				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundlePath].AssetInfo[assetName].PathId );
 			}
 			Asset asset = assetBundle.Assets[assetName];
-			AssetsFileInstance assetsFileInstance = assetsManager.LoadAssetsFileFromBundle( assetBundles[assetBundle.Path].AssetBundleInstance, 0 );
+			AssetsFileInstance assetsFileInstance = assetsManager.LoadAssetsFileFromBundle( assetBundles[assetBundlePath].AssetBundleInstance, 0 );
 			asset.PathID = assetBundles[assetBundle.Path].AssetInfo[assetName].PathId;
 			asset.Name = assetsManager.GetBaseField( assetsFileInstance, asset.PathID ).Get( "m_Name" ).AsString;
 			SortedDictionary<string, GameObject> children = new();
@@ -106,7 +135,9 @@ namespace Mffer {
 		/// <inheritdoc/>
 		public List<string> GetAllAssetNames( AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
-			return assetBundles[assetBundle.Path].AssetInfo.Keys.ToList();
+			AssetsToolsNETBundle assetToolsNetBundle = assetBundles[Path.GetFullPath( assetBundle.Path )];
+			List<string> fullList = assetToolsNetBundle.AssetInfo.Keys.ToList();
+			return fullList;
 		}
 		/// <inheritdoc/>
 		public List<Asset> GetAllAssets( AssetBundle assetBundle ) {
@@ -140,7 +171,7 @@ namespace Mffer {
 			if ( assetBundle is null ) throw new ArgumentNullException( nameof( assetBundle ) );
 			if ( String.IsNullOrEmpty( assetBundle.Path ) ) throw new InvalidOperationException( "No path found for asset bundle" );
 			string path = Path.GetFullPath( assetBundle.Path );
-			if ( !assetBundles.ContainsKey( assetBundle.Path ) ) throw new InvalidOperationException( "This asset bundle was not loaded by this reader." );
+			if ( !assetBundles.ContainsKey( path ) ) throw new InvalidOperationException( "This asset bundle was not loaded by this reader." );
 		}
 		/// <summary>
 		/// Represents the collected objects associated with a single <see
@@ -161,6 +192,10 @@ namespace Mffer {
 			/// </summary>
 			internal Dictionary<string, AssetFileInfo> AssetInfo { get; }
 			/// <summary>
+			/// A mapping of class names to asset paths
+			/// </summary>
+			internal Dictionary<string, string> Classes { get; }
+			/// <summary>
 			/// Creates a new <see cref="AssetsToolsNETBundle"/> from the given objects
 			/// </summary>
 			/// <param name="path">Filesystem path to the <see cref="AssetBundle"/></param>
@@ -171,6 +206,7 @@ namespace Mffer {
 				AssetBundle.Path = path;
 				AssetBundleInstance = bundleFileInstance;
 				AssetInfo = new();
+				Classes = new();
 			}
 		}
 	}
