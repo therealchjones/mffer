@@ -77,8 +77,7 @@ namespace Mffer {
 		public bool Contains( string name ) {
 			if ( String.IsNullOrEmpty( name ) ) throw new ArgumentNullException( nameof( name ) );
 			if ( Assets.ContainsKey( name ) ) return true;
-			GetAllAssetNames();
-			return Assets.ContainsKey( name );
+			return assetReader.Contains( name, this );
 		}
 		/// <summary>
 		/// Obtains a list of the names of all <see cref="Assets"/>s included in
@@ -87,16 +86,15 @@ namespace Mffer {
 		/// <remarks>
 		/// This method does not report whether data for the listed <see
 		/// cref="Asset"/>s has been loaded into the instance, only which <see
-		/// cref="Asset"/>s are accessible within the <see cref="AssetBundle"/>
+		/// cref="Asset"/>s are accessible within the <see cref="AssetBundle"/>.
+		/// Additionally, this returns only the names of included assets, not
+		/// the (possible) aliased class names.
 		/// </remarks>
 		/// <returns><see cref="List{String}"/> containing all <see
 		/// cref="Asset"/> names accessible within this <see
 		/// cref="AssetBundle"/></returns>
 		public List<string> GetAllAssetNames() {
 			List<string> assetNames = assetReader.GetAllAssetNames( this );
-			foreach ( string name in assetNames ) {
-				if ( !Assets.ContainsKey( name ) ) Assets.Add( name, null );
-			}
 			return assetNames;
 		}
 		/// <summary>
@@ -106,8 +104,12 @@ namespace Mffer {
 		/// <returns>The asset named <paramref name="name"/></returns>
 		public Asset GetAsset( string name ) {
 			if ( String.IsNullOrEmpty( name ) ) throw new ArgumentNullException( nameof( name ) );
-			if ( !Assets.ContainsKey( name ) || Assets[name] is null || Assets[name].Value is null ) Assets[name] = assetReader.GetAsset( name, this );
-			return Assets[name];
+			if ( Assets.ContainsKey( name )
+				&& Assets[name] is not null
+				&& Assets[name].Value is not null )
+				return Assets[name];
+			else
+				return assetReader.GetAsset( name, this );
 		}
 		/// <summary>
 		/// Obtains all data accessible within this <see cref="AssetBundle"/> as
@@ -117,13 +119,7 @@ namespace Mffer {
 		/// <see cref="AssetBundle"/>, with all their data fully
 		/// loaded</returns>
 		public List<Asset> GetAllAssets() {
-			GetAllAssetNames();
-			foreach ( string key in Assets.Keys ) {
-				if ( Assets[key] is null || Assets[key].Value is null ) {
-					Assets[key] = GetAsset( key );
-				}
-			}
-			return Assets.Values.ToList();
+			return assetReader.GetAllAssets( this );
 		}
 	}
 }

@@ -111,14 +111,14 @@ namespace Mffer {
 		/// within the provided <see cref="AssetBundle"/></exception>
 		public Asset GetAsset( string assetName, AssetBundle assetBundle ) {
 			CheckAssetBundle( assetBundle );
-			if ( !assetBundle.Contains( assetName ) )
-				throw new KeyNotFoundException( $"Asset bundle {assetBundle.Path} does not contain an asset named '{assetName}'." );
 			string assetBundlePath = Path.GetFullPath( assetBundle.Path );
 			AssetsToolsNETBundle assetNETBundle = assetBundles[assetBundlePath];
+			if ( !Contains( assetName, assetNETBundle ) )
+				throw new KeyNotFoundException( $"Asset bundle {assetBundle.Path} does not contain an asset named '{assetName}'." );
 			if ( !assetNETBundle.AssetInfo.ContainsKey( assetName ) && assetNETBundle.Classes.ContainsKey( assetName ) ) {
 				assetName = assetNETBundle.Classes[assetName];
 			}
-			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null ) {
+			if ( !assetBundle.Assets.ContainsKey( assetName ) || assetBundle.Assets[assetName] is null || assetBundle.Assets[assetName].Value is null ) {
 				assetBundle.Assets[assetName] = new Asset( assetBundles[assetBundlePath].AssetInfo[assetName].PathId );
 			}
 			Asset asset = assetBundle.Assets[assetName];
@@ -137,7 +137,6 @@ namespace Mffer {
 			CheckAssetBundle( assetBundle );
 			AssetsToolsNETBundle assetToolsNetBundle = assetBundles[Path.GetFullPath( assetBundle.Path )];
 			List<string> fullList = assetToolsNetBundle.AssetInfo.Keys.ToList();
-			fullList.AddRange( assetToolsNetBundle.Classes.Keys.ToList() );
 			return fullList;
 		}
 		/// <inheritdoc/>
