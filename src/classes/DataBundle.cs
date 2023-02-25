@@ -44,7 +44,7 @@ namespace Mffer {
 		/// which this <see cref="DataBundle"/> will load its data</param>
 		public DataBundle( VersionDirectory backingDirectory ) : this() {
 			if ( backingDirectory is null ) {
-				throw new ArgumentNullException( "backngDirectory" );
+				throw new ArgumentNullException( "backingDirectory" );
 			}
 			BackingDirectory = backingDirectory;
 		}
