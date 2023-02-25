@@ -42,15 +42,27 @@ namespace Mffer {
 		/// contains loaded data, <c>false</c> otherwise.</returns>
 		/// <seealso cref="Component.IsLoaded()"/>
 		public override bool IsLoaded() {
-			return LocalDictionary.Count != 0;
+			if ( BackingData is not null
+				&& BackingData.Count > 0
+				&& BackingData.First().Value is not null )
+				return true;
+			return false;
 		}
 		/// <summary>
-		/// Loads data into this <see cref="Localization"/>
+		/// Loads asset data for this <see cref="Localization"/>
 		/// </summary>
 		/// <seealso cref="Component.Load()"/>
 		public override void Load() {
-			base.Load();
 			if ( IsLoaded() ) return;
+			base.Load();
+		}
+		/// <summary>
+		/// Loads all asset data for this <see cref="Localization"/> into the component
+		/// </summary>
+		/// <exception cref="InvalidOperationException"></exception>
+		/// <exception cref="Exception"></exception>
+		public override void LoadAll() {
+			base.Load();
 			dynamic asset = BackingData.First().Value;
 			if ( asset is null ) throw new InvalidOperationException( $"Unable to load localization; no asset loaded." );
 			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) ) {
@@ -93,11 +105,56 @@ namespace Mffer {
 		/// <param name="input">An encoded string to be decoded</param>
 		/// <returns>The decoded and localized string</returns>
 		public string GetString( string input ) {
-			if ( LocalDictionary.ContainsKey( "PACKAGE_01" ) ) {
-				return LocalDictionary[input];
+			if ( LocalDictionary.ContainsKey( input ) ) return LocalDictionary[input];
+			string value;
+			if ( BackingData.First().Key.EndsWith( ".csv", StringComparison.InvariantCultureIgnoreCase ) )
+				value = GetStringFromCsv( input );
+			else
+				value = GetStringFromAsset( input );
+			LocalDictionary.Add( input, value );
+			return value;
+		}
+		string GetStringFromCsv( string input ) {
+			dynamic asset = BackingData.First().Value;
+			if ( asset.GetValue( "m_Script" ) is String csv ) {
+				using ( JsonDocument dictionary = JsonDocument.Parse( CSVtoJson( csv ) ) ) {
+					foreach ( JsonElement entry in dictionary.RootElement.EnumerateArray() ) {
+						if ( entry.GetProperty( "KEY" ).GetString() == input )
+							return entry.GetProperty( "TEXT" ).GetString();
+					}
+				}
+				throw new KeyNotFoundException( input );
 			} else {
-				return LocalDictionary[MakeHash( input )];
+				throw new InvalidOperationException( "Unable to parse dictionary." );
 			}
+		}
+		string GetStringFromAsset( string input ) {
+			dynamic asset = BackingData.First().Value;
+			List<GameObject> keys = asset.keyTable.keys.Value;
+			int numKeys = keys.Count;
+			string hash = input;
+			if ( keys[1].Value != "PACKAGE_01" )
+				hash = MakeHash( input );
+			bool found = false;
+			int valueIndex = 0;
+			for ( int i = 0; i < numKeys; i++ ) {
+				if ( keys[i].Value == hash ) {
+					found = true;
+					valueIndex = Convert.ToInt32( asset.keyTable.values[i].Value );
+					break;
+				}
+			}
+			if ( !found ) throw new KeyNotFoundException( input );
+			List<GameObject> valueIndices = asset.valueTable.keys.Value;
+			if ( valueIndices[valueIndex - 1].Value == valueIndex.ToString() ) {
+				return asset.valueTable.values[valueIndex - 1].Value;
+			}
+			for ( int i = 0; i < valueIndices.Count; i++ ) {
+				if ( valueIndices[i].Value == valueIndex.ToString() ) {
+					return asset.valueTable.values[i].Value;
+				}
+			}
+			throw new InvalidOperationException( "Localization dictionary has unrecognized format" );
 		}
 		/// <summary>
 		/// Creates a reproducible numeric hash from a string
