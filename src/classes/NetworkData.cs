@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Snappier;
@@ -101,6 +100,10 @@ namespace Mffer {
 		/// Encryption key used to encrypt messages and decrypt responses
 		/// </summary>
 		static string PacketKey = null;
+		/// <summary>
+		/// Encryption key used to decrypt some assets
+		/// </summary>
+		static string TextKey = "3&?f(7F>";
 		/// <summary>
 		/// Identifier for Android device
 		/// </summary>
@@ -301,7 +304,7 @@ namespace Mffer {
 			byte[] responseBytes = Www.Send( request ).Content.ReadAsByteArrayAsync().Result;
 			string key = GetAesKey() + GetAesKey();
 			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
-			byte[] decryptedBytes = DecryptBytes( responseBytes, keyBytes, keyBytes );
+			byte[] decryptedBytes = CryptUtil.DecryptBytes( responseBytes, keyBytes, keyBytes );
 			int decompressedLength = Snappy.GetUncompressedLength( decryptedBytes );
 			byte[] decompressedBytes = Snappy.DecompressToArray( decryptedBytes );
 			string text = Encoding.UTF8.GetString( decompressedBytes );
@@ -369,7 +372,7 @@ namespace Mffer {
 			if ( String.IsNullOrEmpty( key ) )
 				key = GetAesKey() + GetAesKey();
 			byte[] parameterBytes = Encoding.UTF8.GetBytes( completeParam );
-			byte[] encryptedParameter = AesEncrypt( parameterBytes, key, true );
+			byte[] encryptedParameter = CryptUtil.AesEncrypt( parameterBytes, key, true );
 			byte[] header = MakeWwwHeader( SessionID, encryptedParameter.Length );
 			byte[] contents = new byte[header.Length + encryptedParameter.Length];
 			Array.Copy( header, contents, header.Length );
@@ -416,7 +419,7 @@ namespace Mffer {
 			Array.Copy( sizeBytes, sizeBytes.Length - 3, headerBytes, 1, 3 );
 			headerBytes[4] = (byte)( Rng.Next( 0x100 ) );
 			Array.Copy( sessionBytes, 0, headerBytes, 5, sessionBytes.Length );
-			return AesEncrypt( headerBytes, GetAesKey() + GetAesKey() );
+			return CryptUtil.AesEncrypt( headerBytes, GetAesKey() + GetAesKey() );
 		}
 		/// <summary>
 		/// Sign in to Netmarble servers
@@ -560,7 +563,7 @@ namespace Mffer {
 			if ( String.IsNullOrEmpty( DeviceId ) ) {
 				string part1 = "0,0," + GetAndroidId();
 				string part2 = GetDeviceKey() + GetDeviceModel();
-				DeviceId = GetMD5( part1 ) + "-" + GetMD5( part2 );
+				DeviceId = CryptUtil.GetMD5( part1 ) + "-" + CryptUtil.GetMD5( part2 );
 			}
 			return DeviceId;
 		}
@@ -589,77 +592,6 @@ namespace Mffer {
 			return AndroidId;
 		}
 		/// <summary>
-		/// Encrypt the given byte array using the AES algorithm and the given
-		/// key and an initialization vector that is the same as the key
-		/// </summary>
-		/// <param name="decrypted">the byte array to encrypt</param>
-		/// <param name="key">a string of the AES key to use</param>
-		/// <returns>a byte array of the encrypted message</returns>
-		static string AesEncrypt( string decrypted, string key ) {
-			ASCIIEncoding asciiEncoding = new ASCIIEncoding();
-			byte[] rijKey = asciiEncoding.GetBytes( key );
-			UnicodeEncoding unicodeEncoding = new UnicodeEncoding();
-			byte[] decryptedBytes = unicodeEncoding.GetBytes( decrypted );
-			byte[] encryptedBytes = AesEncrypt( decryptedBytes, rijKey );
-			return Convert.ToBase64String( encryptedBytes );
-		}
-		/// <summary>
-		/// Encrypt the given byte array using the AES algorithm and the given key and initialization vector
-		/// </summary>
-		/// <param name="decrypted">the byte array to encrypt</param>
-		/// <param name="key">a string of the AES key to use</param>
-		/// <param name="isKeyIvSame"><c>true</c> the the initialization vector should be the same as the key; if <c>false</c>, a "blank" 16-byte array will be used as the IV</param>
-		/// <returns>a byte array of the encrypted message</returns>
-		static byte[] AesEncrypt( byte[] decrypted, string key, bool isKeyIvSame = true ) {
-			byte[] keyBytes = ( new ASCIIEncoding() ).GetBytes( key );
-			return AesEncrypt( decrypted, keyBytes, isKeyIvSame );
-		}
-		/// <summary>
-		/// Encrypt the given byte array using the AES algorithm and the given key and initialization vector
-		/// </summary>
-		/// <param name="decrypted">the byte array to encrypt</param>
-		/// <param name="key">a byte array of the AES key to use</param>
-		/// <param name="isKeyIvSame"><c>true</c> the the initialization vector should be the same as the key; if <c>false</c>, a "blank" 16-byte array will be used as the IV</param>
-		/// <returns>a byte array of the encrypted message</returns>
-		static byte[] AesEncrypt( byte[] decrypted, byte[] key, bool isKeyIvSame = true ) {
-			byte[] encryptedBytes = null;
-			using ( RijndaelManaged rijAlg = new RijndaelManaged() ) {
-				rijAlg.KeySize = key.Length << 3;
-				rijAlg.BlockSize = 128;
-				rijAlg.Mode = CipherMode.CBC;
-				rijAlg.Padding = PaddingMode.PKCS7;
-				rijAlg.Key = key;
-				if ( isKeyIvSame ) rijAlg.IV = key;
-				else rijAlg.IV = new byte[16];
-				ICryptoTransform encryptor = rijAlg.CreateEncryptor( rijAlg.Key, rijAlg.IV );
-				using ( MemoryStream msEncrypt = new MemoryStream() ) {
-					using ( CryptoStream csEncrypt = new CryptoStream( msEncrypt, encryptor, CryptoStreamMode.Write ) ) {
-						csEncrypt.Write( decrypted, 0, decrypted.Length );
-						csEncrypt.FlushFinalBlock();
-						encryptedBytes = msEncrypt.ToArray();
-					}
-				}
-			}
-			return encryptedBytes;
-		}
-		/// <summary>
-		/// Calculate the MD5 hash of a string
-		/// </summary>
-		/// <param name="input">the string to evaluate</param>
-		/// <returns>the MD5 hash of <paramref name="input"/> as a string</returns>
-		static string GetMD5( string input ) {
-			string output;
-			using ( MD5 md5hash = MD5.Create() ) {
-				byte[] outputBytes = md5hash.ComputeHash( Encoding.UTF8.GetBytes( input ) );
-				var outputBuilder = new StringBuilder();
-				for ( int i = 0; i < outputBytes.Length; i++ ) {
-					outputBuilder.Append( outputBytes[i].ToString( "X2" ) );
-				}
-				output = outputBuilder.ToString();
-			}
-			return output;
-		}
-		/// <summary>
 		/// Get a mock IP from which the request is originating
 		/// </summary>
 		/// <remarks>In mffer, always returns a constant internal IP</remarks>
@@ -680,68 +612,7 @@ namespace Mffer {
 				key = GetAesKey() + GetAesKey();
 			}
 			byte[] keyBytes = Encoding.UTF8.GetBytes( key );
-			return Decrypt( encryptedBytes, keyBytes, keyBytes );
-		}
-		/// <summary>
-		/// Decrypt the encrypted byte array using an AES algorithm with the given key and initialization vector
-		/// </summary>
-		/// <param name="text">the encrypted byte array</param>
-		/// <param name="key">the AES key</param>
-		/// <param name="iv">the AES initialization vector</param>
-		/// <returns>a string of the decrypted message</returns>
-		static string Decrypt( byte[] text, byte[] key, byte[] iv ) {
-			using ( Aes rijAlg = Aes.Create() ) {
-				rijAlg.KeySize = key.Length << 3;
-				rijAlg.BlockSize = 128;
-				rijAlg.Mode = CipherMode.CBC;
-				rijAlg.Padding = PaddingMode.PKCS7;
-				rijAlg.Key = key;
-				rijAlg.IV = iv;
-				ICryptoTransform decryptor = rijAlg.CreateDecryptor( key, iv );
-				using ( MemoryStream msDecrypt = new MemoryStream( text ) ) {
-					using ( CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Read ) ) {
-						using ( StreamReader srDecrypt = new StreamReader( csDecrypt ) ) {
-							return srDecrypt.ReadToEnd();
-						}
-					}
-				}
-			}
-		}
-		/// <summary>
-		/// Decrypt the encrypted byte array using an AES algorithm with the given key and initialization vector
-		/// </summary>
-		/// <param name="text">the encrypted byte array</param>
-		/// <param name="key">the AES key</param>
-		/// <param name="iv">the AES initialization vector</param>
-		/// <returns>a byte array of the decrypted message</returns>
-		static byte[] DecryptBytes( byte[] text, byte[] key, byte[] iv ) {
-			using ( Aes rijAlg = Aes.Create() ) {
-				rijAlg.KeySize = key.Length << 3;
-				rijAlg.BlockSize = 128;
-				rijAlg.Mode = CipherMode.CBC;
-				rijAlg.Padding = PaddingMode.PKCS7;
-				rijAlg.Key = key;
-				rijAlg.IV = iv;
-				int chunkSize = 1000;
-				ICryptoTransform decryptor = rijAlg.CreateDecryptor( key, iv );
-				using ( MemoryStream msDecrypt = new MemoryStream( text ) ) {
-					using ( CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Read ) ) {
-						using ( BinaryReader srDecrypt = new BinaryReader( csDecrypt ) ) {
-							byte[] newBytes;
-							List<byte> decryptedBytes = new List<byte>();
-							while ( true ) {
-								newBytes = srDecrypt.ReadBytes( chunkSize );
-								if ( newBytes.Length > 0 ) {
-									decryptedBytes.AddRange( newBytes );
-								} else {
-									break;
-								}
-							}
-							return decryptedBytes.ToArray();
-						}
-					}
-				}
-			}
+			return CryptUtil.Decrypt( encryptedBytes, keyBytes, keyBytes );
 		}
 		/// <summary>
 		/// Get the access token, signing in if not already done so
@@ -857,41 +728,23 @@ namespace Mffer {
 		/// <summary>
 		/// Creates a text key from the given string.
 		/// </summary>
-		/// <remarks>Does not do anything persistent (like saving  field or
-		/// property value) at this time; does not appear to be used in the
-		/// process currently.</remarks>
-		/// <param name="text">string from which the text key will be derived</param>
+		/// <remarks>Based on MFF's CryptUtil.TextKey.set(), called by
+		/// PacketTransfer.PreLoginOK(). However, MFF stores the TextKey field
+		/// encrypted and XOR'ed; for simplicity, we store it in
+		/// plaintext.</remarks>
+		/// <param name="text">string from which the text key will be
+		/// derived</param>
 		static void SetTextKey( string text ) {
-			string pk = GetPacketKey();
-			System.Text.UnicodeEncoding unicodeEncoding = new System.Text.UnicodeEncoding( false, true, false );
-			byte[] textBytes = unicodeEncoding.GetBytes( text );
-			System.Text.ASCIIEncoding asciiEncoding = new System.Text.ASCIIEncoding();
-			byte[] keyBytes = asciiEncoding.GetBytes( pk );
-			System.Security.Cryptography.RijndaelManaged rijAlg = new System.Security.Cryptography.RijndaelManaged();
-			rijAlg.KeySize = keyBytes.Length << 3;
-			rijAlg.BlockSize = 0x80;
-			rijAlg.Mode = (CipherMode)1;
-			rijAlg.Padding = (PaddingMode)1;
-			rijAlg.Key = keyBytes;
-			rijAlg.IV = new byte[16];
-			ICryptoTransform encryptor = rijAlg.CreateEncryptor( rijAlg.Key, rijAlg.IV );
-			using ( MemoryStream msEncrypt = new MemoryStream() ) {
-				using ( CryptoStream csEncrypt = new CryptoStream( msEncrypt, encryptor, CryptoStreamMode.Write ) ) {
-					csEncrypt.Write( textBytes, 0, textBytes.Length );
-					csEncrypt.FlushFinalBlock();
-					textBytes = msEncrypt.ToArray();
-				}
-			}
-			string textKey_ = Convert.ToBase64String( textBytes );
-			StringBuilder builder = new StringBuilder( textKey_.Length );
-			char[] decoded = textKey_.ToCharArray();
-			uint[] xor_table = { 0, 0, 0, 0 };
-			for ( int i = 0; i < decoded.Length; i++ ) {
-				builder.Append( (uint)( (char)( (uint)decoded[i] ^ xor_table[i % xor_table.Length] ) ) );
-			}
-			textKey_ = builder.ToString();
-			System.Text.Encoding encoding = System.Text.Encoding.UTF8;
-			textKey_ = Convert.ToBase64String( encoding.GetBytes( textKey_ ) );
+			TextKey = text;
+		}
+		/// <summary>
+		/// Obtains the text key used for some asset decryption
+		/// </summary>
+		///
+		/// <returns>the text key as a string</returns>
+		static public string GetTextKey() {
+			if ( String.IsNullOrEmpty( TextKey ) ) LoadConstants();
+			return TextKey;
 		}
 		/// <summary>
 		/// Downloads and parses available data for the given <see cref="Alliance"/>
