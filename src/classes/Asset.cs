@@ -52,7 +52,7 @@ namespace Mffer {
 					break;
 				}
 			}
-			if ( !String.IsNullOrEmpty( text ) )
+			if ( String.IsNullOrEmpty( text ) )
 				text = CryptUtil.Decrypt( encryptedBytes, Encoding.ASCII.GetBytes( NetworkData.GetTextKey() ), new byte[16] );
 			return text;
 		}
