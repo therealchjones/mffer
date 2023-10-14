@@ -2,6 +2,8 @@
 
 Marvel Future Fight exploration & reporting
 
+mffer is no longer being developed. This github repository is archived.
+
 This project develops software that creates and updates the
 [mffer webapp](https://mffer.org).
 

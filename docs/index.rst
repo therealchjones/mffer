@@ -6,6 +6,8 @@
 mffer
 =====
 
+mffer is no longer being developed. This content is not expected to change. The mffer.org domain and these pages could be removed at any time.
+
 .. toctree::
    :hidden:
    :caption: Using mffer
