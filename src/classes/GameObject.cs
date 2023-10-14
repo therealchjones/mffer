@@ -94,8 +94,20 @@ namespace Mffer {
 		/// <returns>The value at <c>index</c>, iff this <see cref="GameObject"/> is an array type</returns>
 		/// <exception cref="InvalidOperationException">if this <see cref="GameObject"/> is not an array type</exception>
 		GameObject GetObject( int index ) {
-			if ( IsArray() ) return Value[index];
-			throw new InvalidOperationException( $"Unable to get an object at index {index}: value is not an array." );
+			if ( TryGetObject( index, out GameObject item ) ) {
+				return item;
+			} else {
+				throw new InvalidOperationException( $"Unable to get an object at index {index}." );
+			}
+		}
+		bool TryGetObject( int index, out GameObject item ) {
+			item = null;
+			if ( !IsArray() ) return false;
+			if ( Value.Count <= index ) return false;
+			else {
+				item = Value[index];
+				return true;
+			}
 		}
 		/// <summary>
 		/// String accessor for this <see cref="GameObject"/>
@@ -103,11 +115,91 @@ namespace Mffer {
 		/// <param name="key"><see cref="String"/> key of the value to return</param>
 		/// <returns>The value at <c>key</c>, iff this <see cref="GameObject"/> is a <see cref="Dictionary{K,V}"/> type</returns>
 		/// <exception cref="InvalidOperationException">if this <see cref="GameObject"/> is not a <see cref="Dictionary{K,V}"/> type</exception>
-
-		GameObject GetObject( string key = null ) {
-			if ( key is null ) return this;
-			if ( IsDictionary() ) return Value[key];
-			throw new InvalidOperationException( $"Unable to get an object with key {key}: value is not a dictionary." );
+		GameObject GetObject( string key ) {
+			if ( TryGetObject( key, out GameObject item ) ) {
+				return item;
+			} else {
+				throw new InvalidOperationException( $"Unable to get an object with key {key}." );
+			}
+		}
+		bool TryGetObject( string key, out GameObject item ) {
+			item = null;
+			if ( !IsDictionary() ) return false;
+			if ( !( (Dictionary<string, GameObject>)Value ).ContainsKey( key ) ) return false;
+			else {
+				item = Value[key];
+				return true;
+			}
+		}
+		bool TryGetUniqueValue( out string value ) {
+			value = null;
+			if ( IsString() || _value is null ) {
+				value = Value;
+				return true;
+			}
+			if ( Value.Count == 0 ) {
+				return false;
+			}
+			if ( IsArray() && Value.Count == 1 )
+				return ( (List<GameObject>)Value )[0].TryGetUniqueValue( out value );
+			if ( IsDictionary() && Value.Count == 1 )
+				return ( (Dictionary<string, GameObject>)Value ).First().Value.TryGetUniqueValue( out value );
+			return false;
+		}
+		bool TryGetUniqueValue( string key, out string value ) {
+			value = null;
+			if ( key is null ) return TryGetUniqueValue( out value );
+			if ( IsString() || _value is null ) return false;
+			if ( Value.Count == 0 ) return false;
+			if ( IsArray() && Value.Count == 1 )
+				return Value[0].TryGetUniqueValue( key, out value );
+			if ( IsDictionary() && ( (Dictionary<string, GameObject>)Value ).ContainsKey( key ) )
+				return Value[key].TryGetUniqueValue( out value );
+			if ( IsDictionary() && Value.Count == 1 )
+				return Value.First().Value.TryGetUniqueValue( key, out value );
+			return false;
+		}
+		bool TryGetUniqueValue( int index, out string value ) {
+			value = null;
+			if ( IsString() || _value is null ) return false;
+			if ( Value.Count == 0 ) return false;
+			if ( IsArray() && Value.Count == 1 ) {
+				if ( Value[0].TryGetUniqueValue( index, out value ) ) {
+					return true;
+				} else if ( index == 0 )
+					return Value[0].TryGetUniqueValue( out value );
+			}
+			if ( IsArray() && index < Value.Count )
+				return Value[index].TryGetUniqueValue( out value );
+			if ( IsDictionary() && Value.Count == 1 )
+				return Value.First().Value.TryGetUniqueValue( index, out value );
+			return false;
+		}
+		/// <summary>
+		/// Obtains the object that is the most distant descendant of the
+		/// current GameObject that can be identified uniquely
+		/// </summary>
+		/// <remarks>
+		/// A <see cref="GameObject"/> may be diagrammed or visualized as a
+		/// tree, where each child GameObject (i.e., each value of an array-type
+		/// or dictionary-type GameObject) forms a "branch" and null, string, or
+		/// empty arrays or dictionaries form "leaves". As it is common for
+		/// array-type and dictionary-type GameObjects to have only one child as
+		/// an artifact of importing, <see cref="GameObject.GetUniqueObject()"/>
+		/// is useful for "squashing" those trivial objects and returning the
+		/// next descendant that is a "true" branch point or "leaf". Note that
+		/// this removes intervening structures such as dictionary key names
+		/// when bypassing dictionaries with a single key.
+		/// </remarks>
+		/// <returns>The most distant <see cref="GameObject"/> that is an
+		/// "unbranched" descendant of the current GameObject</returns>
+		GameObject GetUniqueObject() {
+			if ( Value is null ) return this;
+			if ( IsString() ) return this;
+			if ( Value.Count == 0 ) return this;
+			if ( IsArray() && Value.Count == 1 ) return Value[0].GetUniqueObject();
+			if ( IsDictionary() && Value.Count == 1 ) return Value.First().Value.GetUniqueObject();
+			return this;
 		}
 		/// <summary>
 		///	Obtains a value from a nested <see cref="GameObject"/>
@@ -117,48 +209,22 @@ namespace Mffer {
 		/// null value that is represented by the <see cref="GameObject.Value"/>
 		/// property or its descendants, optionally with a single level of
 		/// branching where a branch can be chosen with the <paramref
-		/// name="key"/> parameter, <see cref="GetValue"/> will return the value.
+		/// name="key"/> parameter, <see cref="GetValue"/> will return the
+		/// value. Note that this is different from the <see
+		/// cref="GetObject(string)"/> method, which does not search nested
+		/// levels of <see cref="GameObject"/>s.
 		/// </remarks>
 		/// <param name="key">The optional name of the value for which to
 		/// search</param>
 		/// <returns>The value associated with this <see cref="GameObject"/> and
 		/// (optionally) <paramref name="key"/></returns>
-		/// <exception cref="KeyNotFoundException"> if no single value can be definitively chosen</exception>
+		/// <exception cref="KeyNotFoundException"> if no single value can be
+		/// definitively chosen</exception>
 		public virtual string GetValue( string key = null ) {
-			if ( key is null ) {
-				if ( IsString() || _value is null ) return Value;
-				else if ( IsArray() ) {
-					List<GameObject> array = Value as List<GameObject>;
-					if ( array.Count == 0 ) return null;
-					else if ( array.Count == 1 ) return array[0].GetValue();
-					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
-				} else if ( IsDictionary() ) {
-					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
-					if ( dictionary.Count == 0 ) return null;
-					else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue();
-					else throw new KeyNotFoundException( "Unable to get unique value: Dictionary has multiple items." );
-				} else {
-					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
-				}
+			if ( TryGetUniqueValue( key, out string value ) ) {
+				return value;
 			} else {
-				if ( IsString() || _value is null ) {
-					throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-				} else if ( IsArray() ) {
-					List<GameObject> array = Value as List<GameObject>;
-					if ( array.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-					else if ( array.Count == 1 ) return array[0].GetValue( key );
-					else throw new KeyNotFoundException( "Unable to get unique value: List has multiple items." );
-				} else if ( IsDictionary() ) {
-					Dictionary<string, GameObject> dictionary = Value as Dictionary<string, GameObject>;
-					if ( dictionary.Count == 0 ) throw new KeyNotFoundException( $"No identifier '{key}' was found." );
-					else {
-						if ( dictionary.ContainsKey( key ) ) return dictionary[key].GetValue();
-						else if ( dictionary.Count == 1 ) return dictionary.First().Value.GetValue( key );
-						else return dictionary[key].GetValue(); // which will throw a KeyNotFoundException
-					}
-				} else {
-					throw new InvalidOperationException( "Unable to determine type of object represented by value." );
-				}
+				throw new KeyNotFoundException( $"Unable to identify a value uniquely associated with key '{key}'" );
 			}
 		}
 		/// <summary>
@@ -291,6 +357,42 @@ namespace Mffer {
 					return true;
 				}
 			}
+		}
+		/// <summary>
+		/// Reports whether this <see cref="GameObject"/> contains a given list
+		/// item or dictionary key
+		/// </summary>
+		/// <remarks><see cref="GameObject.Contains(string)"/> examines this
+		/// <see cref="GameObject"/> and its descendents to determine if there
+		/// is a unique descendent with a value that is a <see cref="List{T}"/>
+		/// of GameObjects and that the list contains a GameObject with a single
+		/// descendent branch and the descendent value is the string <see
+		/// paramref="item"/>. Put another way, the method determines whether
+		/// there is some integer <c>i</c> such that <c>this[i]</c> is or
+		/// <c>this.GetValue(i)</c> returns <c>item</c>.</remarks>
+		/// <param name="item"><see cref="string"/> for which to search</param>
+		/// <returns><c>true</c> if the GameObject satisfies the condition
+		/// above, false if the GameObject is not an array-type GameObject or
+		/// does not contain such an item.</returns>
+		public virtual bool Contains( string item ) {
+			if ( item is null ) throw new ArgumentNullException( nameof( item ) );
+			if ( IsString() || _value is null ) return false;
+			if ( IsDictionary() ) {
+				if ( Value.Count == 0 ) return false;
+				if ( Value.ContainsKey( item ) ) return true;
+				if ( Value.Count > 1 ) return false;
+				return Value.First().Value.Contains( item );
+			}
+			if ( IsArray() ) {
+				if ( Value.Count == 0 ) return false;
+				foreach ( GameObject gameObject in (List<GameObject>)Value ) {
+					GameObject leaf = gameObject.GetUniqueObject();
+					if ( leaf.IsString() && leaf.Value == item ) return true;
+					if ( leaf.IsDictionary() || leaf.IsArray() )
+						if ( leaf.Contains( item ) ) return true;
+				}
+			}
+			return false;
 		}
 		/// <summary>
 		/// Loads associated data into the appropriate members

@@ -74,7 +74,7 @@ namespace Mffer {
 		/// <c>false</c> otherwise</returns>
 		/// <exception cref="ArgumentNullException"> if <paramref name="name"/>
 		/// is null or empty</exception>
-		public bool Contains( string name ) {
+		public override bool Contains( string name ) {
 			if ( String.IsNullOrEmpty( name ) ) throw new ArgumentNullException( nameof( name ) );
 			if ( Assets.ContainsKey( name ) ) return true;
 			return assetReader.Contains( name, this );

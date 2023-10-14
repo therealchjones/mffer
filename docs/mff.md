@@ -480,10 +480,6 @@ more frequently updated data such as news, events, and achievements.
 
 ### Useful functions
 
-Important functions with lots of info to explore:
-
--   `TableUtility$$LoadAll`
-
 ## The mffer Model
 
 -   `Game` (Marvel Future Fight)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace Mffer {
 	/// <summary>
@@ -29,13 +30,32 @@ namespace Mffer {
 		/// </summary>
 		public Dictionary<string, Character> Characters { get; set; }
 		/// <summary>
+		/// Gets or sets data about abilities
+		/// </summary>
+		/// <remarks>These include items referred to as "hero subtypes" by MFF</remarks>
+		Dictionary<int, Ability> Abilities { get; set; }
+		/// <summary>
 		/// Initializes a new instance of the <see cref="Roster"/> class
 		/// </summary>
 		/// <seealso cref="Component.Component()"/>
 		public Roster() : base() {
 			Name = "Roster";
 			Characters = new Dictionary<string, Character>();
+			Abilities = new();
 			AddBackingData( "IntHeroDataDictionary||text/data/hero_list.asset" );
+			AddBackingData( "text/data/hero_skill.asset" );
+			// from HeroSubtypeData.LoadCSV:
+			AddBackingData( "text/data/mob_subtype_skill.csv" );
+			AddBackingData( "text/data/hero_subtype_skill.csv" );
+			AddBackingData( "text/data/hero_subtype_to_subtype.csv" );
+			AddBackingData( "text/data/hero_ability_to_subtype.csv" );
+
+			AddBackingData( "IntSkillDataDictionary" );
+			AddBackingData( "IntAbilityGroupDataDictionary" );
+
+			// from DBTable.get_skillTable:
+			AddBackingData( "IntSkillDataDictionary" );
+
 			AddDependency( "Localization" );
 		}
 		/// <summary>
@@ -55,10 +75,8 @@ namespace Mffer {
 		public override void Load() {
 			base.Load();
 			if ( IsLoaded() ) return;
-			if ( BackingData.Count != 1 ) {
-				throw new InvalidDataException();
-			}
-			dynamic asset = (Asset)BackingData.First().Value;
+			LoadAbilities();
+			dynamic asset = BackingData.First().Value;
 			Localization LocalDictionary = (Localization)Dependencies["Localization"];
 			List<string> AllHeroIds = new List<string>();
 			List<GameObject> entries = asset.values.Value;
@@ -139,6 +157,113 @@ namespace Mffer {
 					character.Species = LocalDictionary.GetString( "HERO_SUBTYPE_" + entry.species.ToString() );
 					character.StartGrade = Int32.Parse( entry.startGrade.ToString() );
 					character.GrowType = Int32.Parse( entry.growType.ToString() );
+				}
+			}
+		}
+		void LoadAbilities() {
+			if ( Abilities.Count != 0 ) return;
+			List<GameObject> abilityToSubtypeList = new();
+			using ( JsonDocument abilityToSubtype
+				= JsonDocument.Parse( CSVtoJson( ( (Asset)BackingData["text/data/hero_ability_to_subtype.csv"] ).GetCsv() ) ) ) {
+				foreach ( JsonElement item in abilityToSubtype.RootElement.EnumerateArray() ) {
+					Dictionary<string, int> entry = new();
+					entry["groupId"] = Int32.Parse( item.GetProperty( "GROUP_ID" ).GetString() );
+					entry["abilityGroupId"] = Int32.Parse( item.GetProperty( "ACTION_ABILITY_ID" ).GetString() );
+					entry["subtypeId"] = Int32.Parse( item.GetProperty( "HERO_SUBTYPE_ID" ).GetString() );
+					abilityToSubtypeList.Add( entry.ToGameObject() );
+				}
+			}
+			// This CSV is empty in current versions; will throw exception if that changes
+			List<GameObject> subtypeToSubtypeList = new();
+			using ( JsonDocument subtypeToSubtype
+				= JsonDocument.Parse( CSVtoJson( ( (Asset)BackingData["text/data/hero_subtype_to_subtype.csv"] ).GetCsv() ) ) ) {
+				foreach ( JsonElement item in subtypeToSubtype.RootElement.EnumerateArray() ) {
+					Dictionary<string, int> entry = new();
+					entry["heroGroupId"] = Int32.Parse( item.GetProperty( "HERO_GROUP_ID" ).GetString() );
+					entry["subtypeId"] = Int32.Parse( item.GetProperty( "HERO_SUBTYPE_ID" ).GetString() );
+					entry["autoAbilityCondition"] = Int32.Parse( item.GetProperty( "AUTO_ABILITY_ID" ).GetString() );
+					string autoAbilityParam = item.GetProperty( "AUTO_ABILITY_PARAM" ).GetString();
+					entry["autoAbilityRate"] = Int32.Parse( item.GetProperty( "AUTO_ABILITY_RATE" ).GetString() );
+					float coolTime = float.Parse( item.GetProperty( "COOLTIME" ).GetString() );
+					entry["abilityGroupId"] = Int32.Parse( item.GetProperty( "ACTION_ABILITY_ID" ).GetString() );
+					throw new NotImplementedException( "hero_subtype_to_subtype.csv now includes data" );
+				}
+			}
+			Dictionary<string, GameObject> mobSubtypeSkillDictionary = new();
+			using ( JsonDocument mobSkills
+				= JsonDocument.Parse( CSVtoJson( ( (Asset)BackingData["text/data/mob_subtype_skill.csv"] ).GetCsv() ) ) ) {
+				foreach ( JsonElement item in mobSkills.RootElement.EnumerateArray() ) {
+					List<int> entry = new();
+					entry.Add( Int32.Parse( item.GetProperty( "SKILL_ID_1" ).GetString() ) );
+					entry.Add( Int32.Parse( item.GetProperty( "SKILL_ID_2" ).GetString() ) );
+					entry.Add( Int32.Parse( item.GetProperty( "SKILL_ID_3" ).GetString() ) );
+					mobSubtypeSkillDictionary.Add( item.GetProperty( "SUBTYPE_ID" ).GetString(), entry.ToGameObject() );
+				}
+			}
+			Dictionary<string, GameObject> heroSubtypeSkillDictionary = new();
+			using ( JsonDocument heroSkills
+				= JsonDocument.Parse( CSVtoJson( ( (Asset)BackingData["text/data/hero_subtype_skill.csv"] ).GetCsv() ) ) ) {
+				foreach ( JsonElement item in heroSkills.RootElement.EnumerateArray() ) {
+					Dictionary<string, GameObject> entry = new();
+					List<string> skillIds = new();
+					List<string> raidSkillIds = new();
+					skillIds.Add( item.GetProperty( "SKILL_ID_1" ).GetString() );
+					skillIds.Add( item.GetProperty( "SKILL_ID_2" ).GetString() );
+					skillIds.Add( item.GetProperty( "SKILL_ID_3" ).GetString() );
+					entry.Add( "skillIds", skillIds.ToGameObject() );
+					raidSkillIds.Add( item.GetProperty( "RAID_SKILL_ID_1" ).GetString() );
+					raidSkillIds.Add( item.GetProperty( "RAID_SKILL_ID_2" ).GetString() );
+					raidSkillIds.Add( item.GetProperty( "RAID_SKILL_3" ).GetString() );
+					entry.Add( "skillIds_raid", raidSkillIds.ToGameObject() );
+					entry.Add( "raid_ability_type", item.GetProperty( "RAID_ABILITY_SORT" ).GetString().ToGameObject() );
+					entry.Add( "shadowland_subtype_filter", item.GetProperty( "SHADOWLAND_SUBTYPE_FILTER" ).GetString().ToGameObject() );
+					heroSubtypeSkillDictionary.Add(
+						item.GetProperty( "SUBTYPE_ID" ).GetString(), entry.ToGameObject() );
+				}
+			}
+			// From MFF's HeroSubTypeData.GetSkillsDesc()
+			Dictionary<string, GameObject> subtypeSkillDescDictionary = new();
+			dynamic skillData = (Asset)BackingData["IntSkillDataDictionary"];
+			dynamic abilityGroupData = (Asset)BackingData["IntAbilityGroupDataDictionary"];
+			List<GameObject> skillGroupList = new();
+			foreach ( dynamic entry in heroSubtypeSkillDictionary ) {
+				List<GameObject> skills = entry.Value.Value["skillIds"].Value;
+				// isMob in true / false, isRaid in true / false ) {
+				foreach ( dynamic singleSkillData in skills ) {
+					int skillId = Int32.Parse( singleSkillData.Value );
+					int aniSkillAbilityKey = skillId / 100 * 100;
+					if ( ( (Localization)Dependencies["Localization"] ).TryGetString( "SKILL_ABIL_" + aniSkillAbilityKey, out string localString ) ) {
+						int skillLevel = skillId % 100;
+						foreach ( string substring in localString.Split( ',' ) ) {
+							string[] colonParts = substring.Split( ':' );
+							int newSkillId;
+							var thisSkillData = singleSkillData;
+							if ( colonParts.Length == 2 ) {
+								newSkillId = Int32.Parse( colonParts[1] );
+								// newSkillId = skillData.GetSkillIdWithLevel( newSkillId, skillLevel );
+								newSkillId = newSkillId / 100 * 100 + skillLevel;
+								thisSkillData = skillData[newSkillId];
+							}
+							int abilityGroupId = Int32.Parse( colonParts[0] );
+							// AbilityGroupData.GetAbilityGroupIdWithSkillLevel( abilityGroupId, skillLevel );
+							abilityGroupId = abilityGroupId / 100 * 100 + abilityGroupId % 10 + skillLevel * 10;
+							var thisAbilityGroupData = abilityGroupData[abilityGroupId];
+							Dictionary<string, GameObject> thisSkillGroup = new();
+							thisSkillGroup.Add( abilityGroupData, thisAbilityGroupData.ToGameObject() );
+							thisSkillGroup.Add( skillData, thisSkillData.ToGameObject() );
+							skillGroupList.Add( thisSkillGroup.ToGameObject() );
+						}
+					}
+					// var descDataList = DBTable.GetSkillDescFromAddAbility( skillGroupList, skillId );
+					// string desc = skillData.GetDescImpl();
+					/*
+					{
+						StringBuilder description = new();
+						if ( skillData.autoAbilityId == 48 )
+							description.AppendLine( Localization.GetString( "AUTO_ABILITY_DESC_48_add" ) );
+
+					}
+					*/
 				}
 			}
 		}
@@ -233,7 +358,6 @@ namespace Mffer {
 			}
 		}
 	}
-
 	/// <summary>
 	/// Represents a playable character
 	/// </summary>
@@ -488,72 +612,6 @@ namespace Mffer {
 		/// </summary>
 		public CharacterLevel() {
 			Skills = new List<Skill>();
-		}
-	}
-	/// <summary>
-	/// Represents a <see cref="Character"/> skill
-	/// </summary>
-	public class Skill {
-		/// <summary>
-		/// Gets or sets the skill ID for this <see cref="Skill"/>
-		/// </summary>
-		public string SkillId { get; set; }
-		/// <summary>
-		/// Gets or sets the name of this <see cref="Skill"/>
-		/// </summary>
-		public string Name { get; set; }
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Skill"/> class
-		/// </summary>
-		/// <param name="skillId">The skill ID</param>
-		public Skill( String skillId ) {
-			SkillId = skillId;
-		}
-	}
-	/// <summary>
-	/// Represents a skill (ability) available for a <see cref="Character"/>
-	/// </summary>
-	public class AbilityGroup {
-		/// <summary>
-		/// Gets or sets the ability group ID for this
-		/// <see cref="AbilityGroup"/>
-		/// </summary>
-		public int groupId { get; set; }
-		/// <summary>
-		/// Gets or sets the ability ID for this <see cref="AbilityGroup"/>
-		/// </summary>
-		public int abilityId { get; set; }
-		/// <summary>
-		/// Gets or sets the time of action for this <see cref="AbilityGroup"/>
-		/// </summary>
-		public long time { get; set; }
-		/// <summary>
-		/// Gets or sets the "tick" for this <see cref="AbilityGroup"/>
-		/// </summary>
-		public long tick { get; set; }
-		/// <summary>
-		/// Gets or sets whether this <see cref="AbilityGroup"/>'s action
-		/// continues when tagging a new <see cref="Character"/>
-		/// </summary>
-		public bool keepWhenTagging { get; set; }
-		/// <summary>
-		/// Geets or sets whether this <see cref="AbilityGroup"/>'s effect is
-		/// disabled
-		/// </summary>
-		public bool isEffectDisable { get; set; }
-		/// <summary>
-		/// Loads data into this <see cref="AbilityGroup"/> instance
-		/// </summary>
-		/// <param name="assetObject"><see cref="GameObject"/> containing the
-		/// data to be loaded</param>
-		public void Load( dynamic assetObject ) {
-			dynamic abilityGroup = assetObject.Properties["data"];
-			this.groupId = Int32.Parse( abilityGroup.Properties["groupId"].String );
-			this.abilityId = Int32.Parse( abilityGroup.Properties["abilityId"].String );
-			this.time = Int64.Parse( abilityGroup.Properties["time"].String );
-			this.tick = Int64.Parse( abilityGroup.Properties["tick"].String );
-			this.keepWhenTagging = Boolean.Parse( abilityGroup.Properties["keepWhenTagging"].String );
-			this.isEffectDisable = Boolean.Parse( abilityGroup.Properties["isEffectDisable"].String );
 		}
 	}
 }
